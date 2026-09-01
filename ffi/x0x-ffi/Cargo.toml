@@ -1,0 +1,29 @@
+[package]
+name = "x0x-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "C ABI (and JNI) bindings for embedding the x0x agent network in-process (Android/iOS hosts)"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+name = "x0x_ffi"
+# Android consumes the cdylib (libx0x_ffi.so via jniLibs); iOS consumes the
+# staticlib (libx0x_ffi.a via cinterop / Xcode). iOS builds override the crate
+# type with `cargo rustc --crate-type staticlib`, but we list it here so a
+# plain `cargo build --target <apple-triple>` on macOS produces it too.
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+x0x = "0.40.4"
+anyhow = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "time"] }
+libc = "0.2"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { version = "0.21", default-features = false }
+
+[profile.release]
+# Thin LTO keeps the mobile artifacts small; stripping is left to the
+# platform toolchains (NDK llvm-strip for .so, Xcode for the final app).
+lto = "thin"

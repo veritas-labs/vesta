@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Embedded x0x daemon: the JNI bridge must keep its name (native symbol
+# resolution depends on uk.veritaslabs.vesta.x0x.X0xBridge).
+-keep class uk.veritaslabs.vesta.x0x.X0xBridge { *; }
+-keepclasseswithmembernames class * { native <methods>; }

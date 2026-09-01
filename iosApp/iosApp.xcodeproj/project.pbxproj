@@ -71,6 +71,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 65F8223FB39305DEE733C40C /* Build configuration list for PBXNativeTarget "iosApp" */;
 			buildPhases = (
+				BEBBCC081E9F7D7E819E4C1F /* Build x0x FFI */,
 				868D7FD66950B42FDF31767B /* Compile Kotlin Framework */,
 				83337BFF36FC2B96A284AB4A /* Sources */,
 				52179F0431CCB4DA22A7002D /* Frameworks */,
@@ -135,6 +136,25 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		BEBBCC081E9F7D7E819E4C1F /* Build x0x FFI */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build x0x FFI";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd \"$SRCROOT/..\"\nif [ \"$PLATFORM_NAME\" = \"iphonesimulator\" ]; then\n  ./scripts/build-ios-ffi.sh --platform simulator\nelse\n  ./scripts/build-ios-ffi.sh --platform device\nfi\n";
+		};
 		868D7FD66950B42FDF31767B /* Compile Kotlin Framework */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -312,6 +332,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "-force_load $(SRCROOT)/../ffi/x0x-ffi/dist/ios/aarch64-apple-ios/libx0x_ffi.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "-force_load $(SRCROOT)/../ffi/x0x-ffi/dist/ios/aarch64-apple-ios-sim/libx0x_ffi.a";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -340,6 +362,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "-force_load $(SRCROOT)/../ffi/x0x-ffi/dist/ios/aarch64-apple-ios/libx0x_ffi.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "-force_load $(SRCROOT)/../ffi/x0x-ffi/dist/ios/aarch64-apple-ios-sim/libx0x_ffi.a";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
