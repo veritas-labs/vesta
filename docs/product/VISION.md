@@ -53,8 +53,8 @@
 
 ## Multi-User & "Homes" Model
 
-- Users can create multiple **homes**.
-- Each user has their **own identity** and *joins* a home.
-- Within a home, users share and modify a **shared workspace**.
+- Users can create multiple **Homes** (capped at 10).
+- **Profiles** are device-level: they answer "who is using this device right now" (shared tablets, family devices), carrying a display name, avatar, and app theme.
+- A user (acting through a Profile) joins a Home via an invite code; within a Home they share and modify a **shared workspace** alongside the other members who joined.
 
 ---

@@ -56,8 +56,20 @@ CEO has defined a clear multi-user model: users create multiple **homes**, each 
 | ID | Requirement | Priority |
 |----|------------|----------|
 | FR-40 | Users can establish a local identity without being forced to create an online account or surrender data | Must |
-| FR-41 | A user can belong to multiple homes | Must |
+| FR-41 | A user can belong to multiple homes (capped at 10) | Must |
 | FR-42 | Users can manage their profile (name, avatar, theme preference) | Should |
+
+### Profiles (device-level)
+
+A Profile identifies the **current app user on a device** — essential for shared devices (a family tablet).
+
+| ID | Requirement | Priority |
+|----|------------|----------|
+| FR-43 | A device can host multiple Profiles | Must |
+| FR-44 | Profile creation captures display name, avatar, and app theme | Must |
+| FR-45 | The app shows a Profile Picker when no active session exists and ≥1 Profile exists | Must |
+| FR-46 | Switching Profile switches the current app user, including their theme | Must |
+| FR-47 | Profile is the mandatory prerequisite before creating or joining a Home | Must |
 
 ### AI Agent Accessibility
 
@@ -65,12 +77,12 @@ CEO has defined a clear multi-user model: users create multiple **homes**, each 
 
 | ID | Requirement | Priority |
 |----|------------|----------|
-| FR-50 | Feature parity: every action performable in the GUI has an equivalent programmatic interface accessible to AI agents | Must |
-| FR-51 | Agents can discover available capabilities and how to use them (self-describing interface) | Must |
-| FR-52 | Agents can perform all core operations: manage homes and members, create/assign/complete tasks, manage shared lists | Must |
-| FR-53 | Agent actions are subject to the exact same role/permission rules as GUI actions — an agent **always inherits its human operator's permissions, and never gets anything more** | Must |
-| FR-54 | Agents can query household state (reads) in addition to performing actions (writes) | Must |
-| FR-55 | Agent access works in the same local-first/P2P model — no central server dependency | Must |
+| FR-60 | Feature parity: every action performable in the GUI has an equivalent programmatic interface accessible to AI agents | Must |
+| FR-61 | Agents can discover available capabilities and how to use them (self-describing interface) | Must |
+| FR-62 | Agents can perform all core operations: manage homes and members, create/assign/complete tasks, manage shared lists | Must |
+| FR-63 | Agent actions are subject to the exact same role/permission rules as GUI actions — an agent **always inherits its human operator's permissions, and never gets anything more** | Must |
+| FR-64 | Agents can query household state (reads) in addition to performing actions (writes) | Must |
+| FR-65 | Agent access works in the same local-first/P2P model — no central server dependency | Must |
 
 > **Note:** Exposed via Skills / MCP servers (per CEO). This is a product requirement, not an afterthought — agent access is designed in from day one.
 
@@ -115,7 +127,7 @@ CEO has defined a clear multi-user model: users create multiple **homes**, each 
 ### Usability
 | ID | Requirement |
 |----|------------|
-| NFR-40 | New user can create a household and complete their first task within 5 minutes of sign-up |
+| NFR-40 | New user can create a Home and land on its Dashboard within 5 minutes of first launch |
 | NFR-41 | No screen in the app requires more than 3 taps/clicks from the dashboard |
 
 ### AI Agent Integration
@@ -136,8 +148,10 @@ CEO has defined a clear multi-user model: users create multiple **homes**, each 
 - **Notifications:** Out of scope for v1 entirely.
 - **Accounts:** No mandatory sign-up / account to use the app.
 - **AI agent access:** Required from day one. Feature parity between GUI and agent interfaces (Skills / MCP servers). An agent always acts with the permissions of its human operator — never more.
+- **Invite codes:** Multi-use — one code per Home, shared by the whole family; revoked by rotation.
+- **Home cap:** A user can belong to at most 10 Homes.
+- **Profiles:** Device-level concept — the current app user. A device hosts many Profiles (shared tablets), each with display name, avatar, and app theme. Switching Profile switches the app user and theme. A Home's members are the app users who joined it. *(The earlier "People" concept and x0x agent-id linking are parked for now.)*
 
 ## Open Questions
 
 - [ ] **Only-visible-when-online comms:** Since notifications are out for v1, how do task assignments/recurrences surface to members in an offline-first model (e.g., an in-app "inbox" or activity feed)? Needs UX thinking.
-- [ ] **Theme scope:** Confirm whether theming is visual-only or also adjusts interaction patterns (touch targets, flow complexity) for accessibility.
