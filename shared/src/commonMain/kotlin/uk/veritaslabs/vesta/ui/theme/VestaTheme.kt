@@ -27,6 +27,7 @@ fun VestaTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable 
     MaterialTheme(
         colorScheme = if (darkTheme) VestaDarkColorScheme else VestaLightColorScheme,
         shapes = VestaShapes,
+        typography = vestaTypography(),
         content = content,
     )
 }
