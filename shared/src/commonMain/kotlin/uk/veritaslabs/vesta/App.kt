@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.painterResource
 
+import uk.veritaslabs.vesta.autonomi.AutonomiStatusCard
 import uk.veritaslabs.vesta.x0x.X0xStatusCard
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.compose_multiplatform
@@ -36,6 +37,7 @@ fun App() {
                 Text("Click me!")
             }
             X0xStatusCard()
+            AutonomiStatusCard()
             AnimatedVisibility(showContent) {
                 val greeting = remember { Greeting().greet() }
                 Column(
