@@ -17,6 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.painterResource
 
 import uk.veritaslabs.vesta.autonomi.AutonomiStatusCard
+import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xStatusCard
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.compose_multiplatform
@@ -24,7 +25,7 @@ import vesta.shared.generated.resources.compose_multiplatform
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
+    VestaTheme {
         var showContent by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier

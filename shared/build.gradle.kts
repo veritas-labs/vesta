@@ -113,6 +113,13 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.compose.uiTest)
+        }
+        jvmTest.dependencies {
+            // Skiko's native renderer, needed for runComposeUiTest on the jvm
+            // target; desktopApp pulls this in for the real app, but shared's
+            // own jvmTest doesn't otherwise depend on it.
+            implementation(compose.desktop.currentOs)
         }
     }
 }
