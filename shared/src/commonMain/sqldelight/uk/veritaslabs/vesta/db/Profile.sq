@@ -1,0 +1,33 @@
+-- A device-level Profile: "who is using this app right now?" (FR-43..FR-47,
+-- CORE-EXPERIENCE.md "Profiles & Shared Devices"). A device hosts many
+-- Profiles; a Home's members are the Profiles that joined it (see Home.sq).
+CREATE TABLE Profile (
+    id TEXT NOT NULL PRIMARY KEY,
+    displayName TEXT NOT NULL,
+    avatarId TEXT,
+    theme TEXT NOT NULL DEFAULT 'default',
+    createdAt INTEGER NOT NULL,
+    lastUsedAt INTEGER
+);
+
+selectAll:
+SELECT * FROM Profile ORDER BY displayName COLLATE NOCASE;
+
+selectById:
+SELECT * FROM Profile WHERE id = ?;
+
+insert:
+INSERT INTO Profile(id, displayName, avatarId, theme, createdAt, lastUsedAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateProfile:
+UPDATE Profile SET displayName = ?, avatarId = ?, theme = ? WHERE id = ?;
+
+touchLastUsed:
+UPDATE Profile SET lastUsedAt = ? WHERE id = ?;
+
+deleteById:
+DELETE FROM Profile WHERE id = ?;
+
+countAll:
+SELECT COUNT(*) FROM Profile;

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.x0x
 
+import android.content.Context
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -10,16 +11,21 @@ import kotlinx.coroutines.withContext
 
 /**
  * App-level init installed by `MainActivity` before the UI is created, so
- * shared code can reach app-private storage (the embedded x0x daemon's data
- * and identity directories must live there — x0x never writes elsewhere).
+ * shared code can reach app-private storage: the embedded x0x daemon's data
+ * and identity directories, and the local SQLite database
+ * (`uk.veritaslabs.vesta.db.DatabaseDriverFactory`) both live there — never
+ * written anywhere else.
  */
 object VestaAndroid {
     @Volatile
-    var filesDir: File? = null
+    var context: Context? = null
         private set
 
-    fun install(filesDir: File) {
-        this.filesDir = filesDir
+    val filesDir: File?
+        get() = context?.filesDir
+
+    fun install(context: Context) {
+        this.context = context.applicationContext
     }
 }
 

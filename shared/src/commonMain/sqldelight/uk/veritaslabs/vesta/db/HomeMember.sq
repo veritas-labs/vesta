@@ -1,0 +1,29 @@
+-- Membership of a Profile in a Home, with role (FR-4, DQ for the Member
+-- List / role badges in CORE-EXPERIENCE.md §5). The creator of a Home is
+-- always inserted with role = 'admin'.
+CREATE TABLE HomeMember (
+    homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
+    profileId TEXT NOT NULL REFERENCES Profile(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    joinedAt INTEGER NOT NULL,
+    PRIMARY KEY (homeId, profileId)
+);
+
+selectByHome:
+SELECT * FROM HomeMember WHERE homeId = ?;
+
+selectByProfile:
+SELECT * FROM HomeMember WHERE profileId = ?;
+
+insert:
+INSERT INTO HomeMember(homeId, profileId, role, joinedAt)
+VALUES (?, ?, ?, ?);
+
+updateRole:
+UPDATE HomeMember SET role = ? WHERE homeId = ? AND profileId = ?;
+
+deleteMember:
+DELETE FROM HomeMember WHERE homeId = ? AND profileId = ?;
+
+countAdmins:
+SELECT COUNT(*) FROM HomeMember WHERE homeId = ? AND role = 'admin';

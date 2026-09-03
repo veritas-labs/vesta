@@ -1,0 +1,29 @@
+-- Multi-use Home invite codes (CORE-EXPERIENCE.md §4 "Joining a Home"):
+-- one code per Home, 6-digit, 7-day lifetime, revoked by rotation rather
+-- than by mutation (rotating inserts a new row and revokes the old one).
+CREATE TABLE InviteCode (
+    id TEXT NOT NULL PRIMARY KEY,
+    homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
+    code TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    expiresAt INTEGER NOT NULL,
+    revoked INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX InviteCode_code ON InviteCode(code);
+
+selectActiveByCode:
+SELECT * FROM InviteCode WHERE code = ? AND revoked = 0 AND expiresAt > ?;
+
+selectByHome:
+SELECT * FROM InviteCode WHERE homeId = ? ORDER BY createdAt DESC;
+
+insert:
+INSERT INTO InviteCode(id, homeId, code, createdAt, expiresAt, revoked)
+VALUES (?, ?, ?, ?, ?, 0);
+
+revoke:
+UPDATE InviteCode SET revoked = 1 WHERE id = ?;
+
+deleteById:
+DELETE FROM InviteCode WHERE id = ?;

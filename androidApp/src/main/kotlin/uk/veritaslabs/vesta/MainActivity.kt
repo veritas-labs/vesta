@@ -13,8 +13,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // App-private storage for the embedded x0x daemon (data + identity).
-        VestaAndroid.install(filesDir)
+        // App-private storage for the embedded x0x daemon and the local database.
+        VestaAndroid.install(this)
 
         setContent {
             App()

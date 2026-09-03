@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sqldelight)
 }
 
 // --- x0x embedded daemon (mobile only; desktop talks to the x0xd REST API) --
@@ -98,6 +99,7 @@ kotlin {
             // Dispatchers.Main used internally by the generated suspend bindings;
             // not transitive from ant-android's POM (see its README).
             implementation(libs.kotlinx.coroutinesAndroid)
+            implementation(libs.sqldelight.androidDriver)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -110,16 +112,34 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.coroutinesCore)
             implementation(libs.kotlinx.serializationJson)
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutinesExtensions)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.compose.uiTest)
+        }
+        iosMain.dependencies {
+            implementation(libs.sqldelight.nativeDriver)
+        }
+        jvmMain.dependencies {
+            implementation(libs.sqldelight.sqliteDriver)
         }
         jvmTest.dependencies {
             // Skiko's native renderer, needed for runComposeUiTest on the jvm
             // target; desktopApp pulls this in for the real app, but shared's
             // own jvmTest doesn't otherwise depend on it.
             implementation(compose.desktop.currentOs)
+        }
+    }
+}
+
+// Local-first SQLite database — see shared/src/commonMain/sqldelight for the
+// schema and shared/src/*Main/kotlin/.../db for the per-platform SqlDriver.
+sqldelight {
+    databases {
+        create("VestaDatabase") {
+            packageName.set("uk.veritaslabs.vesta.db")
         }
     }
 }
