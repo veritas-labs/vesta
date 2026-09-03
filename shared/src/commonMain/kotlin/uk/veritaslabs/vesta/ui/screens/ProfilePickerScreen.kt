@@ -49,6 +49,7 @@ import vesta.shared.generated.resources.profile_picker_delete_profile
 import vesta.shared.generated.resources.profile_picker_edit_profile
 import vesta.shared.generated.resources.profile_picker_empty_subtitle
 import vesta.shared.generated.resources.profile_picker_empty_title
+import vesta.shared.generated.resources.profile_picker_get_started
 import vesta.shared.generated.resources.profile_picker_title
 
 /** A single row of the Profile Picker's list — see [ProfilePickerScreen]. */
@@ -141,7 +142,9 @@ fun ProfilePickerScreen(
             }
 
             PrimaryButton(
-                label = stringResource(Res.string.profile_picker_create_profile),
+                label = stringResource(
+                    if (profiles.isEmpty()) Res.string.profile_picker_get_started else Res.string.profile_picker_create_profile,
+                ),
                 onClick = onCreateProfile,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
