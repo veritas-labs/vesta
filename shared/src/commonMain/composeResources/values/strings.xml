@@ -1,5 +1,7 @@
 <resources>
     <string name="profile_picker_title">Who is using Vesta?</string>
+    <string name="profile_picker_empty_title">Welcome to Vesta</string>
+    <string name="profile_picker_empty_subtitle">Create a profile to get started</string>
     <string name="profile_picker_create_profile">Create profile</string>
     <string name="profile_picker_edit_profile">Edit profile</string>
     <string name="profile_picker_delete_profile">Delete profile</string>
