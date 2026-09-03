@@ -1,0 +1,207 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400dp"
+    android:height="320dp"
+    android:viewportWidth="400"
+    android:viewportHeight="320">
+
+    <!-- Floor Baseline / Ground Shadow -->
+    <path
+        android:pathData="M60,272 A140,10 0 1,0 340,272 A140,10 0 1,0 60,272 Z"
+        android:fillColor="#E8D7C3"/>
+
+    <!-- ==================== POTTED PLANT (LEFT) ==================== -->
+    <!-- Pot -->
+    <path
+        android:pathData="M76,270 L108,270 L114,228 L70,228 Z"
+        android:fillColor="#C86D51"/>
+    <path
+        android:pathData="M70.5,222 L113.5,222 A3.5,3.5 0 0 1 117,225.5 A3.5,3.5 0 0 1 113.5,229 L70.5,229 A3.5,3.5 0 0 1 67,225.5 A3.5,3.5 0 0 1 70.5,222 Z"
+        android:fillColor="#B2593F"/>
+
+    <!-- Plant Leaves -->
+    <path
+        android:pathData="M92,225 C80,200 52,198 48,206 C46,218 78,222 92,225 Z"
+        android:fillColor="#6A8D73"/>
+    <path
+        android:pathData="M92,225 C75,208 56,206 52,208"
+        android:strokeColor="#4E6D55"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M92,225 C88,185 96,170 102,170 C108,170 106,195 92,225 Z"
+        android:fillColor="#587B60"/>
+    <path
+        android:pathData="M92,225 C94,200 99,180 101,175"
+        android:strokeColor="#435F4A"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M92,225 C108,205 134,206 136,215 C136,225 108,225 92,225 Z"
+        android:fillColor="#7E9F86"/>
+    <path
+        android:pathData="M92,225 C106,212 124,214 130,217"
+        android:strokeColor="#587B60"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+
+    <!-- ==================== COZY ARMCHAIR (CENTER) ==================== -->
+    <!-- Shadow under chair -->
+    <path
+        android:pathData="M137,268 A68,7 0 1,0 273,268 A68,7 0 1,0 137,268 Z"
+        android:fillColor="#DEC7B0"/>
+
+    <!-- Wooden Legs -->
+    <path
+        android:pathData="M162,230 L152,265"
+        android:strokeColor="#8D5B3A"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M248,230 L258,265"
+        android:strokeColor="#8D5B3A"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M172,235 L164,268"
+        android:strokeColor="#A76E43"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M238,235 L246,268"
+        android:strokeColor="#A76E43"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+
+    <!-- Main Chair Backrest (Warm Rust / Terracotta) -->
+    <path
+        android:pathData="M180,112 L230,112 A24,24 0 0 1 254,136 L254,198 A24,24 0 0 1 230,222 L180,222 A24,24 0 0 1 156,198 L156,136 A24,24 0 0 1 180,112 Z"
+        android:fillColor="#D96B43"/>
+    <!-- Backrest Tufting / Stitch Accents -->
+    <path
+        android:pathData="M184,135 L184,155"
+        android:strokeColor="#BF552F"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M226,135 L226,155"
+        android:strokeColor="#BF552F"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M205,150 L205,170"
+        android:strokeColor="#BF552F"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+
+    <!-- Left Armrest -->
+    <path
+        android:pathData="M155,162 A13,13 0 0 1 168,175 L168,215 A13,13 0 0 1 155,228 A13,13 0 0 1 142,215 L142,175 A13,13 0 0 1 155,162 Z"
+        android:fillColor="#E2774F"/>
+    <!-- Right Armrest -->
+    <path
+        android:pathData="M255,162 A13,13 0 0 1 268,175 L268,215 A13,13 0 0 1 255,228 A13,13 0 0 1 242,215 L242,175 A13,13 0 0 1 255,162 Z"
+        android:fillColor="#C85D36"/>
+
+    <!-- Seat Cushion Base -->
+    <path
+        android:pathData="M168,202 L242,202 A14,14 0 0 1 256,216 L256,222 A14,14 0 0 1 242,236 L168,236 A14,14 0 0 1 154,222 L154,216 A14,14 0 0 1 168,202 Z"
+        android:fillColor="#E8825B"/>
+
+    <!-- Cozy Knit Throw Blanket (Draped over left back and seat) -->
+    <path
+        android:pathData="M168,126 C168,126 185,130 188,152 C190,170 180,200 182,225 C183,234 172,236 166,235 C162,226 163,175 164,145 Z"
+        android:fillColor="#EAD7B7"/>
+    <!-- Blanket fringe lines -->
+    <path
+        android:pathData="M168,236 L168,242"
+        android:strokeColor="#D1BC99"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M174,236 L174,242"
+        android:strokeColor="#D1BC99"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M180,235 L180,241"
+        android:strokeColor="#D1BC99"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+
+    <!-- Accent Pillow (Mustard Yellow) -->
+    <group
+        android:pivotX="0"
+        android:pivotY="0"
+        android:rotation="-14"
+        android:translateX="230"
+        android:translateY="206">
+        <path
+            android:pathData="M-9,-17 L9,-17 A8,8 0 0 1 17,-9 L17,9 A8,8 0 0 1 9,17 L-9,17 A8,8 0 0 1 -17,9 L-17,-9 A8,8 0 0 1 -9,-17 Z"
+            android:fillColor="#E5AD35"/>
+        <path
+            android:pathData="M-3,0 A3,3 0 1,0 3,0 A3,3 0 1,0 -3,0 Z"
+            android:fillColor="#C48E1D"/>
+    </group>
+
+    <!-- ==================== FLOOR LAMP (RIGHT) ==================== -->
+    <!-- Base -->
+    <path
+        android:pathData="M296,270 A20,4 0 1,0 336,270 A20,4 0 1,0 296,270 Z"
+        android:fillColor="#6A7B76"/>
+    <!-- Stem -->
+    <path
+        android:pathData="M316,270 L316,92"
+        android:strokeColor="#7B8D88"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <!-- Brass Fitting -->
+    <path
+        android:pathData="M314,86 L318,86 A1,1 0 0 1 319,87 L319,93 A1,1 0 0 1 318,94 L314,94 A1,1 0 0 1 313,93 L313,87 A1,1 0 0 1 314,86 Z"
+        android:fillColor="#DDB05B"/>
+    <!-- Shade (Warm Cream Cone) -->
+    <path
+        android:pathData="M300,90 L332,90 L342,132 L290,132 Z"
+        android:fillColor="#FDF6E2"/>
+    <path
+        android:pathData="M290,132 A26,5.5 0 1,0 342,132 A26,5.5 0 1,0 290,132 Z"
+        android:fillColor="#F4E8C1"/>
+
+    <!-- Warm Light Glow Polygon -->
+    <path
+        android:pathData="M293,136 L339,136 L370,268 L262,268 Z"
+        android:fillColor="#FEEBB8"
+        android:fillAlpha="0.25"/>
+
+    <!-- Ambient Warm Accent Dots -->
+    <path
+        android:pathData="M117.5,100 A2.5,2.5 0 1,0 122.5,100 A2.5,2.5 0 1,0 117.5,100 Z"
+        android:fillColor="#E5AD35"
+        android:fillAlpha="0.7"/>
+    <path
+        android:pathData="M278,65 A2,2 0 1,0 282,65 A2,2 0 1,0 278,65 Z"
+        android:fillColor="#E5AD35"
+        android:fillAlpha="0.8"/>
+    <path
+        android:pathData="M133.5,70 A1.5,1.5 0 1,0 136.5,70 A1.5,1.5 0 1,0 133.5,70 Z"
+        android:fillColor="#D96B43"
+        android:fillAlpha="0.6"/>
+    <path
+        android:pathData="M203,85 A2,2 0 1,0 207,85 A2,2 0 1,0 203,85 Z"
+        android:fillColor="#E5AD35"
+        android:fillAlpha="0.6"/>
+
+</vector>

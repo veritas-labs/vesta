@@ -136,5 +136,5 @@ dependencies {
 // (see the jvmTest dependency above) and would run on a device/emulator via
 // testAndroidDeviceTest, so just skip them for the host-side JVM run.
 tasks.matching { it.name == "testAndroidHostTest" }.configureEach {
-    (this as Test).exclude("**/ui/components/**")
+    (this as Test).exclude("**/ui/components/**", "**/ui/screens/**")
 }

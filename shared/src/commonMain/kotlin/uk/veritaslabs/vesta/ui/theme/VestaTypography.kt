@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.raleway_black
@@ -65,7 +66,7 @@ fun vestaTypography(): Typography {
         bodyLarge = default.bodyLarge.copy(fontFamily = raleway),
         bodyMedium = default.bodyMedium.copy(fontFamily = raleway),
         bodySmall = default.bodySmall.copy(fontFamily = raleway),
-        labelLarge = default.labelLarge.copy(fontFamily = raleway),
+        labelLarge = default.labelLarge.copy(fontFamily = raleway, fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
         labelMedium = default.labelMedium.copy(fontFamily = raleway),
         labelSmall = default.labelSmall.copy(fontFamily = raleway),
     )

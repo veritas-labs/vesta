@@ -84,7 +84,7 @@ fun RadioOptionCard(
             verticalAlignment = Alignment.Top,
         ) {
             if (icon != null) {
-                RadioOptionIcon(selected = selected, icon = icon)
+                RadioOptionIcon(icon = icon)
                 Spacer(Modifier.width(12.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -110,7 +110,7 @@ fun RadioOptionCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (icon != null) {
-                    RadioOptionIcon(selected = selected, icon = icon)
+                    RadioOptionIcon(icon = icon)
                     Spacer(Modifier.height(8.dp))
                 }
                 Text(
@@ -138,11 +138,9 @@ fun RadioOptionCard(
 }
 
 @Composable
-private fun RadioOptionIcon(selected: Boolean, icon: @Composable () -> Unit) {
-    val containerColor =
-        if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor =
-        if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+private fun RadioOptionIcon(icon: @Composable () -> Unit) {
+    val containerColor = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
 
     Box(
         modifier = Modifier

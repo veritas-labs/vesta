@@ -40,7 +40,7 @@ fun ProfileAvatar(name: String, size: Dp, avatar: DrawableResource? = null) {
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center,
     ) {
         if (avatar != null) {
@@ -54,7 +54,7 @@ fun ProfileAvatar(name: String, size: Dp, avatar: DrawableResource? = null) {
             Text(
                 text = initialsFor(name),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onPrimary,
             )
         }
     }

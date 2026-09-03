@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +45,9 @@ enum class AvatarButtonOrientation {
  * avatar's content (an image, initials, an icon, ...) via [avatar]; this
  * component only owns the card chrome, label, and per-[orientation] sizing —
  * see [ProfileAvatar] for the profile-picker avatar content.
+ *
+ * [onLongClick], if given, fires on a long-press (touch) — e.g. to surface a
+ * contextual actions menu — alongside the normal [onClick] tap.
  */
 @Composable
 fun AvatarButton(
@@ -53,12 +56,13 @@ fun AvatarButton(
     modifier: Modifier = Modifier,
     orientation: AvatarButtonOrientation = AvatarButtonOrientation.Horizontal,
     onClick: () -> Unit = {},
+    onLongClick: (() -> Unit)? = null,
 ) {
     val shape = MaterialTheme.shapes.small
     val cardModifier = modifier
         .border(1.dp, MaterialTheme.colorScheme.outline, shape)
         .clip(shape)
-        .clickable(onClick = onClick)
+        .combinedClickable(onLongClick = onLongClick, onClick = onClick)
 
     when (orientation) {
         AvatarButtonOrientation.Horizontal -> Row(

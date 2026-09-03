@@ -7,12 +7,20 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 // Placeholder for the Default/High Contrast/Kid-Friendly variants described in
 // docs/design — only the Default palette (light + dark) exists so far.
-private val VestaLightColorScheme = lightColorScheme()
-private val VestaDarkColorScheme = darkColorScheme()
+private val VestaLightColorScheme = lightColorScheme(
+    background = Color(0xFFF5F4ED),
+    primary = Color(0xFFDDC6AF),
+    onPrimary = Color(0xFF3D2E1F),
+)
+private val VestaDarkColorScheme = darkColorScheme(
+    primary = Color(0xFFDDC6AF),
+    onPrimary = Color(0xFF3D2E1F),
+)
 
 private val VestaShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
