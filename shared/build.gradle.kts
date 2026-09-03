@@ -127,3 +127,14 @@ kotlin {
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
+
+// commonTest's runComposeUiTest-based tests aren't a supported combination on
+// Android's local/host JUnit runner — JetBrains' own Compose Multiplatform
+// docs confirm this (https://kotlinlang.org/docs/multiplatform/compose-test.html),
+// and without Robolectric wired up as the JUnit runner they crash with an NPE
+// from Build.FINGERPRINT being null. They already run for real on jvmTest
+// (see the jvmTest dependency above) and would run on a device/emulator via
+// testAndroidDeviceTest, so just skip them for the host-side JVM run.
+tasks.matching { it.name == "testAndroidHostTest" }.configureEach {
+    (this as Test).exclude("**/ui/components/**")
+}
