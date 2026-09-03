@@ -149,8 +149,7 @@ fun ProfilePickerScreen(
         }
     }
 
-    val actionsTarget = profileForActions
-    if (actionsTarget != null) {
+    profileForActions?.let { actionsTarget ->
         val sheetState = rememberModalBottomSheetState()
         ModalBottomSheet(
             onDismissRequest = { profileForActions = null },

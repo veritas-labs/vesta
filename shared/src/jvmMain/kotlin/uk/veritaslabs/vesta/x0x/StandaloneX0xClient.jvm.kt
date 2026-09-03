@@ -58,7 +58,7 @@ private class StandaloneX0xClient : X0xClient {
             } else {
                 null
             }
-            if (port != null) {
+            port?.let {
                 val tokenFile = dir.resolve("api-token")
                 val token = if (tokenFile.exists()) tokenFile.readText().trim().ifEmpty { null } else null
                 return LocalDaemon(port, token)

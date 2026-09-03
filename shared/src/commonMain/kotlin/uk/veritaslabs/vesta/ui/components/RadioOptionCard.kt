@@ -83,7 +83,7 @@ fun RadioOptionCard(
             modifier = cardModifier,
             verticalAlignment = Alignment.Top,
         ) {
-            if (icon != null) {
+            icon?.let {
                 RadioOptionIcon(icon = icon)
                 Spacer(Modifier.width(12.dp))
             }
@@ -93,7 +93,7 @@ fun RadioOptionCard(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                if (body != null) {
+                body?.let {
                     Text(
                         text = body,
                         style = MaterialTheme.typography.bodyMedium,
@@ -109,7 +109,7 @@ fun RadioOptionCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (icon != null) {
+                icon?.let {
                     RadioOptionIcon(icon = icon)
                     Spacer(Modifier.height(8.dp))
                 }
@@ -119,7 +119,7 @@ fun RadioOptionCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
-                if (body != null) {
+                body?.let {
                     Text(
                         text = body,
                         style = MaterialTheme.typography.bodyMedium,

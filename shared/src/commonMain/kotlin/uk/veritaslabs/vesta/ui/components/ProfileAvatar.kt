@@ -43,20 +43,18 @@ fun ProfileAvatar(name: String, size: Dp, avatar: DrawableResource? = null) {
             .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center,
     ) {
-        if (avatar != null) {
+        avatar?.let {
             Image(
                 painter = painterResource(avatar),
                 contentDescription = null,
                 modifier = Modifier.size(size).clip(CircleShape),
                 contentScale = ContentScale.Crop,
             )
-        } else {
-            Text(
-                text = initialsFor(name),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-        }
+        } ?: Text(
+            text = initialsFor(name),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimary,
+        )
     }
 }
 
