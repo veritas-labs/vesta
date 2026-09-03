@@ -22,10 +22,8 @@ class VestaDatabaseTest {
         db.profileQueries.insert(
             id = "profile-1",
             displayName = "Arthur",
-            avatarId = null,
-            theme = "default",
-            createdAt = 1_000L,
-            lastUsedAt = null,
+            avatarResourceId = null,
+            x0xInstanceName = "default",
         )
 
         val profiles = db.profileQueries.selectAll().executeAsList()
@@ -36,7 +34,7 @@ class VestaDatabaseTest {
     @Test
     fun homeMembershipJoinsAcrossTables() {
         val db = openInMemoryDatabase()
-        db.profileQueries.insert("profile-1", "Arthur", null, "default", 1_000L, null)
+        db.profileQueries.insert("profile-1", "Arthur", null, "default")
         db.homeQueries.insert("home-1", "The Johnsons", "family", 1_000L)
         db.homeMemberQueries.insert("home-1", "profile-1", "admin", 1_000L)
 
@@ -48,7 +46,7 @@ class VestaDatabaseTest {
     @Test
     fun deletingHomeCascadesToMembers() {
         val db = openInMemoryDatabase()
-        db.profileQueries.insert("profile-1", "Arthur", null, "default", 1_000L, null)
+        db.profileQueries.insert("profile-1", "Arthur", null, "default")
         db.homeQueries.insert("home-1", "The Johnsons", "family", 1_000L)
         db.homeMemberQueries.insert("home-1", "profile-1", "admin", 1_000L)
 
