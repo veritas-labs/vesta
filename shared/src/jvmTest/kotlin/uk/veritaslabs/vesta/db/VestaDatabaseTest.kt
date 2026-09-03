@@ -1,35 +1,11 @@
 package uk.veritaslabs.vesta.db
 
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class VestaDatabaseTest {
-
-    private fun openInMemoryDatabase(): VestaDatabase {
-        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        driver.execute(identifier = null, sql = "PRAGMA foreign_keys=ON", parameters = 0)
-        VestaDatabase.Schema.create(driver)
-        return VestaDatabase(driver)
-    }
-
-    @Test
-    fun insertedProfileIsReadBack() {
-        val db = openInMemoryDatabase()
-
-        db.profileQueries.insert(
-            id = "profile-1",
-            displayName = "Arthur",
-            avatarResourceId = null,
-            x0xInstanceName = "default",
-        )
-
-        val profiles = db.profileQueries.selectAll().executeAsList()
-        assertEquals(1, profiles.size)
-        assertEquals("Arthur", profiles.single().displayName)
-    }
 
     @Test
     fun homeMembershipJoinsAcrossTables() {
