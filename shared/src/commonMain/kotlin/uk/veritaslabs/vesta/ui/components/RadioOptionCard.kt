@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -30,7 +31,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.painterResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
+import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.ic_buildings
+import vesta.shared.generated.resources.ic_home
+import vesta.shared.generated.resources.ic_home_heart
+import vesta.shared.generated.resources.ic_topology_star_ring_2
 
 /** Which of the two layouts to render — see [RadioOptionCard]. */
 enum class RadioOptionCardOrientation {
@@ -158,7 +165,7 @@ private fun HomeShapeOptionList(selected: String, onSelect: (String) -> Unit) {
         RadioOptionCard(
             title = "Family",
             body = "A household with kids, parents, or multiple generations.",
-            icon = { Text("⌂") },
+            icon = { Icon(painterResource(Res.drawable.ic_home), contentDescription = null) },
             selected = selected == "Family",
             onClick = { onSelect("Family") },
         )
@@ -166,7 +173,7 @@ private fun HomeShapeOptionList(selected: String, onSelect: (String) -> Unit) {
         RadioOptionCard(
             title = "Flat Share",
             body = "Roommates or housemates splitting a place together.",
-            icon = { Text("☷") },
+            icon = { Icon(painterResource(Res.drawable.ic_buildings), contentDescription = null) },
             selected = selected == "Flat Share",
             onClick = { onSelect("Flat Share") },
         )
@@ -174,7 +181,7 @@ private fun HomeShapeOptionList(selected: String, onSelect: (String) -> Unit) {
         RadioOptionCard(
             title = "Single + Support",
             body = "Living alone with occasional help from family or carers.",
-            icon = { Text("♥") },
+            icon = { Icon(painterResource(Res.drawable.ic_home_heart), contentDescription = null) },
             selected = selected == "Single + Support",
             onClick = { onSelect("Single + Support") },
         )
@@ -182,7 +189,7 @@ private fun HomeShapeOptionList(selected: String, onSelect: (String) -> Unit) {
         RadioOptionCard(
             title = "Other",
             body = "Doesn't fit neatly — you can describe it your own way.",
-            icon = { Text("✱") },
+            icon = { Icon(painterResource(Res.drawable.ic_topology_star_ring_2), contentDescription = null) },
             selected = selected == "Other",
             onClick = { onSelect("Other") },
         )
@@ -198,7 +205,7 @@ private fun HomeShapeOptionGrid(selected: String, onSelect: (String) -> Unit) {
             RadioOptionCard(
                 title = "Family",
                 body = "A household with kids, parents, or multiple generations.",
-                icon = { Text("⌂") },
+                icon = { Icon(painterResource(Res.drawable.ic_home), contentDescription = null) },
                 orientation = RadioOptionCardOrientation.Vertical,
                 selected = selected == "Family",
                 onClick = { onSelect("Family") },
@@ -207,7 +214,7 @@ private fun HomeShapeOptionGrid(selected: String, onSelect: (String) -> Unit) {
             RadioOptionCard(
                 title = "Flat Share",
                 body = "Roommates or housemates splitting a place together.",
-                icon = { Text("☷") },
+                icon = { Icon(painterResource(Res.drawable.ic_buildings), contentDescription = null) },
                 orientation = RadioOptionCardOrientation.Vertical,
                 selected = selected == "Flat Share",
                 onClick = { onSelect("Flat Share") },
@@ -219,7 +226,7 @@ private fun HomeShapeOptionGrid(selected: String, onSelect: (String) -> Unit) {
             RadioOptionCard(
                 title = "Single + Support",
                 body = "Living alone with occasional help from family or carers.",
-                icon = { Text("♥") },
+                icon = { Icon(painterResource(Res.drawable.ic_home_heart), contentDescription = null) },
                 orientation = RadioOptionCardOrientation.Vertical,
                 selected = selected == "Single + Support",
                 onClick = { onSelect("Single + Support") },
@@ -228,7 +235,7 @@ private fun HomeShapeOptionGrid(selected: String, onSelect: (String) -> Unit) {
             RadioOptionCard(
                 title = "Other",
                 body = "Doesn't fit neatly — you can describe it your own way.",
-                icon = { Text("✱") },
+                icon = { Icon(painterResource(Res.drawable.ic_topology_star_ring_2), contentDescription = null) },
                 orientation = RadioOptionCardOrientation.Vertical,
                 selected = selected == "Other",
                 onClick = { onSelect("Other") },
