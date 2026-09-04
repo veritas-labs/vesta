@@ -1,13 +1,17 @@
 package uk.veritaslabs.vesta.db
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOne
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlinx.coroutines.test.runTest
 
 class ProfileTest {
 
     @Test
-    fun insertedProfileIsReadBack() {
+    fun insertedProfileIsReadBack() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
 
@@ -18,7 +22,7 @@ class ProfileTest {
             avatarResourceId = null,
             x0xInstanceName = "default",
         )
-        val profiles = db.profileQueries.selectAll().executeAsList()
+        val profiles = db.profileQueries.selectAll().awaitAsList()
 
         // Assert
         assertEquals(1, profiles.size)
@@ -26,7 +30,7 @@ class ProfileTest {
     }
 
     @Test
-    fun selectAllOrdersByDisplayNameCaseInsensitively() {
+    fun selectAllOrdersByDisplayNameCaseInsensitively() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
         db.profileQueries.insert("profile-1", "bob", null, "default")
@@ -34,26 +38,26 @@ class ProfileTest {
         db.profileQueries.insert("profile-3", "Charlie", null, "default")
 
         // Act
-        val names = db.profileQueries.selectAll().executeAsList().map { it.displayName }
+        val names = db.profileQueries.selectAll().awaitAsList().map { it.displayName }
 
         // Assert
         assertEquals(listOf("Arthur", "bob", "Charlie"), names)
     }
 
     @Test
-    fun selectByIdReturnsNullWhenProfileDoesNotExist() {
+    fun selectByIdReturnsNullWhenProfileDoesNotExist() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
 
         // Act
-        val profile = db.profileQueries.selectById("missing-profile").executeAsOneOrNull()
+        val profile = db.profileQueries.selectById("missing-profile").awaitAsOneOrNull()
 
         // Assert
         assertNull(profile)
     }
 
     @Test
-    fun updateProfileChangesDisplayNameAvatarAndInstance() {
+    fun updateProfileChangesDisplayNameAvatarAndInstance() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
         db.profileQueries.insert("profile-1", "Arthur", null, "default")
@@ -65,7 +69,7 @@ class ProfileTest {
             x0xInstanceName = "arthur-instance",
             id = "profile-1",
         )
-        val profile = db.profileQueries.selectById("profile-1").executeAsOne()
+        val profile = db.profileQueries.selectById("profile-1").awaitAsOne()
 
         // Assert
         assertEquals("Arthur Weasley", profile.displayName)
@@ -74,7 +78,7 @@ class ProfileTest {
     }
 
     @Test
-    fun deleteByIdRemovesOnlyTheTargetedProfile() {
+    fun deleteByIdRemovesOnlyTheTargetedProfile() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
         db.profileQueries.insert("profile-1", "Arthur", null, "default")
@@ -82,7 +86,7 @@ class ProfileTest {
 
         // Act
         db.profileQueries.deleteById("profile-1")
-        val remaining = db.profileQueries.selectAll().executeAsList()
+        val remaining = db.profileQueries.selectAll().awaitAsList()
 
         // Assert
         assertEquals(1, remaining.size)
@@ -90,7 +94,7 @@ class ProfileTest {
     }
 
     @Test
-    fun countAllReflectsCurrentNumberOfProfiles() {
+    fun countAllReflectsCurrentNumberOfProfiles() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
         db.profileQueries.insert("profile-1", "Arthur", null, "default")
@@ -98,7 +102,7 @@ class ProfileTest {
 
         // Act
         db.profileQueries.deleteById("profile-1")
-        val count = db.profileQueries.countAll().executeAsOne()
+        val count = db.profileQueries.countAll().awaitAsOne()
 
         // Assert
         assertEquals(1L, count)

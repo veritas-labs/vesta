@@ -99,7 +99,6 @@ kotlin {
             // Dispatchers.Main used internally by the generated suspend bindings;
             // not transitive from ant-android's POM (see its README).
             implementation(libs.kotlinx.coroutinesAndroid)
-            implementation(libs.sqldelight.androidDriver)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -113,17 +112,13 @@ kotlin {
             implementation(libs.kotlinx.coroutinesCore)
             implementation(libs.kotlinx.serializationJson)
             implementation(libs.sqldelight.runtime)
-            implementation(libs.sqldelight.coroutinesExtensions)
+            implementation(libs.sqldelight.asyncExtensions)
+            implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.eygraber.sqldelightAndroidxDriver)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.compose.uiTest)
-        }
-        iosMain.dependencies {
-            implementation(libs.sqldelight.nativeDriver)
-        }
-        jvmMain.dependencies {
-            implementation(libs.sqldelight.sqliteDriver)
         }
         jvmTest.dependencies {
             // Skiko's native renderer, needed for runComposeUiTest on the jvm
@@ -148,6 +143,7 @@ kotlin {
             // The vintage engine lets those existing tests keep running
             // alongside Cucumber's JUnit Platform engine under one test task.
             runtimeOnly(libs.junitVintage.engine)
+            implementation(libs.kotlinx.coroutinesTest)
         }
     }
 }
@@ -155,9 +151,18 @@ kotlin {
 // Local-first SQLite database — see shared/src/commonMain/sqldelight for the
 // schema and shared/src/*Main/kotlin/.../db for the per-platform SqlDriver.
 sqldelight {
+    // androidx.sqlite:sqlite-bundled already statically bundles its own SQLite;
+    // without this, SQLDelight's default `-lsqlite3` linker flag makes the iOS
+    // framework link fail looking for the system library (see the
+    // sqldelight-androidx-driver README).
+    linkSqlite = false
+
     databases {
         create("VestaDatabase") {
             packageName.set("uk.veritaslabs.vesta.db")
+            // AndroidxSqliteDriver (wrapping the bundled SQLite so cr-sqlite loads
+            // the same way on every platform) is a suspending driver.
+            generateAsync = true
         }
     }
 }
