@@ -12,7 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class OnboardingScreenTest {
+class HomePickerScreenTest {
 
     private val homes = listOf(
         HomeListItem(id = "the-johnsons", name = "The Johnsons"),
@@ -22,7 +22,7 @@ class OnboardingScreenTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun showsEachHomeAndTheCreateAndJoinHomeButtons() = runComposeUiTest {
-        setContent { VestaTheme { OnboardingScreen(homes = homes) } }
+        setContent { VestaTheme { HomePickerScreen(homes = homes) } }
 
         onNodeWithText("The Johnsons").assertIsDisplayed()
         onNodeWithText("Flat 4B").assertIsDisplayed()
@@ -35,7 +35,7 @@ class OnboardingScreenTest {
     fun tappingAHomeInvokesOnHomeSelected() = runComposeUiTest {
         var selected: HomeListItem? = null
         setContent {
-            VestaTheme { OnboardingScreen(homes = homes, onHomeSelected = { selected = it }) }
+            VestaTheme { HomePickerScreen(homes = homes, onHomeSelected = { selected = it }) }
         }
 
         onNodeWithText("The Johnsons").performClick()
@@ -48,7 +48,7 @@ class OnboardingScreenTest {
     fun tappingCreateHomeInvokesOnCreateHome() = runComposeUiTest {
         var created = false
         setContent {
-            VestaTheme { OnboardingScreen(homes = homes, onCreateHome = { created = true }) }
+            VestaTheme { HomePickerScreen(homes = homes, onCreateHome = { created = true }) }
         }
 
         onNodeWithText("Create a home").performClick()
@@ -61,7 +61,7 @@ class OnboardingScreenTest {
     fun tappingJoinHomeInvokesOnJoinHome() = runComposeUiTest {
         var joined = false
         setContent {
-            VestaTheme { OnboardingScreen(homes = homes, onJoinHome = { joined = true }) }
+            VestaTheme { HomePickerScreen(homes = homes, onJoinHome = { joined = true }) }
         }
 
         onNodeWithText("Join a home").performClick()
@@ -72,7 +72,7 @@ class OnboardingScreenTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun longPressingAHomeOpensActionsSheetWithEditAndDelete() = runComposeUiTest {
-        setContent { VestaTheme { OnboardingScreen(homes = homes) } }
+        setContent { VestaTheme { HomePickerScreen(homes = homes) } }
 
         onNodeWithText("The Johnsons").performTouchInput { longClick() }
 
@@ -85,7 +85,7 @@ class OnboardingScreenTest {
     fun editHomeInSheetInvokesOnEditHomeForThatHome() = runComposeUiTest {
         var edited: HomeListItem? = null
         setContent {
-            VestaTheme { OnboardingScreen(homes = homes, onEditHome = { edited = it }) }
+            VestaTheme { HomePickerScreen(homes = homes, onEditHome = { edited = it }) }
         }
 
         onNodeWithText("Flat 4B").performTouchInput { longClick() }
@@ -99,7 +99,7 @@ class OnboardingScreenTest {
     fun deleteHomeInSheetInvokesOnDeleteHomeForThatHome() = runComposeUiTest {
         var deleted: HomeListItem? = null
         setContent {
-            VestaTheme { OnboardingScreen(homes = homes, onDeleteHome = { deleted = it }) }
+            VestaTheme { HomePickerScreen(homes = homes, onDeleteHome = { deleted = it }) }
         }
 
         onNodeWithText("Flat 4B").performTouchInput { longClick() }

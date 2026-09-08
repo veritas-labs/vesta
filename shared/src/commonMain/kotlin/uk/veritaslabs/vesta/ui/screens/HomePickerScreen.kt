@@ -55,9 +55,9 @@ import vesta.shared.generated.resources.onboarding_get_started
 import vesta.shared.generated.resources.onboarding_join_home
 import vesta.shared.generated.resources.onboarding_title
 
-private val OnboardingTabletBreakpoint = 600.dp
+private val HomePickerTabletBreakpoint = 600.dp
 
-/** A single row of the Onboarding screen's home list — see [OnboardingScreen]. */
+/** A single row of the home picker screen's home list — see [HomePickerScreen]. */
 data class HomeListItem(
     val id: String,
     val name: String,
@@ -72,7 +72,7 @@ data class HomeListItem(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OnboardingScreen(
+fun HomePickerScreen(
     homes: List<HomeListItem>,
     modifier: Modifier = Modifier,
     onHomeSelected: (HomeListItem) -> Unit = {},
@@ -88,7 +88,7 @@ fun OnboardingScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        val isTablet = maxWidth >= OnboardingTabletBreakpoint
+        val isTablet = maxWidth >= HomePickerTabletBreakpoint
         val contentPadding = if (isTablet) 24.dp else 16.dp
 
         Column(
@@ -170,7 +170,7 @@ fun OnboardingScreen(
             onDismissRequest = { homeForActions = null },
             sheetState = sheetState,
         ) {
-            OnboardingActionsSheetContent(
+            HomePickerActionsSheetContent(
                 home = actionsTarget,
                 onEdit = {
                     homeForActions = null
@@ -186,7 +186,7 @@ fun OnboardingScreen(
 }
 
 @Composable
-private fun OnboardingActionsSheetContent(
+private fun HomePickerActionsSheetContent(
     home: HomeListItem,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -209,7 +209,7 @@ private fun OnboardingActionsSheetContent(
     }
 }
 
-private val OnboardingPreviewHomes = listOf(
+private val HomePickerPreviewHomes = listOf(
     HomeListItem(id = "the-johnsons", name = "The Johnsons"),
     HomeListItem(id = "flat-4b", name = "Flat 4B"),
     HomeListItem(id = "mums-place", name = "Mum's Place"),
@@ -217,48 +217,48 @@ private val OnboardingPreviewHomes = listOf(
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
-private fun OnboardingScreenPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { OnboardingScreen(homes = OnboardingPreviewHomes) }
+private fun HomePickerScreenPhoneLightPreview() {
+    VestaTheme(darkTheme = false) { HomePickerScreen(homes = HomePickerPreviewHomes) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
-private fun OnboardingScreenPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { OnboardingScreen(homes = OnboardingPreviewHomes) }
+private fun HomePickerScreenPhoneDarkPreview() {
+    VestaTheme(darkTheme = true) { HomePickerScreen(homes = HomePickerPreviewHomes) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
-private fun OnboardingScreenTabletLightPreview() {
-    VestaTheme(darkTheme = false) { OnboardingScreen(homes = OnboardingPreviewHomes) }
+private fun HomePickerScreenTabletLightPreview() {
+    VestaTheme(darkTheme = false) { HomePickerScreen(homes = HomePickerPreviewHomes) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
-private fun OnboardingScreenTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { OnboardingScreen(homes = OnboardingPreviewHomes) }
+private fun HomePickerScreenTabletDarkPreview() {
+    VestaTheme(darkTheme = true) { HomePickerScreen(homes = HomePickerPreviewHomes) }
 }
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
-private fun OnboardingScreenEmptyPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { OnboardingScreen(homes = emptyList()) }
+private fun HomePickerScreenEmptyPhoneLightPreview() {
+    VestaTheme(darkTheme = false) { HomePickerScreen(homes = emptyList()) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
-private fun OnboardingScreenEmptyPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { OnboardingScreen(homes = emptyList()) }
+private fun HomePickerScreenEmptyPhoneDarkPreview() {
+    VestaTheme(darkTheme = true) { HomePickerScreen(homes = emptyList()) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
-private fun OnboardingScreenEmptyTabletLightPreview() {
-    VestaTheme(darkTheme = false) { OnboardingScreen(homes = emptyList()) }
+private fun HomePickerScreenEmptyTabletLightPreview() {
+    VestaTheme(darkTheme = false) { HomePickerScreen(homes = emptyList()) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
-private fun OnboardingScreenEmptyTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { OnboardingScreen(homes = emptyList()) }
+private fun HomePickerScreenEmptyTabletDarkPreview() {
+    VestaTheme(darkTheme = true) { HomePickerScreen(homes = emptyList()) }
 }
