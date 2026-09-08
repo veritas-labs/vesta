@@ -101,7 +101,8 @@ audit-log entry pointing at it, another table referencing it directly) — not p
   second synced table.
 - Whether any `private`-classified table is even implemented yet — the spike behind [[ADR-002]] only
   exercises a `shared`-shaped table; full-device sync of genuinely private data has no working example yet
-  to generalize from.
+  to generalize from. [[ADR-003]] designs the transport for this case but likewise has no table to point at
+  yet.
 - The exact UUID generation helper/location (e.g. a single `newId(): String` used by every repository) —
   not designed here, just unblocked by this decision.
 - Whether a `private`/`shared` table split (e.g. `PrivateDocument` / `HomeDocument`) should share a single
@@ -114,4 +115,5 @@ audit-log entry pointing at it, another table referencing it directly) — not p
 
 ## References
 
-- [[ADR-002]] — the sync transport this ADR's table classification feeds into.
+- [[ADR-002]] — the `shared`/Home-scoped sync transport this ADR's table classification feeds into.
+- [[ADR-003]] — the `private`/full-device-sync transport this ADR's table classification feeds into.

@@ -180,5 +180,7 @@ Still true, not re-litigated here — see the spike's own docs for detail:
 ## References
 
 - [[ADR-001]] — table-level sync boundary and UUID primary keys, assumed throughout this ADR.
+- [[ADR-003]] — the `private`/full-device-sync counterpart to this ADR, reusing the same group+DM mechanism
+  for a single user's own devices instead of a Home's members.
 - `docs/design/create-home.md`, `docs/design/join-home.md` — the product flows this ADR's group mapping
   implements underneath.
