@@ -136,6 +136,29 @@ elsewhere" → show the new device's own QR for an existing device to scan) that
 design; it's a product/design decision belonging with the rest of `docs/design/onboarding.md`, not this
 document.
 
+### Post-enrollment hardening: pin the rider's machine id
+
+Optional but cheap, layered on top of the enrollment flow above, not a substitute for it: once a device's
+`AgentCertificate` is issued and it's been admitted to the `DeviceSync` group (step 4 above), the owner device
+should also pin that rider's `(agent_id, machine_id)` pair — `POST
+/contacts/<agent_id>/machines/<machine_id>/pin`. The `machine_id` is already available for free: every inbound
+DM from the rider carries it (`GET /direct/events` and the WebSocket `direct_message` event both include
+`"machine_id"` for the sender), so no extra round-trip is needed to learn it.
+
+This cannot be the trust anchor itself — a machine id is an unauthenticated, freely-regenerated identifier with
+no ownership or consent signal behind it, and it isn't even stable across an app reinstall on Android (each
+embedded x0x instance persists its machine key to `VestaAndroid.filesDir/x0x-identity`, Vesta's own
+app-private storage — wiped on reinstall, and never shared with a second app on the same physical device,
+since Android sandboxes app storage). What pinning adds is *detection*, after the `AgentCertificate` step has
+already done the real trust work: if a rider's agent key is later exfiltrated and run from a different
+machine, the pinned `(agent_id, machine_id)` pair no longer matches, and `POST /trust/evaluate` (or the
+equivalent gate on inbound gossip/DM) can flag or reject the connection instead of silently accepting one from
+an agent identity that's still cryptographically valid but is now running somewhere it shouldn't be.
+
+Unpin alongside revocation (§Consequences, step 4) — `x0x identity revoke` plus removing the device from the
+`DeviceSync` group already stops it from syncing; leaving a stale pin behind serves no purpose once the device
+is untrusted regardless.
+
 ### Sync mechanics: unchanged from ADR-002
 
 Once the group exists and has ≥2 members, everything downstream is exactly ADR-002's design, substituting
@@ -167,7 +190,9 @@ Same shape as ADR-002's, adjusted for having no spike to start from:
    ADR-002 §Consequences, applied to the `DeviceSync` group instead of `HomeSync`.
 4. **Revocation.** Losing a device (lost/stolen phone) needs a "remove this device" action: `x0x identity
    revoke` for its agent id, plus removing it from the `DeviceSync` group (which rotates the MLS epoch, so a
-   revoked device can no longer decrypt future broadcasts). This has no ADR-002 equivalent to reuse wholesale
+   revoked device can no longer decrypt future broadcasts), plus unpinning its `(agent_id, machine_id)` pair
+   (see §Post-enrollment hardening) so no stale pin lingers for a device that's no longer trusted anyway. This
+   has no ADR-002 equivalent to reuse wholesale
    — removing a Home member is a lower-stakes, more common action than deauthorizing one of your own devices,
    and probably wants its own confirmation UX. **Local-first limitation, not a bug to fix:** revocation stops
    *future* sync to that device; it does nothing to data already replicated onto it before revocation. No
