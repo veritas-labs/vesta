@@ -15,4 +15,9 @@
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_edit_home">Edit home</string>
     <string name="onboarding_delete_home">Delete home</string>
+
+    <string name="device_pairing_generate_title">Generate device pairing link</string>
+    <string name="device_pairing_generate_body">Create a link this device can share with a new one to pair it.</string>
+    <string name="device_pairing_paste_title">Paste a device pairing link</string>
+    <string name="device_pairing_paste_body">Pair this device using a link generated on another device.</string>
 </resources>
