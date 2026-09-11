@@ -21,6 +21,7 @@ kotlin = "2.4.10"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
 material3 = "1.11.0-alpha07"
+qrose = "1.1.2"
 sqldelight = "2.3.2"
 
 [libraries]
@@ -47,6 +48,14 @@ kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-co
 kotlinx-coroutinesAndroid = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-serializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+# Renders QR codes as a Compose Painter (rememberQrCodePainter) — no
+# dependencies beyond compose.ui, so it needs no platform-specific wiring.
+# Pinned below 1.2.0 deliberately: 1.2.0+ depends on Compose 1.12.0, whose
+# Android artifacts require compileSdk 37 (this project is on 36) and fail
+# :shared:checkAndroidHostTestAarMetadata. 1.1.2 depends on Compose 1.10.0,
+# old enough that Gradle keeps this project's own pinned composeMultiplatform
+# version (1.11.1) instead.
+qrose = { module = "io.github.alexzhirkevich:qrose", version.ref = "qrose" }
 # Embedded Autonomi network bindings (UniFFI, in-process, no daemon) — see
 # https://github.com/WithAutonomi/ant-android. Published to the ant-maven repo
 # declared in settings.gradle.kts, not Maven Central.

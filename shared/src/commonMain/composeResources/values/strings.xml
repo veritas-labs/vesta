@@ -20,4 +20,12 @@
     <string name="device_pairing_generate_body">Create a link this device can share with a new one to pair it.</string>
     <string name="device_pairing_paste_title">Paste a device pairing link</string>
     <string name="device_pairing_paste_body">Pair this device using a link generated on another device.</string>
+
+    <string name="device_pairing_generated_title">Scan this on your other device</string>
+    <string name="device_pairing_generated_body">Or copy the link below and send it to the other device however you like.</string>
+    <string name="device_pairing_generated_copy_link">Copy link</string>
+    <string name="device_pairing_paste_field_label">Pairing link</string>
+    <string name="device_pairing_paste_field_placeholder">Paste the link here</string>
+    <string name="device_pairing_paste_submit">Pair device</string>
+    <string name="device_pairing_cancel">Cancel</string>
 </resources>
