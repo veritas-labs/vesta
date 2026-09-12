@@ -52,4 +52,32 @@ class VestaDatabaseTest {
         db.inviteCodeQueries.revoke("invite-1")
         assertNull(db.inviteCodeQueries.selectActiveByCode("482917", 1_500L).awaitAsOneOrNull())
     }
+
+    @Test
+    fun devicePairingLinkLookupHonoursExpiryAndConsumption() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        db.devicePairingLinkQueries.insert("pairing-1", "aa11bb22cc33dd44", 1_000L, 2_000L)
+
+        // Act
+        val activeBeforeExpiry = db.devicePairingLinkQueries.selectActive(1_500L).awaitAsOneOrNull()
+        val activeAfterExpiry = db.devicePairingLinkQueries.selectActive(2_500L).awaitAsOneOrNull()
+
+        // Assert
+        assertEquals("pairing-1", activeBeforeExpiry?.id)
+        assertNull(activeAfterExpiry)
+    }
+
+    @Test
+    fun devicePairingLinkMarkConsumedExcludesItFromSelectActive() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        db.devicePairingLinkQueries.insert("pairing-1", "aa11bb22cc33dd44", 1_000L, 2_000L)
+
+        // Act
+        db.devicePairingLinkQueries.markConsumed("pairing-1")
+
+        // Assert
+        assertNull(db.devicePairingLinkQueries.selectActive(1_500L).awaitAsOneOrNull())
+    }
 }
