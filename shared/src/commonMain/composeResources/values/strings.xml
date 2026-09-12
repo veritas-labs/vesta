@@ -27,5 +27,11 @@
     <string name="device_pairing_paste_field_label">Pairing link</string>
     <string name="device_pairing_paste_field_placeholder">Paste the link here</string>
     <string name="device_pairing_paste_submit">Pair device</string>
+    <string name="device_pairing_paste_error_invalid">That doesn\'t look like a pairing link.</string>
+    <string name="device_pairing_paste_error_expired">This pairing link has expired.</string>
     <string name="device_pairing_cancel">Cancel</string>
+
+    <string name="device_pairing_redeemed_title">Device paired</string>
+    <string name="device_pairing_redeemed_body">This device has redeemed the pairing link.</string>
+    <string name="device_pairing_done">Done</string>
 </resources>

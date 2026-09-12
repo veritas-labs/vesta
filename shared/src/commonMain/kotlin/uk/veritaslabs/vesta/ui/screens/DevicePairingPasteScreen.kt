@@ -39,6 +39,7 @@ private val DevicePairingPasteTabletBreakpoint = 600.dp
 /** Stable hooks for UI tests to target, independent of the field/buttons' displayed copy. */
 internal object DevicePairingPasteTestTags {
     const val LinkField = "device_pairing_paste_link_field"
+    const val ErrorText = "device_pairing_paste_error_text"
     const val SubmitButton = "device_pairing_paste_submit_button"
     const val CancelButton = "device_pairing_paste_cancel_button"
 }
@@ -47,11 +48,13 @@ internal object DevicePairingPasteTestTags {
  * Text-entry counterpart to [DevicePairingGeneratedScreen] — pairs this
  * device using a link generated on another one (see
  * `docs/adr/ADR-003-device-sync.md`). Reached from [DevicePairingScreen]'s
- * "paste" action.
+ * "paste" action. [errorMessage], when non-null, flags the field and shows
+ * why the last submitted link couldn't be redeemed.
  */
 @Composable
 fun DevicePairingPasteScreen(
     modifier: Modifier = Modifier,
+    errorMessage: String? = null,
     onSubmitPairingLink: (String) -> Unit = {},
     onCancel: () -> Unit = {},
 ) {
@@ -95,8 +98,17 @@ fun DevicePairingPasteScreen(
                     label = { Text(stringResource(Res.string.device_pairing_paste_field_label)) },
                     placeholder = { Text(stringResource(Res.string.device_pairing_paste_field_placeholder)) },
                     singleLine = true,
+                    isError = errorMessage != null,
                     modifier = Modifier.fillMaxWidth().testTag(DevicePairingPasteTestTags.LinkField),
                 )
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 4.dp).testTag(DevicePairingPasteTestTags.ErrorText),
+                    )
+                }
                 PrimaryButton(
                     label = stringResource(Res.string.device_pairing_paste_submit),
                     enabled = pastedLink.isNotBlank(),

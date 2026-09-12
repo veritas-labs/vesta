@@ -58,4 +58,30 @@ class DevicePairingPasteScreenTest {
         // Assert
         assertTrue(cancelled)
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsErrorMessageWhenProvided() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { DevicePairingPasteScreen(errorMessage = "This pairing link has expired.") } }
+
+        // Act
+        // (no user interaction — checking the screen renders a caller-supplied error)
+
+        // Assert
+        onNodeWithTag(DevicePairingPasteTestTags.ErrorText).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun hidesErrorMessageWhenNotProvided() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { DevicePairingPasteScreen() } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(DevicePairingPasteTestTags.ErrorText).assertDoesNotExist()
+    }
 }
