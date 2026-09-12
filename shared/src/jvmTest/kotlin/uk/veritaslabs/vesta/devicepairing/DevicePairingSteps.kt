@@ -48,7 +48,7 @@ class DevicePairingSteps {
 
     // --- Background ---
 
-    @Given("a user already has a Profile on an existing device, {string}")
+    @Given("a user already has an x0x identity on an existing device, {string}")
     fun ownerDeviceExists(label: String) {
         // Labels the owner device for readability; no state needed beyond this.
     }

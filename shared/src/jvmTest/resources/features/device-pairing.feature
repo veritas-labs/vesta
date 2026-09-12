@@ -26,7 +26,7 @@ Feature: Device pairing (linking a new device to an existing identity)
   WhatsApp/Signal "link a device."
 
   Background:
-    Given a user already has a Profile on an existing device, "the owner device"
+    Given a user already has an x0x identity on an existing device, "the owner device"
     And the owner device holds the only copy of that user's "~/.x0x/user.key"
 
   Scenario: New device generates its own agent keypair and renders a pairing QR code
