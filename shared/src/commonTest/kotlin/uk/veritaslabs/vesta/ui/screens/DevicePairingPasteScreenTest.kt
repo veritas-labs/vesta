@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta.ui.screens
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -24,8 +24,8 @@ class DevicePairingPasteScreenTest {
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithText("Pairing link").assertIsDisplayed()
-        onNodeWithText("Pair device").assertIsNotEnabled()
+        onNodeWithTag(DevicePairingPasteTestTags.LinkField).assertIsDisplayed()
+        onNodeWithTag(DevicePairingPasteTestTags.SubmitButton).assertIsNotEnabled()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -38,8 +38,8 @@ class DevicePairingPasteScreenTest {
         }
 
         // Act
-        onNodeWithText("Pairing link").performTextInput("https://vesta.example/pair#typed")
-        onNodeWithText("Pair device").performClick()
+        onNodeWithTag(DevicePairingPasteTestTags.LinkField).performTextInput("https://vesta.example/pair#typed")
+        onNodeWithTag(DevicePairingPasteTestTags.SubmitButton).performClick()
 
         // Assert
         assertEquals("https://vesta.example/pair#typed", submitted)
@@ -53,7 +53,7 @@ class DevicePairingPasteScreenTest {
         setContent { VestaTheme { DevicePairingPasteScreen(onCancel = { cancelled = true }) } }
 
         // Act
-        onNodeWithText("Cancel").performClick()
+        onNodeWithTag(DevicePairingPasteTestTags.CancelButton).performClick()
 
         // Assert
         assertTrue(cancelled)

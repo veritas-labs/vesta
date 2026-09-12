@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
@@ -44,6 +45,12 @@ import vesta.shared.generated.resources.img_app_logo
 private val DevicePairingGeneratedTabletBreakpoint = 600.dp
 private val DevicePairingGeneratedQrSize = 240.dp
 private val DevicePairingGeneratedQrSizeTablet = 320.dp
+
+/** Stable hooks for UI tests to target, independent of the buttons' displayed copy. */
+internal object DevicePairingGeneratedTestTags {
+    const val CopyLinkButton = "device_pairing_generated_copy_link_button"
+    const val CancelButton = "device_pairing_generated_cancel_button"
+}
 
 /**
  * Shows a just-generated pairing link (see `docs/adr/ADR-003-device-sync.md`)
@@ -140,12 +147,12 @@ fun DevicePairingGeneratedScreen(
                         clipboardManager.setText(AnnotatedString(pairingLink))
                         onCopyLink()
                     },
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = 24.dp).testTag(DevicePairingGeneratedTestTags.CopyLinkButton),
                 )
                 SecondaryButton(
                     label = stringResource(Res.string.device_pairing_cancel),
                     onClick = onCancel,
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(top = 16.dp).testTag(DevicePairingGeneratedTestTags.CancelButton),
                 )
             }
         }

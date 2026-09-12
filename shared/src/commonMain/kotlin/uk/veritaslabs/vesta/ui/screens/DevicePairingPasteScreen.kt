@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,6 +35,13 @@ import vesta.shared.generated.resources.device_pairing_paste_submit
 import vesta.shared.generated.resources.device_pairing_paste_title
 
 private val DevicePairingPasteTabletBreakpoint = 600.dp
+
+/** Stable hooks for UI tests to target, independent of the field/buttons' displayed copy. */
+internal object DevicePairingPasteTestTags {
+    const val LinkField = "device_pairing_paste_link_field"
+    const val SubmitButton = "device_pairing_paste_submit_button"
+    const val CancelButton = "device_pairing_paste_cancel_button"
+}
 
 /**
  * Text-entry counterpart to [DevicePairingGeneratedScreen] — pairs this
@@ -87,18 +95,18 @@ fun DevicePairingPasteScreen(
                     label = { Text(stringResource(Res.string.device_pairing_paste_field_label)) },
                     placeholder = { Text(stringResource(Res.string.device_pairing_paste_field_placeholder)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag(DevicePairingPasteTestTags.LinkField),
                 )
                 PrimaryButton(
                     label = stringResource(Res.string.device_pairing_paste_submit),
                     enabled = pastedLink.isNotBlank(),
                     onClick = { onSubmitPairingLink(pastedLink) },
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(top = 16.dp).testTag(DevicePairingPasteTestTags.SubmitButton),
                 )
                 SecondaryButton(
                     label = stringResource(Res.string.device_pairing_cancel),
                     onClick = onCancel,
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(top = 16.dp).testTag(DevicePairingPasteTestTags.CancelButton),
                 )
             }
         }

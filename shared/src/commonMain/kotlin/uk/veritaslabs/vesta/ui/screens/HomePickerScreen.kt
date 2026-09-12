@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,6 +57,17 @@ import vesta.shared.generated.resources.onboarding_join_home
 import vesta.shared.generated.resources.onboarding_title
 
 private val HomePickerTabletBreakpoint = 600.dp
+
+/** Stable hooks for UI tests to target, independent of displayed copy or home names. */
+internal object HomePickerTestTags {
+    const val CreateHomeButton = "home_picker_create_home_button"
+    const val JoinHomeButton = "home_picker_join_home_button"
+    const val EditHomeButton = "home_picker_edit_home_button"
+    const val DeleteHomeButton = "home_picker_delete_home_button"
+
+    /** Tag for the list row of the home with the given [homeId], independent of its display name. */
+    fun homeItem(homeId: String) = "home_picker_item_$homeId"
+}
 
 /** A single row of the home picker screen's home list — see [HomePickerScreen]. */
 data class HomeListItem(
@@ -139,7 +151,8 @@ fun HomePickerScreen(
                             label = home.name,
                             avatar = { size -> ProfileAvatar(name = home.name, size = size, avatar = home.avatar) },
                             orientation = if (isTablet) AvatarButtonOrientation.Vertical else AvatarButtonOrientation.Horizontal,
-                            modifier = if (isTablet) Modifier else Modifier.fillMaxWidth(),
+                            modifier = (if (isTablet) Modifier else Modifier.fillMaxWidth())
+                                .testTag(HomePickerTestTags.homeItem(home.id)),
                             onClick = { onHomeSelected(home) },
                             onLongClick = { homeForActions = home },
                         )
@@ -150,7 +163,7 @@ fun HomePickerScreen(
             SecondaryButton(
                 label = stringResource(Res.string.onboarding_join_home),
                 onClick = onJoinHome,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+                modifier = Modifier.align(Alignment.CenterHorizontally).testTag(HomePickerTestTags.JoinHomeButton),
             )
             Spacer(Modifier.height(contentPadding))
             PrimaryButton(
@@ -158,7 +171,7 @@ fun HomePickerScreen(
                     Res.string.onboarding_create_home,
                 ),
                 onClick = onCreateHome,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+                modifier = Modifier.align(Alignment.CenterHorizontally).testTag(HomePickerTestTags.CreateHomeButton),
             )
             Spacer(Modifier.height(contentPadding))
         }
@@ -198,11 +211,17 @@ private fun HomePickerActionsSheetContent(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(16.dp))
-        OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onEdit,
+            modifier = Modifier.fillMaxWidth().testTag(HomePickerTestTags.EditHomeButton),
+        ) {
             Text(stringResource(Res.string.onboarding_edit_home))
         }
         Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+        TextButton(
+            onClick = onDelete,
+            modifier = Modifier.fillMaxWidth().testTag(HomePickerTestTags.DeleteHomeButton),
+        ) {
             Text(stringResource(Res.string.onboarding_delete_home), color = MaterialTheme.colorScheme.error)
         }
         Spacer(Modifier.height(8.dp))

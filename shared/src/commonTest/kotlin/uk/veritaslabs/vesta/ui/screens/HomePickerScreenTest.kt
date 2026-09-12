@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.ui.screens
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -22,89 +23,115 @@ class HomePickerScreenTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun showsEachHomeAndTheCreateAndJoinHomeButtons() = runComposeUiTest {
+        // Arrange
         setContent { VestaTheme { HomePickerScreen(homes = homes) } }
 
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        // Text assertions here because the home names are the data under
+        // test — a real regression (e.g. the wrong home's name rendering)
+        // should fail this test, unlike the tag-based assertions below.
         onNodeWithText("The Johnsons").assertIsDisplayed()
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onNodeWithText("Create a home").assertIsDisplayed()
-        onNodeWithText("Join a home").assertIsDisplayed()
+        onNodeWithTag(HomePickerTestTags.CreateHomeButton).assertIsDisplayed()
+        onNodeWithTag(HomePickerTestTags.JoinHomeButton).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun tappingAHomeInvokesOnHomeSelected() = runComposeUiTest {
+        // Arrange
         var selected: HomeListItem? = null
         setContent {
             VestaTheme { HomePickerScreen(homes = homes, onHomeSelected = { selected = it }) }
         }
 
-        onNodeWithText("The Johnsons").performClick()
+        // Act
+        onNodeWithTag(HomePickerTestTags.homeItem("the-johnsons")).performClick()
 
+        // Assert
         assertEquals("the-johnsons", selected?.id)
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun tappingCreateHomeInvokesOnCreateHome() = runComposeUiTest {
+        // Arrange
         var created = false
         setContent {
             VestaTheme { HomePickerScreen(homes = homes, onCreateHome = { created = true }) }
         }
 
-        onNodeWithText("Create a home").performClick()
+        // Act
+        onNodeWithTag(HomePickerTestTags.CreateHomeButton).performClick()
 
+        // Assert
         assertTrue(created)
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun tappingJoinHomeInvokesOnJoinHome() = runComposeUiTest {
+        // Arrange
         var joined = false
         setContent {
             VestaTheme { HomePickerScreen(homes = homes, onJoinHome = { joined = true }) }
         }
 
-        onNodeWithText("Join a home").performClick()
+        // Act
+        onNodeWithTag(HomePickerTestTags.JoinHomeButton).performClick()
 
+        // Assert
         assertTrue(joined)
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun longPressingAHomeOpensActionsSheetWithEditAndDelete() = runComposeUiTest {
+        // Arrange
         setContent { VestaTheme { HomePickerScreen(homes = homes) } }
 
-        onNodeWithText("The Johnsons").performTouchInput { longClick() }
+        // Act
+        onNodeWithTag(HomePickerTestTags.homeItem("the-johnsons")).performTouchInput { longClick() }
 
-        onNodeWithText("Edit home").assertIsDisplayed()
-        onNodeWithText("Delete home").assertIsDisplayed()
+        // Assert
+        onNodeWithTag(HomePickerTestTags.EditHomeButton).assertIsDisplayed()
+        onNodeWithTag(HomePickerTestTags.DeleteHomeButton).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun editHomeInSheetInvokesOnEditHomeForThatHome() = runComposeUiTest {
+        // Arrange
         var edited: HomeListItem? = null
         setContent {
             VestaTheme { HomePickerScreen(homes = homes, onEditHome = { edited = it }) }
         }
 
-        onNodeWithText("Flat 4B").performTouchInput { longClick() }
-        onNodeWithText("Edit home").performClick()
+        // Act
+        onNodeWithTag(HomePickerTestTags.homeItem("flat-4b")).performTouchInput { longClick() }
+        onNodeWithTag(HomePickerTestTags.EditHomeButton).performClick()
 
+        // Assert
         assertEquals("flat-4b", edited?.id)
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun deleteHomeInSheetInvokesOnDeleteHomeForThatHome() = runComposeUiTest {
+        // Arrange
         var deleted: HomeListItem? = null
         setContent {
             VestaTheme { HomePickerScreen(homes = homes, onDeleteHome = { deleted = it }) }
         }
 
-        onNodeWithText("Flat 4B").performTouchInput { longClick() }
-        onNodeWithText("Delete home").performClick()
+        // Act
+        onNodeWithTag(HomePickerTestTags.homeItem("flat-4b")).performTouchInput { longClick() }
+        onNodeWithTag(HomePickerTestTags.DeleteHomeButton).performClick()
 
+        // Assert
         assertEquals("flat-4b", deleted?.id)
     }
 }

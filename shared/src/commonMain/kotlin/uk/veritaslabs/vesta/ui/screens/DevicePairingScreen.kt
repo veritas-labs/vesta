@@ -14,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,12 @@ import vesta.shared.generated.resources.ic_clipboard_text
 import vesta.shared.generated.resources.ic_link
 
 private val DevicePairingTabletBreakpoint = 600.dp
+
+/** Stable hooks for UI tests to target, independent of the cards' displayed copy. */
+internal object DevicePairingTestTags {
+    const val GenerateCard = "device_pairing_generate_card"
+    const val PasteCard = "device_pairing_paste_card"
+}
 
 /**
  * Entry point for linking this device to an existing identity (see
@@ -67,7 +74,7 @@ fun DevicePairingScreen(
                     icon = generateIcon,
                     orientation = ActionCardOrientation.Vertical,
                     onClick = onGeneratePairingLink,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag(DevicePairingTestTags.GenerateCard),
                 )
                 ActionCard(
                     title = stringResource(Res.string.device_pairing_paste_title),
@@ -75,7 +82,7 @@ fun DevicePairingScreen(
                     icon = pasteIcon,
                     orientation = ActionCardOrientation.Vertical,
                     onClick = onPastePairingLink,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag(DevicePairingTestTags.PasteCard),
                 )
             }
         } else {
@@ -90,6 +97,7 @@ fun DevicePairingScreen(
                     body = stringResource(Res.string.device_pairing_generate_body),
                     icon = generateIcon,
                     onClick = onGeneratePairingLink,
+                    modifier = Modifier.testTag(DevicePairingTestTags.GenerateCard),
                 )
                 Spacer(Modifier.height(12.dp))
                 ActionCard(
@@ -97,6 +105,7 @@ fun DevicePairingScreen(
                     body = stringResource(Res.string.device_pairing_paste_body),
                     icon = pasteIcon,
                     onClick = onPastePairingLink,
+                    modifier = Modifier.testTag(DevicePairingTestTags.PasteCard),
                 )
             }
         }

@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -38,7 +39,7 @@ class DevicePairingGeneratedScreenTest {
         }
 
         // Act
-        onNodeWithText("Copy link").performClick()
+        onNodeWithTag(DevicePairingGeneratedTestTags.CopyLinkButton).performClick()
 
         // Assert
         assertTrue(copied)
@@ -54,7 +55,7 @@ class DevicePairingGeneratedScreenTest {
         }
 
         // Act
-        onNodeWithText("Cancel").performClick()
+        onNodeWithTag(DevicePairingGeneratedTestTags.CancelButton).performClick()
 
         // Assert
         assertTrue(cancelled)

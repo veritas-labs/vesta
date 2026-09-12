@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,6 +62,16 @@ data class ProfileListItem(
 )
 
 private val TabletBreakpoint = 600.dp
+
+/** Stable hooks for UI tests to target, independent of displayed copy or profile names. */
+internal object ProfilePickerTestTags {
+    const val CreateProfileButton = "profile_picker_create_profile_button"
+    const val EditProfileButton = "profile_picker_edit_profile_button"
+    const val DeleteProfileButton = "profile_picker_delete_profile_button"
+
+    /** Tag for the list row of the profile with the given [profileId], independent of its display name. */
+    fun profileItem(profileId: String) = "profile_picker_item_$profileId"
+}
 
 /**
  * The shared-device Profile Picker (`S1b` in docs/design/profile-switching.md):
@@ -139,7 +150,8 @@ fun ProfilePickerScreen(
                             label = profile.name,
                             avatar = { size -> ProfileAvatar(name = profile.name, size = size, avatar = profile.avatar) },
                             orientation = if (isTablet) AvatarButtonOrientation.Vertical else AvatarButtonOrientation.Horizontal,
-                            modifier = if (isTablet) Modifier else Modifier.fillMaxWidth(),
+                            modifier = (if (isTablet) Modifier else Modifier.fillMaxWidth())
+                                .testTag(ProfilePickerTestTags.profileItem(profile.id)),
                             onClick = { onProfileSelected(profile) },
                             onLongClick = { profileForActions = profile },
                         )
@@ -152,7 +164,7 @@ fun ProfilePickerScreen(
                     if (profiles.isEmpty()) Res.string.profile_picker_get_started else Res.string.profile_picker_create_profile,
                 ),
                 onClick = onCreateProfile,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+                modifier = Modifier.align(Alignment.CenterHorizontally).testTag(ProfilePickerTestTags.CreateProfileButton),
             )
             Spacer(Modifier.height(contentPadding))
         }
@@ -192,11 +204,17 @@ private fun ProfileActionsSheetContent(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(16.dp))
-        OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onEdit,
+            modifier = Modifier.fillMaxWidth().testTag(ProfilePickerTestTags.EditProfileButton),
+        ) {
             Text(stringResource(Res.string.profile_picker_edit_profile))
         }
         Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+        TextButton(
+            onClick = onDelete,
+            modifier = Modifier.fillMaxWidth().testTag(ProfilePickerTestTags.DeleteProfileButton),
+        ) {
             Text(stringResource(Res.string.profile_picker_delete_profile), color = MaterialTheme.colorScheme.error)
         }
         Spacer(Modifier.height(8.dp))
