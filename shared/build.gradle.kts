@@ -183,8 +183,14 @@ dependencies {
 afterEvaluate {
     tasks.named<Test>("jvmTest") {
         useJUnitPlatform()
+        // RunDevicePairingCucumberTest's Constants.PLUGIN_PROPERTY_NAME is set
+        // to "pretty", which writes each Given/When/Then step (and which one
+        // failed) to System.out — but Gradle swallows a test's stdout unless
+        // showStandardStreams is on, so without this only the enclosing
+        // Feature/Scenario/Step node names from the JUnit Platform Suite
+        // (set up in that class) reach the console, not the step text itself.
         testLogging {
-            events("passed", "skipped", "failed")
+            showStandardStreams = true
         }
     }
 }
@@ -198,4 +204,15 @@ afterEvaluate {
 // testAndroidDeviceTest, so just skip them for the host-side JVM run.
 tasks.matching { it.name == "testAndroidHostTest" }.configureEach {
     (this as Test).exclude("**/ui/components/**", "**/ui/screens/**")
+}
+
+// The Kotlin Multiplatform plugin doesn't create a plain `test` lifecycle
+// task the way the Android/JVM plugins do for androidApp/desktopApp, so
+// root-level `./gradlew test` silently skipped this module's actual test
+// suites. Wire one up to the host-side (no device/simulator needed) test
+// tasks; iOS tests still run separately via Xcode/iosSimulatorArm64Test.
+tasks.register("test") {
+    group = "verification"
+    description = "Runs the JVM and Android host-side test suites."
+    dependsOn("jvmTest", "testAndroidHostTest")
 }
