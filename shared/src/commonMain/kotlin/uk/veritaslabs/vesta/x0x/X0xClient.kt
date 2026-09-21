@@ -1,13 +1,22 @@
 package uk.veritaslabs.vesta.x0x
 
+import kotlinx.serialization.json.JsonObject
+
 /**
- * Minimal client for the local x0x REST API (loopback, bearer-token
- * protected). One implementation per platform:
+ * Client for the local x0x REST API (loopback, bearer-token protected). One
+ * implementation per platform:
  *
  * * Android / iOS — talks to the daemon embedded in this process
  *   ([EmbeddedX0x]);
  * * Desktop (JVM) — talks to the standalone `x0xd` daemon (port + token read
  *   from the standard x0x data directory).
+ *
+ * Covers health, agent identity, session minting, gossip pub/sub, direct
+ * messaging, replicated KV stores and named groups — the full surface an app
+ * built on x0x needs, ported from the Colo project's JVM-only client
+ * (`town.colo.x0x.X0xClient`) onto this shared, multiplatform, suspending
+ * interface. See [AbstractX0xClient] for the shared implementation of all of
+ * this beyond [health] and [endpoint].
  */
 interface X0xClient {
 
@@ -16,12 +25,99 @@ interface X0xClient {
 
     /** `GET /health`; null when the daemon is unreachable or the body is unrecognisable. */
     suspend fun health(): X0xHealth?
+
+    // --- Core ---
+
+    suspend fun agent(): X0xAgent
+
+    /** Mints a short-lived session token for WebSocket / query-string auth. */
+    suspend fun createSession(): X0xSession
+
+    // --- Gossip pub/sub ---
+
+    suspend fun subscribe(topic: String): JsonObject
+
+    suspend fun publish(topic: String, payload: ByteArray): JsonObject
+
+    /**
+     * Opens the gossip SSE stream (`GET /events`). Call [X0xEventStream.close]
+     * (or use `use { }`) when finished. Each gossip message is wrapped in a
+     * `{ "type": "message", "data": { ... } }` envelope by the daemon.
+     */
+    suspend fun gossipEvents(onMessage: (X0xGossipMessage) -> Unit): X0xEventStream
+
+    // --- Direct messaging ---
+
+    suspend fun connectAgent(agentId: String): JsonObject
+
+    suspend fun sendDirect(agentId: String, payload: ByteArray): JsonObject
+
+    suspend fun listDirectConnections(): JsonObject
+
+    /**
+     * Opens the direct-message SSE stream (`GET /direct/events`). Events are
+     * flat (no `data` envelope), unlike [gossipEvents].
+     */
+    suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit): X0xEventStream
+
+    // --- Store (replicated KV CRDT) ---
+
+    suspend fun createStore(name: String, topic: String, policy: String = "signed"): String
+
+    suspend fun listStores(): JsonObject
+
+    suspend fun listStoreKeys(storeId: String): List<X0xStoreKey>
+
+    /** Returns null if the key does not exist (404). */
+    suspend fun getValue(storeId: String, key: String): ByteArray?
+
+    suspend fun putValue(storeId: String, key: String, value: ByteArray, contentType: String = "application/octet-stream")
+
+    suspend fun deleteValue(storeId: String, key: String)
+
+    /** Replicates a store another agent created; [expectedOwner] must come from an out-of-band source. */
+    suspend fun joinStore(storeId: String, expectedOwner: String)
+
+    // --- Named groups ---
+
+    /** Creates a named group and returns its `group_id`. See `preset` options in the x0x API docs. */
+    suspend fun createGroup(name: String, description: String = "", preset: String? = null): String
+
+    /** Named groups this agent created or belongs to. */
+    suspend fun listGroups(): List<X0xGroupSummary>
+
+    /** Publishes a signed message to a `SignedPublic` group's public channel; `kind` is `"chat"` or `"announcement"`. */
+    suspend fun sendGroupMessage(groupId: String, body: String, kind: String = "chat"): JsonObject
+
+    /**
+     * Reads a `SignedPublic` group's cached public messages. This is the reliable way to see a
+     * group's announcements: delivery to members rides direct messages under the hood, not the
+     * `x0x.groups.public.{groupId}` gossip topic, so a plain [subscribe] to that topic can silently
+     * miss messages — poll this instead.
+     */
+    suspend fun getGroupMessages(groupId: String): List<X0xGroupPublicMessage>
 }
 
 expect fun createX0xClient(): X0xClient
 
+/** Closeable handle for an open SSE subscription. Safe to close more than once. */
+fun interface X0xEventStream : AutoCloseable {
+    override fun close()
+}
+
+/** Result of a raw HTTP call to the daemon: the status code and the (possibly empty) response body. */
+internal data class X0xHttpResult(val status: Int, val body: String)
+
 /**
- * Performs a blocking-free HTTP GET and returns the response body, or null
- * on connection failure, non-200 status or timeout.
+ * Performs a blocking-free HTTP call and returns its status and body. Never throws for a non-2xx
+ * status — callers (see [AbstractX0xClient]) interpret the status themselves. Throws only when the
+ * daemon can't be reached at all (connection failure, timeout).
  */
-internal expect suspend fun httpGet(url: String, bearerToken: String?): String?
+internal expect suspend fun httpRequest(method: String, url: String, bearerToken: String?, jsonBody: String?): X0xHttpResult
+
+/**
+ * Opens `url` as an SSE stream and invokes [onEvent] with each event's `data:` payload (lines
+ * joined by `\n` when an event spans several `data:` lines) until the returned [X0xEventStream] is
+ * closed or the connection drops.
+ */
+internal expect suspend fun openSseStream(url: String, bearerToken: String?, onEvent: (String) -> Unit): X0xEventStream

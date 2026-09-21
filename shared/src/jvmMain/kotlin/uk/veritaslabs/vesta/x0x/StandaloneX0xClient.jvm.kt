@@ -1,32 +1,93 @@
 package uk.veritaslabs.vesta.x0x
 
+import java.io.BufferedReader
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
+import java.io.InputStreamReader
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.nio.charset.StandardCharsets
+import java.time.Duration
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-internal actual suspend fun httpGet(url: String, bearerToken: String?): String? =
+private val sharedHttpClient: HttpClient = HttpClient.newBuilder()
+    .connectTimeout(Duration.ofSeconds(5))
+    .build()
+
+internal actual suspend fun httpRequest(method: String, url: String, bearerToken: String?, jsonBody: String?): X0xHttpResult =
     withContext(Dispatchers.IO) {
-        runCatching {
-            val connection = URL(url).openConnection() as HttpURLConnection
+        val builder = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(Duration.ofSeconds(10))
+        bearerToken?.let { builder.header("Authorization", "Bearer $it") }
+
+        val bodyPublisher = if (jsonBody != null) {
+            builder.header("Content-Type", "application/json")
+            HttpRequest.BodyPublishers.ofString(jsonBody)
+        } else {
+            HttpRequest.BodyPublishers.noBody()
+        }
+        builder.method(method, bodyPublisher)
+
+        val response = sharedHttpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+        X0xHttpResult(response.statusCode(), response.body())
+    }
+
+internal actual suspend fun openSseStream(url: String, bearerToken: String?, onEvent: (String) -> Unit): X0xEventStream =
+    withContext(Dispatchers.IO) {
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(Duration.ofDays(1))
+            .header("Accept", "text/event-stream")
+            .apply { bearerToken?.let { header("Authorization", "Bearer $it") } }
+            .GET()
+            .build()
+
+        val response = sharedHttpClient.send(request, HttpResponse.BodyHandlers.ofInputStream())
+        if (response.statusCode() >= 400) {
+            val body = response.body().bufferedReader().use { it.readText() }
+            throw X0xApiException(response.statusCode(), body.ifBlank { "x0x API error (HTTP ${response.statusCode()})" })
+        }
+
+        val closed = AtomicBoolean(false)
+        val reader = BufferedReader(InputStreamReader(response.body(), StandardCharsets.UTF_8))
+        val thread = Thread({
             try {
-                connection.connectTimeout = 3_000
-                connection.readTimeout = 3_000
-                bearerToken?.let {
-                    connection.setRequestProperty("Authorization", "Bearer $it")
+                val dataLines = mutableListOf<String>()
+                while (!closed.get()) {
+                    val line = reader.readLine() ?: break
+                    when {
+                        line.startsWith("data:") -> dataLines += line.removePrefix("data:").trimStart()
+                        line.isEmpty() && dataLines.isNotEmpty() -> {
+                            val payload = dataLines.joinToString("\n")
+                            dataLines.clear()
+                            runCatching { onEvent(payload) }
+                        }
+                        line.startsWith(":") -> Unit // comment / keepalive
+                        else -> dataLines.clear()
+                    }
                 }
-                if (connection.responseCode != 200) {
-                    null
-                } else {
-                    connection.inputStream.bufferedReader().use { it.readText() }
-                }
+            } catch (_: Exception) {
+                // Stream ended or was closed.
             } finally {
-                connection.disconnect()
+                runCatching { reader.close() }
             }
-        }.getOrNull()
+        }, "x0x-sse-$url").apply {
+            isDaemon = true
+            start()
+        }
+
+        X0xEventStream {
+            if (closed.compareAndSet(false, true)) {
+                runCatching { reader.close() }
+                thread.interrupt()
+            }
+        }
     }
 
 /**
@@ -35,7 +96,7 @@ internal actual suspend fun httpGet(url: String, bearerToken: String?): String? 
  * from x0x's standard data directory (override with the `X0X_DATA_DIR`
  * environment variable).
  */
-private class StandaloneX0xClient : X0xClient {
+private class StandaloneX0xClient : AbstractX0xClient() {
 
     private data class LocalDaemon(val port: Int, val token: String?)
 
@@ -77,10 +138,9 @@ private class StandaloneX0xClient : X0xClient {
         get() = resolved?.let { "x0xd · 127.0.0.1:${it.port}" }
             ?: "standalone x0xd not found — start one with `x0x start`"
 
-    override suspend fun health(): X0xHealth? {
+    override suspend fun resolveDaemon(): Pair<String, String?>? {
         val d = localDaemon() ?: return null
-        val body = httpGet("http://127.0.0.1:${d.port}/health", d.token) ?: return null
-        return X0xHealth.parse(body)
+        return "http://127.0.0.1:${d.port}" to d.token
     }
 }
 
