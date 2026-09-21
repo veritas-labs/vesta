@@ -1,7 +1,8 @@
 [versions]
 agp = "9.1.1"
 android-compileSdk = "36"
-android-minSdk = "24"
+# 26, not 24: org.automerge:androidnative's manifest declares minSdk 26.
+android-minSdk = "26"
 android-targetSdk = "36"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.8.0"
@@ -11,6 +12,7 @@ androidx-lifecycle = "2.11.0-beta01"
 androidx-testExt = "1.3.0"
 androidx-sqlite = "2.7.0"
 ant-android = "0.0.8-rc.1"
+automerge = "0.0.9"
 composeMultiplatform = "1.11.1"
 cucumber = "7.20.1"
 eygraber-sqldelightAndroidxDriver = "0.2.2"
@@ -60,6 +62,13 @@ qrose = { module = "io.github.alexzhirkevich:qrose", version.ref = "qrose" }
 # https://github.com/WithAutonomi/ant-android. Published to the ant-maven repo
 # declared in settings.gradle.kts, not Maven Central.
 ant-android = { module = "com.autonomi:ant-android", version.ref = "ant-android" }
+# Automerge CRDT (https://github.com/automerge/automerge), official JNI-backed
+# Java bindings — https://github.com/automerge/automerge/tree/main/rust/automerge-jni.
+# JVM/Android only: the main jar bundles native libs for desktop (win/mac/linux,
+# x64+arm64) and `androidnative` adds the Android .so; no iOS bindings exist
+# upstream, so this is wired into jvmMain/androidMain only, not commonMain.
+automerge = { module = "org.automerge:automerge", version.ref = "automerge" }
+automerge-androidnative = { module = "org.automerge:androidnative", version.ref = "automerge" }
 # Local-first SQLite persistence (KMP): shared schema + generated typed API, one
 # bundled SQLite build (androidx.sqlite) on every platform — so the cr-sqlite
 # CRDT extension (see shared/src/*Main/.../db/DatabaseDriverFactory.*.kt) loads

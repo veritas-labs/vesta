@@ -99,6 +99,11 @@ kotlin {
             // Dispatchers.Main used internally by the generated suspend bindings;
             // not transitive from ant-android's POM (see its README).
             implementation(libs.kotlinx.coroutinesAndroid)
+            // Automerge CRDT (JNI bindings, see the libs.versions.toml comment);
+            // androidnative adds the Android .so — the main jar's bundled
+            // natives are desktop-only (win/mac/linux).
+            implementation(libs.automerge)
+            implementation(libs.automerge.androidnative)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -120,6 +125,11 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.compose.uiTest)
+        }
+        jvmMain.dependencies {
+            // Automerge CRDT (JNI bindings, see the libs.versions.toml comment);
+            // the jar bundles natives for desktop (win/mac/linux, x64+arm64).
+            implementation(libs.automerge)
         }
         jvmTest.dependencies {
             // Skiko's native renderer, needed for runComposeUiTest on the jvm
