@@ -2,6 +2,12 @@
 
 ## Status
 
+**Superseded by [[ADR-005]]** (2026-09-26) for its sync mechanics — Automerge replaces cr-sqlite, so the
+`DeviceSync`/`DeviceSyncPeer` cr-sqlite tables and broadcast/DM design below don't carry over as written. Its
+device-enrollment/certificate design (x0x `AgentCertificate`, QR pairing) is not cr-sqlite-specific and isn't
+invalidated — but ADR-005 was scoped to Home sync only and does not say whether an Automerge equivalent of this
+ADR's per-user sync is still needed; see ADR-005 §Consequences.
+
 Proposed. Nothing in this ADR is implemented — unlike [[ADR-002]], there is no spike to build on. This is the
 `private` half of [[ADR-001]]'s two sync forms; the spike behind ADR-002 only ever exercised a `shared`-shaped
 table, so this ADR has no working example to generalize from and every code sketch below is illustrative, not

@@ -2,6 +2,10 @@
 
 ## Status
 
+**Superseded by [[ADR-005]]** (2026-09-26) — Automerge replaces cr-sqlite as the app-data CRDT model; the
+`private`/`shared` table classification and UUID-primary-key rules below were designed for cr-sqlite tables and
+don't carry over as written. Kept for the rationale behind decisions ADR-005 doesn't restate.
+
 Accepted — 2026-09-08
 
 ## Context

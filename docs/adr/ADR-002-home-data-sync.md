@@ -2,6 +2,10 @@
 
 ## Status
 
+**Superseded by [[ADR-005]]** (2026-09-26) — Automerge replaces cr-sqlite; the "one x0x group per Home" mapping
+below survives into ADR-005, but the broadcast/gossip transport ("Two delivery paths", MLS encrypt-then-publish)
+does not — ADR-005 narrows the group to membership/discovery and does all data sync via DM fan-out instead.
+
 Proposed. §"What the spike already proved" below is implemented (spike-quality, on the
 `poc/cr-sqlite-sync-over-x0x` branch, not `main`). Everything from "Decision" onward is the proposed design
 for turning that spike into the real thing — treat every code sketch below as illustrative, not final.

@@ -2,6 +2,11 @@
 
 ## Status
 
+**Extended by [[ADR-005]]** (2026-09-26) — not superseded: the `Document`/`SyncState`-direct-over-x0x decision
+below stands unchanged. ADR-005 scopes it to one `Document` per Home, decides its persistence (Open Question 1,
+a SQLite BLOB), generalizes its sync to fan out over a Home's x0x group roster (Open Question 3), and resolves
+Open Question 8 in Automerge's favor (cr-sqlite retired).
+
 Proposed. Everything below "What's built" is implemented and tested (spike-quality, on the `poc/automerge-over-x0x`
 branch, not `main`). This ADR does **not** settle Automerge vs. cr-sqlite (see Context) — it records the integration
 decisions made *within* the Automerge spike itself. This is the third revision of that decision: §"Designs tried"

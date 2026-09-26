@@ -127,6 +127,11 @@ filesystem — always pass directories inside the app's private storage.
 
 ## Local database (SQLDelight + cr-sqlite)
 
+> **Note:** cr-sqlite's CRDT/sync role described below is superseded — see
+> [ADR-005](./docs/adr/ADR-005-home-automerge-document-over-x0x-group.md). Home/app-data sync now runs on
+> Automerge `Document`s, not cr-sqlite CRDT tables. This section still describes real, merged infrastructure
+> (the loaded extension and its binaries), not a removed one.
+
 `VestaDatabase` (schema in [shared/src/commonMain/sqldelight](./shared/src/commonMain/sqldelight),
 driver setup in `shared/src/*Main/kotlin/.../db/DatabaseDriverFactory.*.kt`) runs on
 [androidx.sqlite's bundled SQLite driver](https://developer.android.com/kotlin/multiplatform/sqlite)
