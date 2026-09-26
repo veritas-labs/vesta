@@ -125,12 +125,18 @@ filesystem — always pass directories inside the app's private storage.
 
 ---
 
-## Local database (SQLDelight + cr-sqlite)
+## Local database (SQLDelight; cr-sqlite loaded but unused)
 
-> **Note:** cr-sqlite's CRDT/sync role described below is superseded — see
-> [ADR-005](./docs/adr/ADR-005-home-automerge-document-over-x0x-group.md). Home/app-data sync now runs on
-> Automerge `Document`s, not cr-sqlite CRDT tables. This section still describes real, merged infrastructure
-> (the loaded extension and its binaries), not a removed one.
+> **cr-sqlite is not used anywhere in this app.** Home/app-data sync runs on Automerge `Document`s persisted as
+> plain SQLite BLOBs — see
+> [ADR-005](./docs/adr/ADR-005-home-automerge-document-over-x0x-group.md) and
+> [ADR-007](./docs/adr/ADR-007-sqlite-persistence-and-search.md) (which also designs free-text search as an
+> FTS5 projection, not a cr-sqlite feature). Confirmed 2026-09-26: no table anywhere calls `crsql_as_crr` or
+> reads `crsql_changes` — the extension below is loaded at startup on every platform and does nothing
+> functional. The "cr-sqlite binaries" subsection is accurate as *build/packaging* infrastructure (it really is
+> vendored and loaded) but describes dead weight, not an active feature — removing it (vendored binaries,
+> `crSqliteExtensionPath()`/`addExtension` in `DatabaseDriverFactory.*.kt`, `CrSqliteSmokeTest.kt`) is flagged as
+> a follow-up cleanup in ADR-007's Open Questions, not yet done.
 
 `VestaDatabase` (schema in [shared/src/commonMain/sqldelight](./shared/src/commonMain/sqldelight),
 driver setup in `shared/src/*Main/kotlin/.../db/DatabaseDriverFactory.*.kt`) runs on

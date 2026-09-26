@@ -12,6 +12,10 @@ unchanged. ADR-006 resolves this ADR's Open Question 2 (multi-document routing),
 multiple Homes and a single Home with multiple documents (e.g. separate `tasks`/`chores`/`lists` documents rather
 than one document holding every feature).
 
+**Extended by [[ADR-007]]** (2026-09-26) — not superseded: this ADR's "persistence is a SQLite BLOB" decision
+(Open Question 1) stands; ADR-007 gives it a concrete schema (`AutomergeDocument`/`AutomergeSyncState` tables)
+and additionally designs free-text search over Automerge document content, which this ADR never addressed.
+
 ## Context
 
 ADR-004 built and verified `Document`/`SyncState` sync directly over x0x direct messaging, but explicitly left
