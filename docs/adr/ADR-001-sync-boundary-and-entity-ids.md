@@ -6,9 +6,9 @@
 `private`/`shared` table classification and UUID-primary-key rules below were designed for cr-sqlite tables and
 don't carry over as written. Kept for the rationale behind decisions ADR-005 doesn't restate.
 
-**cr-sqlite confirmed to have zero remaining call sites, not just a retired direction** ([[ADR-007]], 2026-09-26)
-— no table anywhere calls `crsql_as_crr`; the extension is loaded at startup on every platform and does nothing.
-See ADR-007 Context and the README's "Local database" section for the current, accurate framing.
+**cr-sqlite removed from the codebase entirely** ([[ADR-007]], 2026-09-26) — confirmed zero remaining call sites
+(no table ever called `crsql_as_crr`), then the vendored binaries, extension-loading code, and its smoke test
+were deleted outright. See ADR-007 Context/Open Questions and the README's "Local database" section.
 
 Accepted — 2026-09-08
 

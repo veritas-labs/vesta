@@ -29,10 +29,10 @@ what cr-sqlite actually does. `docs/adr/ADR-005-...md` already retired cr-sqlite
 this confirms there isn't a second use of it (e.g. as a plain local-only extension) hiding anywhere either. It is
 loaded, at real startup cost (binary extraction/dlopen on every platform), and does nothing.
 
-This ADR doesn't itself remove that loading code — see the README/docs cleanup accompanying this ADR and Open
-Questions below — but it proceeds on the basis that cr-sqlite is not, and shouldn't be treated as, part of either
-the persistence or search design below. Both are built on plain `androidx.sqlite`-bundled SQLite, which already
-backs `VestaDatabase` for `Home`/`HomeMember`/`Profile`/etc.
+This ADR proceeds on the basis that cr-sqlite is not, and shouldn't be treated as, part of either the persistence
+or search design below — both are built on plain `androidx.sqlite`-bundled SQLite, which already backs
+`VestaDatabase` for `Home`/`HomeMember`/`Profile`/etc. **Update, same day:** the dead loading code identified
+above was removed outright rather than left in place — see Open Questions §6.
 
 ## Decision
 
@@ -145,11 +145,11 @@ outgrowing this would need.
 5. **Ranking/relevance tuning.** FTS5's default `bm25()` ranking is taken as a given starting point; no product
    requirement has been raised yet for anything more specific (prefix search, typo tolerance, per-feature
    weighting).
-6. **Removing cr-sqlite's dead extension-loading code.** Confirmed dead (see Context) but not removed by this
-   ADR — vendored binaries (`shared/src/jvmMain/resources/crsqlite/`, `androidApp/.../libcrsqlite.so`,
+6. ~~Removing cr-sqlite's dead extension-loading code.~~ **Done (2026-09-26).** Confirmed dead (see Context), then
+   removed: vendored binaries (`shared/src/jvmMain/resources/crsqlite/`, `androidApp/.../libcrsqlite.so`,
    `iosApp/crsqlite.xcframework`), the `crSqliteExtensionPath()`/`addExtension` plumbing in
-   `DatabaseDriverFactory.*.kt`, and `CrSqliteSmokeTest.kt` are all candidates for deletion in a follow-up change,
-   not bundled into this one.
+   `DatabaseDriverFactory.*.kt`, and `CrSqliteSmokeTest.kt` are all gone. `createVestaDatabase` now just opens
+   `BundledSQLiteDriver()` with no extension loading at all.
 
 ## References
 

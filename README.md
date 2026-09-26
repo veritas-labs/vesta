@@ -125,52 +125,28 @@ filesystem — always pass directories inside the app's private storage.
 
 ---
 
-## Local database (SQLDelight; cr-sqlite loaded but unused)
+## Local database (SQLDelight)
 
-> **cr-sqlite is not used anywhere in this app.** Home/app-data sync runs on Automerge `Document`s persisted as
-> plain SQLite BLOBs — see
-> [ADR-005](./docs/adr/ADR-005-home-automerge-document-over-x0x-group.md) and
-> [ADR-007](./docs/adr/ADR-007-sqlite-persistence-and-search.md) (which also designs free-text search as an
-> FTS5 projection, not a cr-sqlite feature). Confirmed 2026-09-26: no table anywhere calls `crsql_as_crr` or
-> reads `crsql_changes` — the extension below is loaded at startup on every platform and does nothing
-> functional. The "cr-sqlite binaries" subsection is accurate as *build/packaging* infrastructure (it really is
-> vendored and loaded) but describes dead weight, not an active feature — removing it (vendored binaries,
-> `crSqliteExtensionPath()`/`addExtension` in `DatabaseDriverFactory.*.kt`, `CrSqliteSmokeTest.kt`) is flagged as
-> a follow-up cleanup in ADR-007's Open Questions, not yet done.
+> **cr-sqlite has been removed.** It was vendored as a loadable SQLite extension for CRDT-table sync, but that
+> sync design was retired by [ADR-005](./docs/adr/ADR-005-home-automerge-document-over-x0x-group.md) in favor of
+> Automerge `Document`s. Confirmed 2026-09-26 that nothing in the app called `crsql_as_crr` or read
+> `crsql_changes` — the extension was loading at startup, on every platform, doing nothing — so the vendored
+> binaries, the extension-loading code, and its smoke test were deleted outright rather than left in place.
+> Automerge `Document`s now persist as plain SQLite BLOBs in this same database, and free-text search runs as an
+> FTS5 projection — both designed in
+> [ADR-007](./docs/adr/ADR-007-sqlite-persistence-and-search.md).
 
 `VestaDatabase` (schema in [shared/src/commonMain/sqldelight](./shared/src/commonMain/sqldelight),
 driver setup in `shared/src/*Main/kotlin/.../db/DatabaseDriverFactory.*.kt`) runs on
 [androidx.sqlite's bundled SQLite driver](https://developer.android.com/kotlin/multiplatform/sqlite)
 via the [sqldelight-androidx-driver](https://github.com/eygraber/sqldelight-androidx-driver)
 adapter — the same self-compiled SQLite build on Android, iOS and desktop, rather than each
-platform's own system SQLite. That's what lets
-[cr-sqlite](https://github.com/vlcn-io/cr-sqlite) (CRDT/multi-writer support for SQLite) load as
-a normal runtime extension everywhere: Android's framework SQLite and Apple's system `libsqlite3`
-both ship with extension loading compiled out, so this wouldn't be possible against either
-platform's native driver directly.
+platform's own system SQLite.
 
 Because the driver is suspending, SQLDelight is configured with `generateAsync = true` —
 generated `SELECT`s need `awaitAsList()`/`awaitAsOne()`/`awaitAsOneOrNull()` (from
 `app.cash.sqldelight:async-extensions`), and mutating statements (`INSERT`/`UPDATE`/`DELETE`)
 are themselves `suspend` functions.
-
-### cr-sqlite binaries
-
-Prebuilt per-platform binaries are vendored from
-[cr-sqlite's GitHub releases](https://github.com/vlcn-io/cr-sqlite/releases) (currently v0.16.3)
-and loaded via `BundledSQLiteDriver.addExtension(path, "sqlite3_crsqlite_init")`:
-
-- **Desktop (JVM)** — `shared/src/jvmMain/resources/crsqlite/<os-arch>/`, one binary per
-  OS/arch (linux-x86-64, linux-aarch64, darwin-x86-64, darwin-aarch64, windows-x86-64).
-  `DatabaseDriverFactory.jvm.kt` picks the right one from `os.name`/`os.arch` and extracts it to
-  `~/.vesta` at startup (the JVM can only `dlopen` a real file, not a classpath resource).
-- **Android** — `androidApp/src/main/jniLibs/arm64-v8a/libcrsqlite.so`. cr-sqlite only publishes
-  a prebuilt `aarch64-linux-android` binary, so armeabi-v7a/x86_64 devices and emulators run
-  without it (`crSqliteExtensionPath()` returns null when the file isn't there).
-- **iOS** — `iosApp/crsqlite.xcframework` needs to be embedded manually in Xcode (Frameworks,
-  Libraries, and Embedded Content → add, embed & sign), the same way `libx0x_ffi.a` needs its
-  script phase above — this repo can't script an Xcode project edit from Linux. Once embedded,
-  `DatabaseDriverFactory.ios.kt` resolves it from the app bundle's `Frameworks/` directory.
 
 ---
 
