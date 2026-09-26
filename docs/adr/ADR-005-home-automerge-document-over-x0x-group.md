@@ -7,6 +7,11 @@ Accepted — 2026-09-26 (explicit user decision). Supersedes [[ADR-001]], [[ADR-
 answers three things ADR-004 left open (persistence, multi-peer fan-out, Automerge-vs-cr-sqlite) and gives it a
 concrete unit of scoping (one Document, one group, per Home) it didn't yet have.
 
+**Extended by [[ADR-006]]** (2026-09-26) — not superseded: the one-Document-per-Home scoping below stands
+unchanged. ADR-006 resolves this ADR's Open Question 2 (multi-document routing), covering both a device in
+multiple Homes and a single Home with multiple documents (e.g. separate `tasks`/`chores`/`lists` documents rather
+than one document holding every feature).
+
 ## Context
 
 ADR-004 built and verified `Document`/`SyncState` sync directly over x0x direct messaging, but explicitly left
