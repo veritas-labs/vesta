@@ -3,7 +3,7 @@
 ## Status
 
 Proposed — 2026-09-26 (drafted), amended 2026-09-28. Vesta's first concrete feature document under [[ADR-006]]'s
-scheme. Not yet implemented. Amended three times, all by explicit user decision:
+scheme. Amended three times, all by explicit user decision:
 
 1. **2026-09-26** — Item state (was Open Question 1) — resolved: accept Automerge's default conflict-resolution
    behavior, no custom merge policy.
@@ -49,6 +49,20 @@ Third amendment, 2026-09-28, resolving five of the Open Questions the second ame
   yes — Pantry models both usage history and on-hand stock.)
 - **"Pantry will need delete functionality. A user should be able to delete an item from their Pantry."** (former
   Open Question 8, resolved: yes.)
+
+**Implementation progress (2026-09-28):** the Pantry document-model layer (`PantryItem`, `newPantryDocument`,
+`readPantry`/`readPantryItem`, `upsertPantryItem`, `adjustStock`/`correctStock`, `deletePantryItem`,
+`pantryDedupKey`) is implemented at
+`shared/src/jvmMain/kotlin/uk/veritaslabs/vesta/automerge/PantryDocument.kt`, with unit tests at
+`shared/src/jvmTest/kotlin/uk/veritaslabs/vesta/automerge/PantryDocumentTest.kt`, following `TaskListDocument.kt`'s
+extension-function API shape. `upsertPantryItem` takes Pantry's own fields directly rather than a `ShoppingItem`
+(the shape below still shows `ShoppingItem` as the eventual caller shape once the shopping-list document exists) —
+the shopping-list document, [[ADR-006]]'s `MultiDocumentSyncHub`/envelope, [[ADR-007]]'s SQLite persistence/search
+tables, `PantryContributedItem`, and `contributeSyncedItemsToPantry` are all still unbuilt. Placed in `jvmMain`
+only (not a shared source set) because that's where `automerge` is wired up today, matching
+`TaskListDocument.kt`'s placement on `poc/automerge-over-x0x`; sharing this code with `androidMain` (which also
+declares the `automerge`/`automerge-androidnative` dependencies) would need a new intermediate KMP source set, not
+addressed here.
 
 ### Prior art in this codebase
 
