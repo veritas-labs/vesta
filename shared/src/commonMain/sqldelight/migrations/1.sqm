@@ -1,0 +1,10 @@
+-- Version 1 -> 2: adds AutomergeDocument (see uk/veritaslabs/vesta/db/AutomergeDocument.sq).
+CREATE TABLE AutomergeDocument (
+    documentId TEXT NOT NULL PRIMARY KEY,
+    homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
+    feature TEXT NOT NULL,
+    bytes BLOB NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE INDEX AutomergeDocument_homeId ON AutomergeDocument(homeId);

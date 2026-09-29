@@ -1,0 +1,29 @@
+-- Persisted Automerge documents (docs/adr/ADR-007-sqlite-persistence-and-search.md):
+-- one row per (Home, feature) document, `bytes` being Document.save(). `documentId`
+-- is ADR-006's "$homeId:$feature"; homeId/feature are denormalized off it so
+-- "every document for this Home" is a plain indexed query. The foreign key (not in
+-- the ADR's sketch) deletes a Home's documents along with the Home.
+-- Keep in sync with migrations/1.sqm, which creates this table for databases that
+-- predate it.
+CREATE TABLE AutomergeDocument (
+    documentId TEXT NOT NULL PRIMARY KEY,
+    homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
+    feature TEXT NOT NULL,
+    bytes BLOB NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE INDEX AutomergeDocument_homeId ON AutomergeDocument(homeId);
+
+selectById:
+SELECT * FROM AutomergeDocument WHERE documentId = ?;
+
+selectByHome:
+SELECT * FROM AutomergeDocument WHERE homeId = ?;
+
+upsert:
+INSERT OR REPLACE INTO AutomergeDocument(documentId, homeId, feature, bytes, updatedAt)
+VALUES (?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM AutomergeDocument WHERE documentId = ?;
