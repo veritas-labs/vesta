@@ -24,6 +24,9 @@ class PantryViewModelTest {
     private class FakePantrySource : PantrySource {
         val flow = MutableSharedFlow<PantryContents>(replay = 1)
         override val contents = flow
+        val saved = mutableListOf<PantryItemDetails>()
+        override suspend fun save(item: PantryItemDetails) { saved += item }
+        override suspend fun delete(key: String) {}
     }
 
     private val milk = PantryListItem(

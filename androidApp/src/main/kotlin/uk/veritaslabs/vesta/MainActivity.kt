@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import uk.veritaslabs.vesta.automerge.openPantryDocumentSource
 import uk.veritaslabs.vesta.x0x.VestaAndroid
 
 class MainActivity : ComponentActivity() {
@@ -17,7 +18,7 @@ class MainActivity : ComponentActivity() {
         VestaAndroid.install(this)
 
         setContent {
-            VestaApp()
+            VestaApp(openPantry = { database, homeId -> openPantryDocumentSource(database, homeId) })
         }
     }
 }

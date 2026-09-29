@@ -74,6 +74,7 @@ data class PantryListItem(
     val title: String,
     val packageSize: String,
     val stockCount: Int,
+    val barcode: String? = null,
 )
 
 /**

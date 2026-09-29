@@ -90,6 +90,10 @@ kotlin {
     }
 
     sourceSets {
+        // The Automerge-backed code is shared by the two JVM-based targets, which have no common
+        // intermediate source set in the default hierarchy — so both compile this directory directly.
+        androidMain.get().kotlin.srcDir("src/jvmAndroidMain/kotlin")
+        jvmMain.get().kotlin.srcDir("src/jvmAndroidMain/kotlin")
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)

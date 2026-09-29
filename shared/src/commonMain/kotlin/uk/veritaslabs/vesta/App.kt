@@ -7,6 +7,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.db.DatabaseDriverFactory
+import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.createVestaDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.SelectedHome
@@ -26,7 +28,11 @@ import uk.veritaslabs.vesta.ui.screens.HomeEditViewModel
 import uk.veritaslabs.vesta.ui.screens.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomePickerScreen
 import uk.veritaslabs.vesta.ui.screens.HomePickerViewModel
+import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
 import uk.veritaslabs.vesta.ui.screens.PantryItemEditScreen
+import uk.veritaslabs.vesta.ui.screens.PantryListItem
+import uk.veritaslabs.vesta.ui.screens.PantrySource
+import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
@@ -50,7 +56,7 @@ fun App(
     homes: Flow<List<HomeListItem>> = flowOf(emptyList()),
     selectedHome: SelectedHome = remember { SelectedHome() },
     homeRepository: HomeRepository? = null,
-    homeContent: @Composable (homeId: String) -> Unit = { HomeContent() },
+    homeContent: @Composable (homeId: String) -> Unit = { HomeContent(it) },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
@@ -89,31 +95,79 @@ fun App(
 
 /**
  * Default content for a selected Home: the [HomeDashboardScreen], whose Pantry tile opens the
- * [PantryScreen] (its FAB opens [PantryItemEditScreen]). The Pantry is empty and saves are dropped here —
- * no per-home `PantrySource` is wired in commonMain yet.
+ * [PantryScreen] (its FAB opens [PantryItemEditScreen], whose saves go to [pantrySource] and show up
+ * in the Pantry). Without a [pantrySource] the Pantry is empty and saves are dropped.
  */
 @Composable
-private fun HomeContent() {
+private fun HomeContent(homeId: String, pantrySource: PantrySource? = null) {
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
+    var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
+    val pantryViewModel = pantrySource?.let { source ->
+        viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
+    }
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(onPantryClick = { destination = HomeDestination.Pantry })
-        HomeDestination.Pantry -> PantryScreen(
-            items = emptyList(),
-            onBack = { destination = HomeDestination.Dashboard },
-            onAddItem = { destination = HomeDestination.PantryItemEdit },
-        )
+        HomeDestination.Pantry -> {
+            val onBack = { destination = HomeDestination.Dashboard }
+            val onAddItem = {
+                editingItem = null
+                destination = HomeDestination.PantryItemEdit
+            }
+            val onItemSelected = { item: PantryListItem ->
+                editingItem = item.toDetails()
+                destination = HomeDestination.PantryItemEdit
+            }
+            if (pantryViewModel != null) {
+                PantryScreen(pantryViewModel, onItemSelected = onItemSelected, onBack = onBack, onAddItem = onAddItem)
+            } else {
+                PantryScreen(items = emptyList(), onItemSelected = onItemSelected, onBack = onBack, onAddItem = onAddItem)
+            }
+        }
         HomeDestination.PantryItemEdit -> PantryItemEditScreen(
-            onSave = { destination = HomeDestination.Pantry },
+            item = editingItem,
+            onDelete = { key ->
+                pantryViewModel?.delete(key)
+                destination = HomeDestination.Pantry
+            },
+            onSave = { item ->
+                pantryViewModel?.save(item)
+                destination = HomeDestination.Pantry
+            },
             onCancel = { destination = HomeDestination.Pantry },
         )
     }
 }
 
+private fun PantryListItem.toDetails() = PantryItemDetails(
+    key = key,
+    primaryCategory = primaryCategory,
+    secondaryCategory = secondaryCategory,
+    title = title,
+    packageSize = packageSize,
+    barcode = barcode,
+    stockCount = stockCount,
+)
+
 private enum class HomeDestination { Dashboard, Pantry, PantryItemEdit }
 
-/** [App] backed by the local database on this platform; what the platform entry points launch. */
+/**
+ * [App] backed by the local database on this platform; what the platform entry points launch. With
+ * [openPantry] (platforms that have the Pantry Automerge document layer), each Home's Pantry is loaded
+ * from and saved to the database; without it the Pantry is not persisted.
+ */
 @Composable
-fun VestaApp(homeContent: @Composable (homeId: String) -> Unit = { HomeContent() }) {
-    val homeRepository = remember { HomeRepository(createVestaDatabase(DatabaseDriverFactory())) }
-    App(homes = homeRepository.homes, homeRepository = homeRepository, homeContent = homeContent)
+fun VestaApp(
+    openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
+    homeContent: (@Composable (homeId: String) -> Unit)? = null,
+) {
+    val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
+    val homeRepository = remember { HomeRepository(database) }
+    App(
+        homes = homeRepository.homes,
+        homeRepository = homeRepository,
+        homeContent = homeContent ?: { homeId ->
+            val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
+            HomeContent(homeId, pantrySource)
+        },
+    )
 }

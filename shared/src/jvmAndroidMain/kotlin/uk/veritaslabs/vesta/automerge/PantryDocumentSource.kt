@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.ui.screens.PantryContents
+import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
 import uk.veritaslabs.vesta.ui.screens.PantryListItem
 import uk.veritaslabs.vesta.ui.screens.PantrySource
 
@@ -45,6 +46,26 @@ class PantryDocumentSource(
         block(document).also { publishAndPersist() }
     }
 
+    override suspend fun save(item: PantryItemDetails) {
+        mutate { doc ->
+            val key = upsertPantryItem(
+                doc,
+                primaryCategory = item.primaryCategory,
+                secondaryCategory = item.secondaryCategory,
+                title = item.title,
+                packageSize = item.packageSize,
+                barcode = item.barcode,
+            )
+            correctStock(doc, key, item.stockCount)
+            // Editing the name/barcode moves the entry to a new dedup key; drop the old one.
+            item.key?.takeIf { it != key }?.let { deletePantryItem(doc, it) }
+        }
+    }
+
+    override suspend fun delete(key: String) {
+        mutate { deletePantryItem(it, key) }
+    }
+
     /** Republishes and persists after [document] changed outside [mutate], e.g. by applying a sync message. */
     suspend fun refresh() = lock.withLock { publishAndPersist() }
 
@@ -62,6 +83,7 @@ class PantryDocumentSource(
                 title = it.title,
                 packageSize = it.packageSize,
                 stockCount = it.stockCount,
+                barcode = it.barcode,
             )
         },
     )
