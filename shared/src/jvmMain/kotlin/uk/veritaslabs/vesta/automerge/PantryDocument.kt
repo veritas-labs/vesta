@@ -27,7 +27,7 @@ private const val StockCountKey = "stockCount"
 data class PantryItem(
     val id: String,
     val primaryCategory: String,
-    val secondaryCategory: String,
+    val secondaryCategory: String?,
     val title: String,
     val packageSize: String,
     val barcode: String?,
@@ -74,7 +74,7 @@ fun Read.readPantryItem(key: String): PantryItem? {
 fun upsertPantryItem(
     doc: Document,
     primaryCategory: String,
-    secondaryCategory: String,
+    secondaryCategory: String?,
     title: String,
     packageSize: String,
     barcode: String?,
@@ -88,7 +88,11 @@ fun upsertPantryItem(
 
     tx.set(itemId, IdKey, key)
     tx.set(itemId, PrimaryCategoryKey, primaryCategory)
-    tx.set(itemId, SecondaryCategoryKey, secondaryCategory)
+    if (secondaryCategory != null) {
+        tx.set(itemId, SecondaryCategoryKey, secondaryCategory)
+    } else if (tx.get(itemId, SecondaryCategoryKey).isPresent) {
+        tx.delete(itemId, SecondaryCategoryKey)
+    }
     tx.set(itemId, TitleKey, title)
     tx.set(itemId, PackageSizeKey, packageSize)
     if (barcode != null) {
@@ -147,7 +151,7 @@ private fun Read.itemsMapId(): ObjectId? = (get(ObjectId.ROOT, ItemsKey).getOrNu
 private fun Read.readPantryItemAt(itemId: ObjectId): PantryItem = PantryItem(
     id = strField(itemId, IdKey),
     primaryCategory = strField(itemId, PrimaryCategoryKey),
-    secondaryCategory = strField(itemId, SecondaryCategoryKey),
+    secondaryCategory = (get(itemId, SecondaryCategoryKey).getOrNull() as? AmValue.Str)?.value,
     title = strField(itemId, TitleKey),
     packageSize = strField(itemId, PackageSizeKey),
     barcode = (get(itemId, BarcodeKey).getOrNull() as? AmValue.Str)?.value,

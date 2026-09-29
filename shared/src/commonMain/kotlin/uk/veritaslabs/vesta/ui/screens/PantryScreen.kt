@@ -54,7 +54,7 @@ internal object PantryTestTags {
 data class PantryListItem(
     val key: String,
     val primaryCategory: String,
-    val secondaryCategory: String,
+    val secondaryCategory: String?,
     val title: String,
     val packageSize: String,
     val stockCount: Int,
@@ -64,7 +64,8 @@ data class PantryListItem(
  * Read-only view of a Home's Pantry (ADR-008): [items] grouped by
  * [PantryListItem.primaryCategory] (an aisle-by-aisle view, matching how
  * shopping-list items are grouped), then by [PantryListItem.secondaryCategory]
- * within each aisle, each row showing the product and its current
+ * within each aisle (when present — items with no secondary category are
+ * listed directly under the aisle), each row showing the product and its current
  * [PantryListItem.stockCount]. [emptyCategories] are primary categories known
  * to the Home that currently have no items — they still get a header, with a
  * small empty-state message in place of any rows.
@@ -151,13 +152,15 @@ fun PantryScreen(
                         } else {
                             val bySecondary = categoryItems.groupBy { it.secondaryCategory }
                             bySecondary.forEach { (secondaryCategory, secondaryItems) ->
-                                item(key = "subheader_${category}_$secondaryCategory") {
-                                    Text(
-                                        text = secondaryCategory,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                                    )
+                                if (secondaryCategory != null) {
+                                    item(key = "subheader_${category}_$secondaryCategory") {
+                                        Text(
+                                            text = secondaryCategory,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                                        )
+                                    }
                                 }
                                 items(secondaryItems, key = { it.key }) { pantryItem ->
                                     Column {
@@ -286,7 +289,7 @@ private val PantryPreviewItems = listOf(
     PantryListItem(
         key = "bananas",
         primaryCategory = "Fruit & Vegetables",
-        secondaryCategory = "Fruit",
+        secondaryCategory = null,
         title = "Bananas",
         packageSize = "6 pack",
         stockCount = 1,
@@ -294,7 +297,7 @@ private val PantryPreviewItems = listOf(
     PantryListItem(
         key = "carrots",
         primaryCategory = "Fruit & Vegetables",
-        secondaryCategory = "Vegetables",
+        secondaryCategory = null,
         title = "Carrots",
         packageSize = "1kg",
         stockCount = 3,
