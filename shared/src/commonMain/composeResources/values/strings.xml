@@ -36,6 +36,10 @@
     <string name="device_pairing_done">Done</string>
 
     <string name="home_dashboard_title">Your home</string>
+    <string name="x0x_connectivity_connected">Connected to the x0x network</string>
+    <string name="x0x_connectivity_connecting">Connecting to the x0x network</string>
+    <string name="x0x_label">x0x</string>
+    <string name="x0x_connectivity_offline">Not connected to the x0x network</string>
     <string name="pantry_title">Pantry</string>
     <string name="pantry_back">Back</string>
     <string name="pantry_add_item">Add pantry item</string>

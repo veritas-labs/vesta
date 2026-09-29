@@ -35,6 +35,7 @@ import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
+import uk.veritaslabs.vesta.x0x.rememberX0xConnectivity
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
 val LocalSelectedHome = compositionLocalOf<SelectedHome> { error("No SelectedHome provided; call within App()") }
@@ -106,7 +107,10 @@ private fun HomeContent(homeId: String, pantrySource: PantrySource? = null) {
         viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
     }
     when (destination) {
-        HomeDestination.Dashboard -> HomeDashboardScreen(onPantryClick = { destination = HomeDestination.Pantry })
+        HomeDestination.Dashboard -> HomeDashboardScreen(
+            x0xConnectivity = rememberX0xConnectivity(),
+            onPantryClick = { destination = HomeDestination.Pantry },
+        )
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
             val onAddItem = {
