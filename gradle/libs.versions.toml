@@ -82,6 +82,7 @@ automerge-androidnative = { module = "org.automerge:androidnative", version.ref 
 # CRDT extension (see shared/src/*Main/.../db/DatabaseDriverFactory.*.kt) loads
 # the same way everywhere, unlike each platform's own system SQLite.
 sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
+sqldelight-coroutinesExtensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 sqldelight-asyncExtensions = { module = "app.cash.sqldelight:async-extensions", version.ref = "sqldelight" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "androidx-sqlite" }
 eygraber-sqldelightAndroidxDriver = { module = "com.eygraber:sqldelight-androidx-driver", version.ref = "eygraber-sqldelightAndroidxDriver" }

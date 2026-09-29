@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         VestaAndroid.install(this)
 
         setContent {
-            App()
+            VestaApp()
         }
     }
 }

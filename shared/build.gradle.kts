@@ -119,6 +119,7 @@ kotlin {
             implementation(libs.kotlinx.serializationJson)
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.asyncExtensions)
+            implementation(libs.sqldelight.coroutinesExtensions)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.eygraber.sqldelightAndroidxDriver)
         }

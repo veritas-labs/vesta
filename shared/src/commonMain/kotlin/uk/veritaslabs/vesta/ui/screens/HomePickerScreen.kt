@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -75,6 +76,35 @@ data class HomeListItem(
     val name: String,
     val avatar: DrawableResource? = null,
 )
+
+/**
+ * Home picker backed by [viewModel]: picking a home records it as the selected Home. Blank until the
+ * homes have loaded, so the empty-state doesn't flash on launch.
+ */
+@Composable
+fun HomePickerScreen(
+    viewModel: HomePickerViewModel,
+    modifier: Modifier = Modifier,
+    onCreateHome: () -> Unit = {},
+    onJoinHome: () -> Unit = {},
+    onEditHome: (HomeListItem) -> Unit = {},
+    onDeleteHome: (HomeListItem) -> Unit = {},
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    if (state.isLoading) {
+        Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+    } else {
+        HomePickerScreen(
+            homes = state.homes,
+            modifier = modifier,
+            onHomeSelected = viewModel::selectHome,
+            onCreateHome = onCreateHome,
+            onJoinHome = onJoinHome,
+            onEditHome = onEditHome,
+            onDeleteHome = onDeleteHome,
+        )
+    }
+}
 
 /**
  * Carbon copy of [ProfilePickerScreen] for now, under its own name while
