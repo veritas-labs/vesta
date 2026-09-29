@@ -35,7 +35,10 @@
     <string name="device_pairing_redeemed_body">This device has redeemed the pairing link.</string>
     <string name="device_pairing_done">Done</string>
 
+    <string name="home_dashboard_title">Your home</string>
     <string name="pantry_title">Pantry</string>
+    <string name="pantry_back">Back</string>
+    <string name="pantry_add_item">Add pantry item</string>
     <string name="pantry_empty_title">Your pantry is empty</string>
     <string name="pantry_empty_subtitle">Items your household buys will show up here.</string>
     <string name="pantry_stock_count">%1$d on shelf</string>

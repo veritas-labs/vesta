@@ -16,8 +16,14 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,9 +36,14 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_plus
+import vesta.shared.generated.resources.pantry_add_item
+import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.pantry_category_empty
 import vesta.shared.generated.resources.pantry_empty_subtitle
 import vesta.shared.generated.resources.pantry_empty_title
@@ -44,6 +55,9 @@ private val PantryTabletBreakpoint = 600.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy or item names. */
 internal object PantryTestTags {
+    const val BackButton = "pantry_back_button"
+    const val AddItemButton = "pantry_add_item_button"
+
     /** Tag for the row of the Pantry entry with the given [key] (its dedup key — see ADR-008). */
     fun pantryItem(key: String) = "pantry_item_$key"
 }
@@ -72,7 +86,8 @@ data class PantryListItem(
  * to the Home that currently have no items — they still get a header, with a
  * small empty-state message in place of any rows.
  *
- * UI only — the caller owns [items] and reacts to [onItemSelected]; see the
+ * UI only — the caller owns [items] and reacts to [onItemSelected], [onBack] (top-bar back arrow)
+ * and [onAddItem] (floating action button); see the
  * [PantryViewModel] overload for the version wired to live Pantry state.
  */
 @Composable
@@ -80,6 +95,8 @@ fun PantryScreen(
     viewModel: PantryViewModel,
     modifier: Modifier = Modifier,
     onItemSelected: (PantryListItem) -> Unit = {},
+    onBack: () -> Unit = {},
+    onAddItem: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -91,16 +108,21 @@ fun PantryScreen(
             modifier = modifier,
             emptyCategories = state.emptyCategories,
             onItemSelected = onItemSelected,
+            onBack = onBack,
+            onAddItem = onAddItem,
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantryScreen(
     items: List<PantryListItem>,
     modifier: Modifier = Modifier,
     emptyCategories: List<String> = emptyList(),
     onItemSelected: (PantryListItem) -> Unit = {},
+    onBack: () -> Unit = {},
+    onAddItem: () -> Unit = {},
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -110,20 +132,24 @@ fun PantryScreen(
         val isTablet = maxWidth >= PantryTabletBreakpoint
         val contentPadding = if (isTablet) 24.dp else 16.dp
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .safeDrawingPadding()
-                .padding(horizontal = contentPadding),
-        ) {
-            Spacer(Modifier.height(contentPadding))
-            Text(
-                text = stringResource(Res.string.pantry_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+        Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+            TopAppBar(
+                title = { Text(stringResource(Res.string.pantry_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack, modifier = Modifier.testTag(PantryTestTags.BackButton)) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_left),
+                            contentDescription = stringResource(Res.string.pantry_back),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
             )
-            Spacer(Modifier.height(contentPadding))
-
+            Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding)) {
             if (items.isEmpty() && emptyCategories.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -150,7 +176,7 @@ fun PantryScreen(
 
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 4.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = 88.dp),
                 ) {
                     categories.forEach { category ->
                         item(key = "header_$category") {
@@ -199,6 +225,24 @@ fun PantryScreen(
                     }
                 }
             }
+            }
+        }
+
+        FloatingActionButton(
+            onClick = onAddItem,
+            shape = MaterialTheme.shapes.small,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .safeDrawingPadding()
+                .padding(contentPadding)
+                .testTag(PantryTestTags.AddItemButton),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_plus),
+                contentDescription = stringResource(Res.string.pantry_add_item),
+            )
         }
     }
 }

@@ -20,11 +20,14 @@ import uk.veritaslabs.vesta.db.DatabaseDriverFactory
 import uk.veritaslabs.vesta.db.createVestaDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.SelectedHome
+import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeEditScreen
 import uk.veritaslabs.vesta.ui.screens.HomeEditViewModel
 import uk.veritaslabs.vesta.ui.screens.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomePickerScreen
 import uk.veritaslabs.vesta.ui.screens.HomePickerViewModel
+import uk.veritaslabs.vesta.ui.screens.PantryItemEditScreen
+import uk.veritaslabs.vesta.ui.screens.PantryScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
@@ -47,7 +50,7 @@ fun App(
     homes: Flow<List<HomeListItem>> = flowOf(emptyList()),
     selectedHome: SelectedHome = remember { SelectedHome() },
     homeRepository: HomeRepository? = null,
-    homeContent: @Composable (homeId: String) -> Unit = {},
+    homeContent: @Composable (homeId: String) -> Unit = { HomeContent() },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
@@ -84,9 +87,33 @@ fun App(
 }
 
 
+/**
+ * Default content for a selected Home: the [HomeDashboardScreen], whose Pantry tile opens the
+ * [PantryScreen] (its FAB opens [PantryItemEditScreen]). The Pantry is empty and saves are dropped here —
+ * no per-home `PantrySource` is wired in commonMain yet.
+ */
+@Composable
+private fun HomeContent() {
+    var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
+    when (destination) {
+        HomeDestination.Dashboard -> HomeDashboardScreen(onPantryClick = { destination = HomeDestination.Pantry })
+        HomeDestination.Pantry -> PantryScreen(
+            items = emptyList(),
+            onBack = { destination = HomeDestination.Dashboard },
+            onAddItem = { destination = HomeDestination.PantryItemEdit },
+        )
+        HomeDestination.PantryItemEdit -> PantryItemEditScreen(
+            onSave = { destination = HomeDestination.Pantry },
+            onCancel = { destination = HomeDestination.Pantry },
+        )
+    }
+}
+
+private enum class HomeDestination { Dashboard, Pantry, PantryItemEdit }
+
 /** [App] backed by the local database on this platform; what the platform entry points launch. */
 @Composable
-fun VestaApp(homeContent: @Composable (homeId: String) -> Unit = {}) {
+fun VestaApp(homeContent: @Composable (homeId: String) -> Unit = { HomeContent() }) {
     val homeRepository = remember { HomeRepository(createVestaDatabase(DatabaseDriverFactory())) }
     App(homes = homeRepository.homes, homeRepository = homeRepository, homeContent = homeContent)
 }

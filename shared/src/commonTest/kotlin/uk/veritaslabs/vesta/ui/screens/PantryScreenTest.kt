@@ -97,4 +97,32 @@ class PantryScreenTest {
         // Assert
         assertEquals("whole milk", selected?.key)
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingBackInvokesOnBack() = runComposeUiTest {
+        // Arrange
+        var backs = 0
+        setContent { VestaTheme { PantryScreen(items = items, onBack = { backs++ }) } }
+
+        // Act
+        onNodeWithTag(PantryTestTags.BackButton).performClick()
+
+        // Assert
+        assertEquals(1, backs)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingTheAddButtonInvokesOnAddItem() = runComposeUiTest {
+        // Arrange
+        var adds = 0
+        setContent { VestaTheme { PantryScreen(items = items, onAddItem = { adds++ }) } }
+
+        // Act
+        onNodeWithTag(PantryTestTags.AddItemButton).performClick()
+
+        // Assert
+        assertEquals(1, adds)
+    }
 }
