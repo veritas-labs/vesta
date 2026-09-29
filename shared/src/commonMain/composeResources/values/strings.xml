@@ -54,4 +54,23 @@
     <string name="pantry_edit_delete">Delete</string>
     <string name="pantry_edit_more_options">More options</string>
     <string name="pantry_edit_cancel">Cancel</string>
+    <string name="home_edit_create_title">Create a home</string>
+    <string name="home_edit_edit_title">Edit home</string>
+    <string name="home_edit_name_label">Home name</string>
+    <string name="home_edit_name_helper">e.g. The Johnsons, Flat 4B, Mum\'s Place</string>
+    <string name="home_edit_name_error">Name must be 2–50 characters</string>
+    <string name="home_edit_shape_label">Home shape</string>
+    <string name="home_edit_shape_family">Family</string>
+    <string name="home_edit_shape_family_description">Parents, children and everyone in between</string>
+    <string name="home_edit_shape_flatshare">Flat share</string>
+    <string name="home_edit_shape_flatshare_description">Housemates sharing a place</string>
+    <string name="home_edit_shape_single_support">Single + support</string>
+    <string name="home_edit_shape_single_support_description">Living on your own, with people helping out</string>
+    <string name="home_edit_shape_other">Other</string>
+    <string name="home_edit_shape_other_description">Something else entirely</string>
+    <string name="home_edit_save_create">Create home</string>
+    <string name="home_edit_save">Save</string>
+    <string name="home_edit_delete">Delete home</string>
+    <string name="home_edit_more_options">More options</string>
+    <string name="home_edit_cancel">Cancel</string>
 </resources>
