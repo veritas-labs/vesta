@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
@@ -70,9 +72,29 @@ data class PantryListItem(
  * to the Home that currently have no items — they still get a header, with a
  * small empty-state message in place of any rows.
  *
- * UI only — the caller owns [items] and reacts to [onItemSelected]; no
- * view-model or persistence lives here.
+ * UI only — the caller owns [items] and reacts to [onItemSelected]; see the
+ * [PantryViewModel] overload for the version wired to live Pantry state.
  */
+@Composable
+fun PantryScreen(
+    viewModel: PantryViewModel,
+    modifier: Modifier = Modifier,
+    onItemSelected: (PantryListItem) -> Unit = {},
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    if (state.isLoading) {
+        // Blank until the first emission, so the empty-Pantry message doesn't flash on launch.
+        Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+    } else {
+        PantryScreen(
+            items = state.items,
+            modifier = modifier,
+            emptyCategories = state.emptyCategories,
+            onItemSelected = onItemSelected,
+        )
+    }
+}
+
 @Composable
 fun PantryScreen(
     items: List<PantryListItem>,

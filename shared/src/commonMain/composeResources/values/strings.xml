@@ -41,4 +41,17 @@
     <string name="pantry_stock_count">%1$d on shelf</string>
     <string name="pantry_out_of_stock">Out of stock</string>
     <string name="pantry_category_empty">No items yet</string>
+
+    <string name="pantry_edit_add_title">Add pantry item</string>
+    <string name="pantry_edit_edit_title">Edit pantry item</string>
+    <string name="pantry_edit_name_label">Name</string>
+    <string name="pantry_edit_primary_category_label">Category</string>
+    <string name="pantry_edit_secondary_category_label">Subcategory (optional)</string>
+    <string name="pantry_edit_package_size_label">Package size</string>
+    <string name="pantry_edit_barcode_label">Barcode (optional)</string>
+    <string name="pantry_edit_stock_count_label">Stock count</string>
+    <string name="pantry_edit_save">Save</string>
+    <string name="pantry_edit_delete">Delete</string>
+    <string name="pantry_edit_more_options">More options</string>
+    <string name="pantry_edit_cancel">Cancel</string>
 </resources>
