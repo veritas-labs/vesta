@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -30,8 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
@@ -96,17 +95,12 @@ fun HomePickerScreen(
 ) {
     var homeForActions by remember { mutableStateOf<HomeListItem?>(null) }
 
-    // A plain Box + LocalWindowInfo, not BoxWithConstraints: BoxWithConstraints is a
-    // SubcomposeLayout, and nesting one around the LazyVerticalGrid below crashes Android
-    // Studio's preview renderer with a NullPointerException in
-    // androidx.compose.ui.tooling.data.CompositionDataTree.mapTree.
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
-        val isTablet = windowWidth >= HomePickerTabletBreakpoint
+        val isTablet = maxWidth >= HomePickerTabletBreakpoint
         val contentPadding = if (isTablet) 24.dp else 16.dp
 
         Column(

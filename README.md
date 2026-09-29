@@ -31,6 +31,19 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 - Desktop tests: `./gradlew :shared:jvmTest`
 - iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
 
+### Compose previews
+
+Every screen in [commonMain](./shared/src/commonMain/kotlin) carries a light/dark × phone/tablet
+`@Preview` matrix. Keep IntelliJ's **Fast Preview** turned off and use the preview's *Build &
+Refresh* — Fast Preview recompiles Kotlin without re-running the Gradle compose-resources tasks,
+which desynchronises code from resources and leaves stale classes in `/tmp/overlay*` that outlive
+`clean` and Invalidate Caches.
+
+When a preview fails to render, see
+[Troubleshooting Compose previews](./docs/troubleshooting/compose-previews.md) — it covers the known
+failure modes (`MissingResourceException`, `CompositionDataTree.mapTree` NPE, AAR-metadata
+`compileSdk` failures, material3/Compose version skew) and how to diagnose a new one.
+
 ---
 
 ## x0x networking (embedded on mobile, daemon on desktop)

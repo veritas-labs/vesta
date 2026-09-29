@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,8 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -80,19 +79,12 @@ fun PantryScreen(
     emptyCategories: List<String> = emptyList(),
     onItemSelected: (PantryListItem) -> Unit = {},
 ) {
-    // A plain Box + LocalWindowInfo, not BoxWithConstraints: BoxWithConstraints is a
-    // SubcomposeLayout, and nesting one around the LazyColumn below crashes Android
-    // Studio's preview renderer with a NullPointerException in
-    // androidx.compose.ui.tooling.data.CompositionDataTree.mapTree (also hit by every
-    // other screen in this codebase that nests a Lazy* composable inside
-    // BoxWithConstraints, e.g. HomePickerScreen/ProfilePickerScreen).
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
-        val isTablet = windowWidth >= PantryTabletBreakpoint
+        val isTablet = maxWidth >= PantryTabletBreakpoint
         val contentPadding = if (isTablet) 24.dp else 16.dp
 
         Column(

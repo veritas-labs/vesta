@@ -1,30 +1,41 @@
 [versions]
 agp = "9.1.1"
-android-compileSdk = "36"
+# 37, not 36: Compose 1.12.x's Android artifacts (and qrose 1.3.0, which depends
+# on them) declare a minCompileSdk of 37 in their AAR metadata, so anything below
+# fails :shared:checkAndroidMainAarMetadata. targetSdk deliberately stays at 36 —
+# compiling against newer APIs is independent of opting in to new runtime behavior.
+android-compileSdk = "37"
 # 26, not 24: org.automerge:androidnative's manifest declares minSdk 26.
 android-minSdk = "26"
 android-targetSdk = "36"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.8.0"
-androidx-core = "1.19.0"
+androidx-core = "1.19.1"
 androidx-espresso = "3.7.0"
-androidx-lifecycle = "2.11.0-beta01"
+androidx-lifecycle = "2.11.0"
 androidx-testExt = "1.3.0"
-androidx-sqlite = "2.7.0"
+androidx-sqlite = "2.7.1"
 ant-android = "0.0.8-rc.1"
 automerge = "0.0.9"
-composeMultiplatform = "1.11.1"
-cucumber = "7.20.1"
+composeMultiplatform = "1.12.1"
+cucumber = "8.0.3"
 eygraber-sqldelightAndroidxDriver = "0.2.2"
 junit = "4.13.2"
-junit-platform = "1.11.4"
-junit-vintage = "5.11.4"
-kotlin = "2.4.10"
+junit-platform = "6.1.3"
+junit-vintage = "6.1.3"
+kotlin = "2.4.20"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
-material3 = "1.11.0-alpha07"
-qrose = "1.1.2"
-sqldelight = "2.3.2"
+# Tracks composeMultiplatform's major/minor: material3 reaches into foundation
+# internals, so a skew breaks at runtime rather than at compile time. Leaving this
+# on 1.11.0-alpha07 under Compose 1.12.1 made every OutlinedTextField test fail
+# with "Must run runDetachLifecycle() once after runAttachLifecycle() and before
+# markAsDetached()" from androidx.compose.ui.Modifier$Node. Published separately
+# from Compose itself and only as alphas past 1.9 — 1.12.0-alpha03 is the newest
+# on the 1.12 line (there is no material3 1.12.1).
+material3 = "1.12.0-alpha03"
+qrose = "1.3.0"
+sqldelight = "2.4.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -52,11 +63,8 @@ kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-te
 kotlinx-serializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 # Renders QR codes as a Compose Painter (rememberQrCodePainter) — no
 # dependencies beyond compose.ui, so it needs no platform-specific wiring.
-# Pinned below 1.2.0 deliberately: 1.2.0+ depends on Compose 1.12.0, whose
-# Android artifacts require compileSdk 37 (this project is on 36) and fail
-# :shared:checkAndroidHostTestAarMetadata. 1.1.2 depends on Compose 1.10.0,
-# old enough that Gradle keeps this project's own pinned composeMultiplatform
-# version (1.11.1) instead.
+# No longer pinned below 1.2.0: that pin existed only to keep Compose off 1.12.x,
+# which needs compileSdk 37 — this project is now on 37 (see android-compileSdk).
 qrose = { module = "io.github.alexzhirkevich:qrose", version.ref = "qrose" }
 # Embedded Autonomi network bindings (UniFFI, in-process, no daemon) — see
 # https://github.com/WithAutonomi/ant-android. Published to the ant-maven repo
