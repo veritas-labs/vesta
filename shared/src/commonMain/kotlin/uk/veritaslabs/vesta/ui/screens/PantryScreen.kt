@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,6 +42,7 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_add_item
 import vesta.shared.generated.resources.pantry_back
@@ -49,6 +51,8 @@ import vesta.shared.generated.resources.pantry_empty_subtitle
 import vesta.shared.generated.resources.pantry_empty_title
 import vesta.shared.generated.resources.pantry_out_of_stock
 import vesta.shared.generated.resources.pantry_stock_count
+import vesta.shared.generated.resources.pantry_stock_decrease
+import vesta.shared.generated.resources.pantry_stock_increase
 import vesta.shared.generated.resources.pantry_title
 
 private val PantryTabletBreakpoint = 600.dp
@@ -60,6 +64,12 @@ internal object PantryTestTags {
 
     /** Tag for the row of the Pantry entry with the given [key] (its dedup key — see ADR-008). */
     fun pantryItem(key: String) = "pantry_item_$key"
+
+    /** Tag for the "decrease stock" button on the row with the given [key]. */
+    fun stockDecrease(key: String) = "pantry_stock_decrease_$key"
+
+    /** Tag for the "increase stock" button on the row with the given [key]. */
+    fun stockIncrease(key: String) = "pantry_stock_increase_$key"
 }
 
 /**
@@ -87,8 +97,11 @@ data class PantryListItem(
  * to the Home that currently have no items — they still get a header, with a
  * small empty-state message in place of any rows.
  *
- * UI only — the caller owns [items] and reacts to [onItemSelected], [onBack] (top-bar back arrow)
- * and [onAddItem] (floating action button); see the
+ * Each row has minus/plus buttons either side of its stock count, reported through [onStockChange]
+ * with the new count (never below zero).
+ *
+ * UI only — the caller owns [items] and reacts to [onItemSelected], [onStockChange], [onBack]
+ * (top-bar back arrow) and [onAddItem] (floating action button); see the
  * [PantryViewModel] overload for the version wired to live Pantry state.
  */
 @Composable
@@ -96,6 +109,7 @@ fun PantryScreen(
     viewModel: PantryViewModel,
     modifier: Modifier = Modifier,
     onItemSelected: (PantryListItem) -> Unit = {},
+    onStockChange: (PantryListItem, Int) -> Unit = { _, _ -> },
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
 ) {
@@ -109,6 +123,7 @@ fun PantryScreen(
             modifier = modifier,
             emptyCategories = state.emptyCategories,
             onItemSelected = onItemSelected,
+            onStockChange = viewModel::setStockCount,
             onBack = onBack,
             onAddItem = onAddItem,
         )
@@ -122,6 +137,7 @@ fun PantryScreen(
     modifier: Modifier = Modifier,
     emptyCategories: List<String> = emptyList(),
     onItemSelected: (PantryListItem) -> Unit = {},
+    onStockChange: (PantryListItem, Int) -> Unit = { _, _ -> },
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
 ) {
@@ -216,6 +232,7 @@ fun PantryScreen(
                                         PantryItemRow(
                                             item = pantryItem,
                                             onClick = { onItemSelected(pantryItem) },
+                                            onStockChange = { onStockChange(pantryItem, it) },
                                             modifier = Modifier.testTag(PantryTestTags.pantryItem(pantryItem.key)),
                                         )
                                         Spacer(Modifier.height(4.dp))
@@ -253,6 +270,7 @@ private fun PantryItemRow(
     item: PantryListItem,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
+    onStockChange: (Int) -> Unit = {},
 ) {
     val shape = MaterialTheme.shapes.medium
     Row(
@@ -280,6 +298,16 @@ private fun PantryItemRow(
             )
         }
         Spacer(Modifier.width(12.dp))
+        IconButton(
+            onClick = { onStockChange(item.stockCount - 1) },
+            enabled = item.stockCount > 0,
+            modifier = Modifier.size(32.dp).testTag(PantryTestTags.stockDecrease(item.key)),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_minus),
+                contentDescription = stringResource(Res.string.pantry_stock_decrease),
+            )
+        }
         Text(
             text = if (item.stockCount > 0) {
                 stringResource(Res.string.pantry_stock_count, item.stockCount)
@@ -292,7 +320,18 @@ private fun PantryItemRow(
             } else {
                 MaterialTheme.colorScheme.error
             },
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(88.dp),
         )
+        IconButton(
+            onClick = { onStockChange(item.stockCount + 1) },
+            modifier = Modifier.size(32.dp).testTag(PantryTestTags.stockIncrease(item.key)),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_plus),
+                contentDescription = stringResource(Res.string.pantry_stock_increase),
+            )
+        }
     }
 }
 

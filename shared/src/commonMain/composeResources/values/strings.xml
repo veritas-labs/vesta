@@ -47,6 +47,8 @@
     <string name="pantry_empty_subtitle">Items your household buys will show up here.</string>
     <string name="pantry_stock_count">%1$d on shelf</string>
     <string name="pantry_out_of_stock">Out of stock</string>
+    <string name="pantry_stock_increase">Increase stock</string>
+    <string name="pantry_stock_decrease">Decrease stock</string>
     <string name="pantry_category_empty">No items yet</string>
 
     <string name="pantry_edit_add_title">Add pantry item</string>

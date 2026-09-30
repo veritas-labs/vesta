@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -124,5 +125,35 @@ class PantryScreenTest {
 
         // Assert
         assertEquals(1, adds)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingPlusAndMinusReportsTheAdjustedStockCount() = runComposeUiTest {
+        // Arrange
+        val changes = mutableListOf<Pair<String, Int>>()
+        setContent {
+            VestaTheme { PantryScreen(items = items, onStockChange = { item, count -> changes += item.key to count }) }
+        }
+
+        // Act
+        onNodeWithTag(PantryTestTags.stockIncrease("5000157024671")).performClick()
+        onNodeWithTag(PantryTestTags.stockDecrease("5000157024671")).performClick()
+
+        // Assert
+        assertEquals(listOf("5000157024671" to 5, "5000157024671" to 3), changes)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun minusIsDisabledWhenOutOfStock() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { PantryScreen(items = items) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(PantryTestTags.stockDecrease("whole milk")).assertIsNotEnabled()
     }
 }

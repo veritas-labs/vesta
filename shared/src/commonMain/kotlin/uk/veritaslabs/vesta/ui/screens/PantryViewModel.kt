@@ -51,6 +51,21 @@ class PantryViewModel(private val source: PantrySource) : ViewModel() {
         viewModelScope.launch { source.delete(key) }
     }
 
+    /** Sets [item]'s stock count to [stockCount]; the change then arrives through [uiState]. */
+    fun setStockCount(item: PantryListItem, stockCount: Int) {
+        save(
+            PantryItemDetails(
+                key = item.key,
+                primaryCategory = item.primaryCategory,
+                secondaryCategory = item.secondaryCategory,
+                title = item.title,
+                packageSize = item.packageSize,
+                barcode = item.barcode,
+                stockCount = stockCount,
+            ),
+        )
+    }
+
     /** Persists [item] to the Pantry; the new/updated entry then arrives through [uiState]. */
     fun save(item: PantryItemDetails) {
         viewModelScope.launch { source.save(item) }
