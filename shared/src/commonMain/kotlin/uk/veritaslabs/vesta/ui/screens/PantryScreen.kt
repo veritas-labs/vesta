@@ -291,11 +291,13 @@ private fun PantryItemRow(
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = " · ${item.packageSize}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (item.packageSize.isNotBlank()) {
+                Text(
+                    text = " · ${item.packageSize}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         IconButton(
