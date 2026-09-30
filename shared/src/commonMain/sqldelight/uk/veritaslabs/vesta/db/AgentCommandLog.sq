@@ -1,0 +1,21 @@
+-- Idempotency log for agent commands (docs/adr/ADR-009-agent-commands-over-x0x.md):
+-- one row per processed command, holding the exact reply JSON so a repeated
+-- command is answered again without being applied again. Local and unsynced.
+-- Keyed by (senderId, commandId) rather than by Home, because rejected commands
+-- (e.g. "unknown home") have no valid Home row to reference.
+-- Keep in sync with migrations/2.sqm, which creates this table for databases that
+-- predate it.
+CREATE TABLE AgentCommandLog (
+    senderId TEXT NOT NULL,
+    commandId TEXT NOT NULL,
+    replyJson TEXT NOT NULL,
+    processedAt INTEGER NOT NULL,
+    PRIMARY KEY (senderId, commandId)
+);
+
+selectReply:
+SELECT replyJson FROM AgentCommandLog WHERE senderId = ? AND commandId = ?;
+
+insert:
+INSERT OR IGNORE INTO AgentCommandLog(senderId, commandId, replyJson, processedAt)
+VALUES (?, ?, ?, ?);

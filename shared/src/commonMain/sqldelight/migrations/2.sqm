@@ -1,0 +1,8 @@
+-- Version 2 -> 3: adds AgentCommandLog (see uk/veritaslabs/vesta/db/AgentCommandLog.sq).
+CREATE TABLE AgentCommandLog (
+    senderId TEXT NOT NULL,
+    commandId TEXT NOT NULL,
+    replyJson TEXT NOT NULL,
+    processedAt INTEGER NOT NULL,
+    PRIMARY KEY (senderId, commandId)
+);
