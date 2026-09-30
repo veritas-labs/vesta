@@ -54,7 +54,7 @@ val LocalSelectedHome = compositionLocalOf<SelectedHome> { error("No SelectedHom
 private data class HomeEditTarget(val homeId: String?, val session: Int)
 
 /**
- * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id.
+ * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
  * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
  * approval is offered over whatever screen is showing.
@@ -66,9 +66,10 @@ fun App(
     selectedHome: SelectedHome = remember { SelectedHome() },
     homeRepository: HomeRepository? = null,
     agentAccess: AgentAccessRepository? = null,
-    homeContent: @Composable (homeId: String) -> Unit = { HomeContent(it) },
+    homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name -> HomeContent(id, name) },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
+    val homeList by homes.collectAsStateWithLifecycle(emptyList())
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
     var editSessions by remember { mutableIntStateOf(0) }
     fun openEditor(homeId: String?) {
@@ -82,7 +83,7 @@ fun App(
     CompositionLocalProvider(LocalSelectedHome provides selectedHome) {
         VestaTheme {
             Box(modifier = Modifier.fillMaxSize()) {
-                homeId?.let { homeContent(it) } ?: run {
+                homeId?.let { id -> homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) } ?: run {
                     val target = editTarget
                     if (target != null && homeRepository != null) {
                         val editViewModel = viewModel(key = "home-edit-${target.session}") {
@@ -112,7 +113,8 @@ fun App(
  * in the Pantry). Without a [pantrySource] the Pantry is empty and saves are dropped.
  */
 @Composable
-private fun HomeContent(homeId: String, pantrySource: PantrySource? = null) {
+private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySource? = null) {
+    val selectedHome = LocalSelectedHome.current
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
@@ -120,6 +122,8 @@ private fun HomeContent(homeId: String, pantrySource: PantrySource? = null) {
     }
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(
+            homeName = homeName,
+            onBack = { selectedHome.clear() },
             x0xConnectivity = rememberX0xConnectivity(),
             onPantryClick = { destination = HomeDestination.Pantry },
         )
@@ -175,7 +179,7 @@ private enum class HomeDestination { Dashboard, Pantry, PantryItemEdit }
 @Composable
 fun VestaApp(
     openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
-    homeContent: (@Composable (homeId: String) -> Unit)? = null,
+    homeContent: (@Composable (homeId: String, homeName: String) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
@@ -186,9 +190,9 @@ fun VestaApp(
         homes = homeRepository.homes,
         homeRepository = homeRepository,
         agentAccess = agentAccess,
-        homeContent = homeContent ?: { homeId ->
+        homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
-            HomeContent(homeId, pantrySource)
+            HomeContent(homeId, homeName, pantrySource)
         },
     )
 }

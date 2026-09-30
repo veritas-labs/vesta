@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -34,7 +35,8 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.X0xConnectivityIndicator
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.home_dashboard_title
+import vesta.shared.generated.resources.home_dashboard_back
+import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_pantry
 import vesta.shared.generated.resources.pantry_title
 
@@ -42,6 +44,7 @@ private val HomeDashboardTabletBreakpoint = 600.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object HomeDashboardTestTags {
+    const val BackButton = "home_dashboard_back_button"
     const val PantryTile = "home_dashboard_pantry_tile"
     const val X0xIndicator = "home_dashboard_x0x_indicator"
 }
@@ -55,14 +58,17 @@ private data class DashboardTile(
 
 /**
  * Landing page for a selected Home: a two-column grid of tiles, each an icon with a label, that
- * open the Home's areas. Only the Pantry ([onPantryClick]) exists so far. The app bar's trailing
- * indicator shows [x0xConnectivity].
+ * open the Home's areas. Only the Pantry ([onPantryClick]) exists so far. The app bar is titled with
+ * [homeName], its back arrow calls [onBack] (to the Home picker), and its trailing indicator shows
+ * [x0xConnectivity].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeDashboardScreen(
+    homeName: String,
     modifier: Modifier = Modifier,
     x0xConnectivity: X0xConnectivity = X0xConnectivity.Connecting,
+    onBack: () -> Unit = {},
     onPantryClick: () -> Unit = {},
 ) {
     val tiles = listOf(
@@ -78,7 +84,15 @@ fun HomeDashboardScreen(
 
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
-                title = { Text(stringResource(Res.string.home_dashboard_title)) },
+                title = { Text(homeName) },
+                navigationIcon = {
+                    IconButton(onClick = onBack, modifier = Modifier.testTag(HomeDashboardTestTags.BackButton)) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_left),
+                            contentDescription = stringResource(Res.string.home_dashboard_back),
+                        )
+                    }
+                },
                 actions = {
                     X0xConnectivityIndicator(
                         x0xConnectivity,
@@ -88,6 +102,7 @@ fun HomeDashboardScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
             LazyVerticalGrid(
@@ -114,23 +129,23 @@ fun HomeDashboardScreen(
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun HomeDashboardScreenPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { HomeDashboardScreen() }
+    VestaTheme(darkTheme = false) { HomeDashboardScreen(homeName = "The Johnsons") }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun HomeDashboardScreenPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { HomeDashboardScreen() }
+    VestaTheme(darkTheme = true) { HomeDashboardScreen(homeName = "The Johnsons") }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun HomeDashboardScreenTabletLightPreview() {
-    VestaTheme(darkTheme = false) { HomeDashboardScreen() }
+    VestaTheme(darkTheme = false) { HomeDashboardScreen(homeName = "The Johnsons") }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun HomeDashboardScreenTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { HomeDashboardScreen() }
+    VestaTheme(darkTheme = true) { HomeDashboardScreen(homeName = "The Johnsons") }
 }

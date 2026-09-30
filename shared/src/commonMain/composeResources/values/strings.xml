@@ -35,7 +35,7 @@
     <string name="device_pairing_redeemed_body">This device has redeemed the pairing link.</string>
     <string name="device_pairing_done">Done</string>
 
-    <string name="home_dashboard_title">Your home</string>
+    <string name="home_dashboard_back">Back</string>
     <string name="x0x_connectivity_connected">Connected to the x0x network</string>
     <string name="x0x_connectivity_connecting">Connecting to the x0x network</string>
     <string name="x0x_label">x0x</string>

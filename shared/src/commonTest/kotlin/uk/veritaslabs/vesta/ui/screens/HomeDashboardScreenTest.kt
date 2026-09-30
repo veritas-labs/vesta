@@ -17,7 +17,7 @@ class HomeDashboardScreenTest {
     @Test
     fun showsAPantryTile() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { HomeDashboardScreen() } }
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons") } }
 
         // Act
         // (no user interaction — checking the screen's initial state)
@@ -31,7 +31,7 @@ class HomeDashboardScreenTest {
     fun tappingThePantryTileInvokesOnPantryClick() = runComposeUiTest {
         // Arrange
         var clicks = 0
-        setContent { VestaTheme { HomeDashboardScreen(onPantryClick = { clicks++ }) } }
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", onPantryClick = { clicks++ }) } }
 
         // Act
         onNodeWithTag(HomeDashboardTestTags.PantryTile).performClick()
@@ -44,7 +44,7 @@ class HomeDashboardScreenTest {
     @Test
     fun showsAnX0xConnectivityIndicatorInTheAppBar() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { HomeDashboardScreen(x0xConnectivity = X0xConnectivity.Connected(peers = 23)) } }
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", x0xConnectivity = X0xConnectivity.Connected(peers = 23)) } }
 
         // Act
         // (no user interaction — checking the screen's initial state)
@@ -52,5 +52,32 @@ class HomeDashboardScreenTest {
         // Assert
         onNodeWithTag(HomeDashboardTestTags.X0xIndicator).assertIsDisplayed()
         onNodeWithText("x0x").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsTheHomeNameInTheAppBar() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "Flat 4B") } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("Flat 4B").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingBackInvokesOnBack() = runComposeUiTest {
+        // Arrange
+        var backs = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", onBack = { backs++ }) } }
+
+        // Act
+        onNodeWithTag(HomeDashboardTestTags.BackButton).performClick()
+
+        // Assert
+        assertEquals(1, backs)
     }
 }
