@@ -28,14 +28,16 @@ class PantryCommandHandlerTest {
     private class Fixture(allowed: List<String>) {
         val source = PantryDocumentSource(Document.load(newPantryDocument()))
         val client = FakeX0xClient()
-        val commandLog = DatabaseCommandLog(openInMemoryDatabase())
+        private val database = openInMemoryDatabase()
+        val commandLog = DatabaseCommandLog(database)
+        val access = AgentAccessRepository(database, FixedAgentAllowlist(allowed))
         private var nextId = 0
         val logged = mutableListOf<String>()
         var homes = listOf(HomeRef("home-1", "The Johnsons"), HomeRef("home-2", "Flat 4"))
         val handler = PantryCommandHandler(
             resolveSource = { homeId -> source.takeIf { homeId == "home-1" } },
             listHomes = { homes },
-            allowlist = FixedAgentAllowlist(allowed),
+            access = access,
             commandLog = commandLog,
             client = client,
             newId = { "urn:uuid:reply-${nextId++}" },
@@ -187,7 +189,7 @@ class PantryCommandHandlerTest {
     }
 
     @Test
-    fun unauthorisedMessagesHaveNoEffectAndNoReply() = runBlocking {
+    fun messagesTheDaemonDoesNotVouchForAreDroppedSilentlyAndNeverQueueAnApproval() = runBlocking {
         // Arrange
         val f = fixture()
         val cases = listOf(
@@ -196,7 +198,6 @@ class PantryCommandHandlerTest {
             message(command(), trust = "reject"),
             message(command(), trust = null),
             message(command(), sender = null),
-            message(command(), sender = "stranger"),
         )
 
         cases.forEach {
@@ -207,11 +208,12 @@ class PantryCommandHandlerTest {
         // Assert
         assertEquals(emptyList(), f.source.contents.first().items)
         assertEquals(0, f.client.sent.size)
+        assertEquals(emptyList(), f.access.pending.first())
         assertEquals(cases.size, f.logged.size)
     }
 
     @Test
-    fun anEmptyAllowlistAcceptsNothing() = runBlocking {
+    fun aTrustedButUnapprovedAgentGetsARejectAndIsQueuedForApproval() = runBlocking {
         // Arrange
         val f = Fixture(emptyList())
 
@@ -220,7 +222,81 @@ class PantryCommandHandlerTest {
 
         // Assert
         assertEquals(emptyList(), f.source.contents.first().items)
+        val reply = f.replies.single()
+        assertEquals("Reject", reply.text("type"))
+        assertEquals(NotApprovedSummary, reply.text("summary"))
+        assertEquals("urn:uuid:c1", reply.text("inReplyTo"))
+        assertEquals(listOf(agent), f.access.pending.first().map { it.agentId })
+    }
+
+    @Test
+    fun anUnapprovedAgentIsQueuedOnceHoweverOftenItAsks() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+
+        // Act
+        f.handler.handle(message(command(id = "urn:uuid:c1")))
+        f.handler.handle(message(command(id = "urn:uuid:c2")))
+
+        // Assert
+        assertEquals(1, f.access.pending.first().size)
+        assertEquals(2, f.client.sent.size)
+    }
+
+    @Test
+    fun listHomesFromAnUnapprovedAgentIsHeldToo() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+
+        // Act
+        f.handler.handle(message(listHomesRequest()))
+
+        // Assert
+        assertEquals(NotApprovedSummary, f.replies.single().text("summary"))
+    }
+
+    @Test
+    fun nonCommandTrafficFromAnUnapprovedAgentDoesNotQueueAnApproval() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+
+        // Act
+        f.handler.handle(message("""{"some": "sync message"}"""))
+
+        // Assert
+        assertEquals(emptyList(), f.access.pending.first())
         assertEquals(0, f.client.sent.size)
+    }
+
+    @Test
+    fun onceTheUserApprovesTheAgentTheSameCommandIsAppliedNormally() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        f.handler.handle(message(command()))
+        f.access.allow(agent)
+
+        // Act
+        f.handler.handle(message(command()))
+
+        // Assert
+        assertEquals(2, f.source.contents.first().items.single().stockCount)
+        assertEquals("Accept", f.replies.last().text("type"))
+        assertEquals(emptyList(), f.access.pending.first())
+    }
+
+    @Test
+    fun aDeniedRequestIsAskedAboutAgainWhenTheAgentReturns() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        f.handler.handle(message(command()))
+        f.access.deny(agent)
+
+        // Act
+        f.handler.handle(message(command(id = "urn:uuid:c2")))
+
+        // Assert
+        assertEquals(listOf(agent), f.access.pending.first().map { it.agentId })
+        assertEquals(emptyList(), f.source.contents.first().items)
     }
 
     @Test
@@ -311,13 +387,13 @@ class PantryCommandHandlerTest {
     }
 
     @Test
-    fun listHomesFromAnUnauthorisedSenderGetsNothing() = runBlocking {
+    fun listHomesFromAnAgentTheDaemonDoesNotTrustGetsNothing() = runBlocking {
         // Arrange
         val f = fixture()
 
         // Act
-        f.handler.handle(message(listHomesRequest(), sender = "stranger"))
         f.handler.handle(message(listHomesRequest(), trust = "reject"))
+        f.handler.handle(message(listHomesRequest(), verified = false))
 
         // Assert
         assertEquals(0, f.client.sent.size)

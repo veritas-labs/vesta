@@ -15,8 +15,12 @@ import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 /** Category given to an item an agent adds without one; the Pantry UI otherwise requires a primary category. */
 const val UncategorizedCategory = "Uncategorized"
 
+/** The `Reject` summary for a command from an agent the user hasn't approved (yet). */
+const val NotApprovedSummary = "not approved: ask the user to approve this agent in the Vesta app, then retry"
+
 /**
- * Acts on ADR-009 agent commands arriving as x0x direct messages: authorises, parses, then either
+ * Acts on ADR-009 agent commands arriving as x0x direct messages: checks the daemon vouches for the sender,
+ * parses, checks the user has approved that agent (or queues it for approval), then either
  * answers a [ListHomes] request or applies an add to the Home's Pantry, recording the outcome, and
  * replies with `Accept`/`Reject`. [ListHomes] is read-only, so it is answered fresh every time and
  * not recorded in the idempotency log.
@@ -27,7 +31,7 @@ const val UncategorizedCategory = "Uncategorized"
 class PantryCommandHandler(
     private val resolveSource: suspend (homeId: String) -> PantryDocumentSource?,
     private val listHomes: suspend () -> List<HomeRef>,
-    private val allowlist: AgentAllowlist,
+    private val access: AgentAccess,
     private val commandLog: CommandLog,
     private val client: X0xClient,
     private val newId: () -> String,
@@ -46,12 +50,11 @@ class PantryCommandHandler(
     }
 
     private suspend fun process(message: X0xDirectMessage) {
+        // Gate 1, the x0x daemon's: only a verified sender the user has trusted there. Silent, and it never
+        // queues an approval request, so an unknown agent can't make the app prompt.
         val sender = message.sender
-        if (message.verified != true || message.trustDecision != "accept" || sender == null || !allowlist.allows(sender)) {
-            log(
-                "dropped message from ${sender ?: "unknown sender"}: verified=${message.verified}, " +
-                    "trust=${message.trustDecision}, allowlisted=${sender?.let(allowlist::allows) ?: false}",
-            )
+        if (message.verified != true || message.trustDecision != "accept" || sender == null) {
+            log("dropped message from ${sender ?: "unknown sender"}: verified=${message.verified}, trust=${message.trustDecision}")
             return
         }
 
@@ -62,11 +65,6 @@ class PantryCommandHandler(
         }
 
         val parsed = AgentCommandParser.parse(payload)
-        if (parsed is ParseResult.Command && parsed.command is ListHomes) {
-            send(sender, AgentReplies.homes(newId(), parsed.command.commandId, listHomes()))
-            return
-        }
-
         val commandId = when (parsed) {
             ParseResult.NotACommand -> return
             is ParseResult.Command -> parsed.command.commandId
@@ -74,6 +72,20 @@ class PantryCommandHandler(
                 log("dropped command from $sender: ${parsed.reason} (no id to reply to)")
                 return
             }
+        }
+
+        // Gate 2, the app's: the user must have approved this agent. Not recorded in the command log, so the
+        // same command re-sent after approval is processed normally.
+        if (!access.isAllowed(sender)) {
+            access.requestApproval(sender)
+            log("held command $commandId from $sender: waiting for the user to approve this agent")
+            send(sender, reject(commandId, NotApprovedSummary))
+            return
+        }
+
+        if (parsed is ParseResult.Command && parsed.command is ListHomes) {
+            send(sender, AgentReplies.homes(newId(), commandId, listHomes()))
+            return
         }
 
         commandLog.reply(sender, commandId)?.let { previous ->

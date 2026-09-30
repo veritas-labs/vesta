@@ -32,13 +32,14 @@ class AgentCommandLogTest {
         assertNull(log.reply("agent-1", "c2"))
     }
 
-    /** The schema as it was at version 2: everything except AgentCommandLog. */
+    /** The schema as it was at version 2: everything except AgentCommandLog and AgentAccess. */
     private object VersionTwoSchema : SqlSchema<QueryResult.AsyncValue<Unit>> {
         override val version = 2L
 
         override fun create(driver: SqlDriver) = QueryResult.AsyncValue {
             VestaDatabase.Schema.create(driver).await()
             driver.execute(null, "DROP TABLE AgentCommandLog", 0).await()
+            driver.execute(null, "DROP TABLE AgentAccess", 0).await()
             Unit
         }
 
@@ -66,7 +67,7 @@ class AgentCommandLogTest {
         log.record("agent-1", "c1", "reply")
 
         // Assert
-        assertEquals(3L, VestaDatabase.Schema.version)
+        assertEquals(4L, VestaDatabase.Schema.version)
         assertEquals("reply", log.reply("agent-1", "c1"))
     }
 }

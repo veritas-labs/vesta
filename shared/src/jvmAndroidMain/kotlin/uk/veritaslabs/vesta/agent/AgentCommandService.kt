@@ -43,7 +43,7 @@ class AgentCommandService(
         val handler = PantryCommandHandler(
             resolveSource = sources::forHome,
             listHomes = { HomeRepository(database).homes.first().map { HomeRef(it.id, it.name) } },
-            allowlist = allowlist,
+            access = AgentAccessRepository(database, allowlist),
             commandLog = DatabaseCommandLog(database),
             client = client,
             newId = { "urn:uuid:${Uuid.random()}" },

@@ -1,0 +1,6 @@
+-- Version 3 -> 4: adds AgentAccess (see uk/veritaslabs/vesta/db/AgentAccess.sq).
+CREATE TABLE AgentAccess (
+    agentId TEXT NOT NULL PRIMARY KEY,
+    status TEXT NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
