@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
 import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.marcellus_regular
 import vesta.shared.generated.resources.raleway_black
 import vesta.shared.generated.resources.raleway_black_italic
 import vesta.shared.generated.resources.raleway_bold
@@ -50,24 +51,29 @@ fun ralewayFontFamily(): FontFamily = FontFamily(
 )
 
 @Composable
+fun marcellusFontFamily(): FontFamily = FontFamily(
+    Font(Res.font.marcellus_regular, FontWeight.Normal, FontStyle.Normal),
+)
+
+@Composable
 fun vestaTypography(): Typography {
-    val raleway = ralewayFontFamily()
+    val marcellus = marcellusFontFamily()
     val default = Typography()
     return Typography(
-        displayLarge = default.displayLarge.copy(fontFamily = raleway),
-        displayMedium = default.displayMedium.copy(fontFamily = raleway),
-        displaySmall = default.displaySmall.copy(fontFamily = raleway),
-        headlineLarge = default.headlineLarge.copy(fontFamily = raleway),
-        headlineMedium = default.headlineMedium.copy(fontFamily = raleway),
-        headlineSmall = default.headlineSmall.copy(fontFamily = raleway),
-        titleLarge = default.titleLarge.copy(fontFamily = raleway),
-        titleMedium = default.titleMedium.copy(fontFamily = raleway),
-        titleSmall = default.titleSmall.copy(fontFamily = raleway),
-        bodyLarge = default.bodyLarge.copy(fontFamily = raleway),
-        bodyMedium = default.bodyMedium.copy(fontFamily = raleway),
-        bodySmall = default.bodySmall.copy(fontFamily = raleway),
-        labelLarge = default.labelLarge.copy(fontFamily = raleway, fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
-        labelMedium = default.labelMedium.copy(fontFamily = raleway),
-        labelSmall = default.labelSmall.copy(fontFamily = raleway),
+        displayLarge = default.displayLarge.copy(fontFamily = marcellus),
+        displayMedium = default.displayMedium.copy(fontFamily = marcellus),
+        displaySmall = default.displaySmall.copy(fontFamily = marcellus),
+        headlineLarge = default.headlineLarge.copy(fontFamily = marcellus),
+        headlineMedium = default.headlineMedium.copy(fontFamily = marcellus),
+        headlineSmall = default.headlineSmall.copy(fontFamily = marcellus),
+        titleLarge = default.titleLarge.copy(fontFamily = marcellus),
+        titleMedium = default.titleMedium.copy(fontFamily = marcellus),
+        titleSmall = default.titleSmall.copy(fontFamily = marcellus),
+        bodyLarge = default.bodyLarge.copy(fontFamily = marcellus),
+        bodyMedium = default.bodyMedium.copy(fontFamily = marcellus),
+        bodySmall = default.bodySmall.copy(fontFamily = marcellus),
+        labelLarge = default.labelLarge.copy(fontFamily = marcellus, fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
+        labelMedium = default.labelMedium.copy(fontFamily = marcellus),
+        labelSmall = default.labelSmall.copy(fontFamily = marcellus),
     )
 }
