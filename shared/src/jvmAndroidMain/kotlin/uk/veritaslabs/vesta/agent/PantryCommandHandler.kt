@@ -16,14 +16,17 @@ import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 const val UncategorizedCategory = "Uncategorized"
 
 /**
- * Acts on ADR-009 agent commands arriving as x0x direct messages: authorises, parses, applies the
- * add to the Home's Pantry, records the outcome and replies with `Accept`/`Reject`.
+ * Acts on ADR-009 agent commands arriving as x0x direct messages: authorises, parses, then either
+ * answers a [ListHomes] request or applies an add to the Home's Pantry, recording the outcome, and
+ * replies with `Accept`/`Reject`. [ListHomes] is read-only, so it is answered fresh every time and
+ * not recorded in the idempotency log.
  *
  * [resolveSource] returns the Pantry source of a Home, or null if there is no such Home. Messages
  * are handled one at a time so a command and its duplicate can't race past the idempotency check.
  */
 class PantryCommandHandler(
     private val resolveSource: suspend (homeId: String) -> PantryDocumentSource?,
+    private val listHomes: suspend () -> List<HomeRef>,
     private val allowlist: AgentAllowlist,
     private val commandLog: CommandLog,
     private val client: X0xClient,
@@ -59,6 +62,11 @@ class PantryCommandHandler(
         }
 
         val parsed = AgentCommandParser.parse(payload)
+        if (parsed is ParseResult.Command && parsed.command is ListHomes) {
+            send(sender, AgentReplies.homes(newId(), parsed.command.commandId, listHomes()))
+            return
+        }
+
         val commandId = when (parsed) {
             ParseResult.NotACommand -> return
             is ParseResult.Command -> parsed.command.commandId
@@ -76,7 +84,10 @@ class PantryCommandHandler(
 
         val reply = when (parsed) {
             is ParseResult.Invalid -> reject(commandId, parsed.reason)
-            is ParseResult.Command -> apply(parsed.command)
+            is ParseResult.Command -> when (val command = parsed.command) {
+                is AddPantryItem -> apply(command)
+                is ListHomes -> return // answered above
+            }
             ParseResult.NotACommand -> return
         }
         commandLog.record(sender, commandId, reply)

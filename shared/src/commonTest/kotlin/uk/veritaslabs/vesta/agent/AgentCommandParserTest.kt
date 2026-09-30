@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -38,7 +39,7 @@ class AgentCommandParserTest {
         val result = AgentCommandParser.parse(payload)
 
         // Assert
-        val parsed = assertIs<ParseResult.Command>(result).command
+        val parsed = assertIs<AddPantryItem>(assertIs<ParseResult.Command>(result).command)
         assertEquals(
             AddPantryItem("urn:uuid:1", "home-1", "Heinz Ketchup", "Condiments", "Ketchup", "1 bottle", "5000157024671", 2),
             parsed,
@@ -54,7 +55,7 @@ class AgentCommandParserTest {
         val result = AgentCommandParser.parse(payload)
 
         // Assert
-        val parsed = assertIs<ParseResult.Command>(result).command
+        val parsed = assertIs<AddPantryItem>(assertIs<ParseResult.Command>(result).command)
         assertEquals(1, parsed.quantity)
         assertEquals("Milk", parsed.title)
         assertNull(parsed.primaryCategory)
@@ -69,7 +70,7 @@ class AgentCommandParserTest {
         val payload = command(productFields = """"schema:name": "Milk", "schema:category": "Dairy"""")
 
         // Act
-        val parsed = assertIs<ParseResult.Command>(AgentCommandParser.parse(payload)).command
+        val parsed = assertIs<AddPantryItem>(assertIs<ParseResult.Command>(AgentCommandParser.parse(payload)).command)
 
         // Assert
         assertEquals("Dairy", parsed.primaryCategory)
@@ -80,7 +81,7 @@ class AgentCommandParserTest {
     fun rejectsMalformedCommandsKeepingTheCommandId() {
         // Arrange
         val cases = listOf(
-            "type must be Add" to command(type = "\"Remove\""),
+            "type must be Add or Read" to command(type = "\"Remove\""),
             "target.id must be" to command(target = """{"id": "urn:vesta:document:home-1:shopping"}"""),
             "target.id must be" to command(target = """{"id": "urn:vesta:document::pantry"}"""),
             "target.id is required" to command(target = "{}"),
@@ -106,6 +107,47 @@ class AgentCommandParserTest {
             assertEquals("urn:uuid:1", result.commandId, expected)
             assertEquals(true, result.reason.contains(expected), "'${result.reason}' should mention '$expected'")
         }
+    }
+
+    private fun read(objectId: String = "urn:vesta:homes") =
+        ("""{"@context": $context, "type": "Read", "id": "urn:uuid:l1", "object": {"type": "Collection", "id": "$objectId"}}""").encodeToByteArray()
+
+    @Test
+    fun parsesAListHomesRequest() {
+        // Arrange
+        val payload = read()
+
+        // Act
+        val result = AgentCommandParser.parse(payload)
+
+        // Assert
+        assertEquals(ParseResult.Command(ListHomes("urn:uuid:l1")), result)
+    }
+
+    @Test
+    fun rejectsAReadOfAnythingButTheHomesCollection() {
+        // Arrange
+        val payload = read(objectId = "urn:vesta:document:home-1:pantry")
+
+        // Act
+        val result = invalid(payload)
+
+        // Assert
+        assertEquals("urn:uuid:l1", result.commandId)
+        assertEquals(true, result.reason.contains("urn:vesta:homes"))
+    }
+
+    @Test
+    fun homesReplyListsEachHomeWithItsId() {
+        // Arrange / Act
+        val reply = Json.parseToJsonElement(AgentReplies.homes("urn:uuid:r1", "urn:uuid:l1", listOf(HomeRef("h1", "The Johnsons")))).jsonObject
+
+        // Assert
+        assertEquals("Accept", reply["type"]!!.jsonPrimitive.content)
+        assertEquals("urn:uuid:l1", reply["inReplyTo"]!!.jsonPrimitive.content)
+        val item = reply["result"]!!.jsonObject["items"]!!.jsonArray.single().jsonObject
+        assertEquals("h1", item["schema:identifier"]!!.jsonPrimitive.content)
+        assertEquals("The Johnsons", item["schema:name"]!!.jsonPrimitive.content)
     }
 
     @Test

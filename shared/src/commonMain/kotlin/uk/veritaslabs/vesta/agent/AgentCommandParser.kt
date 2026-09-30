@@ -25,6 +25,9 @@ object AgentCommandParser {
         add(buildJsonObject { put("schema", "https://schema.org/") })
     }
 
+    /** The `object.id` of a [ListHomes] request. */
+    const val HOMES_COLLECTION_ID = "urn:vesta:homes"
+
     private const val TARGET_PREFIX = "urn:vesta:document:"
     private const val TARGET_SUFFIX = ":pantry"
 
@@ -38,7 +41,21 @@ object AgentCommandParser {
         fun invalid(reason: String) = ParseResult.Invalid(commandId, reason)
 
         if (commandId == null) return invalid("id is required")
-        if (root.string("type") != "Add") return invalid("type must be Add")
+        return when (root.string("type")) {
+            "Add" -> parseAdd(root, commandId)
+            "Read" -> parseRead(root, commandId)
+            else -> invalid("type must be Add or Read")
+        }
+    }
+
+    private fun parseRead(root: JsonObject, commandId: String): ParseResult {
+        val objectId = (root["object"] as? JsonObject)?.string("id")
+        if (objectId != HOMES_COLLECTION_ID) return ParseResult.Invalid(commandId, "object.id must be $HOMES_COLLECTION_ID")
+        return ParseResult.Command(ListHomes(commandId))
+    }
+
+    private fun parseAdd(root: JsonObject, commandId: String): ParseResult {
+        fun invalid(reason: String) = ParseResult.Invalid(commandId, reason)
 
         val targetId = (root["target"] as? JsonObject)?.string("id") ?: return invalid("target.id is required")
         val homeId = targetId.takeIf { it.startsWith(TARGET_PREFIX) && it.endsWith(TARGET_SUFFIX) }

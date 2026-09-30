@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.automerge.Document
@@ -30,8 +31,10 @@ class PantryCommandHandlerTest {
         val commandLog = DatabaseCommandLog(openInMemoryDatabase())
         private var nextId = 0
         val logged = mutableListOf<String>()
+        var homes = listOf(HomeRef("home-1", "The Johnsons"), HomeRef("home-2", "Flat 4"))
         val handler = PantryCommandHandler(
             resolveSource = { homeId -> source.takeIf { homeId == "home-1" } },
+            listHomes = { homes },
             allowlist = FixedAgentAllowlist(allowed),
             commandLog = commandLog,
             client = client,
@@ -266,6 +269,70 @@ class PantryCommandHandlerTest {
         // Assert
         assertEquals(0, f.client.sent.size)
         assertEquals(emptyList(), f.source.contents.first().items)
+    }
+
+    private fun listHomesRequest(id: String = "urn:uuid:l1", objectId: String = "urn:vesta:homes") = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "$objectId"}}
+    """.trimIndent()
+
+    @Test
+    fun listHomesRepliesWithEveryHomesNameAndId() = runBlocking {
+        // Arrange
+        val f = fixture()
+
+        // Act
+        f.handler.handle(message(listHomesRequest()))
+
+        // Assert
+        val reply = f.replies.single()
+        assertEquals("Accept", reply.text("type"))
+        assertEquals("urn:uuid:l1", reply.text("inReplyTo"))
+        val result = reply.getValue("result").jsonObject
+        assertEquals("2", result.text("totalItems"))
+        val items = result.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("home-1" to "The Johnsons", "home-2" to "Flat 4"), items.map { it.text("schema:identifier") to it.text("schema:name") })
+        assertEquals("urn:vesta:home:home-1", items.first().text("id"))
+    }
+
+    @Test
+    fun listHomesIsAnsweredFreshEachTimeAndWithNoHomesIsAnEmptyCollection() = runBlocking {
+        // Arrange
+        val f = fixture()
+        f.handler.handle(message(listHomesRequest()))
+        f.homes = emptyList()
+
+        // Act
+        f.handler.handle(message(listHomesRequest()))
+
+        // Assert
+        assertEquals(2, f.client.sent.size)
+        assertEquals("0", f.replies.last().getValue("result").jsonObject.text("totalItems"))
+    }
+
+    @Test
+    fun listHomesFromAnUnauthorisedSenderGetsNothing() = runBlocking {
+        // Arrange
+        val f = fixture()
+
+        // Act
+        f.handler.handle(message(listHomesRequest(), sender = "stranger"))
+        f.handler.handle(message(listHomesRequest(), trust = "reject"))
+
+        // Assert
+        assertEquals(0, f.client.sent.size)
+    }
+
+    @Test
+    fun aMalformedListHomesRequestIsRejected() = runBlocking {
+        // Arrange
+        val f = fixture()
+
+        // Act
+        f.handler.handle(message(listHomesRequest(objectId = "urn:vesta:everything")))
+
+        // Assert
+        assertEquals("Reject", f.replies.single().text("type"))
     }
 
     @Test

@@ -4,10 +4,12 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xEventHub
 import uk.veritaslabs.vesta.x0x.createX0xClient
@@ -40,6 +42,7 @@ class AgentCommandService(
         val sources = pantrySources(database)
         val handler = PantryCommandHandler(
             resolveSource = sources::forHome,
+            listHomes = { HomeRepository(database).homes.first().map { HomeRef(it.id, it.name) } },
             allowlist = allowlist,
             commandLog = DatabaseCommandLog(database),
             client = client,

@@ -30,13 +30,25 @@ direct message. Design: [ADR-009](../adr/ADR-009-agent-commands-over-x0x.md). De
 
 ## Sending a command
 
-```sh
-scripts/agent-pantry-add.sh --agent-instance vesta-agent --to <vesta-agent-id> --home <homeId> \
-  --title "Heinz Ketchup" --category Condiments --category Ketchup --qty 2
-```
+The agent never needs to read Vesta's database: everything goes over x0x. It works out the Home id first, then adds.
 
-It prints the command id (`urn:uuid:…`). Re-sending the same id (`--id`) never applies twice; Vesta just re-sends its
-original reply. Vesta's `Accept`/`Reject` reply shows up on the agent instance's `GET /direct/events`.
+1. **List the Homes** — Vesta answers with each Home's name and id:
+   ```sh
+   scripts/agent-list-homes.sh --agent-instance vesta-agent --to <vesta-agent-id>
+   # id-aaa<TAB>The Johnsons
+   # id-bbb<TAB>Flat 4
+   ```
+2. **Ask the user which Home they mean** if there is more than one (the agent's job, not the script's).
+3. **Add**, using the chosen id:
+   ```sh
+   scripts/agent-pantry-add.sh --agent-instance vesta-agent --to <vesta-agent-id> --home <homeId> \
+     --title "Heinz Ketchup" --category Condiments --category Ketchup --qty 2
+   ```
+
+The add script prints the command id (`urn:uuid:…`). Re-sending the same id (`--id`) never applies twice; Vesta just
+re-sends its original reply. Vesta's `Accept`/`Reject` reply shows up on the agent instance's `GET /direct/events`
+(`agent-list-homes.sh` reads it for you). An agent that isn't using the scripts sends the same two messages itself —
+see ADR-009 for the exact JSON.
 
 ## Nothing happened?
 
@@ -47,7 +59,8 @@ which check failed (`verified`, `trust`, `allowlisted`). Then check, in order:
 - The app was started with `VESTA_AGENT_ALLOWLIST` set (it is read once at startup) and the id is the *agent
   instance's*, not Vesta's.
 - Both daemons trust each other (`x0x contacts list`, with and without `--name vesta-agent`).
-- The `--home` id is a Home that exists on this device — otherwise Vesta replies `Reject` ("unknown home").
+- The `--home` id came from `agent-list-homes.sh` and is a Home that exists on this device — otherwise Vesta replies `Reject` ("unknown home").
+- `agent-list-homes.sh` timing out with no reply means the same as a silent drop, below.
 - A `Reject` with a `summary` means the payload was authorised but malformed; the summary says what.
 - No log line at all: the message never arrived — check the daemons can reach each other, and that Vesta's
   connectivity indicator is green. The app reconnects to its daemon's event stream by itself (1 s to 30 s backoff).

@@ -113,6 +113,35 @@ Schema.org has no dedicated inventory-count property.
 `result.schema:amountOfThisGood` is the stock count after the command. A `Reject` has the same shape without `result`
 and with a human-readable `summary` (e.g. "unknown home", "quantity out of range", "title is required").
 
+### Home discovery: AS2 `Read` of `urn:vesta:homes`
+
+An agent can't know a Home's id up front, and all communication is over x0x (it must not read Vesta's database). So
+before an `Add` it asks for the list, asks its user which Home they mean, and uses that Home's id in the `Add`'s
+`target.id`:
+
+```json
+{"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+ "type": "Read", "id": "urn:uuid:<new>",
+ "object": {"type": "Collection", "id": "urn:vesta:homes"}}
+```
+
+The reply is an `Accept` whose `result` is a collection, each item carrying the id and name (`schema:identifier` is
+the bare id to put in `target.id`):
+
+```json
+{"@context": [...], "type": "Accept", "id": "urn:uuid:<new>", "inReplyTo": "urn:uuid:<request>",
+ "object": "urn:uuid:<request>",
+ "result": {"type": "Collection", "id": "urn:vesta:homes", "totalItems": 2,
+            "items": [{"type": "Object", "id": "urn:vesta:home:id-aaa", "schema:identifier": "id-aaa",
+                       "schema:name": "The Johnsons"}, ...]}}
+```
+
+AS2 has no query verb; `Read` is the nearest approximation (like `TypeAndQuantityNode` for quantity). The request is
+authorised exactly like an `Add` (behaviour rule 1) and validated like one (a `Read` of anything other than
+`urn:vesta:homes` gets a `Reject`). Because it is read-only it is answered freshly every time and is **not** recorded
+in the idempotency log. Ids ride in the list rather than in a second lookup request: a name-based lookup would be
+ambiguous when two Homes share a name.
+
 ### Behaviour
 
 1. **Authorisation.** A command is acted on only if the daemon reported `verified == true` and `sender` is in Vesta's
@@ -156,7 +185,7 @@ that stream and routes by message kind rather than each feature opening its own 
 
 ### Scope
 
-In scope: the desktop (JVM) app first; `Add` to the Pantry; the `Accept`/`Reject` reply. Out of scope: Android/iOS
+In scope: the desktop (JVM) app first; listing Homes; `Add` to the Pantry; the `Accept`/`Reject` reply. Out of scope: Android/iOS
 wiring (the code lives in `jvmAndroidMain` and the hub in `commonMain`, but only desktop is exercised), an
 allowlist/trust management UI, set/remove/update commands, shopping-list commands, and any change to document sync.
 
@@ -177,6 +206,10 @@ allowlist/trust management UI, set/remove/update commands, shopping-list command
   crash window between applying an effect and recording it; a command re-sent after such a crash would apply twice.
 - Migration `2.sqm` creates `AgentCommandLog` for existing databases; a test verifies the driver applies it.
 - The connectivity indicator and status card still create their own x0x clients.
+- Home listing (added 2026-09-30 after the first e2e test showed agents had no way to learn a Home id):
+  `ListHomes` command + `AgentReplies.homes`; `scripts/agent-list-homes.sh` sends the request and waits for the reply on
+  the agent's `/direct/events`. Verified end to end with real daemons: the list returned both Homes, the id chosen by
+  name was used in an `Add`, and only that Home's Pantry changed.
 - **End-to-end run (2026-09-30, x0xd 0.45.0):** the desktop app (fresh database, `VESTA_AGENT_ALLOWLIST` set) and a
   separate `vesta-agent` instance with mutual trust. A new command added the item with stock 2 and got an `Accept`; a
   second command id raised stock to 4; re-sending the same id re-sent the identical `Accept` (same reply id) and left
