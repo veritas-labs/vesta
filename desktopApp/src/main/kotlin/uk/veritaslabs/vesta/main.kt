@@ -1,14 +1,20 @@
 package uk.veritaslabs.vesta
 
+import androidx.compose.runtime.remember
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import uk.veritaslabs.vesta.automerge.openPantryDocumentSource
+import uk.veritaslabs.vesta.agent.AgentCommandService
 
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "Vesta",
     ) {
-        VestaApp(openPantry = { database, homeId -> openPantryDocumentSource(database, homeId) })
+        // One service: the Pantry screen and agent commands must share each Home's Pantry source.
+        val agentCommands = remember { AgentCommandService() }
+        VestaApp(
+            openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
+            backgroundServices = { database -> agentCommands.run(database) },
+        )
     }
 }

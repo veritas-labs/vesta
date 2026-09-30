@@ -17,6 +17,9 @@ class MainActivity : ComponentActivity() {
         // App-private storage for the embedded x0x daemon and the local database.
         VestaAndroid.install(this)
 
+        // TODO(ADR-009): agent commands are wired on desktop only. To enable them here, share an
+        // AgentCommandService between openPantry and backgroundServices as desktopApp's main.kt does
+        // (and decide how the allowlist is configured on a phone, where there is no environment variable).
         setContent {
             VestaApp(openPantry = { database, homeId -> openPantryDocumentSource(database, homeId) })
         }

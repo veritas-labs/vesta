@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -157,14 +158,17 @@ private enum class HomeDestination { Dashboard, Pantry, PantryItemEdit }
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With
  * [openPantry] (platforms that have the Pantry Automerge document layer), each Home's Pantry is loaded
- * from and saved to the database; without it the Pantry is not persisted.
+ * from and saved to the database; without it the Pantry is not persisted. [backgroundServices], if given,
+ * runs for as long as the app is shown, with the database (created here, so callers can't have it earlier).
  */
 @Composable
 fun VestaApp(
     openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
     homeContent: (@Composable (homeId: String) -> Unit)? = null,
+    backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
+    LaunchedEffect(database) { backgroundServices?.invoke(this, database) }
     val homeRepository = remember { HomeRepository(database) }
     App(
         homes = homeRepository.homes,
