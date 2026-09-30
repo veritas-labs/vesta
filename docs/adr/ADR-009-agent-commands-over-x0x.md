@@ -144,11 +144,16 @@ ambiguous when two Homes share a name.
 
 ### Behaviour
 
-1. **Authorisation.** A command is acted on only if the daemon reported `verified == true` and `sender` is in Vesta's
-   agent **allowlist** (a local list of x0x agent ids; empty by default, so nothing is accepted until configured).
-   `trust_decision` must also be `accept`. A message failing either check is dropped **silently** — no reply — so the
-   app can't be probed for existence, and the drop is logged. The payload's own `actor` field, if any, is never used
-   for authorisation.
+1. **Authorisation — two gates.** (a) *The daemon's:* a message is considered only if it reported `verified == true`,
+   `trust_decision == accept` and has a `sender`; otherwise it is dropped **silently** — no reply, no approval prompt
+   — so the app can't be probed, and the drop is logged. x0x trust is per daemon and shared by every app, so it says
+   the agent may *message* the user, not that it may change Vesta's data. (b) *The app's:* the sender must be
+   **approved** in Vesta (an `AgentAccess` row, or pre-approved via `VESTA_AGENT_ALLOWLIST`). A command from a
+   trusted-but-unapproved agent is **held**: the agent is queued as pending, the app shows an approval card (Allow /
+   Deny), and the agent gets a `Reject` ("not approved: ask the user to approve this agent in the Vesta app, then
+   retry"). Held commands are not recorded in the idempotency log and are not applied later; the agent re-sends after
+   approval. Only messages that parse as commands can queue an approval, so other direct-message traffic never
+   prompts. The payload's own `actor` field, if any, is never used for authorisation.
 2. **Validation.** Payload size limit 16 KiB. The `@context` must match exactly; `type` must be `Add` and the object
    must be a `schema:TypeAndQuantityNode` wrapping a `schema:Product`. Anything else from an authorised sender gets a
    `Reject` with a `summary`.
@@ -180,14 +185,14 @@ that stream and routes by message kind rather than each feature opening its own 
   command and goes to the command handler; anything else is left for the sync layer once [[ADR-006]] exists.
 - **`PantryCommandHandler`** (`jvmAndroidMain`, because [[ADR-008]]'s Pantry document code and `PantryDocumentSource`
   live there): parses, authorises, validates, applies, replies. It takes a resolver `(homeId) -> PantryDocumentSource?`
-  and the allowlist, so it is testable with fakes and no daemon.
+  and the access check, so it is testable with fakes and no daemon.
 - **Wiring** happens where `pantrySource` is created today (`App.kt` / the platform entry points).
 
 ### Scope
 
 In scope: the desktop (JVM) app first; listing Homes; `Add` to the Pantry; the `Accept`/`Reject` reply. Out of scope: Android/iOS
 wiring (the code lives in `jvmAndroidMain` and the hub in `commonMain`, but only desktop is exercised), an
-allowlist/trust management UI, set/remove/update commands, shopping-list commands, and any change to document sync.
+an agent-management screen (list/revoke), set/remove/update commands, shopping-list commands, and any change to document sync.
 
 ## Implementation notes
 
@@ -200,8 +205,12 @@ allowlist/trust management UI, set/remove/update commands, shopping-list command
   by both the UI and the handler, because a source must be the only reader/writer of its document — and the loop
   feeding the hub to the handler. Desktop wiring: `VestaApp(backgroundServices = …)`. Android is not wired (TODO in
   `MainActivity`).
-- The allowlist is the `VESTA_AGENT_ALLOWLIST` environment variable (comma-separated agent ids), read at startup.
-  No database table or UI.
+- Approval (added 2026-09-30 after the first e2e test showed the environment-variable allowlist was too much
+  friction): `AgentAccess` table + `3.sqm`, `AgentAccessRepository`, and `AgentApprovalCard`/`AgentApprovalHost`
+  showing the oldest pending agent over any screen. **Allow** is permanent; **Deny** deletes the pending row (nothing
+  is remembered, so a returning agent is asked again — recoverable, at the cost of re-prompting). The
+  `VESTA_AGENT_ALLOWLIST` environment variable (comma-separated agent ids, read at startup) remains as optional
+  pre-approval for headless setups. There is no in-app way to revoke an approved agent yet.
 - Handling is serialised, so a command and its duplicate can't race past the idempotency check. There is a small
   crash window between applying an effect and recording it; a command re-sent after such a crash would apply twice.
 - Migration `2.sqm` creates `AgentCommandLog` for existing databases; a test verifies the driver applies it.
@@ -214,8 +223,11 @@ allowlist/trust management UI, set/remove/update commands, shopping-list command
   separate `vesta-agent` instance with mutual trust. A new command added the item with stock 2 and got an `Accept`; a
   second command id raised stock to 4; re-sending the same id re-sent the identical `Accept` (same reply id) and left
   stock at 4; an unknown Home got `Reject` "unknown home"; with an empty allowlist a new command had no effect, no
-  reply and a logged drop reason. Replies arrived on the agent's `/direct/events` as `verified=true`, `trust=accept`.
+  reply and a logged drop reason (this was before the approval flow below). Replies arrived on the agent's `/direct/events` as `verified=true`, `trust=accept`.
   The first send succeeded without `recipient_ack_semantics_unavailable`, so the warm-up delay didn't show up here.
+- **Approval flow, verified 2026-09-30** with real daemons and no allowlist: an unapproved agent's list request got the
+  "not approved" `Reject` and a pending row; while pending, an add was held (logged, `Reject` delivered, nothing in the
+  command log); after approval the same command id was applied. The card itself is covered by UI tests, not eyeballed.
 
 ## Consequences
 
@@ -227,15 +239,17 @@ allowlist/trust management UI, set/remove/update commands, shopping-list command
   Vesta validates the shape itself instead of relying on a schema tool.
 - Not running a JSON-LD processor means semantically equivalent JSON-LD that uses a different context or prefix is
   rejected. That is deliberate: it keeps parsing trivial and makes the accepted surface one documented shape.
-- Silent drops for unauthorised senders make misconfiguration (an agent not on the allowlist) hard to diagnose from
-  the agent's side; it shows up only in Vesta's log. Acceptable for the first version.
+- Silent drops remain for senders the daemon doesn't vouch for (untrusted, unverified), so a missing `x0x trust set`
+  is still invisible from the agent's side; it shows up only in Vesta's log. An untrusted-but-not-approved agent
+  is no longer silent: it gets a `Reject` that tells it to ask the user.
 - The idempotency table is new local persistence. Migrations now exist (`1.sqm`, `2.sqm`) and the driver applies
   them, so existing databases pick the table up on open.
 
 ## Open Questions
 
-1. **Allowlist storage and management.** v1 reads an environment variable. Still open: how it is eventually stored
-   and edited (config file, database table, UI, `x0x` contacts integration) and how it is set on Android.
+1. **Approved-agent management.** Approval is a database table with an in-app prompt. Still open: a screen to list
+   and revoke approved agents, whether Deny should be remembered, showing something friendlier than a shortened agent
+   id (e.g. the agent's x0x display name), and Android wiring.
 2. **Machine-readable reject reasons.** `Reject.summary` is human text only. If agents need to branch on the reason,
    a stable code is needed; Schema.org/AS2 have no standard slot for one.
 3. **Quantity type.** `TypeAndQuantityNode` is an approximation. If it proves awkward, a small `vesta:` extension
