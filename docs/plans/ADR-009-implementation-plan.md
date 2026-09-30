@@ -148,7 +148,7 @@ New package `uk.veritaslabs.vesta.agent` under `shared/src/commonMain/kotlin/uk/
 
 ### WP5 — Agent-side helper + docs
 
-- `scripts/agent-pantry-add.sh` (bash; note `GID` is special in zsh, use bash): args `--agent-instance NAME --to
+- `skills/vesta/scripts/agent-pantry-add.sh` (bash; note `GID` is special in zsh, use bash): args `--agent-instance NAME --to
   <vesta-agent-id> --home <homeId> --title ... [--category A --category B] [--size ..] [--gtin ..] [--qty N]`.
   Builds the JSON-LD from ADR-009, base64-encodes it, resolves the instance's API port/token from
   `~/.local/share/x0x-NAME/{api.port,api-token}`, calls `POST /agents/connect` then `POST /direct/send`, and retries
@@ -169,7 +169,7 @@ New package `uk.veritaslabs.vesta.agent` under `shared/src/commonMain/kotlin/uk/
    README for the exact task) and a Home with a Pantry open:
    - `export VESTA_AGENT_ALLOWLIST=<agent instance id>` before launching the app;
    - `x0x start --name vesta-agent`; mutual `x0x trust set ... trusted`; wait ~60 s;
-   - `scripts/agent-pantry-add.sh --agent-instance vesta-agent --to $(x0x agent | ...) --home <homeId> --title
+   - `skills/vesta/scripts/agent-pantry-add.sh --agent-instance vesta-agent --to $(x0x agent | ...) --home <homeId> --title
      "Heinz Ketchup" --category Condiments --category Ketchup --qty 2`;
    - expect: item appears in the Pantry screen with stock 2; re-running increases it to 4 only for a *new* command id;
      re-sending the *same* id leaves it unchanged; the agent instance's `GET /direct/events` shows the `Accept`.

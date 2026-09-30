@@ -1,7 +1,7 @@
 # Agent commands (ADR-009): setup and debugging
 
 An AI agent on this machine, running as its own x0x instance, can add items to a Home's Pantry by sending Vesta a
-direct message. Design: [ADR-009](../adr/ADR-009-agent-commands-over-x0x.md). Desktop app only for now.
+direct message. Agents should load the `vesta` skill (`skills/vesta/`), which carries this flow and the scripts. Design: [ADR-009](../adr/ADR-009-agent-commands-over-x0x.md). Desktop app only for now.
 
 ## One-time setup
 
@@ -25,7 +25,7 @@ direct message. Design: [ADR-009](../adr/ADR-009-agent-commands-over-x0x.md). De
    agent ids, read once at startup): `export VESTA_AGENT_ALLOWLIST=<agent-id>`.
 5. Wait about a minute. The first send after starting a new instance can fail with
    `recipient_ack_semantics_unavailable` until the daemons have exchanged capability adverts;
-   `scripts/agent-pantry-add.sh` retries for two minutes.
+   `skills/vesta/scripts/agent-pantry-add.sh` retries for two minutes.
 
 ## Approving an agent
 
@@ -42,14 +42,14 @@ The agent never needs to read Vesta's database: everything goes over x0x. It wor
 
 1. **List the Homes** — Vesta answers with each Home's name and id:
    ```sh
-   scripts/agent-list-homes.sh --agent-instance vesta-agent --to <vesta-agent-id>
+   skills/vesta/scripts/agent-list-homes.sh --agent-instance vesta-agent --to <vesta-agent-id>
    # id-aaa<TAB>The Johnsons
    # id-bbb<TAB>Flat 4
    ```
 2. **Ask the user which Home they mean** if there is more than one (the agent's job, not the script's).
 3. **Add**, using the chosen id:
    ```sh
-   scripts/agent-pantry-add.sh --agent-instance vesta-agent --to <vesta-agent-id> --home <homeId> \
+   skills/vesta/scripts/agent-pantry-add.sh --agent-instance vesta-agent --to <vesta-agent-id> --home <homeId> \
      --title "Heinz Ketchup" --category Condiments --category Ketchup --qty 2
    ```
 

@@ -216,9 +216,11 @@ an agent-management screen (list/revoke), set/remove/update commands, shopping-l
 - Migration `2.sqm` creates `AgentCommandLog` for existing databases; a test verifies the driver applies it.
 - The connectivity indicator and status card still create their own x0x clients.
 - Home listing (added 2026-09-30 after the first e2e test showed agents had no way to learn a Home id):
-  `ListHomes` command + `AgentReplies.homes`; `scripts/agent-list-homes.sh` sends the request and waits for the reply on
+  `ListHomes` command + `AgentReplies.homes`; `skills/vesta/scripts/agent-list-homes.sh` sends the request and waits for the reply on
   the agent's `/direct/events`. Verified end to end with real daemons: the list returned both Homes, the id chosen by
   name was used in an `Add`, and only that Home's Pantry changed.
+- `skills/vesta/` is the agent-facing skill (workflow, outcomes, message reference, the helper scripts). The scripts wait
+  for Vesta's reply and use exit codes: 0 accepted, 3 rejected, 4 no reply.
 - **End-to-end run (2026-09-30, x0xd 0.45.0):** the desktop app (fresh database, `VESTA_AGENT_ALLOWLIST` set) and a
   separate `vesta-agent` instance with mutual trust. A new command added the item with stock 2 and got an `Accept`; a
   second command id raised stock to 4; re-sending the same id re-sent the identical `Accept` (same reply id) and left
