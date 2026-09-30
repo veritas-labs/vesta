@@ -55,7 +55,12 @@ internal actual suspend fun httpRequest(method: String, url: String, bearerToken
         }
     }
 
-internal actual suspend fun openSseStream(url: String, bearerToken: String?, onEvent: (String) -> Unit): X0xEventStream =
+internal actual suspend fun openSseStream(
+    url: String,
+    bearerToken: String?,
+    onEvent: (String) -> Unit,
+    onClose: (Throwable?) -> Unit,
+): X0xEventStream =
     withContext(Dispatchers.IO) {
         val connection = URL(url).openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
@@ -74,6 +79,7 @@ internal actual suspend fun openSseStream(url: String, bearerToken: String?, onE
         val closed = AtomicBoolean(false)
         val reader = BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8))
         val thread = Thread({
+            var failure: Throwable? = null
             try {
                 val dataLines = mutableListOf<String>()
                 while (!closed.get()) {
@@ -89,11 +95,13 @@ internal actual suspend fun openSseStream(url: String, bearerToken: String?, onE
                         else -> dataLines.clear()
                     }
                 }
-            } catch (_: Exception) {
-                // Stream ended or was closed.
+            } catch (e: Exception) {
+                // Stream ended or was closed; only a failure we didn't ask for is an error.
+                if (!closed.get()) failure = e
             } finally {
                 runCatching { reader.close() }
                 connection.disconnect()
+                runCatching { onClose(failure) }
             }
         }, "x0x-sse-$url").apply {
             isDaemon = true

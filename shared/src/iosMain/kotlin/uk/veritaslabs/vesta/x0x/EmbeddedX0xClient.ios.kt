@@ -75,7 +75,12 @@ internal actual suspend fun httpRequest(method: String, url: String, bearerToken
  * that stays open) — incoming bytes are buffered until each `\n`-terminated line is complete, and
  * each blank line after one or more `data:` lines flushes an event to [onEvent].
  */
-internal actual suspend fun openSseStream(url: String, bearerToken: String?, onEvent: (String) -> Unit): X0xEventStream {
+internal actual suspend fun openSseStream(
+    url: String,
+    bearerToken: String?,
+    onEvent: (String) -> Unit,
+    onClose: (Throwable?) -> Unit,
+): X0xEventStream {
     val nsUrl = NSURL.URLWithString(url) ?: throw X0xApiException(0, "invalid x0x URL: $url")
     val request = NSMutableURLRequest.requestWithURL(nsUrl)
     request.HTTPMethod = "GET"
@@ -88,11 +93,13 @@ internal actual suspend fun openSseStream(url: String, bearerToken: String?, onE
         val errorBody = StringBuilder()
         var status = 200
         var opened = false
+        var closedByUs = false
 
         lateinit var session: NSURLSession
         lateinit var task: NSURLSessionDataTask
 
         fun closeStream() {
+            closedByUs = true
             task.cancel()
             session.finishTasksAndInvalidate()
         }
@@ -147,6 +154,11 @@ internal actual suspend fun openSseStream(url: String, bearerToken: String?, onE
                         didCompleteWithError?.localizedDescription ?: "x0x API error (HTTP $status)"
                     }
                     continuation.resumeWithException(X0xApiException(status, message))
+                } else {
+                    // Fires once per task: a stream we opened has ended (error only if we didn't cancel it).
+                    val failure = didCompleteWithError?.takeUnless { closedByUs }
+                        ?.let { X0xApiException(status, it.localizedDescription) }
+                    runCatching { onClose(failure) }
                 }
             }
         }

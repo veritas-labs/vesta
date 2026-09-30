@@ -42,9 +42,10 @@ interface X0xClient {
     /**
      * Opens the gossip SSE stream (`GET /events`). Call [X0xEventStream.close]
      * (or use `use { }`) when finished. Each gossip message is wrapped in a
-     * `{ "type": "message", "data": { ... } }` envelope by the daemon.
+     * `{ "type": "message", "data": { ... } }` envelope by the daemon. [onClose] fires exactly once
+     * when the stream ends (server close, IO error — passed as the argument — or [X0xEventStream.close]).
      */
-    suspend fun gossipEvents(onMessage: (X0xGossipMessage) -> Unit): X0xEventStream
+    suspend fun gossipEvents(onMessage: (X0xGossipMessage) -> Unit, onClose: (Throwable?) -> Unit = {}): X0xEventStream
 
     // --- Direct messaging ---
 
@@ -56,9 +57,9 @@ interface X0xClient {
 
     /**
      * Opens the direct-message SSE stream (`GET /direct/events`). Events are
-     * flat (no `data` envelope), unlike [gossipEvents].
+     * flat (no `data` envelope), unlike [gossipEvents]. [onClose] behaves as for [gossipEvents].
      */
-    suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit): X0xEventStream
+    suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit, onClose: (Throwable?) -> Unit = {}): X0xEventStream
 
     // --- Store (replicated KV CRDT) ---
 
@@ -118,6 +119,12 @@ internal expect suspend fun httpRequest(method: String, url: String, bearerToken
 /**
  * Opens `url` as an SSE stream and invokes [onEvent] with each event's `data:` payload (lines
  * joined by `\n` when an event spans several `data:` lines) until the returned [X0xEventStream] is
- * closed or the connection drops.
+ * closed or the connection drops. [onClose] is invoked exactly once when the stream ends: with the
+ * error if the connection failed, or null if the server ended it or [X0xEventStream.close] was called.
  */
-internal expect suspend fun openSseStream(url: String, bearerToken: String?, onEvent: (String) -> Unit): X0xEventStream
+internal expect suspend fun openSseStream(
+    url: String,
+    bearerToken: String?,
+    onEvent: (String) -> Unit,
+    onClose: (Throwable?) -> Unit,
+): X0xEventStream

@@ -52,8 +52,8 @@ abstract class AbstractX0xClient : X0xClient {
             },
         )
 
-    override suspend fun gossipEvents(onMessage: (X0xGossipMessage) -> Unit): X0xEventStream =
-        events("/events") { event ->
+    override suspend fun gossipEvents(onMessage: (X0xGossipMessage) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream =
+        events("/events", onClose) { event ->
             val root = json.parseToJsonElement(event).jsonObject
             if (root["type"]?.jsonPrimitive?.content == "message") {
                 val data = root["data"]?.jsonObject ?: return@events
@@ -77,8 +77,8 @@ abstract class AbstractX0xClient : X0xClient {
 
     override suspend fun listDirectConnections(): JsonObject = get("/direct/connections")
 
-    override suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit): X0xEventStream =
-        events("/direct/events") { event ->
+    override suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream =
+        events("/direct/events", onClose) { event ->
             onMessage(json.decodeFromString(X0xDirectMessage.serializer(), event))
         }
 
@@ -171,8 +171,8 @@ abstract class AbstractX0xClient : X0xClient {
         return json.parseToJsonElement(result.body.ifBlank { "{}" }).jsonObject
     }
 
-    private suspend fun events(path: String, onEvent: (String) -> Unit): X0xEventStream {
+    private suspend fun events(path: String, onClose: (Throwable?) -> Unit, onEvent: (String) -> Unit): X0xEventStream {
         val (baseUrl, token) = resolveDaemon() ?: throw X0xApiException(0, "x0x daemon not reachable")
-        return openSseStream("$baseUrl$path", token, onEvent)
+        return openSseStream("$baseUrl$path", token, onEvent, onClose)
     }
 }
