@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -11,6 +13,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -18,6 +22,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.agent.AgentAccessRepository
+import uk.veritaslabs.vesta.agent.AgentApprovalHost
 import uk.veritaslabs.vesta.db.DatabaseDriverFactory
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.createVestaDatabase
@@ -50,7 +56,8 @@ private data class HomeEditTarget(val homeId: String?, val session: Int)
 /**
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
- * actions are live; without one (previews) they do nothing.
+ * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
+ * approval is offered over whatever screen is showing.
  */
 @Composable
 @Preview
@@ -58,6 +65,7 @@ fun App(
     homes: Flow<List<HomeListItem>> = flowOf(emptyList()),
     selectedHome: SelectedHome = remember { SelectedHome() },
     homeRepository: HomeRepository? = null,
+    agentAccess: AgentAccessRepository? = null,
     homeContent: @Composable (homeId: String) -> Unit = { HomeContent(it) },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
@@ -73,22 +81,25 @@ fun App(
     }
     CompositionLocalProvider(LocalSelectedHome provides selectedHome) {
         VestaTheme {
-            homeId?.let { homeContent(it) } ?: run {
-                val target = editTarget
-                if (target != null && homeRepository != null) {
-                    val editViewModel = viewModel(key = "home-edit-${target.session}") {
-                        HomeEditViewModel(homeRepository, selectedHome, target.homeId)
+            Box(modifier = Modifier.fillMaxSize()) {
+                homeId?.let { homeContent(it) } ?: run {
+                    val target = editTarget
+                    if (target != null && homeRepository != null) {
+                        val editViewModel = viewModel(key = "home-edit-${target.session}") {
+                            HomeEditViewModel(homeRepository, selectedHome, target.homeId)
+                        }
+                        HomeEditScreen(editViewModel, onFinished = { editTarget = null })
+                    } else {
+                        val viewModel = viewModel { HomePickerViewModel(homes, selectedHome) }
+                        HomePickerScreen(
+                            viewModel,
+                            onCreateHome = { openEditor(null) },
+                            onEditHome = { openEditor(it.id) },
+                            onDeleteHome = { home -> homeRepository?.let { scope.launch { it.delete(home.id) } } },
+                        )
                     }
-                    HomeEditScreen(editViewModel, onFinished = { editTarget = null })
-                } else {
-                    val viewModel = viewModel { HomePickerViewModel(homes, selectedHome) }
-                    HomePickerScreen(
-                        viewModel,
-                        onCreateHome = { openEditor(null) },
-                        onEditHome = { openEditor(it.id) },
-                        onDeleteHome = { home -> homeRepository?.let { scope.launch { it.delete(home.id) } } },
-                    )
                 }
+                agentAccess?.let { AgentApprovalHost(it, modifier = Modifier.align(Alignment.BottomCenter)) }
             }
         }
     }
@@ -170,9 +181,11 @@ fun VestaApp(
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
     LaunchedEffect(database) { backgroundServices?.invoke(this, database) }
     val homeRepository = remember { HomeRepository(database) }
+    val agentAccess = remember { AgentAccessRepository(database) }
     App(
         homes = homeRepository.homes,
         homeRepository = homeRepository,
+        agentAccess = agentAccess,
         homeContent = homeContent ?: { homeId ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             HomeContent(homeId, pantrySource)
