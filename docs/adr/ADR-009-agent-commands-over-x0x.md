@@ -6,8 +6,8 @@ Accepted — 2026-09-30; implemented (see "Implementation notes"). Independent o
 channel but a different message family, see "Routing"). Uses [[ADR-008]]'s Pantry document model as its first
 target.
 
-Implemented on `main` for desktop, 2026-09-30, with unit tests. The manual end-to-end run against real x0x daemons
-(`docs/troubleshooting/agent-commands.md`) had not been done when this was written.
+Implemented on `main` for desktop, 2026-09-30, with unit tests, and verified end to end the same day against real
+x0x daemons (see "Implementation notes"). The Pantry screen updating live was not observed in that run.
 
 ## Context
 
@@ -177,6 +177,12 @@ allowlist/trust management UI, set/remove/update commands, shopping-list command
   crash window between applying an effect and recording it; a command re-sent after such a crash would apply twice.
 - Migration `2.sqm` creates `AgentCommandLog` for existing databases; a test verifies the driver applies it.
 - The connectivity indicator and status card still create their own x0x clients.
+- **End-to-end run (2026-09-30, x0xd 0.45.0):** the desktop app (fresh database, `VESTA_AGENT_ALLOWLIST` set) and a
+  separate `vesta-agent` instance with mutual trust. A new command added the item with stock 2 and got an `Accept`; a
+  second command id raised stock to 4; re-sending the same id re-sent the identical `Accept` (same reply id) and left
+  stock at 4; an unknown Home got `Reject` "unknown home"; with an empty allowlist a new command had no effect, no
+  reply and a logged drop reason. Replies arrived on the agent's `/direct/events` as `verified=true`, `trust=accept`.
+  The first send succeeded without `recipient_ack_semantics_unavailable`, so the warm-up delay didn't show up here.
 
 ## Consequences
 
