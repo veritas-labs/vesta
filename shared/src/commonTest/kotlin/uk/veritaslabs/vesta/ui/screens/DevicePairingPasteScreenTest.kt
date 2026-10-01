@@ -53,7 +53,7 @@ class DevicePairingPasteScreenTest {
         setContent { VestaTheme { DevicePairingPasteScreen(onCancel = { cancelled = true }) } }
 
         // Act
-        onNodeWithTag(DevicePairingPasteTestTags.CancelButton).performClick()
+        onNodeWithTag(DevicePairingPasteTestTags.BackButton).performClick()
 
         // Assert
         assertTrue(cancelled)

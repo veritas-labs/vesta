@@ -1,0 +1,16 @@
+-- The x0x group this device syncs with its user's other devices (docs/adr/ADR-012-device-sync-over-x0x-group.md).
+-- At most one row. Replaced when the group is rotated to cut off a lost device, and cleared when this device is
+-- removed from the group. Local and unsynced.
+-- Keep in sync with migrations/5.sqm, which creates this table for databases that predate it.
+CREATE TABLE DeviceSyncGroup (
+    groupId TEXT NOT NULL PRIMARY KEY
+);
+
+select:
+SELECT groupId FROM DeviceSyncGroup LIMIT 1;
+
+clear:
+DELETE FROM DeviceSyncGroup;
+
+insert:
+INSERT OR REPLACE INTO DeviceSyncGroup(groupId) VALUES (?);

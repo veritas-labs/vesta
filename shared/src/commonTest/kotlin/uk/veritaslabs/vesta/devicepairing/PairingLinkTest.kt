@@ -12,7 +12,7 @@ class PairingLinkTest {
     @Test
     fun encodeThenDecodeRoundTrips() {
         // Arrange
-        val link = PairingLink(publicKeyHex = "aa11bb22cc33dd44", expiresAt = 2_000L)
+        val link = PairingLink(agentId = "aa11bb22cc33dd44", expiresAt = 2_000L)
 
         // Act
         val decoded = PairingLink.decode(link.encode())
@@ -24,7 +24,7 @@ class PairingLinkTest {
     @Test
     fun encodeProducesVestaPairUri() {
         // Arrange
-        val link = PairingLink(publicKeyHex = "aa11bb22cc33dd44", expiresAt = 2_000L)
+        val link = PairingLink(agentId = "aa11bb22cc33dd44", expiresAt = 2_000L)
 
         // Act
         val encoded = link.encode()
@@ -96,7 +96,7 @@ class PairingLinkTest {
     @Test
     fun isExpiredHonoursExpiryBoundary() {
         // Arrange
-        val link = PairingLink(publicKeyHex = "aa11bb22cc33dd44", expiresAt = 2_000L)
+        val link = PairingLink(agentId = "aa11bb22cc33dd44", expiresAt = 2_000L)
 
         // Act
         val expiredAtBoundary = link.isExpired(2_000L)

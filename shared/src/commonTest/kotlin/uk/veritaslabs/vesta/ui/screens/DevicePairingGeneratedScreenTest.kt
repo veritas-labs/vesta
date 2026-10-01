@@ -55,7 +55,7 @@ class DevicePairingGeneratedScreenTest {
         }
 
         // Act
-        onNodeWithTag(DevicePairingGeneratedTestTags.CancelButton).performClick()
+        onNodeWithTag(DevicePairingGeneratedTestTags.BackButton).performClick()
 
         // Assert
         assertTrue(cancelled)

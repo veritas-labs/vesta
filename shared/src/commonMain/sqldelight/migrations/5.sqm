@@ -1,0 +1,4 @@
+-- Version 5 -> 6: adds DeviceSyncGroup (see uk/veritaslabs/vesta/db/DeviceSyncGroup.sq).
+CREATE TABLE DeviceSyncGroup (
+    groupId TEXT NOT NULL PRIMARY KEY
+);

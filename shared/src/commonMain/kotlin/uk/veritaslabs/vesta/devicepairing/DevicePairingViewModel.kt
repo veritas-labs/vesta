@@ -5,12 +5,16 @@ import androidx.lifecycle.viewModelScope
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.random.Random
 import kotlin.time.Clock
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 
 /** How long a generated pairing link stays redeemable before it must be regenerated. */
 private const val PairingLinkTtlMillis = 5 * 60 * 1000L
@@ -24,52 +28,65 @@ sealed interface DevicePairingUiState {
     data class Paste(
         val error: DevicePairingPasteError? = null,
         val redeemedLink: PairingLink? = null,
+        /** True while the pasted link's device is being added; that can take a while if it is slow to answer. */
+        val isPairing: Boolean = false,
     ) : DevicePairingUiState
 }
 
-enum class DevicePairingPasteError { InvalidFormat, Expired }
+enum class DevicePairingPasteError { InvalidFormat, Expired, PairingFailed }
 
 /**
  * Backs [uk.veritaslabs.vesta.ui.flows.DevicePairingFlow]'s three screens.
  *
- * Generates and validates real [PairingLink]s, and persists a generated one
- * to the local-only `DevicePairingLink` table (see that table's `.sq` file)
- * so it survives recomposition/process death until cancelled, redeemed, or
- * expired — but stops there. Per `docs/adr/ADR-003-device-sync.md` (Status:
- * Proposed), the actual cross-device mechanics — an x0x agent keypair, an
- * owner-issued certificate, a DeviceSync group invite delivered over a
- * direct message, and the redeeming device polling for active membership —
- * are not implemented; see the `TODO()` stubs in jvmMain's `DevicePairing.kt`.
- * [publicKeyHex] is therefore not a real agent key, just random bytes with
- * no cryptographic meaning — enough to exercise the pairing link's own
- * generate → encode → decode → expire → redeem round trip on a single
- * device, which is as far as this stands in for the real thing today.
+ * The new device generates a [PairingLink] naming its own x0x agent id and persists it to the local-only
+ * `DevicePairingLink` table, so it survives recomposition and process death until cancelled, used or expired.
+ * While it is showing, [deviceSync] (running app-wide) accepts the group invite that comes back, and this view
+ * model moves on to the confirmation screen once [DeviceSyncService.joined] fires. A device that already belongs
+ * to the group pastes the link instead: [DeviceSyncService.pairWith] adds the new device
+ * (`docs/adr/ADR-012-device-sync-over-x0x-group.md`). Without a [deviceSync] (previews, tests) a pasted link
+ * just has to decode and be unexpired.
  */
 class DevicePairingViewModel(
     private val database: VestaDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-    private val publicKeyHex: () -> String = { randomHex(byteCount = 32) },
+    private val agentId: suspend () -> String = { randomHex(byteCount = 32) },
+    private val deviceName: () -> String = { "" },
+    private val deviceSync: DeviceSyncService? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DevicePairingUiState>(DevicePairingUiState.Picker)
     val uiState: StateFlow<DevicePairingUiState> = _uiState.asStateFlow()
 
+    private var waitingForInvite: Job? = null
+
     fun onGeneratePairingLink() {
         viewModelScope.launch {
-            val link = PairingLink(publicKeyHex = publicKeyHex(), expiresAt = nowMillis() + PairingLinkTtlMillis)
+            val link = PairingLink(
+                agentId = agentId(),
+                expiresAt = nowMillis() + PairingLinkTtlMillis,
+                deviceName = deviceName().takeIf { it.isNotBlank() },
+            )
             database.devicePairingLinkQueries.insert(
-                id = link.publicKeyHex,
-                publicKeyHex = link.publicKeyHex,
+                id = link.agentId,
+                publicKeyHex = link.agentId, // the column predates agent ids and has always held the link's identifier
                 createdAt = nowMillis(),
                 expiresAt = link.expiresAt,
             )
             _uiState.value = DevicePairingUiState.Generated(link)
+            waitingForInvite?.cancel()
+            waitingForInvite = deviceSync?.let { sync ->
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    sync.joined.first()
+                    _uiState.value = DevicePairingUiState.Paste(redeemedLink = link)
+                }
+            }
         }
     }
 
     fun onCancelGenerated(link: PairingLink) {
+        waitingForInvite?.cancel()
         viewModelScope.launch {
-            database.devicePairingLinkQueries.deleteById(link.publicKeyHex)
+            database.devicePairingLinkQueries.deleteById(link.agentId)
             _uiState.value = DevicePairingUiState.Picker
         }
     }
@@ -83,12 +100,20 @@ class DevicePairingViewModel(
         when {
             link == null -> setPasteError(DevicePairingPasteError.InvalidFormat)
             link.isExpired(nowMillis()) -> setPasteError(DevicePairingPasteError.Expired)
+            deviceSync != null -> {
+                _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(error = null, isPairing = true) ?: it }
+                viewModelScope.launch {
+                    deviceSync.pairWith(link)
+                        .onSuccess { _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(redeemedLink = link, isPairing = false) ?: it } }
+                        .onFailure { setPasteError(DevicePairingPasteError.PairingFailed) }
+                }
+            }
             else -> viewModelScope.launch {
                 // Best-effort local bookkeeping for the case where this same device generated
                 // the link (this manual round trip): mark it consumed so it can't be redeemed
                 // twice. A link pasted from a different, real device simply won't match here.
                 database.devicePairingLinkQueries.selectActive(nowMillis()).awaitAsOneOrNull()
-                    ?.takeIf { it.publicKeyHex == link.publicKeyHex }
+                    ?.takeIf { it.publicKeyHex == link.agentId }
                     ?.let { database.devicePairingLinkQueries.markConsumed(it.id) }
                 _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(error = null, redeemedLink = link) ?: it }
             }
@@ -96,11 +121,12 @@ class DevicePairingViewModel(
     }
 
     fun onBackToPicker() {
+        waitingForInvite?.cancel()
         _uiState.value = DevicePairingUiState.Picker
     }
 
     private fun setPasteError(error: DevicePairingPasteError) {
-        _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(error = error, redeemedLink = null) ?: it }
+        _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(error = error, redeemedLink = null, isPairing = false) ?: it }
     }
 }
 

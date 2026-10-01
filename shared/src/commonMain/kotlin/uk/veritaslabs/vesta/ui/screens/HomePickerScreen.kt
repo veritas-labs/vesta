@@ -55,6 +55,7 @@ import vesta.shared.generated.resources.onboarding_empty_subtitle
 import vesta.shared.generated.resources.onboarding_empty_title
 import vesta.shared.generated.resources.onboarding_get_started
 import vesta.shared.generated.resources.onboarding_join_home
+import vesta.shared.generated.resources.onboarding_pair_device
 import vesta.shared.generated.resources.onboarding_title
 
 private val HomePickerTabletBreakpoint = 600.dp
@@ -63,6 +64,7 @@ private val HomePickerTabletBreakpoint = 600.dp
 internal object HomePickerTestTags {
     const val CreateHomeButton = "home_picker_create_home_button"
     const val JoinHomeButton = "home_picker_join_home_button"
+    const val PairDeviceButton = "home_picker_pair_device_button"
     const val EditHomeButton = "home_picker_edit_home_button"
     const val DeleteHomeButton = "home_picker_delete_home_button"
 
@@ -87,6 +89,7 @@ fun HomePickerScreen(
     modifier: Modifier = Modifier,
     onCreateHome: () -> Unit = {},
     onJoinHome: () -> Unit = {},
+    onPairDevice: () -> Unit = {},
     onEditHome: (HomeListItem) -> Unit = {},
     onDeleteHome: (HomeListItem) -> Unit = {},
 ) {
@@ -100,6 +103,7 @@ fun HomePickerScreen(
             onHomeSelected = viewModel::selectHome,
             onCreateHome = onCreateHome,
             onJoinHome = onJoinHome,
+            onPairDevice = onPairDevice,
             onEditHome = onEditHome,
             onDeleteHome = onDeleteHome,
         )
@@ -109,8 +113,8 @@ fun HomePickerScreen(
 /**
  * Carbon copy of [ProfilePickerScreen] for now, under its own name while
  * onboarding diverges from the shared-device profile picker: presents a
- * grid/list of [homes] to choose from (when non-empty) plus a "Create home"
- * action.
+ * grid/list of [homes] to choose from (when non-empty) plus "Create home", "Join a home" and "Pair device"
+ * actions. [onPairDevice] links this device to the user's other devices, so it can be done before any Home exists.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,6 +124,7 @@ fun HomePickerScreen(
     onHomeSelected: (HomeListItem) -> Unit = {},
     onCreateHome: () -> Unit = {},
     onJoinHome: () -> Unit = {},
+    onPairDevice: () -> Unit = {},
     onEditHome: (HomeListItem) -> Unit = {},
     onDeleteHome: (HomeListItem) -> Unit = {},
 ) {
@@ -190,6 +195,12 @@ fun HomePickerScreen(
                 }
             }
 
+            SecondaryButton(
+                label = stringResource(Res.string.onboarding_pair_device),
+                onClick = onPairDevice,
+                modifier = Modifier.align(Alignment.CenterHorizontally).testTag(HomePickerTestTags.PairDeviceButton),
+            )
+            Spacer(Modifier.height(12.dp))
             SecondaryButton(
                 label = stringResource(Res.string.onboarding_join_home),
                 onClick = onJoinHome,

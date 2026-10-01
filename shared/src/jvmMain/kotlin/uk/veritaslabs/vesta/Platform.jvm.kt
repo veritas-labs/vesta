@@ -11,3 +11,8 @@ actual fun getAppInfo(): AppInfo = AppInfo(
     version = System.getProperty("vesta.version") ?: System.getProperty("jpackage.app-version") ?: "dev",
     buildCode = System.getProperty("vesta.build") ?: "dev",
 )
+
+actual fun getDeviceName(): String =
+    System.getenv("HOSTNAME")?.takeIf { it.isNotBlank() }
+        ?: runCatching { java.net.InetAddress.getLocalHost().hostName }.getOrNull()?.takeIf { it.isNotBlank() }
+        ?: "Desktop"

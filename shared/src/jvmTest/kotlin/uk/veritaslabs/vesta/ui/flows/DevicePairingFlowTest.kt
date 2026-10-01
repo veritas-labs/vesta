@@ -71,7 +71,7 @@ class DevicePairingFlowTest {
             .joinToString(separator = "") { it.text }
 
         // Act — back out to the picker, then paste the same link back in
-        onNodeWithTag(DevicePairingGeneratedTestTags.CancelButton).performClick()
+        onNodeWithTag(DevicePairingGeneratedTestTags.BackButton).performClick()
         onNodeWithTag(DevicePairingTestTags.PasteCard).performClick()
         onNodeWithTag(DevicePairingPasteTestTags.LinkField).performTextInput(encodedLink)
         onNodeWithTag(DevicePairingPasteTestTags.SubmitButton).performClick()

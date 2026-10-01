@@ -16,3 +16,5 @@ actual fun getAppInfo(): AppInfo {
         buildCode = info?.get("CFBundleVersion") as? String ?: "?",
     )
 }
+
+actual fun getDeviceName(): String = UIDevice.currentDevice.name

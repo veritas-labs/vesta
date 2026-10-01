@@ -30,6 +30,14 @@ data class X0xGroupSummary(
     val name: String,
 )
 
+/** One row of `GET /groups/:id/members`; [role] is `"admin"` or `"member"`, [state] is `"active"` once admitted. */
+@Serializable
+data class X0xGroupMember(
+    @SerialName("agent_id") val agentId: String,
+    val role: String = "member",
+    val state: String = "active",
+)
+
 /**
  * Signed `GroupPublicMessage` envelope, as it appears both from `GET /groups/:id/messages` and
  * (undecoded) as the raw gossip payload on `x0x.groups.public.{groupId}` — a group's public send

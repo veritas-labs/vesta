@@ -10,3 +10,6 @@ expect fun getPlatform(): Platform
 data class AppInfo(val version: String, val buildCode: String)
 
 expect fun getAppInfo(): AppInfo
+
+/** A human-friendly name for this device, e.g. "Pixel 9" or the computer's host name; shown to the user's other devices. */
+expect fun getDeviceName(): String

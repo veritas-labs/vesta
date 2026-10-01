@@ -28,7 +28,11 @@ import uk.veritaslabs.vesta.agent.AgentApprovalHost
 import uk.veritaslabs.vesta.db.DatabaseDriverFactory
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.createVestaDatabase
+import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
+import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
+import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
+import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.SelectedHome
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
@@ -69,7 +73,7 @@ private data class HomeEditTarget(val homeId: String?, val session: Int)
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
  * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
- * approval is offered over whatever screen is showing. With [syncedDevices], the Synced devices screen lists and
+ * approval is offered over whatever screen is showing. With [deviceSync], the Synced devices screen lists and
  * removes the user's real devices; without one (previews) it is always empty.
  */
 @Composable
@@ -79,14 +83,16 @@ fun App(
     selectedHome: SelectedHome = remember { SelectedHome() },
     homeRepository: HomeRepository? = null,
     agentAccess: AgentAccessRepository? = null,
-    syncedDevices: SyncedDeviceRepository? = null,
+    deviceSync: DeviceSyncHost? = null,
     homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name ->
-        HomeContent(id, name, syncedDevices = syncedDevices)
+        HomeContent(id, name, deviceSync = deviceSync)
     },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
     val homeList by homes.collectAsStateWithLifecycle(emptyList())
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
+    var pairingSession by remember { mutableStateOf<Int?>(null) }
+    var pairingSessions by remember { mutableIntStateOf(0) }
     var editSessions by remember { mutableIntStateOf(0) }
     fun openEditor(homeId: String?) {
         editTarget = HomeEditTarget(homeId, session = editSessions++)
@@ -106,7 +112,11 @@ fun App(
             Box(modifier = Modifier.fillMaxSize()) {
                 homeId?.let { id -> homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) } ?: run {
                     val target = editTarget
-                    if (target != null && homeRepository != null) {
+                    val pairing = pairingSession
+                    if (pairing != null && deviceSync != null) {
+                        val pairingViewModel = viewModel(key = "device-pairing-start-$pairing") { deviceSync.newPairingViewModel() }
+                        DevicePairingFlow(pairingViewModel, onExit = { pairingSession = null })
+                    } else if (target != null && homeRepository != null) {
                         val editViewModel = viewModel(key = "home-edit-${target.session}") {
                             HomeEditViewModel(homeRepository, selectedHome, target.homeId)
                         }
@@ -116,6 +126,7 @@ fun App(
                         HomePickerScreen(
                             viewModel,
                             onCreateHome = { openEditor(null) },
+                            onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
                             onEditHome = { openEditor(it.id) },
                             onDeleteHome = { home -> homeRepository?.let { scope.launch { it.delete(home.id) } } },
                         )
@@ -138,11 +149,12 @@ private fun HomeContent(
     homeId: String,
     homeName: String,
     pantrySource: PantrySource? = null,
-    syncedDevices: SyncedDeviceRepository? = null,
+    deviceSync: DeviceSyncHost? = null,
 ) {
     val selectedHome = LocalSelectedHome.current
     val scope = rememberCoroutineScope()
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
+    var pairingSessions by remember { mutableIntStateOf(0) }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
         viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
@@ -153,7 +165,7 @@ private fun HomeContent(
     val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
-    val syncedDeviceList by (syncedDevices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
+    val syncedDeviceList by (deviceSync?.devices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(
             homeName = homeName,
@@ -169,12 +181,20 @@ private fun HomeContent(
             onSyncedDevicesClick = { destination = HomeDestination.SettingsSyncedDevices },
             onBack = { destination = HomeDestination.Dashboard },
         )
-        // Enrollment (ADR-003) isn't implemented, so nothing adds devices yet and the add button does nothing.
         HomeDestination.SettingsSyncedDevices -> SettingsSyncedDevicesScreen(
             devices = syncedDeviceList,
-            onRemoveDevice = { device -> syncedDevices?.let { scope.launch { it.remove(device.agentId) } } },
+            onAddDevice = { if (deviceSync != null) destination = HomeDestination.DevicePairing },
+            onRemoveDevice = { device -> deviceSync?.let { scope.launch { it.service.removeDevice(device.agentId) } } },
             onBack = { destination = HomeDestination.Settings },
         )
+        HomeDestination.DevicePairing -> deviceSync?.let { sync ->
+            // A fresh view model per visit, so a finished pairing isn't left in the store.
+            val pairing = viewModel(key = "device-pairing-$pairingSessions") { sync.newPairingViewModel() }
+            DevicePairingFlow(pairing, onExit = {
+                pairingSessions++
+                destination = HomeDestination.SettingsSyncedDevices
+            })
+        }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
             val onAddItem = {
@@ -264,7 +284,14 @@ private fun PantryListItem.toDetails() = PantryItemDetails(
     stockCount = stockCount,
 )
 
-private enum class HomeDestination { Dashboard, Settings, SettingsSyncedDevices, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+/** What the UI needs of device sync: the stored [devices], the [service] that keeps them in step, and a pairing view model factory. */
+class DeviceSyncHost(
+    val devices: SyncedDeviceRepository,
+    val service: DeviceSyncService,
+    val newPairingViewModel: () -> DevicePairingViewModel,
+)
+
+private enum class HomeDestination { Dashboard, Settings, SettingsSyncedDevices, DevicePairing, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With
@@ -282,15 +309,28 @@ fun VestaApp(
     LaunchedEffect(database) { backgroundServices?.invoke(this, database) }
     val homeRepository = remember { HomeRepository(database) }
     val agentAccess = remember { AgentAccessRepository(database) }
-    val syncedDevices = remember { SyncedDeviceRepository(database) }
+    val deviceSync = remember {
+        val client = createX0xClient()
+        val devices = SyncedDeviceRepository(database)
+        val service = DeviceSyncService(client, database, devices)
+        DeviceSyncHost(devices, service) {
+            DevicePairingViewModel(
+                database,
+                agentId = { checkNotNull(client.agent().agentId) { "x0x did not report this device's agent id" } },
+                deviceName = ::getDeviceName,
+                deviceSync = service,
+            )
+        }
+    }
+    LaunchedEffect(deviceSync) { deviceSync.service.run() }
     App(
         homes = homeRepository.homes,
         homeRepository = homeRepository,
         agentAccess = agentAccess,
-        syncedDevices = syncedDevices,
+        deviceSync = deviceSync,
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
-            HomeContent(homeId, homeName, pantrySource, syncedDevices)
+            HomeContent(homeId, homeName, pantrySource, deviceSync)
         },
     )
 }

@@ -16,3 +16,6 @@ actual fun getAppInfo(): AppInfo {
         ?: return AppInfo("?", "?")
     return AppInfo(info.versionName ?: "?", info.versionCode.toString())
 }
+
+actual fun getDeviceName(): String =
+    listOf(Build.MANUFACTURER, Build.MODEL).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Android device" }

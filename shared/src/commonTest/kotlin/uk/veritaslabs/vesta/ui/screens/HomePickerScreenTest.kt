@@ -22,7 +22,7 @@ class HomePickerScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun showsEachHomeAndTheCreateAndJoinHomeButtons() = runComposeUiTest {
+    fun showsEachHomeAndTheCreateJoinAndPairDeviceButtons() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { HomePickerScreen(homes = homes) } }
 
@@ -37,6 +37,7 @@ class HomePickerScreenTest {
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithTag(HomePickerTestTags.CreateHomeButton).assertIsDisplayed()
         onNodeWithTag(HomePickerTestTags.JoinHomeButton).assertIsDisplayed()
+        onNodeWithTag(HomePickerTestTags.PairDeviceButton).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -69,6 +70,22 @@ class HomePickerScreenTest {
 
         // Assert
         assertTrue(created)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingPairDeviceInvokesOnPairDevice() = runComposeUiTest {
+        // Arrange
+        var paired = false
+        setContent {
+            VestaTheme { HomePickerScreen(homes = emptyList(), onPairDevice = { paired = true }) }
+        }
+
+        // Act
+        onNodeWithTag(HomePickerTestTags.PairDeviceButton).performClick()
+
+        // Assert
+        assertTrue(paired)
     }
 
     @OptIn(ExperimentalTestApi::class)

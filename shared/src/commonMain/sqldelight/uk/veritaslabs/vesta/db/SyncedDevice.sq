@@ -1,6 +1,7 @@
 -- The devices that belong to this user and sync with this one (docs/adr/ADR-003-device-sync.md,
 -- "Device enrollment"): not Home members. Local bookkeeping of which of the user's own agents have been
 -- enrolled; `agentId` is the device's x0x agent id and `name` its user-visible label.
+-- Rows are this device's cache of the DeviceSync group's other members; the group stays the authority.
 -- Keep in sync with migrations/4.sqm, which creates this table for databases that predate it.
 CREATE TABLE SyncedDevice (
     agentId TEXT NOT NULL PRIMARY KEY,
@@ -16,3 +17,6 @@ INSERT OR REPLACE INTO SyncedDevice(agentId, name, addedAt) VALUES (?, ?, ?);
 
 deleteByAgentId:
 DELETE FROM SyncedDevice WHERE agentId = ?;
+
+deleteAll:
+DELETE FROM SyncedDevice;

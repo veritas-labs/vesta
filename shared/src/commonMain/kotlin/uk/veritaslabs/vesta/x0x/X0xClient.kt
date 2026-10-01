@@ -87,6 +87,33 @@ interface X0xClient {
     /** Named groups this agent created or belongs to. */
     suspend fun listGroups(): List<X0xGroupSummary>
 
+    /** Creates an invite link (`x0x://invite/…`) for a group this agent administers. */
+    suspend fun createGroupInvite(groupId: String): String
+
+    /**
+     * Redeems an invite link and returns the group id. Admission is committed by the group's authority, so
+     * the caller is a member only once [getGroupMembers] lists it as `active`.
+     */
+    suspend fun joinGroup(invite: String): String
+
+    /** The group's roster, from this agent's view. Throws [X0xApiException] (404) once this agent is no longer in it. */
+    suspend fun getGroupMembers(groupId: String): List<X0xGroupMember>
+
+    /** The agent that created the group (its signed genesis); only it cannot be removed by another admin. */
+    suspend fun getGroupCreator(groupId: String): String?
+
+    /** Sets a member's role (`"admin"` or `"member"`); needs the caller to be an admin. */
+    suspend fun setGroupMemberRole(groupId: String, agentId: String, role: String)
+
+    /**
+     * Removes a member and rotates the group's keys, so the removed agent can't read anything sent afterwards.
+     * Throws [X0xApiException] while the daemon still lacks the member's key package (`retry` — try again shortly).
+     */
+    suspend fun removeGroupMember(groupId: String, agentId: String)
+
+    /** Leaves (or, for the last member, deletes) the group. */
+    suspend fun leaveGroup(groupId: String)
+
     /** Publishes a signed message to a `SignedPublic` group's public channel; `kind` is `"chat"` or `"announcement"`. */
     suspend fun sendGroupMessage(groupId: String, body: String, kind: String = "chat"): JsonObject
 

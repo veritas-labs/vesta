@@ -1,6 +1,11 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
+import vesta.shared.generated.resources.ic_arrow_left
+import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -24,13 +29,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
-import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_cancel
+import vesta.shared.generated.resources.device_pairing_back
 import vesta.shared.generated.resources.device_pairing_paste_body
 import vesta.shared.generated.resources.device_pairing_paste_field_label
 import vesta.shared.generated.resources.device_pairing_paste_field_placeholder
+import vesta.shared.generated.resources.device_pairing_paste_pairing
 import vesta.shared.generated.resources.device_pairing_paste_submit
 import vesta.shared.generated.resources.device_pairing_paste_title
 
@@ -41,20 +46,22 @@ internal object DevicePairingPasteTestTags {
     const val LinkField = "device_pairing_paste_link_field"
     const val ErrorText = "device_pairing_paste_error_text"
     const val SubmitButton = "device_pairing_paste_submit_button"
-    const val CancelButton = "device_pairing_paste_cancel_button"
+    const val BackButton = "device_pairing_paste_back_button"
 }
 
 /**
  * Text-entry counterpart to [DevicePairingGeneratedScreen] — pairs this
  * device using a link generated on another one (see
- * `docs/adr/ADR-003-device-sync.md`). Reached from [DevicePairingScreen]'s
+ * `docs/adr/ADR-012-device-sync-over-x0x-group.md`). Reached from [DevicePairingScreen]'s
  * "paste" action. [errorMessage], when non-null, flags the field and shows
- * why the last submitted link couldn't be redeemed.
+ * why the last submitted link couldn't be redeemed. While [isPairing], the link is being used
+ * to add the new device, so submitting is disabled.
  */
 @Composable
 fun DevicePairingPasteScreen(
     modifier: Modifier = Modifier,
     errorMessage: String? = null,
+    isPairing: Boolean = false,
     onSubmitPairingLink: (String) -> Unit = {},
     onCancel: () -> Unit = {},
 ) {
@@ -68,11 +75,22 @@ fun DevicePairingPasteScreen(
         val isTablet = maxWidth >= DevicePairingPasteTabletBreakpoint
         val contentPadding = if (isTablet) 24.dp else 16.dp
 
+        IconButton(
+            onClick = onCancel,
+            modifier = Modifier.align(Alignment.TopStart).safeDrawingPadding().testTag(DevicePairingPasteTestTags.BackButton),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_arrow_left),
+                contentDescription = stringResource(Res.string.device_pairing_back),
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .safeDrawingPadding()
-                .padding(contentPadding),
+                .padding(contentPadding)
+                .padding(top = 40.dp), // room for the back arrow
         ) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -110,15 +128,10 @@ fun DevicePairingPasteScreen(
                     )
                 }
                 PrimaryButton(
-                    label = stringResource(Res.string.device_pairing_paste_submit),
-                    enabled = pastedLink.isNotBlank(),
+                    label = stringResource(if (isPairing) Res.string.device_pairing_paste_pairing else Res.string.device_pairing_paste_submit),
+                    enabled = pastedLink.isNotBlank() && !isPairing,
                     onClick = { onSubmitPairingLink(pastedLink) },
                     modifier = Modifier.padding(top = 16.dp).testTag(DevicePairingPasteTestTags.SubmitButton),
-                )
-                SecondaryButton(
-                    label = stringResource(Res.string.device_pairing_cancel),
-                    onClick = onCancel,
-                    modifier = Modifier.padding(top = 16.dp).testTag(DevicePairingPasteTestTags.CancelButton),
                 )
             }
         }

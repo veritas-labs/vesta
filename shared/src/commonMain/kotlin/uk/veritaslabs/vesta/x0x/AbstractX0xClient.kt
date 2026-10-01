@@ -138,6 +138,32 @@ abstract class AbstractX0xClient : X0xClient {
         return groups.map { json.decodeFromJsonElement(X0xGroupSummary.serializer(), it) }
     }
 
+    override suspend fun createGroupInvite(groupId: String): String =
+        post("/groups/$groupId/invite")["invite_link"]!!.jsonPrimitive.content
+
+    override suspend fun joinGroup(invite: String): String =
+        post("/groups/join", buildJsonObject { put("invite", invite) })["group_id"]!!.jsonPrimitive.content
+
+    override suspend fun getGroupMembers(groupId: String): List<X0xGroupMember> {
+        val members = get("/groups/$groupId/members")["members"]?.jsonArray ?: return emptyList()
+        return members.map { json.decodeFromJsonElement(X0xGroupMember.serializer(), it) }
+    }
+
+    override suspend fun getGroupCreator(groupId: String): String? =
+        get("/groups/$groupId/state")["genesis"]?.jsonObject?.get("creator_agent_id")?.jsonPrimitive?.content
+
+    override suspend fun setGroupMemberRole(groupId: String, agentId: String, role: String) {
+        call("PATCH", "/groups/$groupId/members/$agentId/role", buildJsonObject { put("role", role) })
+    }
+
+    override suspend fun removeGroupMember(groupId: String, agentId: String) {
+        delete("/groups/$groupId/members/$agentId")
+    }
+
+    override suspend fun leaveGroup(groupId: String) {
+        delete("/groups/$groupId")
+    }
+
     override suspend fun sendGroupMessage(groupId: String, body: String, kind: String): JsonObject =
         post("/groups/$groupId/send", buildJsonObject { put("body", body); put("kind", kind) })
 

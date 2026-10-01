@@ -31,7 +31,7 @@ class DevicePairingViewModelTest {
         // Arrange
         Dispatchers.setMain(Dispatchers.Default)
         val database = openInMemoryDatabase()
-        val viewModel = DevicePairingViewModel(database, nowMillis = { 1_000L }, publicKeyHex = { "aa11bb" })
+        val viewModel = DevicePairingViewModel(database, nowMillis = { 1_000L }, agentId = { "aa11bb" })
 
         // Act
         viewModel.onGeneratePairingLink()
@@ -39,7 +39,7 @@ class DevicePairingViewModelTest {
 
         // Assert
         val state = assertIs<DevicePairingUiState.Generated>(viewModel.uiState.value)
-        assertEquals(PairingLink(publicKeyHex = "aa11bb", expiresAt = 1_000L + 5 * 60 * 1000L), state.link)
+        assertEquals(PairingLink(agentId = "aa11bb", expiresAt = 1_000L + 5 * 60 * 1000L), state.link)
         val persisted = database.devicePairingLinkQueries.selectActive(1_000L).awaitAsOneOrNull()
         assertEquals("aa11bb", persisted?.publicKeyHex)
     }
@@ -49,7 +49,7 @@ class DevicePairingViewModelTest {
         // Arrange
         Dispatchers.setMain(Dispatchers.Default)
         val database = openInMemoryDatabase()
-        val viewModel = DevicePairingViewModel(database, nowMillis = { 1_000L }, publicKeyHex = { "cc22dd" })
+        val viewModel = DevicePairingViewModel(database, nowMillis = { 1_000L }, agentId = { "cc22dd" })
         viewModel.onGeneratePairingLink()
         viewModel.awaitUiState { it is DevicePairingUiState.Generated }
         val generatedLink = (viewModel.uiState.value as DevicePairingUiState.Generated).link
@@ -90,7 +90,7 @@ class DevicePairingViewModelTest {
         val database = openInMemoryDatabase()
         val viewModel = DevicePairingViewModel(database, nowMillis = { 5_000L })
         viewModel.onPastePairingLink()
-        val expiredLink = PairingLink(publicKeyHex = "ee33ff", expiresAt = 1_000L)
+        val expiredLink = PairingLink(agentId = "ee33ff", expiresAt = 1_000L)
 
         // Act
         viewModel.onSubmitPairingLink(expiredLink.encode())
@@ -106,7 +106,7 @@ class DevicePairingViewModelTest {
         // Arrange
         Dispatchers.setMain(Dispatchers.Default)
         val database = openInMemoryDatabase()
-        val viewModel = DevicePairingViewModel(database, nowMillis = { 1_000L }, publicKeyHex = { "0011ff" })
+        val viewModel = DevicePairingViewModel(database, nowMillis = { 1_000L }, agentId = { "0011ff" })
         viewModel.onGeneratePairingLink()
         viewModel.awaitUiState { it is DevicePairingUiState.Generated }
         val generatedLink = (viewModel.uiState.value as DevicePairingUiState.Generated).link

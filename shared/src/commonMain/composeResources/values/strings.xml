@@ -11,17 +11,18 @@
     <string name="onboarding_empty_title">Welcome to Vesta</string>
     <string name="onboarding_empty_subtitle">Your home, in order.</string>
     <string name="onboarding_create_home">Create a home</string>
+    <string name="onboarding_pair_device">Pair device</string>
     <string name="onboarding_join_home">Join a home</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_edit_home">Edit home</string>
     <string name="onboarding_delete_home">Delete home</string>
 
-    <string name="device_pairing_generate_title">Generate device pairing link</string>
-    <string name="device_pairing_generate_body">Create a link this device can share with a new one to pair it.</string>
-    <string name="device_pairing_paste_title">Paste a device pairing link</string>
-    <string name="device_pairing_paste_body">Pair this device using a link generated on another device.</string>
+    <string name="device_pairing_generate_title">This is the new device</string>
+    <string name="device_pairing_generate_body">Show a link that a device you already use can read to add this one.</string>
+    <string name="device_pairing_paste_title">Add a new device</string>
+    <string name="device_pairing_paste_body">Paste the link shown on the new device.</string>
 
-    <string name="device_pairing_generated_title">Scan this on your other device</string>
+    <string name="device_pairing_generated_title">Scan this on a device you already use</string>
     <string name="device_pairing_generated_body">Or copy the link below and send it to the other device however you like.</string>
     <string name="device_pairing_generated_copy_link">Copy link</string>
     <string name="device_pairing_paste_field_label">Pairing link</string>
@@ -29,10 +30,12 @@
     <string name="device_pairing_paste_submit">Pair device</string>
     <string name="device_pairing_paste_error_invalid">That doesn\'t look like a pairing link.</string>
     <string name="device_pairing_paste_error_expired">This pairing link has expired.</string>
-    <string name="device_pairing_cancel">Cancel</string>
+    <string name="device_pairing_back">Back</string>
+    <string name="device_pairing_paste_pairing">Pairing…</string>
+    <string name="device_pairing_paste_error_failed">Couldn\'t reach that device. Check it is open and online, then try again.</string>
 
-    <string name="device_pairing_redeemed_title">Device paired</string>
-    <string name="device_pairing_redeemed_body">This device has redeemed the pairing link.</string>
+    <string name="device_pairing_redeemed_title">Devices linked</string>
+    <string name="device_pairing_redeemed_body">Your devices are now paired and will stay in sync.</string>
     <string name="device_pairing_done">Done</string>
 
     <string name="home_dashboard_back">Back</string>

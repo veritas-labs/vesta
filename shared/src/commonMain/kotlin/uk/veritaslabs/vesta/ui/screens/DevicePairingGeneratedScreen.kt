@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,30 +35,30 @@ import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
-import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_cancel
+import vesta.shared.generated.resources.device_pairing_back
 import vesta.shared.generated.resources.device_pairing_generated_body
 import vesta.shared.generated.resources.device_pairing_generated_copy_link
 import vesta.shared.generated.resources.device_pairing_generated_title
+import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.img_app_logo
 
 private val DevicePairingGeneratedTabletBreakpoint = 600.dp
-private val DevicePairingGeneratedQrSize = 240.dp
-private val DevicePairingGeneratedQrSizeTablet = 320.dp
+private val DevicePairingGeneratedQrSize = 180.dp
+private val DevicePairingGeneratedQrSizeTablet = 240.dp
 
 /** Stable hooks for UI tests to target, independent of the buttons' displayed copy. */
 internal object DevicePairingGeneratedTestTags {
     const val CopyLinkButton = "device_pairing_generated_copy_link_button"
-    const val CancelButton = "device_pairing_generated_cancel_button"
+    const val BackButton = "device_pairing_generated_back_button"
 }
 
 /**
  * Shows a just-generated pairing link (see `docs/adr/ADR-003-device-sync.md`)
  * as a scannable QR code, with the raw [pairingLink] text underneath for
  * cases where scanning isn't possible — copyable to the clipboard via
- * [onCopyLink], or abandoned via [onCancel]. Reached from
+ * [onCopyLink], or abandoned via the back arrow ([onCancel]). Reached from
  * [DevicePairingScreen]'s "generate" action.
  */
 @Composable
@@ -85,11 +87,22 @@ fun DevicePairingGeneratedScreen(
         val contentPadding = if (isTablet) 24.dp else 16.dp
         val qrSize = if (isTablet) DevicePairingGeneratedQrSizeTablet else DevicePairingGeneratedQrSize
 
+        IconButton(
+            onClick = onCancel,
+            modifier = Modifier.align(Alignment.TopStart).safeDrawingPadding().testTag(DevicePairingGeneratedTestTags.BackButton),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_arrow_left),
+                contentDescription = stringResource(Res.string.device_pairing_back),
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .safeDrawingPadding()
-                .padding(contentPadding),
+                .padding(contentPadding)
+                .padding(top = 40.dp), // room for the back arrow
         ) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -148,11 +161,6 @@ fun DevicePairingGeneratedScreen(
                         onCopyLink()
                     },
                     modifier = Modifier.padding(top = 24.dp).testTag(DevicePairingGeneratedTestTags.CopyLinkButton),
-                )
-                SecondaryButton(
-                    label = stringResource(Res.string.device_pairing_cancel),
-                    onClick = onCancel,
-                    modifier = Modifier.padding(top = 16.dp).testTag(DevicePairingGeneratedTestTags.CancelButton),
                 )
             }
         }
