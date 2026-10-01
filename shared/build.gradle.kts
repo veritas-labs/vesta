@@ -108,6 +108,13 @@ kotlin {
             // natives are desktop-only (win/mac/linux).
             implementation(libs.automerge)
             implementation(libs.automerge.androidnative)
+            // Barcode scanner: CameraX preview + ML Kit analysis, permission via activity-compose.
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.camera.core)
+            implementation(libs.androidx.camera.camera2)
+            implementation(libs.androidx.camera.lifecycle)
+            implementation(libs.androidx.camera.view)
+            implementation(libs.mlkit.barcodeScanning)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -135,6 +142,9 @@ kotlin {
             // Automerge CRDT (JNI bindings, see the libs.versions.toml comment);
             // the jar bundles natives for desktop (win/mac/linux, x64+arm64).
             implementation(libs.automerge)
+            // Desktop barcode scanner: webcam frames decoded with ZXing.
+            implementation(libs.webcam.capture)
+            implementation(libs.zxing.core)
         }
         jvmTest.dependencies {
             // Skiko's native renderer, needed for runComposeUiTest on the jvm

@@ -84,6 +84,12 @@
     <string name="pantry_edit_package_type_it">Type it instead</string>
     <string name="pantry_edit_package_use_presets">Use presets</string>
     <string name="pantry_edit_barcode_label">Barcode (optional)</string>
+    <string name="pantry_edit_barcode_scan">Scan barcode</string>
+    <string name="barcode_scanner_title">Scan barcode</string>
+    <string name="barcode_scanner_hint">Point the camera at the barcode</string>
+    <string name="barcode_scanner_permission_message">Vesta needs camera access to scan barcodes.</string>
+    <string name="barcode_scanner_permission_grant">Allow camera</string>
+    <string name="barcode_scanner_no_camera">No camera found</string>
     <string name="pantry_edit_stock_count_label">Stock count</string>
     <string name="pantry_edit_save">Save</string>
     <string name="pantry_edit_delete">Delete</string>

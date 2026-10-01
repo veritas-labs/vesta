@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,12 +45,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.components.BarcodeCameraView
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
+import uk.veritaslabs.vesta.ui.components.isBarcodeScanningSupported
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.pantry_edit_add_title
 import vesta.shared.generated.resources.pantry_edit_barcode_label
+import vesta.shared.generated.resources.pantry_edit_barcode_scan
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_scan
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_stock_decrease
@@ -76,6 +83,7 @@ internal object PantryItemEditTestTags {
     const val SecondaryCategoryField = "pantry_item_edit_secondary_category_field"
     const val PackageSizeField = "pantry_item_edit_package_size_field"
     const val BarcodeField = "pantry_item_edit_barcode_field"
+    const val BarcodeScanButton = "pantry_item_edit_barcode_scan_button"
     const val StockCountField = "pantry_item_edit_stock_count_field"
     const val StockDecreaseButton = "pantry_item_edit_stock_decrease_button"
     const val StockIncreaseButton = "pantry_item_edit_stock_increase_button"
@@ -126,6 +134,10 @@ data class PantryItemDetails(
  * The package size is a read-only row that calls [onEditPackage] with the form as typed so far (like
  * [onEditCategories]); the caller shows [PantryItemEditPackageScreen] and returns here with the new size in [item].
  * A blank size means a loose item, with no packaging.
+ *
+ * Next to the barcode field a scan icon button (shown when [scanSupported]) opens a full-screen [BarcodeScannerScreen] over
+ * the form, which keeps what's been typed; the scanned code fills the barcode field. [barcodeCamera] is the preview
+ * the scanner shows, a parameter so tests can stand in for real hardware.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,6 +150,10 @@ fun PantryItemEditScreen(
     onCancel: () -> Unit = {},
     onEditCategories: (PantryItemDetails) -> Unit = {},
     onEditPackage: (PantryItemDetails) -> Unit = {},
+    scanSupported: Boolean = isBarcodeScanningSupported,
+    barcodeCamera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
+        BarcodeCameraView(onBarcode, cameraModifier)
+    },
 ) {
     var title by remember(item) { mutableStateOf(item?.title.orEmpty()) }
     var primaryCategory by remember(item) { mutableStateOf(item?.primaryCategory.orEmpty()) }
@@ -145,6 +161,7 @@ fun PantryItemEditScreen(
     var packageSize by remember(item) { mutableStateOf(item?.packageSize.orEmpty()) }
     var barcode by remember(item) { mutableStateOf(item?.barcode.orEmpty()) }
     var stockCount by remember(item) { mutableIntStateOf(item?.stockCount ?: 0) }
+    var scanning by remember { mutableStateOf(false) }
 
     val details = {
         PantryItemDetails(
@@ -162,6 +179,19 @@ fun PantryItemEditScreen(
         .filter { it.isNotBlank() }.distinct()
 
     val isValid = title.isNotBlank() && primaryCategory.isNotBlank()
+
+    if (scanning) {
+        BarcodeScannerScreen(
+            onScanned = {
+                barcode = it
+                scanning = false
+            },
+            onBack = { scanning = false },
+            modifier = modifier,
+            camera = barcodeCamera,
+        )
+        return
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -278,13 +308,33 @@ fun PantryItemEditScreen(
                             .testTag(PantryItemEditTestTags.PackageSizeField),
                     )
                 }
-                OutlinedTextField(
-                    value = barcode,
-                    onValueChange = { barcode = it },
-                    label = { Text(stringResource(Res.string.pantry_edit_barcode_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp).testTag(PantryItemEditTestTags.BarcodeField),
-                )
+                // Bottom-aligned, not centred: the field's label overhangs its 56dp border box, which would throw
+                // centring off. The button is then inset to sit in the middle of that box.
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                ) {
+                    OutlinedTextField(
+                        value = barcode,
+                        onValueChange = { barcode = it },
+                        label = { Text(stringResource(Res.string.pantry_edit_barcode_label)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f).testTag(PantryItemEditTestTags.BarcodeField),
+                    )
+                    if (scanSupported) {
+                        Spacer(Modifier.width(12.dp))
+                        IconButton(
+                            onClick = { scanning = true },
+                            modifier = Modifier.padding(bottom = 6.dp).size(44.dp).testTag(PantryItemEditTestTags.BarcodeScanButton),
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_scan),
+                                contentDescription = stringResource(Res.string.pantry_edit_barcode_scan),
+                                modifier = Modifier.size(40.dp),
+                            )
+                        }
+                    }
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp),

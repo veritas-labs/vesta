@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -268,4 +272,70 @@ class PantryItemEditScreenTest {
         onNodeWithTag(PantryItemEditTestTags.StockCountField).assertTextEquals("0")
         onNodeWithTag(PantryItemEditTestTags.StockDecreaseButton).assertIsNotEnabled()
     }
+
+    /** Stands in for the camera: tapping it "scans" [FakeScannedBarcode]. */
+    private val fakeCamera: @androidx.compose.runtime.Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit =
+        { onBarcode, modifier ->
+            Box(modifier.clickable { onBarcode(FakeScannedBarcode) }.testTag("fake_camera"))
+        }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun scanningABarcodeFillsTheBarcodeFieldAndKeepsWhatWasTyped() = runComposeUiTest {
+        // Arrange
+        var saved: PantryItemDetails? = null
+        setContent {
+            VestaTheme {
+                PantryItemEditScreen(
+                    categories = categories,
+                    scanSupported = true,
+                    barcodeCamera = fakeCamera,
+                    onSave = { saved = it },
+                )
+            }
+        }
+        onNodeWithTag(PantryItemEditTestTags.NameField).performTextInput("Heinz Ketchup")
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.BarcodeScanButton).performScrollTo().performClick()
+        onNodeWithTag("fake_camera").performClick()
+
+        // Assert
+        onNodeWithTag(PantryItemEditTestTags.BarcodeField).assertTextEquals("Barcode (optional)", FakeScannedBarcode)
+        onNodeWithTag(PantryItemEditTestTags.NameField).assertTextEquals("Name", "Heinz Ketchup")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun goingBackFromTheScannerLeavesTheBarcodeUnchanged() = runComposeUiTest {
+        // Arrange
+        setContent {
+            VestaTheme {
+                PantryItemEditScreen(item = existingItem, scanSupported = true, barcodeCamera = fakeCamera)
+            }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.BarcodeScanButton).performScrollTo().performClick()
+        onNodeWithTag(BarcodeScannerTestTags.BackButton).performClick()
+
+        // Assert
+        onNodeWithTag(PantryItemEditTestTags.BarcodeField)
+            .assertTextEquals("Barcode (optional)", existingItem.barcode.orEmpty())
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theScanButtonIsHiddenWhenScanningIsNotSupported() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { PantryItemEditScreen(scanSupported = false) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onAllNodesWithTag(PantryItemEditTestTags.BarcodeScanButton).assertCountEquals(0)
+    }
 }
+
+private const val FakeScannedBarcode = "5000157024671"
