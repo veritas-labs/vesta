@@ -44,8 +44,11 @@ object AgentReplies {
             )
         }.toString()
 
-    /** [stockAfter] is the item's stock count once the command has been applied. */
-    fun accept(replyId: String, commandId: String, key: String, title: String, stockAfter: Int): String =
+    /**
+     * [stockAfter] is the item's stock count once the command has been applied; [packageSize] is the size as stored
+     * (normalised, ADR-011) and is left out when the item has none.
+     */
+    fun accept(replyId: String, commandId: String, key: String, title: String, stockAfter: Int, packageSize: String = ""): String =
         buildJsonObject {
             put("@context", AgentCommandParser.CONTEXT)
             put("type", "Accept")
@@ -59,6 +62,7 @@ object AgentReplies {
                     put("id", key)
                     put("schema:name", title)
                     put("schema:amountOfThisGood", JsonPrimitive(stockAfter))
+                    if (packageSize.isNotBlank()) put("schema:size", packageSize)
                 },
             )
         }.toString()

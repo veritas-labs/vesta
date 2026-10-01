@@ -30,6 +30,27 @@ interface PantrySource {
 
     /** Removes the entry at [key]; [contents] re-emits. */
     suspend fun delete(key: String)
+
+    /** The Home's category registry, or `null` if this source doesn't keep one. */
+    val categoriesSource: PantryCategoriesSource? get() = null
+}
+
+/** A primary category and its secondary categories, as [PantryCategoriesScreen] lists them. */
+data class PantryCategoryGroup(val name: String, val secondary: List<String> = emptyList())
+
+/** Where [PantryCategoriesViewModel] gets a Home's registered categories from (see ADR-010). */
+interface PantryCategoriesSource {
+    /** Every registered primary category, sorted by name; emits whenever the registry changes. */
+    val categories: Flow<List<PantryCategoryGroup>>
+
+    suspend fun addPrimary(name: String)
+
+    suspend fun addSecondary(primary: String, name: String)
+
+    /** Unregisters [name] and its secondaries; items using them keep their category text. */
+    suspend fun deletePrimary(name: String)
+
+    suspend fun deleteSecondary(primary: String, name: String)
 }
 
 /** [PantryScreen]'s state; [isLoading] is true until [PantrySource] has emitted for the first time. */

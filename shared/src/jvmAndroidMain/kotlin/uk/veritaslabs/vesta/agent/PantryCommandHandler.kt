@@ -9,6 +9,7 @@ import uk.veritaslabs.vesta.automerge.adjustStock
 import uk.veritaslabs.vesta.automerge.pantryDedupKey
 import uk.veritaslabs.vesta.automerge.readPantryItem
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
+import uk.veritaslabs.vesta.pantry.PackageSize
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
@@ -118,13 +119,13 @@ class PantryCommandHandler(
                 primaryCategory = command.primaryCategory ?: existing?.primaryCategory ?: UncategorizedCategory,
                 secondaryCategory = command.secondaryCategory ?: existing?.secondaryCategory,
                 title = command.title,
-                packageSize = command.packageSize ?: existing?.packageSize.orEmpty(),
+                packageSize = command.packageSize?.let(PackageSize::normalise) ?: existing?.packageSize.orEmpty(),
                 barcode = command.barcode ?: existing?.barcode,
             )
             adjustStock(doc, key, command.quantity)
             key to checkNotNull(doc.readPantryItem(key))
         }
-        return AgentReplies.accept(newId(), command.commandId, key, item.title, item.stockCount)
+        return AgentReplies.accept(newId(), command.commandId, key, item.title, item.stockCount, item.packageSize)
     }
 
     private fun reject(commandId: String, summary: String) = AgentReplies.reject(newId(), commandId, summary)

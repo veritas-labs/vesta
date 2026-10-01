@@ -41,6 +41,7 @@ fun newPantryDocument(): ByteArray {
     val doc = Document()
     val tx = doc.startTransaction()
     tx.set(ObjectId.ROOT, ItemsKey, ObjectType.MAP)
+    tx.seedCategories()
     tx.commit()
     return doc.save()
 }

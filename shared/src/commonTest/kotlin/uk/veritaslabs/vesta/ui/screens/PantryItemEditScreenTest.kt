@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
@@ -27,6 +28,11 @@ class PantryItemEditScreenTest {
         stockCount = 4,
     )
 
+    private val categories = listOf(
+        PantryCategoryGroup("Condiments", listOf("Ketchup", "Mayonnaise")),
+        PantryCategoryGroup("Fruit & Vegetables", listOf("Fruit")),
+    )
+
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun addingANewItemHasNoOverflowMenuAndSaveIsDisabledUntilRequiredFieldsAreFilled() = runComposeUiTest {
@@ -38,7 +44,7 @@ class PantryItemEditScreenTest {
 
         // Assert
         onAllNodesWithTag(PantryItemEditTestTags.OverflowButton).assertCountEquals(0)
-        onNodeWithTag(PantryItemEditTestTags.SaveButton).assertIsDisplayed().assertIsNotEnabled()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().assertIsDisplayed().assertIsNotEnabled()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -46,18 +52,20 @@ class PantryItemEditScreenTest {
     fun fillingInTheRequiredFieldsAndSavingInvokesOnSaveWithTheTrimmedValues() = runComposeUiTest {
         // Arrange
         var saved: PantryItemDetails? = null
-        setContent { VestaTheme { PantryItemEditScreen(onSave = { saved = it }) } }
+        setContent {
+            VestaTheme { PantryItemEditScreen(categories = categories, onSave = { saved = it }) }
+        }
 
         // Act
         onNodeWithTag(PantryItemEditTestTags.NameField).performTextInput(" Bananas ")
-        onNodeWithTag(PantryItemEditTestTags.PrimaryCategoryField).performTextInput(" Fruit & Vegetables ")
-        onNodeWithTag(PantryItemEditTestTags.PackageSizeField).performTextInput(" 6 pack ")
-        onNodeWithTag(PantryItemEditTestTags.SaveButton).assertIsEnabled().performClick()
+        onNodeWithTag(PantryItemEditTestTags.PrimaryCategoryField).performClick()
+        onNodeWithTag(PantryItemEditTestTags.categoryOption("Fruit & Vegetables")).performClick()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().assertIsEnabled().performClick()
 
         // Assert
         assertEquals("Bananas", saved?.title)
         assertEquals("Fruit & Vegetables", saved?.primaryCategory)
-        assertEquals("6 pack", saved?.packageSize)
+        assertEquals("", saved?.packageSize) // loose: no package size chosen
         assertNull(saved?.key)
         assertNull(saved?.secondaryCategory)
         assertNull(saved?.barcode)
@@ -75,7 +83,7 @@ class PantryItemEditScreenTest {
 
         // Assert
         onNodeWithTag(PantryItemEditTestTags.OverflowButton).assertIsDisplayed()
-        onNodeWithTag(PantryItemEditTestTags.SaveButton).assertIsDisplayed()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -97,15 +105,120 @@ class PantryItemEditScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun tappingCancelInvokesOnCancel() = runComposeUiTest {
+    fun tappingThePackageSizeRowHandsTheFormAsTypedToOnEditPackage() = runComposeUiTest {
+        // Arrange
+        var draft: PantryItemDetails? = null
+        setContent {
+            VestaTheme { PantryItemEditScreen(item = existingItem, onEditPackage = { draft = it }) }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.NameField).performTextInput("!")
+        onNodeWithTag(PantryItemEditTestTags.PackageSizeField).performScrollTo().performClick()
+
+        // Assert
+        assertEquals("!Heinz Ketchup", draft?.title)
+        assertEquals("500ml", draft?.packageSize)
+        assertEquals(existingItem.key, draft?.key)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anItemWithNoPackageSizeCanBeSavedAsLoose() = runComposeUiTest {
+        // Arrange
+        var saved: PantryItemDetails? = null
+        setContent {
+            VestaTheme {
+                PantryItemEditScreen(
+                    item = existingItem.copy(packageSize = ""),
+                    onSave = { saved = it },
+                )
+            }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().assertIsEnabled().performClick()
+
+        // Assert
+        assertEquals("", saved?.packageSize)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingBackInvokesOnCancel() = runComposeUiTest {
         // Arrange
         var cancelled = false
         setContent { VestaTheme { PantryItemEditScreen(onCancel = { cancelled = true }) } }
 
         // Act
-        onNodeWithTag(PantryItemEditTestTags.CancelButton).performClick()
+        onNodeWithTag(PantryItemEditTestTags.BackButton).performClick()
 
         // Assert
         assertEquals(true, cancelled)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun secondaryDropdownOffersOnlyTheChosenPrimarysSubcategoriesAndSavesTheChoice() = runComposeUiTest {
+        // Arrange
+        var saved: PantryItemDetails? = null
+        setContent {
+            VestaTheme { PantryItemEditScreen(categories = categories, onSave = { saved = it }) }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.NameField).performTextInput("Mayo")
+        onNodeWithTag(PantryItemEditTestTags.PrimaryCategoryField).performClick()
+        onNodeWithTag(PantryItemEditTestTags.categoryOption("Condiments")).performClick()
+        onNodeWithTag(PantryItemEditTestTags.SecondaryCategoryField).performClick()
+        val offersFruit = onAllNodesWithTag(PantryItemEditTestTags.categoryOption("Fruit")).fetchSemanticsNodes().isNotEmpty()
+        onNodeWithTag(PantryItemEditTestTags.categoryOption("Mayonnaise")).performClick()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().performClick()
+
+        // Assert
+        assertEquals(false, offersFruit)
+        assertEquals("Condiments", saved?.primaryCategory)
+        assertEquals("Mayonnaise", saved?.secondaryCategory)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun changingThePrimaryClearsASecondaryThatNoLongerApplies() = runComposeUiTest {
+        // Arrange
+        var saved: PantryItemDetails? = null
+        setContent {
+            VestaTheme {
+                PantryItemEditScreen(item = existingItem, categories = categories, onSave = { saved = it })
+            }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.PrimaryCategoryField).performClick()
+        onNodeWithTag(PantryItemEditTestTags.categoryOption("Fruit & Vegetables")).performClick()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().performClick()
+
+        // Assert
+        assertEquals("Fruit & Vegetables", saved?.primaryCategory)
+        assertNull(saved?.secondaryCategory)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun editCategoriesInTheDropdownHandsBackTheFormAsTypedSoFar() = runComposeUiTest {
+        // Arrange
+        var draft: PantryItemDetails? = null
+        setContent {
+            VestaTheme {
+                PantryItemEditScreen(item = existingItem, categories = categories, onEditCategories = { draft = it })
+            }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.NameField).performTextInput("Extra ")
+        onNodeWithTag(PantryItemEditTestTags.PrimaryCategoryField).performClick()
+        onNodeWithTag(PantryItemEditTestTags.EditCategoriesMenuItem).performClick()
+
+        // Assert
+        assertEquals(existingItem.copy(title = "Extra Heinz Ketchup"), draft)
     }
 }

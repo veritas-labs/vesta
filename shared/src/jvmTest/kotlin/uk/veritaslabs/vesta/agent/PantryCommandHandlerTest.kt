@@ -130,6 +130,36 @@ class PantryCommandHandlerTest {
     }
 
     @Test
+    fun aSizeIsNormalisedAndTheStoredFormIsEchoedInTheReply() = runBlocking {
+        // Arrange
+        val f = fixture()
+        val fields = """"schema:name": "Tomato Sauce", "schema:size": "15 Ounce Can""""
+
+        // Act
+        f.handler.handle(message(command(fields = fields)))
+
+        // Assert
+        val item = assertNotNull(f.source.mutate { it.readPantryItem("tomato sauce") })
+        assertEquals("15 oz tin", item.packageSize)
+        assertEquals("15 oz tin", f.replies.single().getValue("result").jsonObject.text("schema:size"))
+    }
+
+    @Test
+    fun aSizeItDoesNotRecogniseIsStoredTrimmedRatherThanRejected() = runBlocking {
+        // Arrange
+        val f = fixture()
+        val fields = """"schema:name": "Crisps", "schema:size": "  family size """"
+
+        // Act
+        f.handler.handle(message(command(fields = fields)))
+
+        // Assert
+        val item = assertNotNull(f.source.mutate { it.readPantryItem("crisps") })
+        assertEquals("family size", item.packageSize)
+        assertEquals("Accept", f.replies.single().text("type"))
+    }
+
+    @Test
     fun aNewItemWithoutCategoryOrSizeGetsDefaults() = runBlocking {
         // Arrange
         val f = fixture()

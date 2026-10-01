@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -27,6 +29,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,13 +47,16 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_add_item
 import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.pantry_categories_title
 import vesta.shared.generated.resources.pantry_category_empty
 import vesta.shared.generated.resources.pantry_empty_subtitle
 import vesta.shared.generated.resources.pantry_empty_title
+import vesta.shared.generated.resources.pantry_more_options
 import vesta.shared.generated.resources.pantry_out_of_stock
 import vesta.shared.generated.resources.pantry_stock_count
 import vesta.shared.generated.resources.pantry_stock_decrease
@@ -61,6 +69,8 @@ private val PantryTabletBreakpoint = 600.dp
 internal object PantryTestTags {
     const val BackButton = "pantry_back_button"
     const val AddItemButton = "pantry_add_item_button"
+    const val OverflowButton = "pantry_overflow_button"
+    const val CategoriesMenuItem = "pantry_categories_menu_item"
 
     /** Tag for the row of the Pantry entry with the given [key] (its dedup key — see ADR-008). */
     fun pantryItem(key: String) = "pantry_item_$key"
@@ -101,7 +111,7 @@ data class PantryListItem(
  * with the new count (never below zero).
  *
  * UI only — the caller owns [items] and reacts to [onItemSelected], [onStockChange], [onBack]
- * (top-bar back arrow) and [onAddItem] (floating action button); see the
+ * (top-bar back arrow), [onManageCategories] (the "Categories" entry in the top-bar overflow menu) and [onAddItem] (floating action button); see the
  * [PantryViewModel] overload for the version wired to live Pantry state.
  */
 @Composable
@@ -112,6 +122,7 @@ fun PantryScreen(
     onStockChange: (PantryListItem, Int) -> Unit = { _, _ -> },
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
+    onManageCategories: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -126,6 +137,7 @@ fun PantryScreen(
             onStockChange = viewModel::setStockCount,
             onBack = onBack,
             onAddItem = onAddItem,
+            onManageCategories = onManageCategories,
         )
     }
 }
@@ -140,6 +152,7 @@ fun PantryScreen(
     onStockChange: (PantryListItem, Int) -> Unit = { _, _ -> },
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
+    onManageCategories: () -> Unit = {},
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -160,10 +173,35 @@ fun PantryScreen(
                         )
                     }
                 },
+                actions = {
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(
+                            onClick = { menuExpanded = true },
+                            modifier = Modifier.testTag(PantryTestTags.OverflowButton),
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_dots_vertical),
+                                contentDescription = stringResource(Res.string.pantry_more_options),
+                            )
+                        }
+                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.pantry_categories_title)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onManageCategories()
+                                },
+                                modifier = Modifier.testTag(PantryTestTags.CategoriesMenuItem),
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding)) {

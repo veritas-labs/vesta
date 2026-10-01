@@ -90,7 +90,7 @@ Field mapping to [[ADR-008]]'s Pantry item:
 | `schema:typeOfGood.schema:name` | `title` | Required, non-blank. |
 | `schema:typeOfGood.schema:category` | `primaryCategory`, `secondaryCategory` | Ordered list: `[primary, secondary]`; secondary optional; a bare string means primary only. |
 | `schema:typeOfGood.schema:gtin` | `barcode` | Optional. |
-| `schema:typeOfGood.schema:size` | `packageSize` | Optional. |
+| `schema:typeOfGood.schema:size` | `packageSize` | Optional. Normalised per [[ADR-011]] (unrecognised text kept as-is); the `Accept` echoes the stored value as `result.schema:size`. |
 | `schema:amountOfThisGood` | stock delta | Optional integer, default 1; must be between 1 and 9999. |
 
 `schema:TypeAndQuantityNode` is Schema.org's closest fit for "N of this product" (it is designed for bundle contents);
@@ -162,8 +162,8 @@ ambiguous when two Homes share a name.
 4. **Effect.** Upsert the Pantry entry (dedup by barcode, else normalised title, per [[ADR-008]]) and adjust stock by
    `+quantity`. Existing fields on a matching entry must not be blanked by omitted optional fields. Verified: `upsertPantryItem`
    *does* overwrite/blank them, so the handler fills omitted fields from the existing entry first. A new entry with no
-   `schema:category` gets primary category `Uncategorized` and no `schema:size` gives an empty package size (the
-   Pantry UI requires both, the command doesn't). Then republish/persist through `PantryDocumentSource.mutate`, exactly as
+   `schema:category` gets primary category `Uncategorized` and no `schema:size` gives an empty package size, meaning a loose item ([[ADR-011]]; the
+   Pantry UI requires a category, the command doesn't). Then republish/persist through `PantryDocumentSource.mutate`, exactly as
    an edit made in the UI would, so the Pantry screen updates and the change syncs like any other.
 5. **Idempotency.** The `id` of every processed command is recorded, keyed by `(sender, id)`, in a **local, unsynced**
    table (`AgentCommandLog`) — not per Home, because a command rejected for an unknown Home has no Home row to

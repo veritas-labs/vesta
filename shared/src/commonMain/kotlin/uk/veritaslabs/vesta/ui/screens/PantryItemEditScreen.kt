@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,17 +40,20 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
-import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.pantry_edit_add_title
 import vesta.shared.generated.resources.pantry_edit_barcode_label
-import vesta.shared.generated.resources.pantry_edit_cancel
+import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.pantry_edit_delete
 import vesta.shared.generated.resources.ic_dots_vertical
+import vesta.shared.generated.resources.pantry_edit_edit_categories
 import vesta.shared.generated.resources.pantry_edit_edit_title
+import vesta.shared.generated.resources.pantry_edit_no_subcategory
 import vesta.shared.generated.resources.pantry_edit_more_options
 import vesta.shared.generated.resources.pantry_edit_name_label
+import vesta.shared.generated.resources.pantry_edit_package_loose
 import vesta.shared.generated.resources.pantry_edit_package_size_label
 import vesta.shared.generated.resources.pantry_edit_primary_category_label
 import vesta.shared.generated.resources.pantry_edit_save
@@ -65,7 +73,12 @@ internal object PantryItemEditTestTags {
     const val SaveButton = "pantry_item_edit_save_button"
     const val OverflowButton = "pantry_item_edit_overflow_button"
     const val DeleteMenuItem = "pantry_item_edit_delete_menu_item"
-    const val CancelButton = "pantry_item_edit_cancel_button"
+    const val BackButton = "pantry_item_edit_back_button"
+    const val EditCategoriesMenuItem = "pantry_item_edit_edit_categories_menu_item"
+    const val NoSecondaryOption = "pantry_item_edit_no_secondary_option"
+
+    /** Tag for the dropdown option with the given category [name], in whichever category dropdown is open. */
+    fun categoryOption(name: String) = "pantry_item_edit_category_option_$name"
 }
 
 /**
@@ -95,15 +108,27 @@ data class PantryItemDetails(
  * [PantryItemDetails] as typed (trimmed, blank optional fields turned into
  * null), and it's up to the caller to upsert/correct stock/delete it via the
  * automerge document layer.
+ *
+ * The category fields are dropdowns over [categories] (the Home's registered ones); the secondary one lists the
+ * chosen primary's subcategories. Both end with an "Edit categories" entry that calls [onEditCategories] with the
+ * form as typed so far, so the caller can bring the user back to it (as [item]) afterwards. A category the item
+ * already has that isn't registered any more stays selectable.
+ *
+ * The package size is a read-only row that calls [onEditPackage] with the form as typed so far (like
+ * [onEditCategories]); the caller shows [PantryItemEditPackageScreen] and returns here with the new size in [item].
+ * A blank size means a loose item, with no packaging.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantryItemEditScreen(
     modifier: Modifier = Modifier,
     item: PantryItemDetails? = null,
+    categories: List<PantryCategoryGroup> = emptyList(),
     onSave: (PantryItemDetails) -> Unit = {},
     onDelete: (String) -> Unit = {},
     onCancel: () -> Unit = {},
+    onEditCategories: (PantryItemDetails) -> Unit = {},
+    onEditPackage: (PantryItemDetails) -> Unit = {},
 ) {
     var title by remember(item) { mutableStateOf(item?.title.orEmpty()) }
     var primaryCategory by remember(item) { mutableStateOf(item?.primaryCategory.orEmpty()) }
@@ -112,7 +137,22 @@ fun PantryItemEditScreen(
     var barcode by remember(item) { mutableStateOf(item?.barcode.orEmpty()) }
     var stockCountText by remember(item) { mutableStateOf((item?.stockCount ?: 0).toString()) }
 
-    val isValid = title.isNotBlank() && primaryCategory.isNotBlank() && packageSize.isNotBlank()
+    val details = {
+        PantryItemDetails(
+            key = item?.key,
+            primaryCategory = primaryCategory.trim(),
+            secondaryCategory = secondaryCategory.trim().ifBlank { null },
+            title = title.trim(),
+            packageSize = packageSize.trim(),
+            barcode = barcode.trim().ifBlank { null },
+            stockCount = stockCountText.toIntOrNull() ?: 0,
+        )
+    }
+    val primaryOptions = (categories.map { it.name } + primaryCategory).filter { it.isNotBlank() }.distinct()
+    val secondaryOptions = (categories.firstOrNull { it.name == primaryCategory }?.secondary.orEmpty() + secondaryCategory)
+        .filter { it.isNotBlank() }.distinct()
+
+    val isValid = title.isNotBlank() && primaryCategory.isNotBlank()
 
     BoxWithConstraints(
         modifier = modifier
@@ -126,12 +166,20 @@ fun PantryItemEditScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (item == null) {
+                        text = if (item?.key == null) {
                             stringResource(Res.string.pantry_edit_add_title)
                         } else {
                             stringResource(Res.string.pantry_edit_edit_title)
                         },
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onCancel, modifier = Modifier.testTag(PantryItemEditTestTags.BackButton)) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_left),
+                            contentDescription = stringResource(Res.string.pantry_back),
+                        )
+                    }
                 },
                 actions = {
                     item?.key?.let { key ->
@@ -162,6 +210,7 @@ fun PantryItemEditScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                     actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
@@ -179,30 +228,47 @@ fun PantryItemEditScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(top = 24.dp).testTag(PantryItemEditTestTags.NameField),
                 )
-                OutlinedTextField(
+                CategoryDropdown(
+                    label = stringResource(Res.string.pantry_edit_primary_category_label),
                     value = primaryCategory,
-                    onValueChange = { primaryCategory = it },
-                    label = { Text(stringResource(Res.string.pantry_edit_primary_category_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .testTag(PantryItemEditTestTags.PrimaryCategoryField),
+                    options = primaryOptions,
+                    onSelect = {
+                        if (it != primaryCategory) secondaryCategory = ""
+                        primaryCategory = it
+                    },
+                    onEditCategories = { onEditCategories(details()) },
+                    modifier = Modifier.padding(top = 16.dp),
+                    fieldTag = PantryItemEditTestTags.PrimaryCategoryField,
                 )
-                OutlinedTextField(
+                CategoryDropdown(
+                    label = stringResource(Res.string.pantry_edit_secondary_category_label),
                     value = secondaryCategory,
-                    onValueChange = { secondaryCategory = it },
-                    label = { Text(stringResource(Res.string.pantry_edit_secondary_category_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .testTag(PantryItemEditTestTags.SecondaryCategoryField),
+                    options = secondaryOptions,
+                    onSelect = { secondaryCategory = it },
+                    onEditCategories = { onEditCategories(details()) },
+                    modifier = Modifier.padding(top = 16.dp),
+                    fieldTag = PantryItemEditTestTags.SecondaryCategoryField,
+                    enabled = primaryCategory.isNotBlank(),
+                    clearLabel = stringResource(Res.string.pantry_edit_no_subcategory),
+                    onClear = { secondaryCategory = "" },
                 )
-                OutlinedTextField(
-                    value = packageSize,
-                    onValueChange = { packageSize = it },
-                    label = { Text(stringResource(Res.string.pantry_edit_package_size_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .testTag(PantryItemEditTestTags.PackageSizeField),
-                )
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    OutlinedTextField(
+                        value = packageSize.ifBlank { stringResource(Res.string.pantry_edit_package_loose) },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(Res.string.pantry_edit_package_size_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    // Covers the field so a tap anywhere on it (not just the text) opens the package screen.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { onEditPackage(details()) }
+                            .testTag(PantryItemEditTestTags.PackageSizeField),
+                    )
+                }
                 OutlinedTextField(
                     value = barcode,
                     onValueChange = { barcode = it },
@@ -220,33 +286,92 @@ fun PantryItemEditScreen(
                         .testTag(PantryItemEditTestTags.StockCountField),
                 )
 
-                SecondaryButton(
-                    label = stringResource(Res.string.pantry_edit_cancel),
-                    onClick = onCancel,
-                    modifier = Modifier.padding(top = 24.dp).testTag(PantryItemEditTestTags.CancelButton),
-                )
                 PrimaryButton(
                     label = stringResource(Res.string.pantry_edit_save),
                     enabled = isValid,
-                    onClick = {
-                        onSave(
-                            PantryItemDetails(
-                                key = item?.key,
-                                primaryCategory = primaryCategory.trim(),
-                                secondaryCategory = secondaryCategory.trim().ifBlank { null },
-                                title = title.trim(),
-                                packageSize = packageSize.trim(),
-                                barcode = barcode.trim().ifBlank { null },
-                                stockCount = stockCountText.toIntOrNull() ?: 0,
-                            ),
-                        )
-                    },
-                    modifier = Modifier.padding(top = 16.dp).testTag(PantryItemEditTestTags.SaveButton),
+                    onClick = { onSave(details()) },
+                    modifier = Modifier.padding(top = 24.dp).testTag(PantryItemEditTestTags.SaveButton),
                 )
             }
         }
     }
 }
+
+/**
+ * A read-only field that opens a menu of [options] (selecting one calls [onSelect]), plus — when [clearLabel] is
+ * given — an entry that calls [onClear], and always an "Edit categories" entry that calls [onEditCategories].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryDropdown(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    onEditCategories: () -> Unit,
+    fieldTag: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    clearLabel: String? = null,
+    onClear: () -> Unit = {},
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded && enabled,
+        onExpandedChange = { expanded = it },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            enabled = enabled,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && enabled) },
+            singleLine = true,
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth()
+                .testTag(fieldTag),
+        )
+        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
+            clearLabel?.let {
+                DropdownMenuItem(
+                    text = { Text(it) },
+                    onClick = {
+                        expanded = false
+                        onClear()
+                    },
+                    modifier = Modifier.testTag(PantryItemEditTestTags.NoSecondaryOption),
+                )
+            }
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                    modifier = Modifier.testTag(PantryItemEditTestTags.categoryOption(option)),
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.pantry_edit_edit_categories)) },
+                onClick = {
+                    expanded = false
+                    onEditCategories()
+                },
+                modifier = Modifier.testTag(PantryItemEditTestTags.EditCategoriesMenuItem),
+            )
+        }
+    }
+}
+
+private val PantryItemEditPreviewCategories = listOf(
+    PantryCategoryGroup("Condiments", listOf("Brown Sauce", "Ketchup", "Mayonnaise")),
+    PantryCategoryGroup("Dairy", listOf("Cheese", "Milk")),
+)
 
 private val PantryItemEditPreviewItem = PantryItemDetails(
     key = "5000157024671",
@@ -261,47 +386,47 @@ private val PantryItemEditPreviewItem = PantryItemDetails(
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun PantryItemEditScreenAddPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { PantryItemEditScreen() }
+    VestaTheme(darkTheme = false) { PantryItemEditScreen(categories = PantryItemEditPreviewCategories) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun PantryItemEditScreenAddPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { PantryItemEditScreen() }
+    VestaTheme(darkTheme = true) { PantryItemEditScreen(categories = PantryItemEditPreviewCategories) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun PantryItemEditScreenAddTabletLightPreview() {
-    VestaTheme(darkTheme = false) { PantryItemEditScreen() }
+    VestaTheme(darkTheme = false) { PantryItemEditScreen(categories = PantryItemEditPreviewCategories) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun PantryItemEditScreenAddTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { PantryItemEditScreen() }
+    VestaTheme(darkTheme = true) { PantryItemEditScreen(categories = PantryItemEditPreviewCategories) }
 }
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun PantryItemEditScreenEditPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem) }
+    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun PantryItemEditScreenEditPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem) }
+    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun PantryItemEditScreenEditTabletLightPreview() {
-    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem) }
+    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun PantryItemEditScreenEditTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem) }
+    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
 }

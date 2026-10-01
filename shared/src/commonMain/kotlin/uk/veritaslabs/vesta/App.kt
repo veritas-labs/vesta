@@ -35,7 +35,10 @@ import uk.veritaslabs.vesta.ui.screens.HomeEditViewModel
 import uk.veritaslabs.vesta.ui.screens.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomePickerScreen
 import uk.veritaslabs.vesta.ui.screens.HomePickerViewModel
+import uk.veritaslabs.vesta.ui.screens.PantryCategoriesScreen
+import uk.veritaslabs.vesta.ui.screens.PantryCategoriesViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
+import uk.veritaslabs.vesta.ui.screens.PantryItemEditPackageScreen
 import uk.veritaslabs.vesta.ui.screens.PantryItemEditScreen
 import uk.veritaslabs.vesta.ui.screens.PantryListItem
 import uk.veritaslabs.vesta.ui.screens.PantrySource
@@ -120,6 +123,12 @@ private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySo
     val pantryViewModel = pantrySource?.let { source ->
         viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
     }
+    val categoriesViewModel = pantrySource?.categoriesSource?.let { source ->
+        viewModel(key = "pantry-categories-$homeId") { PantryCategoriesViewModel(source) }
+    }
+    val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
+    // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
+    var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(
             homeName = homeName,
@@ -137,14 +146,48 @@ private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySo
                 editingItem = item.toDetails()
                 destination = HomeDestination.PantryItemEdit
             }
+            val onManageCategories = {
+                categoriesBackTo = HomeDestination.Pantry
+                destination = HomeDestination.PantryCategories
+            }
             if (pantryViewModel != null) {
-                PantryScreen(pantryViewModel, onItemSelected = onItemSelected, onBack = onBack, onAddItem = onAddItem)
+                PantryScreen(
+                    pantryViewModel,
+                    onItemSelected = onItemSelected,
+                    onBack = onBack,
+                    onAddItem = onAddItem,
+                    onManageCategories = onManageCategories,
+                )
             } else {
-                PantryScreen(items = emptyList(), onItemSelected = onItemSelected, onBack = onBack, onAddItem = onAddItem)
+                PantryScreen(
+                    items = emptyList(),
+                    onItemSelected = onItemSelected,
+                    onBack = onBack,
+                    onAddItem = onAddItem,
+                    onManageCategories = onManageCategories,
+                )
+            }
+        }
+        HomeDestination.PantryCategories -> {
+            val onBack = { destination = categoriesBackTo }
+            if (categoriesViewModel != null) {
+                PantryCategoriesScreen(categoriesViewModel, onBack = onBack)
+            } else {
+                PantryCategoriesScreen(categories = emptyList(), onBack = onBack)
             }
         }
         HomeDestination.PantryItemEdit -> PantryItemEditScreen(
             item = editingItem,
+            categories = categoriesState?.value?.categories.orEmpty(),
+            onEditCategories = { draft ->
+                editingItem = draft
+                categoriesBackTo = HomeDestination.PantryItemEdit
+                destination = HomeDestination.PantryCategories
+            },
+            onEditPackage = { draft ->
+                editingItem = draft
+                destination = HomeDestination.PantryItemEditPackage
+            },
             onDelete = { key ->
                 pantryViewModel?.delete(key)
                 destination = HomeDestination.Pantry
@@ -155,6 +198,20 @@ private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySo
             },
             onCancel = { destination = HomeDestination.Pantry },
         )
+        HomeDestination.PantryItemEditPackage -> {
+            val draft = editingItem ?: PantryItemDetails()
+            val backToForm = { destination = HomeDestination.PantryItemEdit }
+            PantryItemEditPackageScreen(
+                itemName = draft.title,
+                initialValue = draft.packageSize,
+                startLoose = draft.key != null,
+                onDone = { size ->
+                    editingItem = draft.copy(packageSize = size)
+                    backToForm()
+                },
+                onBack = backToForm,
+            )
+        }
     }
 }
 
@@ -168,7 +225,7 @@ private fun PantryListItem.toDetails() = PantryItemDetails(
     stockCount = stockCount,
 )
 
-private enum class HomeDestination { Dashboard, Pantry, PantryItemEdit }
+private enum class HomeDestination { Dashboard, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With

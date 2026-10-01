@@ -8,6 +8,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.ui.screens.PantryCategoriesSource
+import uk.veritaslabs.vesta.ui.screens.PantryCategoryGroup
 import uk.veritaslabs.vesta.ui.screens.PantryContents
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
 import uk.veritaslabs.vesta.ui.screens.PantryListItem
@@ -26,20 +28,25 @@ fun pantryDocumentId(homeId: String): String = "$homeId:$PantryFeature"
  * via [refresh] (call it after applying sync messages to [document]). All access to [document] is
  * serialised on an internal lock, so route every read or write of it through this class.
  *
- * [PantryContents.emptyCategories] is always empty: the Pantry document only stores items, so it has no
- * notion of a category that exists without any.
+ * It is also the Home's [PantryCategoriesSource] (ADR-010). [PantryContents.emptyCategories] is still always
+ * empty: registered categories without items are shown on the categories screen, not the Pantry.
  *
  * Use [openPantryDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
  */
 class PantryDocumentSource(
     private val document: Document,
     private val persist: suspend (ByteArray) -> Unit = {},
-) : PantrySource {
+) : PantrySource, PantryCategoriesSource {
 
     private val lock = Mutex()
     private val state = MutableStateFlow(readContents())
+    private val categoryState = MutableStateFlow(readCategories())
 
     override val contents: Flow<PantryContents> = state
+
+    override val categoriesSource: PantryCategoriesSource get() = this
+
+    override val categories: Flow<List<PantryCategoryGroup>> = categoryState
 
     /** Runs [block] against the document (e.g. `upsertPantryItem(it, …)`), then republishes and persists it. */
     suspend fun <T> mutate(block: (Document) -> T): T = lock.withLock {
@@ -48,6 +55,7 @@ class PantryDocumentSource(
 
     override suspend fun save(item: PantryItemDetails) {
         mutate { doc ->
+            ensurePantryCategories(doc, item.primaryCategory, item.secondaryCategory)
             val key = upsertPantryItem(
                 doc,
                 primaryCategory = item.primaryCategory,
@@ -66,13 +74,26 @@ class PantryDocumentSource(
         mutate { deletePantryItem(it, key) }
     }
 
+    override suspend fun addPrimary(name: String) = mutate { addPrimaryCategory(it, name) }
+
+    override suspend fun addSecondary(primary: String, name: String) =
+        mutate { addSecondaryCategory(it, primary, name) }
+
+    override suspend fun deletePrimary(name: String) = mutate { deletePrimaryCategory(it, name) }
+
+    override suspend fun deleteSecondary(primary: String, name: String) =
+        mutate { deleteSecondaryCategory(it, primary, name) }
+
     /** Republishes and persists after [document] changed outside [mutate], e.g. by applying a sync message. */
     suspend fun refresh() = lock.withLock { publishAndPersist() }
 
     private suspend fun publishAndPersist() {
         state.value = readContents()
+        categoryState.value = readCategories()
         persist(document.save())
     }
+
+    private fun readCategories() = document.readPantryCategories().map { PantryCategoryGroup(it.name, it.secondary) }
 
     private fun readContents() = PantryContents(
         items = document.readPantry().map {

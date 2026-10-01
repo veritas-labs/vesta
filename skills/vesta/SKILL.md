@@ -58,7 +58,8 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
      --title "Heinz Ketchup" --category Condiments --category Ketchup --size "1 bottle" --qty 2
    ```
    Only `--home` and `--title` are required. `--category` is primary then
-   (optionally) secondary; `--gtin` is a barcode; `--qty` is 1–9999 (default 1).
+   (optionally) secondary; `--size` is `<amount><unit> <container>` such as `500ml`, `400g tin`, `6 pack`
+   (grammar in [references/messages.md](references/messages.md#package-size)); `--gtin` is a barcode; `--qty` is 1–9999 (default 1).
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes

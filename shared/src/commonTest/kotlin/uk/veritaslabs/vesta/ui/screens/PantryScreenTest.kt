@@ -156,4 +156,19 @@ class PantryScreenTest {
         // Assert
         onNodeWithTag(PantryTestTags.stockDecrease("whole milk")).assertIsNotEnabled()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun choosingCategoriesFromTheOverflowMenuInvokesOnManageCategories() = runComposeUiTest {
+        // Arrange
+        var opened = false
+        setContent { VestaTheme { PantryScreen(items = items, onManageCategories = { opened = true }) } }
+
+        // Act
+        onNodeWithTag(PantryTestTags.OverflowButton).performClick()
+        onNodeWithTag(PantryTestTags.CategoriesMenuItem).performClick()
+
+        // Assert
+        assertEquals(true, opened)
+    }
 }

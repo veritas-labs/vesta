@@ -55,7 +55,7 @@ Read-only, so it is answered freshly each time.
 | `schema:name` | Required, non-blank. |
 | `schema:category` | Optional. A string, or an array of 1–2 strings: `[primary, secondary]`. New item without one → category "Uncategorized". |
 | `schema:gtin` | Optional barcode. Items are matched by barcode if present, else by name (case-insensitive). |
-| `schema:size` | Optional package size, e.g. `1 bottle`, `500g`. |
+| `schema:size` | Optional package size — see [Package size](#package-size). |
 | `schema:amountOfThisGood` | Optional integer 1–9999, default 1. **Added to** the current stock. |
 
 If the item already exists, omitted optional fields keep their existing values.
@@ -83,3 +83,18 @@ Reply on success:
 Vesta never replies to messages its x0x daemon doesn't vouch for (sender unverified, or not trusted), nor to JSON
 that isn't one of these commands. No reply at all almost always means missing trust in one direction, or the app
 not running.
+
+## Package size
+
+Send `schema:size` as `<amount><unit> <container>` — an amount, then a unit and/or a container. Vesta tidies what you
+send into its canonical form and echoes the stored value back as `result."schema:size"` in the `Accept`.
+
+| Part | Values (aliases such as `litre`, `ounce`, `can`, plurals and any case are accepted) |
+| --- | --- |
+| amount | a number: `500`, `1.5` |
+| unit | `g` `kg` `ml` `l` `oz` `lb` `fl oz` `pint` `gal` |
+| container | `tin` `jar` `bottle` `packet` `box` `bag` `carton` `tub` `tube` `pouch` `sachet` `tray` `roll` `pack` |
+
+Good: `500ml`, `1kg bag`, `15 oz can` (stored as `15 oz tin`), `6 pack`, `1 bottle`. Use a count with a container
+(`6 pack`) when there is no weight or volume. Text Vesta doesn't recognise is still stored (trimmed), not rejected, but
+it won't appear in the app's pickers — stick to the grammar. Omit `schema:size` for loose items with no packaging (apples, a bunch of bananas) or if you don't know it.
