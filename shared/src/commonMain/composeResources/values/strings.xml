@@ -13,6 +13,8 @@
     <string name="onboarding_create_home">Create a home</string>
     <string name="onboarding_pair_device">Pair device</string>
     <string name="onboarding_join_home">Join a home</string>
+    <string name="onboarding_pair_device_description">Link this device to your other devices.</string>
+    <string name="onboarding_join_home_description">Use an invite to join an existing home.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_edit_home">Edit home</string>
     <string name="onboarding_delete_home">Delete home</string>

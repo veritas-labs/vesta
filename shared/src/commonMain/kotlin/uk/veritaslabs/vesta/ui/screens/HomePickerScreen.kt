@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -40,13 +44,16 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.components.ActionCard
+import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
 import uk.veritaslabs.vesta.ui.components.AvatarButton
 import uk.veritaslabs.vesta.ui.components.AvatarButtonOrientation
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.ProfileAvatar
-import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.ic_devices
+import vesta.shared.generated.resources.ic_link
 import vesta.shared.generated.resources.img_armchair
 import vesta.shared.generated.resources.onboarding_create_home
 import vesta.shared.generated.resources.onboarding_delete_home
@@ -55,7 +62,9 @@ import vesta.shared.generated.resources.onboarding_empty_subtitle
 import vesta.shared.generated.resources.onboarding_empty_title
 import vesta.shared.generated.resources.onboarding_get_started
 import vesta.shared.generated.resources.onboarding_join_home
+import vesta.shared.generated.resources.onboarding_join_home_description
 import vesta.shared.generated.resources.onboarding_pair_device
+import vesta.shared.generated.resources.onboarding_pair_device_description
 import vesta.shared.generated.resources.onboarding_title
 
 private val HomePickerTabletBreakpoint = 600.dp
@@ -195,17 +204,27 @@ fun HomePickerScreen(
                 }
             }
 
-            SecondaryButton(
-                label = stringResource(Res.string.onboarding_pair_device),
-                onClick = onPairDevice,
-                modifier = Modifier.align(Alignment.CenterHorizontally).testTag(HomePickerTestTags.PairDeviceButton),
-            )
-            Spacer(Modifier.height(12.dp))
-            SecondaryButton(
-                label = stringResource(Res.string.onboarding_join_home),
-                onClick = onJoinHome,
-                modifier = Modifier.align(Alignment.CenterHorizontally).testTag(HomePickerTestTags.JoinHomeButton),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ActionCard(
+                    title = stringResource(Res.string.onboarding_pair_device),
+                    body = stringResource(Res.string.onboarding_pair_device_description),
+                    icon = { Icon(painterResource(Res.drawable.ic_devices), contentDescription = null) },
+                    orientation = ActionCardOrientation.Vertical,
+                    onClick = onPairDevice,
+                    modifier = Modifier.weight(1f).fillMaxHeight().testTag(HomePickerTestTags.PairDeviceButton),
+                )
+                ActionCard(
+                    title = stringResource(Res.string.onboarding_join_home),
+                    body = stringResource(Res.string.onboarding_join_home_description),
+                    icon = { Icon(painterResource(Res.drawable.ic_link), contentDescription = null) },
+                    orientation = ActionCardOrientation.Vertical,
+                    onClick = onJoinHome,
+                    modifier = Modifier.weight(1f).fillMaxHeight().testTag(HomePickerTestTags.JoinHomeButton),
+                )
+            }
             Spacer(Modifier.height(contentPadding))
             PrimaryButton(
                 label = stringResource(
