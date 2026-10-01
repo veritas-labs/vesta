@@ -16,11 +16,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,8 +40,12 @@ import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.X0xConnectivityIndicator
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.home_dashboard_back
+import vesta.shared.generated.resources.home_dashboard_nav_home
+import vesta.shared.generated.resources.home_dashboard_nav_settings
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_home
 import vesta.shared.generated.resources.ic_pantry
+import vesta.shared.generated.resources.ic_settings
 import vesta.shared.generated.resources.pantry_title
 
 private val HomeDashboardTabletBreakpoint = 600.dp
@@ -47,6 +55,8 @@ internal object HomeDashboardTestTags {
     const val BackButton = "home_dashboard_back_button"
     const val PantryTile = "home_dashboard_pantry_tile"
     const val X0xIndicator = "home_dashboard_x0x_indicator"
+    const val HomeNavItem = "home_dashboard_nav_home"
+    const val SettingsNavItem = "home_dashboard_nav_settings"
 }
 
 private data class DashboardTile(
@@ -60,7 +70,8 @@ private data class DashboardTile(
  * Landing page for a selected Home: a two-column grid of tiles, each an icon with a label, that
  * open the Home's areas. Only the Pantry ([onPantryClick]) exists so far. The app bar is titled with
  * [homeName], its back arrow calls [onBack] (to the Home picker), and its trailing indicator shows
- * [x0xConnectivity].
+ * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Settings
+ * ([onSettingsClick]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +81,8 @@ fun HomeDashboardScreen(
     x0xConnectivity: X0xConnectivity = X0xConnectivity.Connecting,
     onBack: () -> Unit = {},
     onPantryClick: () -> Unit = {},
+    onHomeClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
 ) {
     val tiles = listOf(
         DashboardTile(HomeDashboardTestTags.PantryTile, Res.string.pantry_title, Res.drawable.ic_pantry, onPantryClick),
@@ -121,6 +134,34 @@ fun HomeDashboardScreen(
                         onClick = tile.onClick,
                     )
                 }
+            }
+            NavigationBar(
+                modifier = Modifier.shadow(elevation = 8.dp),
+                containerColor = MaterialTheme.colorScheme.background,
+            ) {
+                val itemColors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                    indicatorColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onBackground,
+                    unselectedTextColor = MaterialTheme.colorScheme.onBackground,
+                )
+                NavigationBarItem(
+                    selected = true,
+                    onClick = onHomeClick,
+                    icon = { Icon(painterResource(Res.drawable.ic_home), contentDescription = null) },
+                    label = { Text(stringResource(Res.string.home_dashboard_nav_home)) },
+                    colors = itemColors,
+                    modifier = Modifier.testTag(HomeDashboardTestTags.HomeNavItem),
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onSettingsClick,
+                    icon = { Icon(painterResource(Res.drawable.ic_settings), contentDescription = null) },
+                    label = { Text(stringResource(Res.string.home_dashboard_nav_settings)) },
+                    colors = itemColors,
+                    modifier = Modifier.testTag(HomeDashboardTestTags.SettingsNavItem),
+                )
             }
         }
     }

@@ -36,6 +36,8 @@
     <string name="device_pairing_done">Done</string>
 
     <string name="home_dashboard_back">Back</string>
+    <string name="home_dashboard_nav_home">Home</string>
+    <string name="home_dashboard_nav_settings">Settings</string>
     <string name="x0x_connectivity_connected">Connected to the x0x network</string>
     <string name="x0x_connectivity_connecting">Connecting to the x0x network</string>
     <string name="x0x_label">x0x</string>
