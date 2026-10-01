@@ -1,0 +1,10 @@
+-- Version 7 -> 8: adds DevicePairingLink (see uk/veritaslabs/vesta/db/DevicePairingLink.sq).
+-- The table predates the migration files, so databases created before it was added
+-- (at version 1) never got it. IF NOT EXISTS keeps this a no-op where it does exist.
+CREATE TABLE IF NOT EXISTS DevicePairingLink (
+    id TEXT NOT NULL PRIMARY KEY,
+    publicKeyHex TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    expiresAt INTEGER NOT NULL,
+    consumed INTEGER NOT NULL DEFAULT 0
+);
