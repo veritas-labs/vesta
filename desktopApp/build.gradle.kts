@@ -18,6 +18,7 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "uk.veritaslabs.vesta.MainKt"
+        jvmArgs += listOf("-Dvesta.version=1.0.0", "-Dvesta.build=1")
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

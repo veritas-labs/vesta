@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta
 
+import platform.Foundation.NSBundle
 import platform.UIKit.UIDevice
 
 class IOSPlatform : Platform {
@@ -7,3 +8,11 @@ class IOSPlatform : Platform {
 }
 
 actual fun getPlatform(): Platform = IOSPlatform()
+
+actual fun getAppInfo(): AppInfo {
+    val info = NSBundle.mainBundle.infoDictionary
+    return AppInfo(
+        version = info?.get("CFBundleShortVersionString") as? String ?: "?",
+        buildCode = info?.get("CFBundleVersion") as? String ?: "?",
+    )
+}

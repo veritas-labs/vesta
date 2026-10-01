@@ -5,3 +5,9 @@ class JVMPlatform : Platform {
 }
 
 actual fun getPlatform(): Platform = JVMPlatform()
+
+/** Set by the desktop app's build (`jvmArgs`); a packaged app also carries `jpackage.app-version`. */
+actual fun getAppInfo(): AppInfo = AppInfo(
+    version = System.getProperty("vesta.version") ?: System.getProperty("jpackage.app-version") ?: "dev",
+    buildCode = System.getProperty("vesta.build") ?: "dev",
+)

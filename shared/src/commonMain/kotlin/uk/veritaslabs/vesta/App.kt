@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -44,11 +45,17 @@ import uk.veritaslabs.vesta.ui.screens.PantryListItem
 import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
+import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.rememberX0xConnectivity
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
 val LocalSelectedHome = compositionLocalOf<SelectedHome> { error("No SelectedHome provided; call within App()") }
+
+/** The user's dark theme choice and how to change it; provided by [App], which owns the theme. */
+class DarkThemeSetting(val enabled: Boolean, val onChange: (Boolean) -> Unit)
+
+val LocalDarkThemeSetting = compositionLocalOf<DarkThemeSetting> { error("No DarkThemeSetting provided; call within App()") }
 
 /**
  * Which Home the edit screen is open on: [homeId] is null when creating a new Home. [session] is unique
@@ -83,8 +90,13 @@ fun App(
     LaunchedEffect(homes, selectedHome) {
         homes.collect { list -> selectedHome.homeId.value?.let { id -> if (list.none { it.id == id }) selectedHome.clear() } }
     }
-    CompositionLocalProvider(LocalSelectedHome provides selectedHome) {
-        VestaTheme {
+    // Follows the system until the user flips the switch in Settings; not persisted yet.
+    val systemDark = isSystemInDarkTheme()
+    var darkOverride by remember { mutableStateOf<Boolean?>(null) }
+    val darkTheme = darkOverride ?: systemDark
+    val darkThemeSetting = remember(darkTheme) { DarkThemeSetting(darkTheme) { darkOverride = it } }
+    CompositionLocalProvider(LocalSelectedHome provides selectedHome, LocalDarkThemeSetting provides darkThemeSetting) {
+        VestaTheme(darkTheme = darkTheme) {
             Box(modifier = Modifier.fillMaxSize()) {
                 homeId?.let { id -> homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) } ?: run {
                     val target = editTarget
@@ -135,6 +147,13 @@ private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySo
             onBack = { selectedHome.clear() },
             x0xConnectivity = rememberX0xConnectivity(),
             onPantryClick = { destination = HomeDestination.Pantry },
+            onSettingsClick = { destination = HomeDestination.Settings },
+        )
+        HomeDestination.Settings -> SettingsScreen(
+            x0xConnectivity = rememberX0xConnectivity(),
+            darkTheme = LocalDarkThemeSetting.current.enabled,
+            onDarkThemeChange = LocalDarkThemeSetting.current.onChange,
+            onBack = { destination = HomeDestination.Dashboard },
         )
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -225,7 +244,7 @@ private fun PantryListItem.toDetails() = PantryItemDetails(
     stockCount = stockCount,
 )
 
-private enum class HomeDestination { Dashboard, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+private enum class HomeDestination { Dashboard, Settings, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With
