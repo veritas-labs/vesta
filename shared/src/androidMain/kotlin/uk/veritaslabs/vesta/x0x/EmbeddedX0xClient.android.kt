@@ -119,8 +119,14 @@ internal actual suspend fun openSseStream(
 
 private class EmbeddedX0xClient : AbstractX0xClient() {
 
-    private val mutex = Mutex()
-    private var started: EmbeddedX0x? = null
+    /**
+     * Every client shares the one daemon: a second start on the same data directory fails, which
+     * left all but the first client (e.g. the connectivity indicator) reporting the daemon offline.
+     */
+    private companion object {
+        val mutex = Mutex()
+        var started: EmbeddedX0x? = null
+    }
 
     override val endpoint: String
         get() = started?.let { "embedded · 127.0.0.1:${it.port}" } ?: "embedded x0x daemon"
