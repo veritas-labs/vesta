@@ -171,6 +171,41 @@ class DeviceSyncServiceTest {
     }
 
     @Test
+    fun pairingReportsEveryStepAsDoneInOrder() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+        val link = phone.showPairingLink()
+        val events = mutableListOf<Pair<PairingStep, PairingStepStatus>>()
+
+        // Act
+        val result = owner.service.pairWith(link) { step, status -> events += step to status }
+
+        // Assert
+        assertTrue(result.isSuccess)
+        assertEquals(PairingStep.entries, events.filter { it.second == PairingStepStatus.Done }.map { it.first })
+        assertTrue(events.none { it.second == PairingStepStatus.Failed })
+    }
+
+    @Test
+    fun pairingReportsAwaitingTheJoinAsFailedWhenTheNewDeviceNeverJoins() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+        val link = phone.showPairingLink()
+        network.offline += "agent-b"
+        val events = mutableListOf<Pair<PairingStep, PairingStepStatus>>()
+
+        // Act
+        val result = owner.service.pairWith(link) { step, status -> events += step to status }
+
+        // Assert
+        assertTrue(result.isFailure)
+        assertEquals(PairingStep.AwaitJoin to PairingStepStatus.Failed, events.last())
+        assertTrue(events.none { it.first == PairingStep.GrantAdmin })
+    }
+
+    @Test
     fun reconcileAddsMembersTheOwnerDidNotPairAndGreetsThem() = test {
         // Arrange
         val owner = Device("agent-a", "Laptop")

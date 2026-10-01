@@ -17,7 +17,7 @@ selectActive:
 SELECT * FROM DevicePairingLink WHERE consumed = 0 AND expiresAt > ? ORDER BY createdAt DESC LIMIT 1;
 
 insert:
-INSERT INTO DevicePairingLink(id, publicKeyHex, createdAt, expiresAt, consumed)
+INSERT OR REPLACE INTO DevicePairingLink(id, publicKeyHex, createdAt, expiresAt, consumed)
 VALUES (?, ?, ?, ?, 0);
 
 markConsumed:

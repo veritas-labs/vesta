@@ -131,9 +131,9 @@ dependencies = [
 
 [[package]]
 name = "ant-quic"
-version = "0.27.47"
+version = "0.27.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68a7edce09334819ee1022d805807b2bf904e5cf542abdffe5d66715a63795b3"
+checksum = "39b673f80aaf68d1245be706eda158c3e3334c127ac13998b9e4ae02522fbacf"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -183,7 +183,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
- "unicode-width 0.2.0",
+ "unicode-width 0.2.2",
  "uuid",
  "windows",
  "x25519-dalek",
@@ -3058,9 +3058,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.43"
+version = "0.23.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0283386ce02abc0151e1761d08802dfe86c173b0b494af5cbc086574e453da06"
+checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
 dependencies = [
  "aws-lc-rs",
  "log",
@@ -3185,9 +3185,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-coordinator"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1be016e00b506e4f6d1ecf35ecc9c295784056c813b6403df5c6a5718726f14f"
+checksum = "5a82ec68ce3e8dd5ed9764226a0c4ff6e2ba61d76302742fa5a33270867abe5e"
 dependencies = [
  "ant-quic",
  "anyhow",
@@ -3208,9 +3208,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-crdt-sync"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9212037bd21085c16d0b83e61d429b5832c1a044b19477d2810c2f4e6850a77a"
+checksum = "7147386b8d2eb547c2869e81f50c6b094bf319632392f2a625806c7400440a5b"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3223,9 +3223,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-groups"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa482efd17cd1e91372380130ddffff283ab343984c9472fec1a874f4922b238"
+checksum = "a343a9127d69021f4347b76d3fbc40b3070fad31bf731358691b27df5d2ce7c1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3236,9 +3236,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-identity"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b2732d292de0525aefbfc8f78f1ffb814659d1c5dbb737a0d872a2cb34153eb"
+checksum = "1d62ae79dd33379f081bff81969f4a8f5019633df841dd0752957809335e29b6"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3251,9 +3251,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-membership"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7441d3f3027e95b8ce7e775abf405e5ffc2cd2eab6313a42756c1ed366bc676"
+checksum = "40e19b3f60cc1f376d370f3f41b79392145a8b9dff7619381de412240a53e38b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3269,9 +3269,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-presence"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7007c681601c74c8ed1cf9a55fe883eece7492dbd15b3bdcbd658abfd45e788f"
+checksum = "a773c3ebb6ec5f2948fe4c25f0cb7b41c9c9ef6c6f3b5bc3a71d2c1be1d0d7ee"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3291,9 +3291,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-pubsub"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08fe2b4ba3376719d85909c7491379455258193b8940ac3737f6be7231bd1ae5"
+checksum = "6325b0efd16dc1d1cafc33da30921bd6bf9009026ca36906dcc3eac73225aa82"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3309,13 +3309,14 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
 name = "saorsa-gossip-rendezvous"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71d734d65d48080f4016104af5a644e42d50972a0be33fc2c604fb6a97f1cbf3"
+checksum = "123e1430559a030e666bccb2bfdc609ecb1df76ee7a36f98f37aaa622c0dc055"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3329,9 +3330,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-runtime"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6df1127022424155923d06ffedfb859a08100899d647d98c82312773c5a779e4"
+checksum = "4224d462bbb7a22e1b19c90505d8f2fad0668e4575af4b1d42bcb13902475d66"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3355,9 +3356,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-transport"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44e6207b2160526bb8c1a78ed0068dec44f099d4a446e47075a10c34db68ad27"
+checksum = "34277b5636bdc60129dbaa781deeedbefb67bf64645a0e2b38f8ad115cffdf95"
 dependencies = [
  "ant-quic",
  "anyhow",
@@ -3377,9 +3378,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-gossip-types"
-version = "0.5.75"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "330783ab0bb5b98c086ca0b8b4635c33e4679e025a8b5a37143881c3c4a9dc4c"
+checksum = "f084895d0ea124f3fd3c2eaee645ebb31b3e41939a50eb2d175ad248e5877ec7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3786,6 +3787,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "symlink"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a"
+
+[[package]]
 name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4174,6 +4181,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-appender"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "050686193eb999b4bb3bc2acfa891a13da00f79734704c4b8b4ef1a10b368a3c"
+dependencies = [
+ "crossbeam-channel",
+ "symlink",
+ "thiserror 2.0.20",
+ "time",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "tracing-attributes"
 version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4287,9 +4307,9 @@ checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
 
 [[package]]
 name = "unicode-width"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd"
+checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
 
 [[package]]
 name = "universal-hash"
@@ -5024,9 +5044,9 @@ dependencies = [
 
 [[package]]
 name = "x0x"
-version = "0.40.4"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7820a81ce9440dac6ea640827ff57dfadde4baa9ac0ac8b0a6e0951b0126912"
+checksum = "69e6e2b0b6db4ff314d0105b9c57bd5f3e76cdb94e3bd82e5ccd50dfe61c895c"
 dependencies = [
  "ant-quic",
  "anyhow",
@@ -5077,12 +5097,14 @@ dependencies = [
  "termimad",
  "terminal_size",
  "thiserror 2.0.20",
+ "tinyvec",
  "tokio",
  "tokio-stream",
  "tokio-util",
  "toml",
  "tower-http",
  "tracing",
+ "tracing-appender",
  "tracing-subscriber",
  "uuid",
  "which",

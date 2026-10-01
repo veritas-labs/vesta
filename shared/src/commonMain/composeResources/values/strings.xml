@@ -33,7 +33,15 @@
     <string name="device_pairing_paste_error_invalid">That doesn\'t look like a pairing link.</string>
     <string name="device_pairing_paste_error_expired">This pairing link has expired.</string>
     <string name="device_pairing_back">Back</string>
-    <string name="device_pairing_paste_pairing">Pairing…</string>
+    <string name="device_pairing_progress_title">Pairing device</string>
+    <string name="device_pairing_progress_failed_title">Pairing didn\'t finish</string>
+    <string name="device_pairing_progress_retry">Try again</string>
+    <string name="device_pairing_step_prepare_group">Prepare your device group</string>
+    <string name="device_pairing_step_create_invite">Create an invitation</string>
+    <string name="device_pairing_step_send_invite">Send the invitation to the new device</string>
+    <string name="device_pairing_step_await_join">Wait for the new device to join</string>
+    <string name="device_pairing_step_grant_admin">Give it the same access as this device</string>
+    <string name="device_pairing_step_save_device">Save it to your devices</string>
     <string name="device_pairing_paste_error_failed">Couldn\'t reach that device. Check it is open and online, then try again.</string>
 
     <string name="device_pairing_redeemed_title">Devices linked</string>

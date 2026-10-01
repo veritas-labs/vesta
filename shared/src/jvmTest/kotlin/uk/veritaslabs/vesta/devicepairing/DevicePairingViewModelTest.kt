@@ -45,6 +45,27 @@ class DevicePairingViewModelTest {
     }
 
     @Test
+    fun generatingAPairingLinkAgainReplacesTheEarlierOne() = runBlocking {
+        // Arrange
+        Dispatchers.setMain(Dispatchers.Default)
+        val database = openInMemoryDatabase()
+        var now = 1_000L
+        val viewModel = DevicePairingViewModel(database, nowMillis = { now }, agentId = { "aa11bb" })
+        viewModel.onGeneratePairingLink()
+        viewModel.awaitUiState { it is DevicePairingUiState.Generated }
+        viewModel.onBackToPicker() // leaves the first link stored, as backing out does
+
+        // Act
+        now = 2_000L
+        viewModel.onGeneratePairingLink()
+        viewModel.awaitUiState { (it as? DevicePairingUiState.Generated)?.link?.expiresAt == 2_000L + 5 * 60 * 1000L }
+
+        // Assert
+        val persisted = database.devicePairingLinkQueries.selectActive(2_000L).awaitAsOneOrNull()
+        assertEquals(2_000L + 5 * 60 * 1000L, persisted?.expiresAt)
+    }
+
+    @Test
     fun submittingTheGeneratedLinkRedeemsItAndConsumesTheLocalRecord() = runBlocking {
         // Arrange
         Dispatchers.setMain(Dispatchers.Default)

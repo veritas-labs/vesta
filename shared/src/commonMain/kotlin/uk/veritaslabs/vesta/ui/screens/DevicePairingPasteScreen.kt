@@ -35,7 +35,6 @@ import vesta.shared.generated.resources.device_pairing_back
 import vesta.shared.generated.resources.device_pairing_paste_body
 import vesta.shared.generated.resources.device_pairing_paste_field_label
 import vesta.shared.generated.resources.device_pairing_paste_field_placeholder
-import vesta.shared.generated.resources.device_pairing_paste_pairing
 import vesta.shared.generated.resources.device_pairing_paste_submit
 import vesta.shared.generated.resources.device_pairing_paste_title
 
@@ -54,14 +53,12 @@ internal object DevicePairingPasteTestTags {
  * device using a link generated on another one (see
  * `docs/adr/ADR-012-device-sync-over-x0x-group.md`). Reached from [DevicePairingScreen]'s
  * "paste" action. [errorMessage], when non-null, flags the field and shows
- * why the last submitted link couldn't be redeemed. While [isPairing], the link is being used
- * to add the new device, so submitting is disabled.
+ * why the last submitted link couldn't be redeemed.
  */
 @Composable
 fun DevicePairingPasteScreen(
     modifier: Modifier = Modifier,
     errorMessage: String? = null,
-    isPairing: Boolean = false,
     onSubmitPairingLink: (String) -> Unit = {},
     onCancel: () -> Unit = {},
 ) {
@@ -128,8 +125,8 @@ fun DevicePairingPasteScreen(
                     )
                 }
                 PrimaryButton(
-                    label = stringResource(if (isPairing) Res.string.device_pairing_paste_pairing else Res.string.device_pairing_paste_submit),
-                    enabled = pastedLink.isNotBlank() && !isPairing,
+                    label = stringResource(Res.string.device_pairing_paste_submit),
+                    enabled = pastedLink.isNotBlank(),
                     onClick = { onSubmitPairingLink(pastedLink) },
                     modifier = Modifier.padding(top = 16.dp).testTag(DevicePairingPasteTestTags.SubmitButton),
                 )

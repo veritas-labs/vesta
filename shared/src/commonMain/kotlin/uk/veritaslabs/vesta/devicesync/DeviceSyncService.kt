@@ -84,16 +84,52 @@ class DeviceSyncService(
      * Owner side of pairing: adds the device that showed [link] to this device's group (creating the group if this
      * is the first device to pair), waits for it to be admitted and makes it an admin.
      */
-    suspend fun pairWith(link: PairingLink): Result<Unit> = lock.withLock {
+    suspend fun pairWith(link: PairingLink, onProgress: PairingProgressListener = { _, _ -> }): Result<Unit> = lock.withLock {
         attempt {
-            val self = selfId()
-            require(link.agentId != self) { "that is this device's own pairing link" }
-            val groupId = currentGroup() ?: client.createGroup(GroupName).also { setGroup(it) }
-            val invite = client.createGroupInvite(groupId)
-            val message = DeviceSyncMessage.encode(DeviceSyncMessage.Invite(invite, deviceName()))
-            awaitActive(groupId, link.agentId) { send(link.agentId, message) }
-            attempt { client.setGroupMemberRole(groupId, link.agentId, "admin") }
-            devices.add(link.deviceName ?: shortName(link.agentId), link.agentId)
+            var current = PairingStep.PrepareGroup
+            fun begin(step: PairingStep) {
+                current = step
+                onProgress(step, PairingStepStatus.Running)
+            }
+            fun finish(step: PairingStep) = onProgress(step, PairingStepStatus.Done)
+            try {
+                begin(PairingStep.PrepareGroup)
+                val self = selfId()
+                require(link.agentId != self) { "that is this device's own pairing link" }
+                val groupId = currentGroup() ?: client.createGroup(GroupName).also { setGroup(it) }
+                finish(PairingStep.PrepareGroup)
+
+                begin(PairingStep.CreateInvite)
+                val invite = client.createGroupInvite(groupId)
+                val message = DeviceSyncMessage.encode(DeviceSyncMessage.Invite(invite, deviceName()))
+                finish(PairingStep.CreateInvite)
+
+                begin(PairingStep.SendInvite)
+                var delivered = false
+                awaitActive(groupId, link.agentId) {
+                    send(link.agentId, message)
+                    if (!delivered) {
+                        delivered = true
+                        finish(PairingStep.SendInvite)
+                        begin(PairingStep.AwaitJoin)
+                    }
+                }
+                if (!delivered) finish(PairingStep.SendInvite) // joined before any send was confirmed
+                finish(PairingStep.AwaitJoin)
+
+                begin(PairingStep.GrantAdmin)
+                attempt { client.setGroupMemberRole(groupId, link.agentId, "admin") }
+                finish(PairingStep.GrantAdmin)
+
+                begin(PairingStep.SaveDevice)
+                devices.add(link.deviceName ?: shortName(link.agentId), link.agentId)
+                finish(PairingStep.SaveDevice)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                onProgress(current, PairingStepStatus.Failed)
+                throw e
+            }
         }
     }
 

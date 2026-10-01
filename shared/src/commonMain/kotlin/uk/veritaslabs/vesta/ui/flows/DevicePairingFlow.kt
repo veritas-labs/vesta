@@ -10,6 +10,7 @@ import uk.veritaslabs.vesta.devicepairing.DevicePairingUiState
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
 import uk.veritaslabs.vesta.ui.screens.DevicePairingGeneratedScreen
 import uk.veritaslabs.vesta.ui.screens.DevicePairingPasteScreen
+import uk.veritaslabs.vesta.ui.screens.DevicePairingProgressScreen
 import uk.veritaslabs.vesta.ui.screens.DevicePairingRedeemedScreen
 import uk.veritaslabs.vesta.ui.screens.DevicePairingScreen
 import vesta.shared.generated.resources.Res
@@ -52,11 +53,18 @@ fun DevicePairingFlow(viewModel: DevicePairingViewModel, modifier: Modifier = Mo
                     onExit?.invoke()
                 },
             )
+        } else if (state.pairing != null) {
+            DevicePairingProgressScreen(
+                steps = state.pairing.steps,
+                modifier = modifier,
+                errorMessage = state.error?.let { pasteErrorMessage(it) },
+                onRetry = viewModel::onRetryPairing,
+                onCancel = viewModel::onDismissPairing,
+            )
         } else {
             DevicePairingPasteScreen(
                 modifier = modifier,
                 errorMessage = state.error?.let { pasteErrorMessage(it) },
-                isPairing = state.isPairing,
                 onSubmitPairingLink = viewModel::onSubmitPairingLink,
                 onCancel = viewModel::onBackToPicker,
             )

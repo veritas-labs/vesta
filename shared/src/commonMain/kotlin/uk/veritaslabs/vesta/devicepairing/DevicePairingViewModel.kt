@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.random.Random
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -15,6 +18,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
+import uk.veritaslabs.vesta.devicesync.PairingStep
+import uk.veritaslabs.vesta.devicesync.PairingStepStatus
 
 /** How long a generated pairing link stays redeemable before it must be regenerated. */
 private const val PairingLinkTtlMillis = 5 * 60 * 1000L
@@ -28,9 +33,17 @@ sealed interface DevicePairingUiState {
     data class Paste(
         val error: DevicePairingPasteError? = null,
         val redeemedLink: PairingLink? = null,
-        /** True while the pasted link's device is being added; that can take a while if it is slow to answer. */
-        val isPairing: Boolean = false,
+        /** Set from the moment a pasted link is submitted until the user backs out of a failure or pairing succeeds. */
+        val pairing: PairingChecklist? = null,
     ) : DevicePairingUiState
+}
+
+/** Where each of [DeviceSyncService.pairWith]'s steps has got to for the device that showed [link]. */
+data class PairingChecklist(
+    val link: PairingLink,
+    val steps: Map<PairingStep, PairingStepStatus> = PairingStep.entries.associateWith { PairingStepStatus.Pending },
+) {
+    val failed: Boolean get() = PairingStepStatus.Failed in steps.values
 }
 
 enum class DevicePairingPasteError { InvalidFormat, Expired, PairingFailed }
@@ -52,6 +65,8 @@ class DevicePairingViewModel(
     private val agentId: suspend () -> String = { randomHex(byteCount = 32) },
     private val deviceName: () -> String = { "" },
     private val deviceSync: DeviceSyncService? = null,
+    /** How long the finished checklist stays on screen before the confirmation replaces it. */
+    private val successHold: Duration = 700.milliseconds,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DevicePairingUiState>(DevicePairingUiState.Picker)
@@ -100,14 +115,7 @@ class DevicePairingViewModel(
         when {
             link == null -> setPasteError(DevicePairingPasteError.InvalidFormat)
             link.isExpired(nowMillis()) -> setPasteError(DevicePairingPasteError.Expired)
-            deviceSync != null -> {
-                _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(error = null, isPairing = true) ?: it }
-                viewModelScope.launch {
-                    deviceSync.pairWith(link)
-                        .onSuccess { _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(redeemedLink = link, isPairing = false) ?: it } }
-                        .onFailure { setPasteError(DevicePairingPasteError.PairingFailed) }
-                }
-            }
+            deviceSync != null -> pair(deviceSync, link)
             else -> viewModelScope.launch {
                 // Best-effort local bookkeeping for the case where this same device generated
                 // the link (this manual round trip): mark it consumed so it can't be redeemed
@@ -120,13 +128,46 @@ class DevicePairingViewModel(
         }
     }
 
+    private fun pair(sync: DeviceSyncService, link: PairingLink) {
+        updatePaste { it.copy(error = null, pairing = PairingChecklist(link)) }
+        viewModelScope.launch {
+            val result = sync.pairWith(link) { step, status ->
+                updatePaste { paste ->
+                    paste.copy(pairing = paste.pairing?.let { it.copy(steps = it.steps + (step to status)) })
+                }
+            }
+            result
+                .onSuccess {
+                    delay(successHold)
+                    updatePaste { it.copy(redeemedLink = link, pairing = null) }
+                }
+                // The checklist stays up, with the failed step marked, until the user retries or backs out.
+                .onFailure { updatePaste { it.copy(error = DevicePairingPasteError.PairingFailed) } }
+        }
+    }
+
+    /** Runs the checklist again for the link that just failed. */
+    fun onRetryPairing() {
+        val sync = deviceSync ?: return
+        (_uiState.value as? DevicePairingUiState.Paste)?.pairing?.let { pair(sync, it.link) }
+    }
+
+    /** Leaves a failed checklist for the paste form, so another link can be tried. */
+    fun onDismissPairing() {
+        updatePaste { it.copy(pairing = null) }
+    }
+
+    private fun updatePaste(transform: (DevicePairingUiState.Paste) -> DevicePairingUiState.Paste) {
+        _uiState.update { (it as? DevicePairingUiState.Paste)?.let(transform) ?: it }
+    }
+
     fun onBackToPicker() {
         waitingForInvite?.cancel()
         _uiState.value = DevicePairingUiState.Picker
     }
 
     private fun setPasteError(error: DevicePairingPasteError) {
-        _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(error = error, redeemedLink = null, isPairing = false) ?: it }
+        _uiState.update { (it as? DevicePairingUiState.Paste)?.copy(error = error, redeemedLink = null, pairing = null) ?: it }
     }
 }
 
