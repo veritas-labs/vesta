@@ -1,0 +1,6 @@
+-- Version 4 -> 5: adds SyncedDevice (see uk/veritaslabs/vesta/db/SyncedDevice.sq).
+CREATE TABLE SyncedDevice (
+    agentId TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    addedAt INTEGER NOT NULL
+);

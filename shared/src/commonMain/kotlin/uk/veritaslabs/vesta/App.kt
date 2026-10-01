@@ -28,6 +28,7 @@ import uk.veritaslabs.vesta.agent.AgentApprovalHost
 import uk.veritaslabs.vesta.db.DatabaseDriverFactory
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.createVestaDatabase
+import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.SelectedHome
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
@@ -68,7 +69,8 @@ private data class HomeEditTarget(val homeId: String?, val session: Int)
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
  * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
- * approval is offered over whatever screen is showing.
+ * approval is offered over whatever screen is showing. With [syncedDevices], the Synced devices screen lists and
+ * removes the user's real devices; without one (previews) it is always empty.
  */
 @Composable
 @Preview
@@ -77,7 +79,10 @@ fun App(
     selectedHome: SelectedHome = remember { SelectedHome() },
     homeRepository: HomeRepository? = null,
     agentAccess: AgentAccessRepository? = null,
-    homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name -> HomeContent(id, name) },
+    syncedDevices: SyncedDeviceRepository? = null,
+    homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name ->
+        HomeContent(id, name, syncedDevices = syncedDevices)
+    },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
     val homeList by homes.collectAsStateWithLifecycle(emptyList())
@@ -129,8 +134,14 @@ fun App(
  * in the Pantry). Without a [pantrySource] the Pantry is empty and saves are dropped.
  */
 @Composable
-private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySource? = null) {
+private fun HomeContent(
+    homeId: String,
+    homeName: String,
+    pantrySource: PantrySource? = null,
+    syncedDevices: SyncedDeviceRepository? = null,
+) {
     val selectedHome = LocalSelectedHome.current
+    val scope = rememberCoroutineScope()
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
@@ -142,6 +153,7 @@ private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySo
     val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
+    val syncedDeviceList by (syncedDevices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(
             homeName = homeName,
@@ -157,9 +169,10 @@ private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySo
             onSyncedDevicesClick = { destination = HomeDestination.SettingsSyncedDevices },
             onBack = { destination = HomeDestination.Dashboard },
         )
-        // No synced-device storage or enrollment exists yet (ADR-003), so the list is always empty and adding does nothing.
+        // Enrollment (ADR-003) isn't implemented, so nothing adds devices yet and the add button does nothing.
         HomeDestination.SettingsSyncedDevices -> SettingsSyncedDevicesScreen(
-            devices = emptyList(),
+            devices = syncedDeviceList,
+            onRemoveDevice = { device -> syncedDevices?.let { scope.launch { it.remove(device.agentId) } } },
             onBack = { destination = HomeDestination.Settings },
         )
         HomeDestination.Pantry -> {
@@ -269,13 +282,15 @@ fun VestaApp(
     LaunchedEffect(database) { backgroundServices?.invoke(this, database) }
     val homeRepository = remember { HomeRepository(database) }
     val agentAccess = remember { AgentAccessRepository(database) }
+    val syncedDevices = remember { SyncedDeviceRepository(database) }
     App(
         homes = homeRepository.homes,
         homeRepository = homeRepository,
         agentAccess = agentAccess,
+        syncedDevices = syncedDevices,
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
-            HomeContent(homeId, homeName, pantrySource)
+            HomeContent(homeId, homeName, pantrySource, syncedDevices)
         },
     )
 }
