@@ -47,6 +47,7 @@
     <string name="settings_section_application">Application</string>
     <string name="settings_application_version">Version</string>
     <string name="settings_application_build">Build code</string>
+    <string name="settings_synced_devices">Synced devices</string>
     <string name="settings_section_network">Network</string>
     <string name="settings_network_status">x0x status</string>
     <string name="settings_network_peers">Peers</string>
@@ -135,4 +136,15 @@
     <string name="agent_approval_body">The agent %1$s is trusted on your x0x network and is asking to list your homes and add items to their pantries.</string>
     <string name="agent_approval_allow">Allow</string>
     <string name="agent_approval_deny">Deny</string>
+
+    <string name="synced_devices_title">Synced devices</string>
+    <string name="synced_devices_back">Back</string>
+    <string name="synced_devices_empty_title">No synced devices</string>
+    <string name="synced_devices_empty_subtitle">Add another phone, tablet or computer to keep your Homes in step across all your devices.</string>
+    <string name="synced_devices_add">Add device</string>
+    <string name="synced_devices_remove">Remove %1$s</string>
+    <string name="synced_devices_remove_confirm_title">Remove device?</string>
+    <string name="synced_devices_remove_confirm_body">%1$s will stop syncing with this account. You can add it again later.</string>
+    <string name="synced_devices_remove_confirm">Remove</string>
+    <string name="synced_devices_remove_cancel">Cancel</string>
 </resources>

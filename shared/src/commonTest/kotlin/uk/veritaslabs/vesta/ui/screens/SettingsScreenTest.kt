@@ -123,6 +123,20 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun tappingSyncedDevicesInvokesOnSyncedDevicesClick() = runComposeUiTest {
+        // Arrange
+        var clicks = 0
+        setContent { VestaTheme { SettingsScreen(onSyncedDevicesClick = { clicks++ }) } }
+
+        // Act
+        onNodeWithTag(SettingsTestTags.SyncedDevicesRow).performClick()
+
+        // Assert
+        assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun tappingBackInvokesOnBack() = runComposeUiTest {
         // Arrange
         var backs = 0

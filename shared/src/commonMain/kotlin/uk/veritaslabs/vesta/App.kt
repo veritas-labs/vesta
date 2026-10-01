@@ -46,6 +46,7 @@ import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
+import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.rememberX0xConnectivity
 
@@ -153,7 +154,13 @@ private fun HomeContent(homeId: String, homeName: String, pantrySource: PantrySo
             x0xConnectivity = rememberX0xConnectivity(),
             darkTheme = LocalDarkThemeSetting.current.enabled,
             onDarkThemeChange = LocalDarkThemeSetting.current.onChange,
+            onSyncedDevicesClick = { destination = HomeDestination.SettingsSyncedDevices },
             onBack = { destination = HomeDestination.Dashboard },
+        )
+        // No synced-device storage or enrollment exists yet (ADR-003), so the list is always empty and adding does nothing.
+        HomeDestination.SettingsSyncedDevices -> SettingsSyncedDevicesScreen(
+            devices = emptyList(),
+            onBack = { destination = HomeDestination.Settings },
         )
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -244,7 +251,7 @@ private fun PantryListItem.toDetails() = PantryItemDetails(
     stockCount = stockCount,
 )
 
-private enum class HomeDestination { Dashboard, Settings, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+private enum class HomeDestination { Dashboard, Settings, SettingsSyncedDevices, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With

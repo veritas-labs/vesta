@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -40,6 +41,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_chevron_right
 import vesta.shared.generated.resources.settings_application_build
 import vesta.shared.generated.resources.settings_application_version
 import vesta.shared.generated.resources.settings_back
@@ -54,6 +56,7 @@ import vesta.shared.generated.resources.settings_section_application
 import vesta.shared.generated.resources.settings_section_device
 import vesta.shared.generated.resources.settings_section_appearance
 import vesta.shared.generated.resources.settings_section_network
+import vesta.shared.generated.resources.settings_synced_devices
 import vesta.shared.generated.resources.settings_title
 
 private val SettingsTabletBreakpoint = 600.dp
@@ -65,6 +68,7 @@ internal object SettingsTestTags {
     const val DarkThemeRow = "settings_dark_theme_row"
     const val VersionRow = "settings_application_version"
     const val BuildRow = "settings_application_build"
+    const val SyncedDevicesRow = "settings_synced_devices"
     const val PlatformRow = "settings_device_platform"
     const val NetworkStatusRow = "settings_network_status"
     const val NetworkPeersRow = "settings_network_peers"
@@ -73,7 +77,7 @@ internal object SettingsTestTags {
 /**
  * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information.
- * The back arrow calls [onBack].
+ * The Synced devices row calls [onSyncedDevicesClick]; the back arrow calls [onBack].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,6 +88,7 @@ fun SettingsScreen(
     x0xConnectivity: X0xConnectivity = X0xConnectivity.Connecting,
     darkTheme: Boolean = isSystemInDarkTheme(),
     onDarkThemeChange: (Boolean) -> Unit = {},
+    onSyncedDevicesClick: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -138,6 +143,17 @@ fun SettingsScreen(
                 }
                 item {
                     SettingsSection(stringResource(Res.string.settings_section_device)) {
+                        SettingsRow(
+                            label = stringResource(Res.string.settings_synced_devices),
+                            modifier = Modifier.testTag(SettingsTestTags.SyncedDevicesRow),
+                            onClick = onSyncedDevicesClick,
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_chevron_right),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         InfoRow(
                             stringResource(Res.string.settings_device_platform),
                             platformName,
@@ -191,6 +207,7 @@ private fun SettingsSection(title: String, content: @Composable () -> Unit) {
 private fun SettingsRow(
     label: String,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     trailing: @Composable () -> Unit,
 ) {
     val shape = MaterialTheme.shapes.medium
@@ -199,6 +216,7 @@ private fun SettingsRow(
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), shape)
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
