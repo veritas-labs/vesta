@@ -29,9 +29,11 @@ import uk.veritaslabs.vesta.db.DatabaseDriverFactory
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.createVestaDatabase
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
+import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
+import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.SelectedHome
@@ -298,20 +300,25 @@ private enum class HomeDestination { Dashboard, Settings, SettingsSyncedDevices,
  * [openPantry] (platforms that have the Pantry Automerge document layer), each Home's Pantry is loaded
  * from and saved to the database; without it the Pantry is not persisted. [backgroundServices], if given,
  * runs for as long as the app is shown, with the database (created here, so callers can't have it earlier).
+ * [dataSync], if given, builds the sync of the user's data (Homes, Pantries) between their paired devices from the
+ * database, the x0x client and the device list; it is fed Home changes and run for as long as the app is shown.
  */
 @Composable
 fun VestaApp(
     openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
     homeContent: (@Composable (homeId: String, homeName: String) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
+    dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
     LaunchedEffect(database) { backgroundServices?.invoke(this, database) }
-    val homeRepository = remember { HomeRepository(database) }
+    val client = remember { createX0xClient() }
+    val devices = remember { SyncedDeviceRepository(database) }
+    val deviceDataSync = remember { dataSync?.invoke(database, client, devices) }
+    LaunchedEffect(deviceDataSync) { deviceDataSync?.run() }
+    val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges) }
     val agentAccess = remember { AgentAccessRepository(database) }
     val deviceSync = remember {
-        val client = createX0xClient()
-        val devices = SyncedDeviceRepository(database)
         val service = DeviceSyncService(client, database, devices)
         DeviceSyncHost(devices, service) {
             DevicePairingViewModel(

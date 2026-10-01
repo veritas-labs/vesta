@@ -61,7 +61,7 @@ Removal stops *future* sync only. Nothing remotely wipes data already on a remov
   it receives while showing its link. A confirmation step showing the inviting device's name is a sensible hardening.
 - Offline devices miss a group replacement and need re-pairing. Replacing the group changes its id, which is why the
   current id is kept in the local `DeviceSyncGroup` table.
-- This ADR creates the roster and the trust boundary only. **No application data is replicated yet.** The next step
+- This ADR creates the roster and the trust boundary only. **This ADR replicates no application data;** [[ADR-013]] does. The next step was
   is a per-user Automerge document (device registry, then the Home list) synced over this group with the mechanism
   from [[ADR-005]], rather than the size-capped key-value store Watch-It uses.
 

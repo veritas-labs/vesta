@@ -6,7 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import uk.veritaslabs.vesta.automerge.openPantryDocumentSource
+import uk.veritaslabs.vesta.agent.AgentCommandService
+import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
 import uk.veritaslabs.vesta.x0x.VestaAndroid
 
 class MainActivity : ComponentActivity() {
@@ -17,11 +18,18 @@ class MainActivity : ComponentActivity() {
         // App-private storage for the embedded x0x daemon and the local database.
         VestaAndroid.install(this)
 
-        // TODO(ADR-009): agent commands are wired on desktop only. To enable them here, share an
-        // AgentCommandService between openPantry and backgroundServices as desktopApp's main.kt does
+        // The Pantry screen and device sync must share each Home's Pantry source, so both go through this service.
+        // TODO(ADR-009): agent commands are wired on desktop only. To enable them here, also pass
+        // backgroundServices = { database -> agentCommands.run(database) } as desktopApp's main.kt does
         // (and decide how the allowlist is configured on a phone, where there is no environment variable).
+        val agentCommands = AgentCommandService()
         setContent {
-            VestaApp(openPantry = { database, homeId -> openPantryDocumentSource(database, homeId) })
+            VestaApp(
+                openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
+                dataSync = { database, client, devices ->
+                    DeviceDataSyncService(client, database, devices, agentCommands.pantrySources(database))
+                },
+            )
         }
     }
 }

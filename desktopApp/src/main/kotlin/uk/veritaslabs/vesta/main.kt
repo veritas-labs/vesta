@@ -4,6 +4,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import uk.veritaslabs.vesta.agent.AgentCommandService
+import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
 
 fun main() = application {
     Window(
@@ -15,6 +16,9 @@ fun main() = application {
         VestaApp(
             openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
             backgroundServices = { database -> agentCommands.run(database) },
+            dataSync = { database, client, devices ->
+                DeviceDataSyncService(client, database, devices, agentCommands.pantrySources(database))
+            },
         )
     }
 }

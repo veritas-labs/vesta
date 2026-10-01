@@ -12,9 +12,10 @@ import uk.veritaslabs.vesta.ui.screens.HomeDetails
 import uk.veritaslabs.vesta.ui.screens.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
-/** Reads and writes Homes in the local [VestaDatabase]. */
+/** Reads and writes Homes in the local [VestaDatabase], telling [changes] about each change. */
 class HomeRepository(
     private val database: VestaDatabase,
+    private val changes: HomeChangeListener? = null,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -32,17 +33,22 @@ class HomeRepository(
     /** Creates a Home named [name] with the given [shape], returning its new id. */
     suspend fun create(name: String, shape: HomeShape): String {
         val id = Uuid.random().toString()
-        database.homeQueries.insert(id, name, shape.storageValue, nowMillis())
+        val createdAt = nowMillis()
+        database.homeQueries.insert(id, name, shape.storageValue, createdAt)
+        changes?.saved(StoredHome(id, name, shape.storageValue, createdAt))
         return id
     }
 
     /** Renames the Home with the given [id] and changes its [shape]. */
     suspend fun update(id: String, name: String, shape: HomeShape) {
         database.homeQueries.updateHome(name, shape.storageValue, id)
+        database.homeQueries.selectById(id).awaitAsOneOrNull()
+            ?.let { changes?.saved(StoredHome(it.id, it.name, it.shape, it.createdAt)) }
     }
 
     /** Deletes the Home with the given [id]; its members are removed with it. */
     suspend fun delete(id: String) {
         database.homeQueries.deleteById(id)
+        changes?.deleted(id)
     }
 }

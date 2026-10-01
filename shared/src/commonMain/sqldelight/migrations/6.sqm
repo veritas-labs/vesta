@@ -1,0 +1,6 @@
+-- Version 6 -> 7: adds UserDocument (see uk/veritaslabs/vesta/db/UserDocument.sq).
+CREATE TABLE UserDocument (
+    documentId TEXT NOT NULL PRIMARY KEY,
+    bytes BLOB NOT NULL,
+    updatedAt INTEGER NOT NULL
+);

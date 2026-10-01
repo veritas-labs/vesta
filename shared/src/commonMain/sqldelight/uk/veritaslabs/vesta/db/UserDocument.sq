@@ -1,0 +1,15 @@
+-- Persisted Automerge documents that belong to the user rather than to a Home (docs/adr/ADR-013-device-data-sync.md):
+-- today only the Home registry, which is how a user's devices learn about each other's Homes. `bytes` is
+-- Document.save(). Local and unsynced as a table; the document inside is what syncs.
+-- Keep in sync with migrations/6.sqm, which creates this table for databases that predate it.
+CREATE TABLE UserDocument (
+    documentId TEXT NOT NULL PRIMARY KEY,
+    bytes BLOB NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+selectById:
+SELECT * FROM UserDocument WHERE documentId = ?;
+
+upsert:
+INSERT OR REPLACE INTO UserDocument(documentId, bytes, updatedAt) VALUES (?, ?, ?);
