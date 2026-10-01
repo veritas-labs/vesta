@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -220,5 +221,51 @@ class PantryItemEditScreenTest {
 
         // Assert
         assertEquals(existingItem.copy(title = "Extra Heinz Ketchup"), draft)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun stockCountShowsTheItemsCurrentCount() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { PantryItemEditScreen(item = existingItem) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(PantryItemEditTestTags.StockCountField).performScrollTo().assertTextEquals("4")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingPlusAndMinusAdjustsTheCountAndSavesIt() = runComposeUiTest {
+        // Arrange
+        var saved: PantryItemDetails? = null
+        setContent {
+            VestaTheme { PantryItemEditScreen(item = existingItem, onSave = { saved = it }) }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.StockIncreaseButton).performScrollTo().performClick().performClick()
+        onNodeWithTag(PantryItemEditTestTags.StockDecreaseButton).performClick()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().performClick()
+
+        // Assert
+        onNodeWithTag(PantryItemEditTestTags.StockCountField).assertTextEquals("5")
+        assertEquals(5, saved?.stockCount)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun minusIsDisabledAtZeroSoTheCountCannotGoNegative() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { PantryItemEditScreen(item = existingItem.copy(stockCount = 1)) } }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.StockDecreaseButton).performScrollTo().performClick()
+
+        // Assert
+        onNodeWithTag(PantryItemEditTestTags.StockCountField).assertTextEquals("0")
+        onNodeWithTag(PantryItemEditTestTags.StockDecreaseButton).assertIsNotEnabled()
     }
 }
