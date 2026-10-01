@@ -13,20 +13,20 @@
     <string name="onboarding_create_home">Create a home</string>
     <string name="onboarding_pair_device">Pair device</string>
     <string name="onboarding_join_home">Join a home</string>
-    <string name="onboarding_pair_device_description">Link this device to your other devices.</string>
+    <string name="onboarding_pair_device_description">Pair this device with your other devices.</string>
     <string name="onboarding_join_home_description">Use an invite to join an existing home.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_edit_home">Edit home</string>
     <string name="onboarding_delete_home">Delete home</string>
 
     <string name="device_pairing_generate_title">This is the new device</string>
-    <string name="device_pairing_generate_body">Show a link that a device you already use can read to add this one.</string>
-    <string name="device_pairing_paste_title">Add a new device</string>
-    <string name="device_pairing_paste_body">Paste the link shown on the new device.</string>
+    <string name="device_pairing_generate_body">Show a pairing link that a device you already use can read to pair with this one.</string>
+    <string name="device_pairing_paste_title">Pair a new device</string>
+    <string name="device_pairing_paste_body">Paste the pairing link shown on the new device.</string>
 
     <string name="device_pairing_generated_title">Scan this on a device you already use</string>
-    <string name="device_pairing_generated_body">Or copy the link below and send it to the other device however you like.</string>
-    <string name="device_pairing_generated_copy_link">Copy link</string>
+    <string name="device_pairing_generated_body">Or copy the pairing link below and send it to the other device however you like.</string>
+    <string name="device_pairing_generated_copy_link">Copy pairing link</string>
     <string name="device_pairing_paste_field_label">Pairing link</string>
     <string name="device_pairing_paste_field_placeholder">Paste the link here</string>
     <string name="device_pairing_paste_submit">Pair device</string>
@@ -36,16 +36,16 @@
     <string name="device_pairing_progress_title">Pairing device</string>
     <string name="device_pairing_progress_failed_title">Pairing didn\'t finish</string>
     <string name="device_pairing_progress_retry">Try again</string>
-    <string name="device_pairing_step_prepare_group">Prepare your device group</string>
+    <string name="device_pairing_step_prepare_group">Prepare to pair your devices</string>
     <string name="device_pairing_step_create_invite">Create an invitation</string>
     <string name="device_pairing_step_send_invite">Send the invitation to the new device</string>
     <string name="device_pairing_step_await_join">Wait for the new device to join</string>
     <string name="device_pairing_step_grant_admin">Give it the same access as this device</string>
-    <string name="device_pairing_step_save_device">Save it to your devices</string>
+    <string name="device_pairing_step_save_device">Save it to your paired devices</string>
     <string name="device_pairing_paste_error_failed">Couldn\'t reach that device. Check it is open and online, then try again.</string>
 
-    <string name="device_pairing_redeemed_title">Devices linked</string>
-    <string name="device_pairing_redeemed_body">Your devices are now paired and will stay in sync.</string>
+    <string name="device_pairing_redeemed_title">Devices paired</string>
+    <string name="device_pairing_redeemed_body">Your devices are now paired and will keep your Homes up to date.</string>
     <string name="device_pairing_done">Done</string>
 
     <string name="home_dashboard_back">Back</string>
@@ -60,7 +60,7 @@
     <string name="settings_section_application">Application</string>
     <string name="settings_application_version">Version</string>
     <string name="settings_application_build">Build code</string>
-    <string name="settings_synced_devices">Synced devices</string>
+    <string name="settings_synced_devices">Paired devices</string>
     <string name="settings_section_network">Network</string>
     <string name="settings_network_status">x0x status</string>
     <string name="settings_network_peers">Peers</string>
@@ -150,14 +150,14 @@
     <string name="agent_approval_allow">Allow</string>
     <string name="agent_approval_deny">Deny</string>
 
-    <string name="synced_devices_title">Synced devices</string>
+    <string name="synced_devices_title">Paired devices</string>
     <string name="synced_devices_back">Back</string>
-    <string name="synced_devices_empty_title">No synced devices</string>
-    <string name="synced_devices_empty_subtitle">Add another phone, tablet or computer to keep your Homes in step across all your devices.</string>
-    <string name="synced_devices_add">Add device</string>
+    <string name="synced_devices_empty_title">No paired devices</string>
+    <string name="synced_devices_empty_subtitle">Pair another phone, tablet or computer so your Homes stay up to date across all your devices.</string>
+    <string name="synced_devices_add">Pair device</string>
     <string name="synced_devices_remove">Remove %1$s</string>
     <string name="synced_devices_remove_confirm_title">Remove device?</string>
-    <string name="synced_devices_remove_confirm_body">%1$s will stop syncing with this account. You can add it again later.</string>
+    <string name="synced_devices_remove_confirm_body">%1$s will no longer be paired with this device. You can pair it again later.</string>
     <string name="synced_devices_remove_confirm">Remove</string>
     <string name="synced_devices_remove_cancel">Cancel</string>
 </resources>
