@@ -48,7 +48,31 @@ sealed interface HomeJoinMessage {
     @SerialName("homejoin.ack")
     data class Ack(val homeId: String, val of: String) : HomeJoinMessage
 
+    /**
+     * Joiner to admin: "I opened an invite link for this Home", with the link's secret
+     * (docs/adr/ADR-018-invite-links.md). The admin only asks a person to approve it; the secret alone admits nobody.
+     */
+    @Serializable
+    @SerialName("homejoin.request")
+    data class Request(
+        val homeId: String,
+        val secret: String,
+        val memberId: String,
+        val name: String,
+        val agentId: String,
+    ) : HomeJoinMessage
+
+    /** Admin to joiner: "this request will not succeed" ([reason] is one of the `Denied*` constants), so they stop retrying. */
+    @Serializable
+    @SerialName("homejoin.denied")
+    data class Denied(val homeId: String, val reason: String) : HomeJoinMessage
+
     companion object {
+        const val DeniedExpired = "expired"
+        const val DeniedRevoked = "revoked"
+        const val DeniedUsed = "used"
+        const val DeniedDeclined = "declined"
+
         const val LeftKind = "left"
         const val RemovedKind = "removed"
 

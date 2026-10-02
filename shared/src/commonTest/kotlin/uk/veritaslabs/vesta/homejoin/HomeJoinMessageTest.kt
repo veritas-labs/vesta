@@ -46,6 +46,30 @@ class HomeJoinMessageTest {
     }
 
     @Test
+    fun aRequestMessageSurvivesEncodingAndDecoding() {
+        // Arrange
+        val request = HomeJoinMessage.Request("home-1", "s3cr3t", "member-2", "Sam", "agent-sam")
+
+        // Act
+        val decoded = HomeJoinMessage.decode(payload(request))
+
+        // Assert
+        assertEquals(request, decoded)
+    }
+
+    @Test
+    fun aDeniedMessageSurvivesEncodingAndDecoding() {
+        // Arrange
+        val denied = HomeJoinMessage.Denied("home-1", HomeJoinMessage.DeniedExpired)
+
+        // Act
+        val decoded = HomeJoinMessage.decode(payload(denied))
+
+        // Assert
+        assertEquals(denied, decoded)
+    }
+
+    @Test
     fun otherMessagesOnTheStreamAreNotHomeJoinMessages() {
         // Arrange
         val deviceSyncHello = Base64.Default.encode("""{"kind":"devicesync.hello","name":"Laptop"}""".encodeToByteArray())

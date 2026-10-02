@@ -141,6 +141,8 @@ internal class HomeJoinService(
                 acknowledge(sender, decoded.homeId, HomeJoinMessage.RemovedKind)
             }
             is HomeJoinMessage.Ack -> database.pendingMessageQueries.delete(sender, decoded.homeId, decoded.of)
+            // Invite links (ADR-018) are not handled yet: slices 3 and 4.
+            is HomeJoinMessage.Request, is HomeJoinMessage.Denied -> Unit
         }
         return true
     }
