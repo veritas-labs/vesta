@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.lifecycle.viewModelScope
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -8,6 +9,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -16,8 +19,20 @@ import kotlinx.coroutines.withTimeout
 @OptIn(ExperimentalCoroutinesApi::class)
 class PantryViewModelTest {
 
+    private val viewModels = mutableListOf<PantryViewModel>()
+
+    /**
+     * A view model whose scope is ended in [tearDown]. Its `stateIn` keeps coroutines on `Dispatchers.Main` alive, and a
+     * scope left running past `resetMain` later fails to dispatch (there is no real Main on the JVM), which kotlinx-coroutines-test
+     * then blames on whichever unrelated test happens to start next.
+     */
+    private fun viewModelOf(source: PantrySource): PantryViewModel = PantryViewModel(source).also { viewModels += it }
+
     @AfterTest
     fun tearDown() {
+        // Ended while Main is still set, so the cancellation can be dispatched and finish.
+        runBlocking { viewModels.forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() } }
+        viewModels.clear()
         Dispatchers.resetMain()
     }
 
@@ -42,7 +57,7 @@ class PantryViewModelTest {
     fun startsLoadingBeforeTheSourceEmits() = runBlocking {
         // Arrange
         Dispatchers.setMain(Dispatchers.Default)
-        val viewModel = PantryViewModel(FakePantrySource())
+        val viewModel = viewModelOf(FakePantrySource())
 
         // Act
         val state = viewModel.uiState.value
@@ -57,7 +72,7 @@ class PantryViewModelTest {
         // Arrange
         Dispatchers.setMain(Dispatchers.Default)
         val source = FakePantrySource()
-        val viewModel = PantryViewModel(source)
+        val viewModel = viewModelOf(source)
 
         // Act
         source.flow.emit(PantryContents(items = listOf(milk), emptyCategories = listOf("Snacks")))
@@ -72,7 +87,7 @@ class PantryViewModelTest {
         // Arrange
         Dispatchers.setMain(Dispatchers.Default)
         val source = FakePantrySource()
-        val viewModel = PantryViewModel(source)
+        val viewModel = viewModelOf(source)
         source.flow.emit(PantryContents(items = listOf(milk)))
         withTimeout(5_000) { viewModel.uiState.first { !it.isLoading } }
 
