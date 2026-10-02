@@ -110,6 +110,19 @@ fun claimRosterDevice(doc: Document, agentId: String, memberId: String): Boolean
     return true
 }
 
+/** Removes the claim that [agentId] acts for [memberId], if that is what the roster says. Returns whether anything changed. */
+fun releaseRosterDevice(doc: Document, agentId: String, memberId: String): Boolean {
+    val tx = doc.startTransaction()
+    val key = "$DevicePrefix$agentId"
+    if ((tx.get(ObjectId.ROOT, key).getOrNull() as? AmValue.Str)?.value != memberId) {
+        tx.rollback()
+        return false
+    }
+    tx.delete(ObjectId.ROOT, key)
+    tx.commit()
+    return true
+}
+
 /** Marks [memberId] removed, if the roster has them and they aren't already. Returns whether anything changed. */
 fun retireRosterMember(doc: Document, memberId: String): Boolean {
     val tx = doc.startTransaction()

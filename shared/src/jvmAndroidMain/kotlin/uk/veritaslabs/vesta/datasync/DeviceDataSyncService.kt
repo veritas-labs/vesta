@@ -155,10 +155,11 @@ class DeviceDataSyncService(
         return true
     }
 
-    /** Writes this user's member and this device's agent into every Home's roster; the agent is left out while x0x can't say what it is. */
+    /** Writes this user's member and this device's agent into every Home's roster, and drops devices that are no longer paired; nothing is written about devices while x0x can't say what this one's agent is. */
     private suspend fun publishRosters() {
         val agentId = runCatching { client.agent().agentId }.getOrNull()
-        database.homeQueries.selectAll().awaitAsList().forEach { rosters.publish(it.id, agentId) }
+        val paired = devices.agentIds()
+        database.homeQueries.selectAll().awaitAsList().forEach { rosters.publish(it.id, agentId, paired) }
     }
 
     private val connected = mutableSetOf<String>()

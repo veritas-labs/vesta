@@ -173,6 +173,19 @@ same value merge cleanly, so any device may write its own person's keys and no d
 - Removal of members and devices (§4) is still to do; `removed` is only used for the retired Profile id so far.
 - The agent id comes from x0x; while it is unreadable the device publishes its member without it and tries again.
 
+**Slice 4 (2026-10-02): removing a device.** A device no longer in the user's `DeviceSync` roster stops acting for them
+in every Home. Each publish, once this device knows its own agent id, deletes the `device:` key of any agent the roster
+lists for the user's member that is neither this device nor one it is paired with. It is stateless (no "who was just
+removed" bookkeeping), so a removal made while the app was closed is still picked up on the next round, and it only
+touches the user's own member's devices, so other people's devices in a Home are never pruned. The member stays, with
+fewer devices, even when it was the last one.
+
+- A device that hasn't yet learned of a newly paired one can briefly delete its claim; the new device re-claims on its
+  next publish, once the removal reaches it.
+- Removing the agent from the Home's **x0x group** (to rotate its keys) is not done: no Home group exists in the code
+  yet. It belongs with Home sync.
+- Leaving a Home and an admin removing a member (§4) remain to do.
+
 ## References
 
 - [[ADR-005]], [[ADR-012]], [[ADR-013]].

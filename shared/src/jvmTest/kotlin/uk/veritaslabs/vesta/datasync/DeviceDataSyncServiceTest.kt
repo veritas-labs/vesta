@@ -243,4 +243,24 @@ class DeviceDataSyncServiceTest {
         eventually { b.sync.rosterDevices(bHome) == mapOf(aProfile to setOf("agent-a", "agent-b")) }
         scope.cancel()
     }
+
+    @Test
+    fun removingADeviceDropsItFromTheRosterButTheMemberStays() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val aProfile = a.profileIds().single()
+        delay(20.milliseconds)
+        b.start()
+        eventually { a.sync.rosterDevices(homeId) == mapOf(aProfile to setOf("agent-a", "agent-b")) }
+
+        // Act
+        a.devices.remove(b.agentId)
+
+        // Assert
+        eventually { a.sync.rosterDevices(homeId) == mapOf(aProfile to setOf("agent-a")) }
+        assertEquals(listOf(aProfile), a.memberIds(homeId))
+        scope.cancel()
+    }
 }

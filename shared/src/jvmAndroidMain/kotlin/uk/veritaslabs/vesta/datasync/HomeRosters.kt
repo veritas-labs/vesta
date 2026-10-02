@@ -13,6 +13,7 @@ import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.claimRosterDevice
 import uk.veritaslabs.vesta.automerge.putRosterMember
 import uk.veritaslabs.vesta.automerge.readRoster
+import uk.veritaslabs.vesta.automerge.releaseRosterDevice
 import uk.veritaslabs.vesta.automerge.retireRosterMember
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
@@ -42,16 +43,22 @@ internal class HomeRosters(
     /**
      * Writes the current user's member of [homeId], and [agentId] (if known) as one of their devices, into that
      * Home's roster. A device with no member row for the user yet (a Home that has just arrived) does nothing until
-     * the roster has brought one.
+     * the roster has brought one. Once [agentId] is known, any other device the roster lists for the user that isn't
+     * in [pairedAgents] (the devices this one is paired with) is released: it has been removed from the user's
+     * devices, so it no longer acts for them. The member stays, with fewer devices (ADR-014 §4).
      */
-    suspend fun publish(homeId: String, agentId: String?) {
+    suspend fun publish(homeId: String, agentId: String?, pairedAgents: Set<String>) {
         val me = profiles.current().id
         val row = database.homeMemberQueries.selectByHome(homeId).awaitAsList().firstOrNull { it.memberId == me } ?: return
         val changed = lock.withLock {
             val doc = open(homeId) ?: return
             val member = putRosterMember(doc, row.memberId, row.name, row.avatarResourceId, row.role, row.joinedAt)
             val device = agentId?.let { claimRosterDevice(doc, it, row.memberId) } ?: false
-            (member || device).also { if (it) persist(homeId, doc) }
+            val released = agentId != null && doc.readRoster().firstOrNull { it.memberId == row.memberId }?.devices.orEmpty()
+                .filter { it != agentId && it !in pairedAgents }
+                .map { releaseRosterDevice(doc, it, row.memberId) }
+                .any { it }
+            (member || device || released).also { if (it) persist(homeId, doc) }
         }
         if (changed) _changes.tryEmit(homeId)
     }

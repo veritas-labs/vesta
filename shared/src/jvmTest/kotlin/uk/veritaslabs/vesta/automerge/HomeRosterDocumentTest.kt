@@ -85,4 +85,35 @@ class HomeRosterDocumentTest {
         assertFalse(changed)
         assertEquals(emptyList(), doc.readRoster())
     }
+
+    @Test
+    fun releasingADeviceRemovesItsClaimButKeepsTheMember() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(doc, "agent-a", "m1")
+        claimRosterDevice(doc, "agent-b", "m1")
+
+        // Act
+        val changed = releaseRosterDevice(doc, "agent-b", "m1")
+
+        // Assert
+        assertTrue(changed)
+        val member = doc.readRoster().single()
+        assertEquals(setOf("agent-a"), member.devices)
+        assertFalse(member.removed)
+    }
+
+    @Test
+    fun releasingADeviceThatActsForSomeoneElseDoesNothing() {
+        // Arrange
+        val doc = Document()
+        claimRosterDevice(doc, "agent-b", "m2")
+
+        // Act
+        val changed = releaseRosterDevice(doc, "agent-b", "m1")
+
+        // Assert
+        assertFalse(changed)
+    }
 }
