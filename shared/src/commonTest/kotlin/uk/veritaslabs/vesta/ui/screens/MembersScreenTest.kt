@@ -87,4 +87,50 @@ class MembersScreenTest {
         onNodeWithText("Mark (You)").assertIsDisplayed()
         onNodeWithText("Sam").assertIsDisplayed()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun leavingNeedsConfirmation() = runComposeUiTest {
+        // Arrange
+        var leaves = 0
+        setContent { VestaTheme { MembersScreen(onLeaveHome = { leaves++ }) } }
+
+        // Act
+        onNodeWithTag(MembersTestTags.LeaveButton).performClick()
+        val beforeConfirm = leaves
+        onNodeWithTag(MembersTestTags.ConfirmLeave).performClick()
+
+        // Assert
+        assertEquals(0, beforeConfirm)
+        assertEquals(1, leaves)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun cancellingTheLeaveConfirmationDoesNotLeave() = runComposeUiTest {
+        // Arrange
+        var leaves = 0
+        setContent { VestaTheme { MembersScreen(onLeaveHome = { leaves++ }) } }
+        onNodeWithTag(MembersTestTags.LeaveButton).performClick()
+
+        // Act
+        onNodeWithText("Cancel").performClick()
+
+        // Assert
+        assertEquals(0, leaves)
+        onNodeWithTag(MembersTestTags.ConfirmLeave).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun explainsWhyTheOnlyAdminCannotLeave() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MembersScreen(leaveBlocked = true) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(MembersTestTags.BlockedDialog).assertIsDisplayed()
+    }
 }

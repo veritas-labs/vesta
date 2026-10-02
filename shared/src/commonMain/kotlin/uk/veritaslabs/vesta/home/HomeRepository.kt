@@ -14,6 +14,15 @@ import uk.veritaslabs.vesta.ui.screens.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.ui.screens.MemberRole
 
+/** What happened when the current user tried to leave a Home. */
+enum class LeaveResult {
+    /** They left: the Home is gone from this device, and from their other devices as they sync. */
+    Left,
+
+    /** They are the Home's only admin and other members remain, so someone else must become an admin first. */
+    OnlyAdmin,
+}
+
 /** Reads and writes Homes in the local [VestaDatabase], telling [changes] about each change. */
 class HomeRepository(
     private val database: VestaDatabase,
@@ -59,6 +68,23 @@ class HomeRepository(
         database.homeQueries.updateHome(name, shape.storageValue, id)
         database.homeQueries.selectById(id).awaitAsOneOrNull()
             ?.let { changes?.saved(StoredHome(it.id, it.name, it.shape, it.createdAt)) }
+    }
+
+    /**
+     * The current user leaves the Home with the given [id], which removes it from their devices. The only admin of a Home
+     * that has other members can't leave ([LeaveResult.OnlyAdmin], CORE-EXPERIENCE §5). Leaving as the only member
+     * leaves nobody, so it ends the Home. Telling the Home's other members is not done yet: nothing syncs a Home's roster
+     * to other people (docs/adr/ADR-014-home-membership.md).
+     */
+    suspend fun leave(id: String): LeaveResult {
+        val me = profiles.current().id
+        val members = database.homeMemberQueries.selectByHome(id).awaitAsList()
+        val admin = MemberRole.Admin.storageValue
+        val iAmAdmin = members.any { it.memberId == me && it.role == admin }
+        val otherAdmins = members.any { it.memberId != me && it.role == admin }
+        if (iAmAdmin && !otherAdmins && members.any { it.memberId != me }) return LeaveResult.OnlyAdmin
+        delete(id)
+        return LeaveResult.Left
     }
 
     /** Deletes the Home with the given [id]; its members are removed with it. */

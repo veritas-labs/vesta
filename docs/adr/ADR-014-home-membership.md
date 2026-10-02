@@ -186,6 +186,18 @@ fewer devices, even when it was the last one.
   yet. It belongs with Home sync.
 - Leaving a Home and an admin removing a member (§4) remain to do.
 
+**Slice 5 (2026-10-02): leaving a Home.** The Members tab has a Leave Home button, with a confirmation.
+`HomeRepository.leave` refuses when the user is the Home's only admin and other members remain (`OnlyAdmin`: the screen
+explains they must make someone else an admin first, which isn't possible yet since roles can't be changed), and
+otherwise removes the Home, through the same path as deleting it, so the registry tombstone takes it off the user's
+other devices. Leaving as the only member leaves nobody, so it ends the Home.
+
+- **Not done: telling the Home's other members.** Setting the roster's `removed` tombstone for the leaver and pushing
+  it to the other members before the Home (and its roster) is deleted needs Home-to-member sync, which doesn't exist.
+  Until then leaving is only local to the user's own devices. When that sync is built, leave must send the tombstone
+  first, then delete.
+- Removing the leaver's agents from the Home's x0x group (§4) waits for the same reason.
+
 ## References
 
 - [[ADR-005]], [[ADR-012]], [[ADR-013]].

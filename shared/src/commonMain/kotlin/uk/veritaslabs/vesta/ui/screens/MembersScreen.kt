@@ -15,15 +15,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,6 +46,14 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_user_plus
 import vesta.shared.generated.resources.members_invite
+import vesta.shared.generated.resources.members_leave
+import vesta.shared.generated.resources.members_leave_blocked_body
+import vesta.shared.generated.resources.members_leave_blocked_ok
+import vesta.shared.generated.resources.members_leave_blocked_title
+import vesta.shared.generated.resources.members_leave_cancel
+import vesta.shared.generated.resources.members_leave_confirm
+import vesta.shared.generated.resources.members_leave_confirm_body
+import vesta.shared.generated.resources.members_leave_confirm_title
 import vesta.shared.generated.resources.members_role_admin
 import vesta.shared.generated.resources.members_role_member
 import vesta.shared.generated.resources.members_title
@@ -50,6 +65,9 @@ private val MembersTabletBreakpoint = 600.dp
 internal object MembersTestTags {
     const val InviteButton = "members_invite_button"
     const val Row = "members_row"
+    const val LeaveButton = "members_leave_button"
+    const val ConfirmLeave = "members_leave_confirm"
+    const val BlockedDialog = "members_leave_blocked"
 }
 
 /** The role a member has in a Home; [storageValue] is the `HomeMember.role` column's value. */
@@ -73,8 +91,9 @@ data class MemberListItem(
 
 /**
  * The Members tab of a Home: the [members] (name and role badge, the current user marked "You"), and an Invite
- * button ([onInviteClick]) for bringing someone into the Home. The bottom nav bar has Home ([onHomeClick]) and
- * Members (selected).
+ * button ([onInviteClick]) for bringing someone into the Home, and a Leave Home button that asks for confirmation
+ * before calling [onLeaveHome]. [leaveBlocked] shows why the user can't leave (they are the only admin) until
+ * [onLeaveBlockedDismiss]. The bottom nav bar has Home ([onHomeClick]) and Members (selected).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,8 +101,12 @@ fun MembersScreen(
     modifier: Modifier = Modifier,
     members: List<MemberListItem> = emptyList(),
     onInviteClick: () -> Unit = {},
+    onLeaveHome: () -> Unit = {},
+    leaveBlocked: Boolean = false,
+    onLeaveBlockedDismiss: () -> Unit = {},
     onHomeClick: () -> Unit = {},
 ) {
+    var confirmingLeave by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= MembersTabletBreakpoint) 24.dp else 16.dp
 
@@ -108,12 +131,48 @@ fun MembersScreen(
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(members, key = { it.memberId }) { member -> MemberRow(member) }
                 }
+                TextButton(
+                    onClick = { confirmingLeave = true },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag(MembersTestTags.LeaveButton),
+                ) { Text(stringResource(Res.string.members_leave)) }
             }
             HomeNavigationBar(selected = HomeTab.Members, onHomeClick = onHomeClick)
         }
+    }
+
+    if (confirmingLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmingLeave = false },
+            title = { Text(stringResource(Res.string.members_leave_confirm_title)) },
+            text = { Text(stringResource(Res.string.members_leave_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingLeave = false
+                        onLeaveHome()
+                    },
+                    modifier = Modifier.testTag(MembersTestTags.ConfirmLeave),
+                ) { Text(stringResource(Res.string.members_leave_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingLeave = false }) { Text(stringResource(Res.string.members_leave_cancel)) }
+            },
+        )
+    }
+    if (leaveBlocked) {
+        AlertDialog(
+            onDismissRequest = onLeaveBlockedDismiss,
+            title = { Text(stringResource(Res.string.members_leave_blocked_title)) },
+            text = { Text(stringResource(Res.string.members_leave_blocked_body)) },
+            confirmButton = {
+                TextButton(onClick = onLeaveBlockedDismiss) { Text(stringResource(Res.string.members_leave_blocked_ok)) }
+            },
+            modifier = Modifier.testTag(MembersTestTags.BlockedDialog),
+        )
     }
 }
 

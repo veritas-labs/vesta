@@ -36,6 +36,7 @@ import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
+import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.home.MemberRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.SelectedHome
@@ -177,7 +178,10 @@ private fun HomeContent(
     homeName: String,
     pantrySource: PantrySource? = null,
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
+    onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
 ) {
+    val scope = rememberCoroutineScope()
+    var leaveBlocked by remember { mutableStateOf(false) }
     val selectedHome = LocalSelectedHome.current
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
@@ -200,7 +204,13 @@ private fun HomeContent(
         )
         HomeDestination.Members -> {
             val memberList by members.collectAsStateWithLifecycle(emptyList())
-            MembersScreen(members = memberList, onHomeClick = { destination = HomeDestination.Dashboard })
+            MembersScreen(
+                members = memberList,
+                onHomeClick = { destination = HomeDestination.Dashboard },
+                onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
+                leaveBlocked = leaveBlocked,
+                onLeaveBlockedDismiss = { leaveBlocked = false },
+            )
         }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -345,7 +355,7 @@ fun VestaApp(
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             val members = remember(homeId) { memberRepository.members(homeId) }
-            HomeContent(homeId, homeName, pantrySource, members)
+            HomeContent(homeId, homeName, pantrySource, members) { homeRepository.leave(homeId) }
         },
     )
 }

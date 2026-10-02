@@ -123,4 +123,70 @@ class HomeRepositoryTest {
         assertNull(repository.get(id))
         assertEquals(emptyList(), repository.homes.first())
     }
+
+    @Test
+    fun leavingAsTheOnlyMemberEndsTheHome() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
+        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+
+        // Act
+        val result = repository.leave(id)
+
+        // Assert
+        assertEquals(LeaveResult.Left, result)
+        assertNull(repository.get(id))
+    }
+
+    @Test
+    fun theOnlyAdminOfAHomeWithOtherMembersCannotLeave() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
+        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        db.homeMemberQueries.insert(id, "sam", "Sam", null, "member", 2L)
+
+        // Act
+        val result = repository.leave(id)
+
+        // Assert
+        assertEquals(LeaveResult.OnlyAdmin, result)
+        assertEquals("Flat 4B", repository.get(id)?.name)
+    }
+
+    @Test
+    fun anAdminCanLeaveWhenAnotherMemberIsAlsoAnAdmin() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
+        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        db.homeMemberQueries.insert(id, "sam", "Sam", null, "admin", 2L)
+
+        // Act
+        val result = repository.leave(id)
+
+        // Assert
+        assertEquals(LeaveResult.Left, result)
+        assertNull(repository.get(id))
+    }
+
+    @Test
+    fun anOrdinaryMemberCanLeave() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark" })
+        val repository = HomeRepository(db, profiles = profiles)
+        val me = profiles.current().id
+        db.homeQueries.insert("home-1", "Flat 4B", "flatshare", 1L)
+        db.homeMemberQueries.insert("home-1", "sam", "Sam", null, "admin", 1L)
+        db.homeMemberQueries.insert("home-1", me, "Mark", null, "member", 2L)
+
+        // Act
+        val result = repository.leave("home-1")
+
+        // Assert
+        assertEquals(LeaveResult.Left, result)
+        assertNull(repository.get("home-1"))
+    }
 }
