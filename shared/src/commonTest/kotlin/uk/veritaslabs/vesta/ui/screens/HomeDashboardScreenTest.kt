@@ -207,4 +207,30 @@ class HomeDashboardScreenTest {
         // Assert
         onNodeWithTag(HomeDashboardTestTags.BlockedDialog).assertIsDisplayed()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theMembersTabShowsTheNumberOfPeopleWaitingToJoin() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", membersBadge = 2) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomeNavigationBarTestTags.MembersBadge, useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theMembersTabHasNoBadgeByDefault() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons") } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomeNavigationBarTestTags.MembersBadge, useUnmergedTree = true).assertDoesNotExist()
+    }
 }

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import uk.veritaslabs.vesta.homejoin.JoinRequest
@@ -281,5 +282,48 @@ class MembersScreenTest {
         onNodeWithTag(MembersTestTags.RequestRow).assertIsDisplayed()
         onNodeWithTag(MembersTestTags.approve("jo")).assertDoesNotExist()
         onNodeWithTag(MembersTestTags.decline("jo")).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAdminsMembersTabCountsTheRequestsStillWaitingForThem() = runComposeUiTest {
+        // Arrange
+        val second = pendingRequest.copy(memberId = "pat", name = "Pat")
+        setContent {
+            VestaTheme { MembersScreen(members = listOf(admin), joinRequests = listOf(pendingRequest, second, approvedRequest)) }
+        }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomeNavigationBarTestTags.MembersBadge, useUnmergedTree = true).assertContentDescriptionEquals("2 waiting to join")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun noBadgeShowsWhenEveryRequestIsAlreadyApproved() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MembersScreen(members = listOf(admin), joinRequests = listOf(approvedRequest)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomeNavigationBarTestTags.MembersBadge, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anOrdinaryMembersTabHasNoBadge() = runComposeUiTest {
+        // Arrange
+        val me = MemberListItem("3", "Pat", MemberRole.Member, isYou = true)
+        setContent { VestaTheme { MembersScreen(members = listOf(admin.copy(isYou = false), me), joinRequests = listOf(pendingRequest)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomeNavigationBarTestTags.MembersBadge, useUnmergedTree = true).assertDoesNotExist()
     }
 }

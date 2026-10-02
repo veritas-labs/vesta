@@ -24,7 +24,7 @@ taps Approve.
    picker, where a card shows the request waiting ([[ADR-018]]). The joiner does not show a QR code.
 4. **Approval is always required.** It is the only check on a link that has leaked or been forwarded, and costs one tap.
    Requests stay on the Members screen.
-5. **Badge only.** The Members tab of the bottom bar and the dashboard's Members tile show a badge with the number of
+5. **Badge only.** The Members tab of the bottom bar (there is no separate Members tile on the dashboard) shows a badge with the number of
    requests waiting for the user, if they are an admin. No background notification yet; that depends on mobile
    background behaviour, which is undesigned.
 6. **Opening a link from a message** (an Android and desktop `vesta://invite/…` handler that lands on the paste screen with
@@ -58,6 +58,9 @@ sends an Invite after approval, and the joiner now accepts one only from an agen
 - **Slice 3** was in effect done by slice 1 (the Join a home tile opens the paste or scan screen). It added an app-level test
   of tile → screen → request sent → back at the picker, and reworded the screen to "Join a home" with the tile's text
   pointing at an invite link from an admin.
+- **Slice 4:** the badge counts requests still `pending`, not ones already approved, and shows only to admins. It is on the
+  Members tab of the bottom bar, which appears on the dashboard and the Members screen, with an accessibility description
+  ("N waiting to join").
 
 ## Implementation slices
 

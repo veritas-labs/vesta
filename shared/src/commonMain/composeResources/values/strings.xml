@@ -52,6 +52,7 @@
     <string name="home_dashboard_more_options">More options</string>
     <string name="home_dashboard_nav_home">Home</string>
     <string name="home_dashboard_nav_members">Members</string>
+    <string name="home_dashboard_nav_members_requests">%1$d waiting to join</string>
     <string name="members_title">Members</string>
     <string name="members_invite">Invite</string>
     <string name="members_you">You</string>

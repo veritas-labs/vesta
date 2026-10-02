@@ -94,7 +94,7 @@ private data class DashboardTile(
  * open the Home's areas. Only the Pantry ([onPantryClick]) exists so far. The app bar is titled with
  * [homeName], its back arrow calls [onBack] (to the Home picker), and its trailing indicator shows
  * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Members
- * ([onMembersClick]).
+ * ([onMembersClick]), with a badge of [membersBadge] people waiting to join, for an admin.
  *
  * The app bar's overflow menu has Edit home ([onEditHome]) and Delete home ([onDeleteHome]), both only for an
  * [isAdmin], and Leave home, which asks for confirmation before calling [onLeaveHome]. [leaveBlocked] shows why
@@ -116,6 +116,7 @@ fun HomeDashboardScreen(
     onLeaveHome: () -> Unit = {},
     leaveBlocked: Boolean = false,
     onLeaveBlockedDismiss: () -> Unit = {},
+    membersBadge: Int = 0,
 ) {
     var confirmingLeave by remember { mutableStateOf(false) }
     val tiles = listOf(
@@ -209,7 +210,7 @@ fun HomeDashboardScreen(
                     )
                 }
             }
-            HomeNavigationBar(selected = HomeTab.Home, onHomeClick = onHomeClick, onMembersClick = onMembersClick)
+            HomeNavigationBar(selected = HomeTab.Home, onHomeClick = onHomeClick, onMembersClick = onMembersClick, membersBadge = membersBadge)
         }
     }
 

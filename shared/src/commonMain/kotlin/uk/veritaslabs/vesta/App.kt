@@ -280,6 +280,7 @@ private fun HomeContent(
             onPantryClick = { destination = HomeDestination.Pantry },
             onMembersClick = { destination = HomeDestination.Members },
             isAdmin = isAdmin,
+            membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
             onEditHome = onEditHome,
             onDeleteHome = { scope.launch { onDeleteHome() } },
             onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },

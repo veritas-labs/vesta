@@ -168,7 +168,11 @@ fun MembersScreen(
                     item(key = "invite") { InviteRow(onClick = onInviteClick) }
                 }
             }
-            HomeNavigationBar(selected = HomeTab.Members, onHomeClick = onHomeClick)
+            HomeNavigationBar(
+                selected = HomeTab.Members,
+                onHomeClick = onHomeClick,
+                membersBadge = if (canManage) joinRequests.count { !it.approved } else 0,
+            )
         }
     }
 
