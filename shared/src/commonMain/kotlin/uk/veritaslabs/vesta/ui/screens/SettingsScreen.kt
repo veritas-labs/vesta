@@ -82,7 +82,7 @@ internal object SettingsTestTags {
 /**
  * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
- * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), off by default.
+ * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default.
  * The Synced devices row calls [onSyncedDevicesClick]; with a [profileName], a Profile section shows it and its row calls
  * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
@@ -95,7 +95,7 @@ fun SettingsScreen(
     x0xConnectivity: X0xConnectivity = X0xConnectivity.Connecting,
     darkTheme: Boolean = isSystemInDarkTheme(),
     onDarkThemeChange: (Boolean) -> Unit = {},
-    useMobileData: Boolean = false,
+    useMobileData: Boolean = true,
     onUseMobileDataChange: (Boolean) -> Unit = {},
     onSyncedDevicesClick: () -> Unit = {},
     profileName: String? = null,

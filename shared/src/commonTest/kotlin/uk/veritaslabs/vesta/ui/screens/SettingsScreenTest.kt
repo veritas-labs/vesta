@@ -8,7 +8,6 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -97,7 +96,7 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun mobileDataSwitchIsOffByDefault() = runComposeUiTest {
+    fun mobileDataSwitchIsOnByDefault() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { SettingsScreen() } }
 
@@ -105,7 +104,7 @@ class SettingsScreenTest {
         onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.MobileDataRow))
 
         // Assert
-        onNodeWithTag(SettingsTestTags.MobileDataRow).assertIsOff()
+        onNodeWithTag(SettingsTestTags.MobileDataRow).assertIsOn()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -113,14 +112,14 @@ class SettingsScreenTest {
     fun togglingMobileDataReportsTheNewValue() = runComposeUiTest {
         // Arrange
         var requested: Boolean? = null
-        setContent { VestaTheme { SettingsScreen(useMobileData = false, onUseMobileDataChange = { requested = it }) } }
+        setContent { VestaTheme { SettingsScreen(useMobileData = true, onUseMobileDataChange = { requested = it }) } }
         onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.MobileDataRow))
 
         // Act
         onNodeWithTag(SettingsTestTags.MobileDataRow).performClick()
 
         // Assert
-        assertEquals(true, requested)
+        assertEquals(false, requested)
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -147,7 +146,7 @@ class SettingsScreenTest {
         onNodeWithTag(SettingsTestTags.DarkThemeRow).performClick()
 
         // Assert
-        assertEquals(true, requested)
+        assertEquals(false, requested)
     }
 
     @OptIn(ExperimentalTestApi::class)

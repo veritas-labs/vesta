@@ -139,7 +139,7 @@ fun App(
     val systemDark = isSystemInDarkTheme()
     var darkOverride by remember { mutableStateOf<Boolean?>(null) }
     val darkTheme = darkOverride ?: systemDark
-    // Off until the user opts in; not persisted yet. Platforms that run x0x in-process stop it on mobile data unless this is on.
+    // On until the user opts out; not persisted yet. Platforms that run x0x in-process stop it on mobile data unless this is on.
     var useMobileData by remember { mutableStateOf(X0xNetworkPolicy.useMobileData.value) }
     LaunchedEffect(useMobileData) { X0xNetworkPolicy.useMobileData.value = useMobileData }
     val darkThemeSetting = remember(darkTheme) { DarkThemeSetting(darkTheme) { darkOverride = it } }

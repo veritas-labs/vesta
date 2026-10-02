@@ -8,6 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * and reports offline until it is.
  */
 object X0xNetworkPolicy {
-    /** Whether x0x may run over a mobile data connection. Off by default. */
-    val useMobileData = MutableStateFlow(false)
+    /** Whether x0x may run over a mobile data connection. On by default. */
+    val useMobileData = MutableStateFlow(true)
 }
