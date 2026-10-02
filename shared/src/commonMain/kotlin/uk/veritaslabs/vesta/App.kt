@@ -116,6 +116,8 @@ fun App(
     var pairingSession by remember { mutableStateOf<Int?>(null) }
     var settingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
     var joiningHome by remember { mutableStateOf(false) }
+    // What to do once the user has chosen a name, when they tried to create or join a Home before having one.
+    var afterNaming by remember { mutableStateOf<(() -> Unit)?>(null) }
     var pairingSessions by remember { mutableIntStateOf(0) }
     var editSessions by remember { mutableIntStateOf(0) }
     fun openEditor(homeId: String?) {
@@ -123,6 +125,10 @@ fun App(
     }
     val scope = rememberCoroutineScope()
     val profile by remember(profiles) { profiles?.observe() ?: flowOf(null) }.collectAsStateWithLifecycle(null)
+    // Runs [action] now if the user has a chosen name, otherwise after they have chosen one.
+    fun needingName(action: () -> Unit) {
+        if (profiles != null && profile?.named == false) afterNaming = action else action()
+    }
     val syncedDeviceList by (deviceSync?.devices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
     // Drop the selection if its Home goes away (deleted, or left).
     LaunchedEffect(homes, selectedHome) {
@@ -140,12 +146,19 @@ fun App(
                 if (profiles != null && currentProfile == null) {
                     // The Profile is still loading: nothing to show yet, rather than a flash of the Home picker.
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-                } else if (profiles != null && currentProfile != null && !currentProfile.named) {
-                    // A name is needed before anything else (CORE-EXPERIENCE: a Profile is required to join or create a Home).
+                } else if (profiles != null && currentProfile != null && !currentProfile.named && afterNaming != null) {
+                    // Asked for when the user first tries to create or join a Home (CORE-EXPERIENCE: a Profile is required for that).
                     ProfileNameScreen(
                         initialName = currentProfile.displayName,
                         mode = ProfileNameMode.Setup,
-                        onSave = { name -> scope.launch { profiles.rename(name) } },
+                        onSave = { name ->
+                            scope.launch {
+                                profiles.rename(name)
+                                afterNaming?.invoke()
+                                afterNaming = null
+                            }
+                        },
+                        onBack = { afterNaming = null },
                     )
                 } else homeId?.takeIf { editTarget == null }?.let { id ->
                     homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) { openEditor(id) }
@@ -202,8 +215,8 @@ fun App(
                         val viewModel = viewModel { HomePickerViewModel(homes, selectedHome) }
                         HomePickerScreen(
                             viewModel,
-                            onCreateHome = { openEditor(null) },
-                            onJoinHome = { if (homeJoining != null) joiningHome = true },
+                            onCreateHome = { needingName { openEditor(null) } },
+                            onJoinHome = { if (homeJoining != null) needingName { joiningHome = true } },
                             onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
                             onSettingsClick = { settingsDestination = SettingsDestination.Settings },
                         )

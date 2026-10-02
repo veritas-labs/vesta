@@ -87,7 +87,7 @@ class ProfileNameScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun settingUpOffersNoWayBack() = runComposeUiTest {
+    fun settingUpOffersAWayBack() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { ProfileNameScreen("Mark", ProfileNameMode.Setup) } }
 
@@ -95,7 +95,7 @@ class ProfileNameScreenTest {
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithTag(ProfileNameTestTags.BackButton).assertDoesNotExist()
+        onNodeWithTag(ProfileNameTestTags.BackButton).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)

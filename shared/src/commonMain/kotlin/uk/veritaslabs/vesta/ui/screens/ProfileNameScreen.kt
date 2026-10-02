@@ -60,7 +60,7 @@ enum class ProfileNameMode { Setup, Rename }
 /**
  * Asks for the user's display name (docs/adr/ADR-016-profile-setup.md): how other people see them in a Home. It must be
  * 2 to 40 characters; [onSave] is only called with a name that is, and a bad one shows why once the user tries to save it.
- * In [ProfileNameMode.Setup] there is nowhere to go back to; in [ProfileNameMode.Rename] [onBack] leaves without saving.
+ * [onBack] leaves without saving.
  */
 @Composable
 fun ProfileNameScreen(
@@ -77,16 +77,14 @@ fun ProfileNameScreen(
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= ProfileNameTabletBreakpoint) 24.dp else 16.dp
 
-        if (mode == ProfileNameMode.Rename) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.align(Alignment.TopStart).safeDrawingPadding().testTag(ProfileNameTestTags.BackButton),
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_arrow_left),
-                    contentDescription = stringResource(Res.string.settings_back),
-                )
-            }
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.TopStart).safeDrawingPadding().testTag(ProfileNameTestTags.BackButton),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_arrow_left),
+                contentDescription = stringResource(Res.string.settings_back),
+            )
         }
 
         Column(

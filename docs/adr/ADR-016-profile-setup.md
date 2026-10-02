@@ -11,10 +11,12 @@ display name of 2 to 40 characters, and that the user can change it later.
 
 ## Decision
 
-**A name is chosen once, before anything else.** `Profile.named` is false while the name is the device placeholder. While
-it is false the app shows a single "What should we call you?" screen (the device name suggested, a live `n/40` counter,
-an error once the user tries to save a bad name) instead of the Home picker. It has no way back. Existing Profiles
-upgrade as unnamed, so people already using the app are asked once.
+**A name is chosen once, when the user first tries to create or join a Home.** (Revised 2026-10-02: it was the first
+screen of the app.) A new install opens on the Home picker's empty state. `Profile.named` is false while the name is the
+device placeholder; tapping Create or Join Home then shows the "What should we call you?" screen (the device name
+suggested, a live `n/40` counter, an error once the user tries to save a bad name), with a back arrow that returns to the
+picker. Saving continues into the create or join flow they asked for. Existing Profiles upgrade as unnamed, so people
+already using the app are asked once, at that point.
 
 **Renaming** is Settings, Your name, which opens the same screen with a back arrow. `ProfileRepository.rename` validates
 (2 to 40 characters once trimmed), updates the Profile and the user's `HomeMember` rows, sets `named`, and tells a
