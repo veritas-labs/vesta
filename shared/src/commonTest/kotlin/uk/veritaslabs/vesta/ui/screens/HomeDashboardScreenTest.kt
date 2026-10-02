@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import uk.veritaslabs.vesta.ui.components.HomeNavigationBarTestTags
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 
@@ -79,5 +80,19 @@ class HomeDashboardScreenTest {
 
         // Assert
         assertEquals(1, backs)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingMembersInTheNavBarInvokesOnMembersClick() = runComposeUiTest {
+        // Arrange
+        var clicks = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", onMembersClick = { clicks++ }) } }
+
+        // Act
+        onNodeWithTag(HomeNavigationBarTestTags.MembersItem).performClick()
+
+        // Assert
+        assertEquals(1, clicks)
     }
 }

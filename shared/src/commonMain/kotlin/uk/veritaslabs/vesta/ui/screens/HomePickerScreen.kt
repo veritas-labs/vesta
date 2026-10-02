@@ -16,12 +16,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -54,6 +56,8 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_devices
 import vesta.shared.generated.resources.ic_link
+import vesta.shared.generated.resources.ic_settings
+import vesta.shared.generated.resources.home_picker_settings
 import vesta.shared.generated.resources.img_armchair
 import vesta.shared.generated.resources.onboarding_create_home
 import vesta.shared.generated.resources.onboarding_delete_home
@@ -73,6 +77,7 @@ private val HomePickerTabletBreakpoint = 600.dp
 internal object HomePickerTestTags {
     const val CreateHomeButton = "home_picker_create_home_button"
     const val JoinHomeButton = "home_picker_join_home_button"
+    const val SettingsButton = "home_picker_settings_button"
     const val PairDeviceButton = "home_picker_pair_device_button"
     const val EditHomeButton = "home_picker_edit_home_button"
     const val DeleteHomeButton = "home_picker_delete_home_button"
@@ -99,6 +104,7 @@ fun HomePickerScreen(
     onCreateHome: () -> Unit = {},
     onJoinHome: () -> Unit = {},
     onPairDevice: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     onEditHome: (HomeListItem) -> Unit = {},
     onDeleteHome: (HomeListItem) -> Unit = {},
 ) {
@@ -113,6 +119,7 @@ fun HomePickerScreen(
             onCreateHome = onCreateHome,
             onJoinHome = onJoinHome,
             onPairDevice = onPairDevice,
+            onSettingsClick = onSettingsClick,
             onEditHome = onEditHome,
             onDeleteHome = onDeleteHome,
         )
@@ -124,6 +131,7 @@ fun HomePickerScreen(
  * onboarding diverges from the shared-device profile picker: presents a
  * grid/list of [homes] to choose from (when non-empty) plus "Create home", "Join a home" and "Pair device"
  * actions. [onPairDevice] links this device to the user's other devices, so it can be done before any Home exists.
+ * The cog beside the heading (hidden while there are no homes) calls [onSettingsClick]: the app's settings are global, so they live here rather than inside a Home.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,6 +142,7 @@ fun HomePickerScreen(
     onCreateHome: () -> Unit = {},
     onJoinHome: () -> Unit = {},
     onPairDevice: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     onEditHome: (HomeListItem) -> Unit = {},
     onDeleteHome: (HomeListItem) -> Unit = {},
 ) {
@@ -154,15 +163,30 @@ fun HomePickerScreen(
                 .padding(horizontal = contentPadding),
         ) {
             Spacer(Modifier.height(contentPadding))
-            Text(
-                text = stringResource(
-                    if (homes.isEmpty()) Res.string.onboarding_empty_title else Res.string.onboarding_title,
-                ),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // The leading spacer is as wide as the cog so the title stays centred between them. With no
+            // homes there is no cog (Settings opens once there is something to come back to), so no spacer.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (homes.isNotEmpty()) Spacer(Modifier.size(48.dp))
+                Text(
+                    text = stringResource(
+                        if (homes.isEmpty()) Res.string.onboarding_empty_title else Res.string.onboarding_title,
+                    ),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+                if (homes.isNotEmpty()) IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.testTag(HomePickerTestTags.SettingsButton),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_settings),
+                        contentDescription = stringResource(Res.string.home_picker_settings),
+                        tint = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+            }
             if (homes.isEmpty()) {
                 Text(
                     text = stringResource(Res.string.onboarding_empty_subtitle),

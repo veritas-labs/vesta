@@ -52,6 +52,7 @@ import uk.veritaslabs.vesta.ui.screens.PantryListItem
 import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
+import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
@@ -71,11 +72,14 @@ val LocalDarkThemeSetting = compositionLocalOf<DarkThemeSetting> { error("No Dar
  */
 private data class HomeEditTarget(val homeId: String?, val session: Int)
 
+/** The app-wide settings screens, reached from the Home picker. */
+private enum class SettingsDestination { Settings, SyncedDevices }
+
 /**
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
  * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
- * approval is offered over whatever screen is showing. With [deviceSync], the Synced devices screen lists and
+ * approval is offered over whatever screen is showing. With [deviceSync], the Synced devices screen (under Settings, from the Home picker) lists and
  * removes the user's real devices; without one (previews) it is always empty.
  */
 @Composable
@@ -87,19 +91,21 @@ fun App(
     agentAccess: AgentAccessRepository? = null,
     deviceSync: DeviceSyncHost? = null,
     homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name ->
-        HomeContent(id, name, deviceSync = deviceSync)
+        HomeContent(id, name)
     },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
     val homeList by homes.collectAsStateWithLifecycle(emptyList())
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
     var pairingSession by remember { mutableStateOf<Int?>(null) }
+    var settingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
     var pairingSessions by remember { mutableIntStateOf(0) }
     var editSessions by remember { mutableIntStateOf(0) }
     fun openEditor(homeId: String?) {
         editTarget = HomeEditTarget(homeId, session = editSessions++)
     }
     val scope = rememberCoroutineScope()
+    val syncedDeviceList by (deviceSync?.devices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
     // Drop the selection if its Home goes away (deleted, or left).
     LaunchedEffect(homes, selectedHome) {
         homes.collect { list -> selectedHome.homeId.value?.let { id -> if (list.none { it.id == id }) selectedHome.clear() } }
@@ -118,6 +124,21 @@ fun App(
                     if (pairing != null && deviceSync != null) {
                         val pairingViewModel = viewModel(key = "device-pairing-start-$pairing") { deviceSync.newPairingViewModel() }
                         DevicePairingFlow(pairingViewModel, onExit = { pairingSession = null })
+                    } else if (settingsDestination == SettingsDestination.Settings) {
+                        SettingsScreen(
+                            x0xConnectivity = rememberX0xConnectivity(),
+                            darkTheme = darkThemeSetting.enabled,
+                            onDarkThemeChange = darkThemeSetting.onChange,
+                            onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },
+                            onBack = { settingsDestination = null },
+                        )
+                    } else if (settingsDestination == SettingsDestination.SyncedDevices) {
+                        SettingsSyncedDevicesScreen(
+                            devices = syncedDeviceList,
+                            onAddDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
+                            onRemoveDevice = { device -> deviceSync?.let { scope.launch { it.service.removeDevice(device.agentId) } } },
+                            onBack = { settingsDestination = SettingsDestination.Settings },
+                        )
                     } else if (target != null && homeRepository != null) {
                         val editViewModel = viewModel(key = "home-edit-${target.session}") {
                             HomeEditViewModel(homeRepository, selectedHome, target.homeId)
@@ -129,6 +150,7 @@ fun App(
                             viewModel,
                             onCreateHome = { openEditor(null) },
                             onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
+                            onSettingsClick = { settingsDestination = SettingsDestination.Settings },
                             onEditHome = { openEditor(it.id) },
                             onDeleteHome = { home -> homeRepository?.let { scope.launch { it.delete(home.id) } } },
                         )
@@ -151,12 +173,9 @@ private fun HomeContent(
     homeId: String,
     homeName: String,
     pantrySource: PantrySource? = null,
-    deviceSync: DeviceSyncHost? = null,
 ) {
     val selectedHome = LocalSelectedHome.current
-    val scope = rememberCoroutineScope()
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
-    var pairingSessions by remember { mutableIntStateOf(0) }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
         viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
@@ -167,36 +186,15 @@ private fun HomeContent(
     val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
-    val syncedDeviceList by (deviceSync?.devices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(
             homeName = homeName,
             onBack = { selectedHome.clear() },
             x0xConnectivity = rememberX0xConnectivity(),
             onPantryClick = { destination = HomeDestination.Pantry },
-            onSettingsClick = { destination = HomeDestination.Settings },
+            onMembersClick = { destination = HomeDestination.Members },
         )
-        HomeDestination.Settings -> SettingsScreen(
-            x0xConnectivity = rememberX0xConnectivity(),
-            darkTheme = LocalDarkThemeSetting.current.enabled,
-            onDarkThemeChange = LocalDarkThemeSetting.current.onChange,
-            onSyncedDevicesClick = { destination = HomeDestination.SettingsSyncedDevices },
-            onBack = { destination = HomeDestination.Dashboard },
-        )
-        HomeDestination.SettingsSyncedDevices -> SettingsSyncedDevicesScreen(
-            devices = syncedDeviceList,
-            onAddDevice = { if (deviceSync != null) destination = HomeDestination.DevicePairing },
-            onRemoveDevice = { device -> deviceSync?.let { scope.launch { it.service.removeDevice(device.agentId) } } },
-            onBack = { destination = HomeDestination.Settings },
-        )
-        HomeDestination.DevicePairing -> deviceSync?.let { sync ->
-            // A fresh view model per visit, so a finished pairing isn't left in the store.
-            val pairing = viewModel(key = "device-pairing-$pairingSessions") { sync.newPairingViewModel() }
-            DevicePairingFlow(pairing, onExit = {
-                pairingSessions++
-                destination = HomeDestination.SettingsSyncedDevices
-            })
-        }
+        HomeDestination.Members -> MembersScreen(onHomeClick = { destination = HomeDestination.Dashboard })
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
             val onAddItem = {
@@ -293,7 +291,7 @@ class DeviceSyncHost(
     val newPairingViewModel: () -> DevicePairingViewModel,
 )
 
-private enum class HomeDestination { Dashboard, Settings, SettingsSyncedDevices, DevicePairing, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+private enum class HomeDestination { Dashboard, Members, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With
@@ -337,7 +335,7 @@ fun VestaApp(
         deviceSync = deviceSync,
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
-            HomeContent(homeId, homeName, pantrySource, deviceSync)
+            HomeContent(homeId, homeName, pantrySource)
         },
     )
 }

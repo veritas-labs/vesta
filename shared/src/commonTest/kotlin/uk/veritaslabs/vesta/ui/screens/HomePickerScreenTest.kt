@@ -74,6 +74,35 @@ class HomePickerScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun tappingTheSettingsCogInvokesOnSettingsClick() = runComposeUiTest {
+        // Arrange
+        var clicks = 0
+        setContent {
+            VestaTheme { HomePickerScreen(homes = homes, onSettingsClick = { clicks++ }) }
+        }
+
+        // Act
+        onNodeWithTag(HomePickerTestTags.SettingsButton).performClick()
+
+        // Assert
+        assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun hidesTheSettingsCogWhenThereAreNoHomes() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomePickerScreen(homes = emptyList()) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomePickerTestTags.SettingsButton).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun tappingPairDeviceInvokesOnPairDevice() = runComposeUiTest {
         // Arrange
         var paired = false
