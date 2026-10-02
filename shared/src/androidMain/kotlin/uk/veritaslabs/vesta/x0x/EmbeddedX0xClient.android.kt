@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.util.Log
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -14,7 +15,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -126,6 +129,9 @@ internal actual suspend fun openSseStream(
         }
     }
 
+private const val LogTag = "VestaX0x"
+private const val WatchdogIntervalMillis = 15_000L
+
 /**
  * The one daemon every [EmbeddedX0xClient] shares: a second start on the same data directory fails, which
  * left all but the first client (e.g. the connectivity indicator) reporting the daemon offline.
@@ -133,11 +139,16 @@ internal actual suspend fun openSseStream(
  * It also enforces [X0xNetworkPolicy]: while the device is on mobile data and the user has not allowed
  * it, the daemon is shut down and [daemon] returns null (so clients report offline and their event
  * streams back off and retry); once the policy or the network changes, the next request starts it again.
+ *
+ * A watchdog restarts a daemon that has got stuck, typically one that started while the device had no network and so
+ * never found peers ([X0xStuckDetector]). It never acts while the daemon is stopped on purpose or the device has no
+ * usable network.
  */
 private object SharedDaemon {
     private val mutex = Mutex()
     private var started: EmbeddedX0x? = null
     private var guard: Boolean = false
+    private val detector = X0xStuckDetector()
 
     val port: Int? get() = started?.port
 
@@ -151,10 +162,49 @@ private object SharedDaemon {
 
     private fun blocked(context: Context): Boolean = !X0xNetworkPolicy.useMobileData.value && onMobileDataOnly(context)
 
+    /** Whether the device has a connection that reaches the internet, the only thing a restart could help with. */
+    private fun networkUsable(context: Context): Boolean {
+        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
+        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    /** The running daemon's `/health`, read directly so that looking never starts a daemon. */
+    private suspend fun healthOf(daemon: EmbeddedX0x): X0xHealth? =
+        runCatching { httpRequest("GET", "${daemon.baseUrl}/health", daemon.apiToken, null) }.getOrNull()
+            ?.takeIf { it.status in 200..299 }?.let { X0xHealth.parse(it.body) }
+
+    /** Looks at the daemon every [WatchdogIntervalMillis] and restarts it when [detector] says it is stuck. */
+    private fun startWatchdog(context: Context) {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            while (true) {
+                delay(WatchdogIntervalMillis)
+                runCatching {
+                    val running = mutex.withLock { started }
+                    val health = running?.let { healthOf(it) }
+                    val action = detector.check(System.currentTimeMillis(), running != null, health, networkUsable(context))
+                    if (action == X0xWatchdogAction.Restart) {
+                        Log.w(LogTag, "x0x daemon has no peers on a working network; restarting it")
+                        mutex.withLock {
+                            if (started === running) {
+                                started?.let { runCatching { it.shutdown() } }
+                                started = null
+                            }
+                        }
+                        // Start it again now rather than at the next request, so it begins finding peers at once.
+                        daemon()
+                    }
+                }.onFailure { if (it is CancellationException) throw it }
+            }
+        }
+    }
+
     /** Watches the policy and the default network, stopping the daemon whenever it becomes blocked. */
     private fun startGuard(context: Context) {
         if (guard) return
         guard = true
+        startWatchdog(context)
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return
         val networkChanges = callbackFlow {
             val callback = object : ConnectivityManager.NetworkCallback() {
