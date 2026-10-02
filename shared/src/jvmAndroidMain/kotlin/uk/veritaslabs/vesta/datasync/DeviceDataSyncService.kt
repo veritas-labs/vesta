@@ -82,31 +82,66 @@ class DeviceDataSyncService(
     /** The agents that act for each member of [homeId], by member id, as its roster says. */
     internal suspend fun rosterDevices(homeId: String): Map<String, Set<String>> = rosters.devices(homeId)
 
-    /** Handles one direct message: a sync message from a paired device is applied and answered; anything else is ignored. */
+    /**
+     * Admits a person to [homeId]'s roster as [role], with the agent that acts for them (the invite flow's job,
+     * ADR-014), and makes them a peer of that Home. Also how a joining device learns who invited it, since a device
+     * only syncs a Home with the agents its roster lists.
+     */
+    internal suspend fun admit(homeId: String, memberId: String, name: String, role: String, agentId: String) =
+        lock.withLock { rosters.admit(homeId, memberId, name, role, agentId) }
+
+    /** Marks [memberId] removed from [homeId] and stops syncing it with their devices. */
+    internal suspend fun removeMember(homeId: String, memberId: String) = lock.withLock { rosters.remove(homeId, memberId) }
+
+    /**
+     * Handles one direct message: a sync message is applied and answered if its sender is a peer for that document
+     * ([peersFor]); anything else is ignored.
+     */
     suspend fun handle(message: X0xDirectMessage) = lock.withLock {
         if (message.verified != true) return@withLock
         val sender = message.sender ?: return@withLock
-        if (sender !in devices.agentIds()) return@withLock
         val bytes = message.payload?.let { runCatching { Base64.Default.decode(it) }.getOrNull() } ?: return@withLock
         val envelope = SyncEnvelope.decode(bytes) ?: return@withLock
+        if (sender !in peersFor(envelope.documentId)) return@withLock
         receive(sender, envelope.documentId, envelope.message)
     }
 
+    private var selfAgent: String? = null
+
+    private suspend fun self(): String? = selfAgent ?: runCatching { client.agent().agentId }.getOrNull()?.also { selfAgent = it }
+
     /**
-     * Syncs every document with every paired device, starting each peer's sync over. Automerge's sync state assumes
+     * Who [documentId] is synced with. The user's own paired devices share everything; a Home's own documents (its
+     * Pantry and roster) are also shared with every device its roster lists for a member who hasn't been removed
+     * (ADR-014), so the members of a Home sync it between them. The Home registry and Profile are only ever the user's.
+     */
+    private suspend fun peersFor(documentId: String): Set<String> {
+        val paired = devices.agentIds()
+        val homeId = homeIdOf(documentId) ?: return paired
+        val members = rosters.devices(homeId).values.flatten()
+        return (paired + members) - setOfNotNull(self())
+    }
+
+    private fun homeIdOf(documentId: String): String? = when {
+        documentId.endsWith(PantrySuffix) -> documentId.removeSuffix(PantrySuffix)
+        documentId.endsWith(RosterSuffix) -> documentId.removeSuffix(RosterSuffix)
+        else -> null
+    }
+
+    /**
+     * Syncs every document with its peers ([peersFor]), starting each peer's sync over. Automerge's sync state assumes
      * what it sent arrived, and a direct message to an offline device may vanish without an error, so a fresh start
      * each round is what lets a device that was away catch up. It costs a small handshake per document and peer.
      */
     suspend fun syncEverything() = lock.withLock {
         attempt { publishRosters() }
-        val peers = devices.agentIds()
         states.clear()
         connected.clear()
-        documentIds().forEach { id -> peers.forEach { peer -> pump(id, peer) } }
+        documentIds().forEach { id -> peersFor(id).forEach { peer -> pump(id, peer) } }
     }
 
     private suspend fun syncDocument(documentId: String) = lock.withLock {
-        devices.agentIds().forEach { pump(documentId, it) }
+        peersFor(documentId).forEach { pump(documentId, it) }
     }
 
     private suspend fun documentIds(): List<String> =
@@ -140,8 +175,8 @@ class DeviceDataSyncService(
         } else {
             return // a document this version doesn't know about
         }
-        // Answer the sender, and tell the other devices what changed.
-        devices.agentIds().forEach { pump(documentId, it) }
+        // Answer the sender, and tell the other peers what changed.
+        peersFor(documentId).forEach { pump(documentId, it) }
     }
 
     /** Applies a Pantry or roster message; false when this device has no such Home yet. */

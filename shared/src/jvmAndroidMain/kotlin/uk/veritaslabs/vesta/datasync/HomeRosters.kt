@@ -63,6 +63,31 @@ internal class HomeRosters(
         if (changed) _changes.tryEmit(homeId)
     }
 
+    /**
+     * Admits [memberId] to [homeId]'s roster with [role] and [agentId] as their device, and copies them into the
+     * `HomeMember` table. A member who is already there keeps their role and join time.
+     */
+    suspend fun admit(homeId: String, memberId: String, name: String, role: String, agentId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            val member = putRosterMember(doc, memberId, name, null, role, nowMillis())
+            val device = claimRosterDevice(doc, agentId, memberId)
+            (member || device).also { if (it) persist(homeId, doc) }
+        }
+        project(homeId)
+        if (changed) _changes.tryEmit(homeId)
+    }
+
+    /** Marks [memberId] removed from [homeId]: they leave the `HomeMember` table, and their devices stop being peers. */
+    suspend fun remove(homeId: String, memberId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            retireRosterMember(doc, memberId).also { if (it) persist(homeId, doc) }
+        }
+        project(homeId)
+        if (changed) _changes.tryEmit(homeId)
+    }
+
     /** Marks [memberId] removed in every Home that has them: that Profile id has been replaced by the person's shared one. */
     suspend fun retire(memberId: String) {
         val changed = lock.withLock {

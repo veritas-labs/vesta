@@ -198,6 +198,28 @@ other devices. Leaving as the only member leaves nobody, so it ends the Home.
   first, then delete.
 - Removing the leaver's agents from the Home's x0x group (§4) waits for the same reason.
 
+**Slice 6 (2026-10-02): a Home syncs between its members.** The sync service's peers are now per document. The
+Home registry and the Profile still sync only between the user's own paired devices. A Home's own documents (its Pantry
+and its roster) sync with the user's paired devices **and** with every device the Home's roster lists for a member who
+hasn't been removed, minus this device. The same rule is the ACL: a sync message for a Home document is applied only if
+its sender is such a peer ([[ADR-005]]'s open "sync-time ACL" for Homes, [[ADR-013]]'s for the user's devices). This is
+the §5 rule, in the form "listed in the roster".
+
+- **Admitting is a roster write.** `admit(homeId, memberId, name, role, agentId)` writes a person and their device into
+  a Home's roster and projects them into `HomeMember`. It is what the invite flow will call on the inviter's side, and on
+  the joiner's side for the inviter, because a device only syncs a Home with agents its roster lists, so a new device has
+  to be told who invited it. `removeMember` tombstones a member, deletes their `HomeMember` row and stops syncing with
+  their devices.
+- **Tested** on the in-memory mesh with two people who are not paired: a Pantry item added by either reaches the other,
+  both rosters show both people, a removed member's later edits don't arrive, a device not in the roster is ignored, and
+  a Home's members don't get each other's other Homes (the registry stays private).
+- **Not built, so no person can join a Home in the app yet:** the Home's x0x group (group creation, invite, rotating keys
+  on removal), the invite and join flow with its screens, and the joiner receiving the Home's name and shape (today a
+  test makes the joiner's `Home` row). A pairing-style link (the joiner shows its agent id, an admin admits it by
+  direct message) would reuse [[ADR-012]]; CORE-EXPERIENCE §4 describes a 6-digit code instead. That choice is open.
+- **Trust.** As the Consequences say, roster claims are not signed, so any member can add a device to the Home's peers.
+  That is accepted for v1 household trust.
+
 ## References
 
 - [[ADR-005]], [[ADR-012]], [[ADR-013]].

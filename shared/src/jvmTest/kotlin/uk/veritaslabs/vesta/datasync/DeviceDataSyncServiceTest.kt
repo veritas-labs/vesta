@@ -16,12 +16,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.PantrySources
+import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
+import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
@@ -38,6 +40,7 @@ class DeviceDataSyncServiceTest {
         val pantries = PantrySources(database)
         val sync = DeviceDataSyncService(node, database, devices, pantries, interval = 50.milliseconds)
         val homes = HomeRepository(database, sync.homeChanges)
+        val profiles = ProfileRepository(database)
 
         init {
             node.onDirect = { message: X0xDirectMessage -> scope.launch { sync.handle(message) } }
@@ -48,6 +51,12 @@ class DeviceDataSyncServiceTest {
         }
 
         suspend fun pairedWith(other: Device) = apply { devices.add(other.agentId, other.agentId) }
+
+        /** Gives this device a copy of a Home another person made, as joining it will: the Home row and an empty Pantry to fill. */
+        suspend fun joinedHome(id: String, name: String, shape: HomeShape) {
+            database.homeQueries.insert(id, name, shape.storageValue, 1L)
+            storeEmptyPantry(database, id)
+        }
 
         suspend fun profileIds() = database.profileQueries.selectAll().awaitAsList().map { it.id }
 
@@ -261,6 +270,109 @@ class DeviceDataSyncServiceTest {
         // Assert
         eventually { a.sync.rosterDevices(homeId) == mapOf(aProfile to setOf("agent-a")) }
         assertEquals(listOf(aProfile), a.memberIds(homeId))
+        scope.cancel()
+    }
+
+    /** Two people who are not paired: X made the Home and admitted Y; Y has the Home and knows X invited it. */
+    private suspend fun twoPeopleInOneHome(): Triple<Device, Device, String> {
+        val x = Device("agent-x")
+        val y = Device("agent-y")
+        val homeId = x.homes.create("Maple Street", HomeShape.Family)
+        val xMember = x.profiles.current()
+        val yMember = y.profiles.current()
+        y.joinedHome(homeId, "Maple Street", HomeShape.Family)
+        x.sync.admit(homeId, yMember.id, yMember.displayName, "member", y.agentId)
+        y.sync.admit(homeId, xMember.id, xMember.displayName, "admin", x.agentId)
+        return Triple(x, y, homeId)
+    }
+
+    @Test
+    fun membersOfAHomeWhoAreNotPairedSyncItsPantry() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+
+        // Act
+        x.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null) }
+        eventually { y.pantryTitles(homeId) == listOf("Whole Milk") }
+        y.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Meat", null, "Beef Mince", "500g", barcode = null) }
+
+        // Assert
+        eventually { x.pantryTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
+        scope.cancel()
+    }
+
+    @Test
+    fun aHomeSyncsItsMembersButNotTheRestOfEachOthersData() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+
+        // Act
+        val private = x.homes.create("X Only", HomeShape.Other)
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        delay(300.milliseconds)
+
+        // Assert
+        assertEquals(listOf("Maple Street"), y.homeNames())
+        assertEquals(2, x.homeNames().size)
+        assertTrue(private !in y.database.homeQueries.selectAll().awaitAsList().map { it.id })
+        scope.cancel()
+    }
+
+    @Test
+    fun theRosterShowsBothPeopleOnBothDevices() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+
+        // Act
+        x.start()
+        y.start()
+
+        // Assert
+        eventually { x.memberIds(homeId).size == 2 && y.memberIds(homeId).size == 2 }
+        assertEquals(x.memberIds(homeId).sorted(), y.memberIds(homeId).sorted())
+        scope.cancel()
+    }
+
+    @Test
+    fun aRemovedMemberNoLongerSyncsTheHome() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        x.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null) }
+        eventually { y.pantryTitles(homeId) == listOf("Whole Milk") }
+        val yMember = y.profiles.current().id
+
+        // Act
+        x.sync.removeMember(homeId, yMember)
+        y.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Meat", null, "Beef Mince", "500g", barcode = null) }
+        delay(500.milliseconds)
+
+        // Assert
+        assertEquals(listOf("Whole Milk"), x.pantryTitles(homeId))
+        assertEquals(listOf(x.profiles.current().id), x.memberIds(homeId))
+        scope.cancel()
+    }
+
+    @Test
+    fun aDeviceThatIsNotInTheRosterCannotSyncAHome() = runBlocking {
+        // Arrange
+        val (x, _, homeId) = twoPeopleInOneHome()
+        val stranger = Device("agent-stranger")
+        stranger.joinedHome(homeId, "Maple Street", HomeShape.Family)
+        x.start()
+        stranger.start()
+
+        // Act
+        stranger.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Meat", null, "Beef Mince", "500g", barcode = null) }
+        delay(500.milliseconds)
+
+        // Assert
+        assertEquals(emptyList(), x.pantryTitles(homeId))
         scope.cancel()
     }
 }
