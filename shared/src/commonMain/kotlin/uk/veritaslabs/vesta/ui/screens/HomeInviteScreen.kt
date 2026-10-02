@@ -4,10 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +36,10 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.homejoin.HomeInviteError
 import uk.veritaslabs.vesta.homejoin.HomeInviteUiState
 import uk.veritaslabs.vesta.homejoin.HomeInviteViewModel
+import uk.veritaslabs.vesta.ui.components.BarcodeCameraView
+import uk.veritaslabs.vesta.ui.components.BarcodeKind
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
+import uk.veritaslabs.vesta.ui.components.isBarcodeScanningSupported
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.device_pairing_back
@@ -46,15 +53,18 @@ import vesta.shared.generated.resources.home_invite_error_no_response
 import vesta.shared.generated.resources.home_invite_error_not_admin
 import vesta.shared.generated.resources.home_invite_field_label
 import vesta.shared.generated.resources.home_invite_progress
+import vesta.shared.generated.resources.home_invite_scan
 import vesta.shared.generated.resources.home_invite_submit
 import vesta.shared.generated.resources.home_invite_title
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_scan
 
 private val HomeInviteTabletBreakpoint = 600.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object HomeInviteTestTags {
     const val LinkField = "home_invite_link_field"
+    const val ScanButton = "home_invite_scan_button"
     const val SubmitButton = "home_invite_submit_button"
     const val BackButton = "home_invite_back_button"
     const val Progress = "home_invite_progress"
@@ -73,6 +83,10 @@ fun HomeInviteScreen(viewModel: HomeInviteViewModel, onBack: () -> Unit, modifie
  * Invites someone to this Home (docs/adr/ADR-015-joining-a-home.md): the admin pastes the link the other person is
  * showing on their "Join a home" screen, and [onInvite] sends them the invitation. [state] says whether that is
  * under way, done or why it failed.
+ *
+ * Next to the field a scan button (shown when [scanSupported]) opens a full-screen QR scanner over the form; the
+ * scanned link fills the field and is sent straight away. [qrCamera] is the preview the scanner shows, a parameter
+ * so tests can stand in for real hardware.
  */
 @Composable
 fun HomeInviteScreen(
@@ -80,9 +94,29 @@ fun HomeInviteScreen(
     modifier: Modifier = Modifier,
     onInvite: (String) -> Unit = {},
     onBack: () -> Unit = {},
+    scanSupported: Boolean = isBarcodeScanningSupported,
+    qrCamera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
+        BarcodeCameraView(onBarcode, cameraModifier, BarcodeKind.QrCode)
+    },
 ) {
+    var scanning by remember { mutableStateOf(false) }
     var pastedLink by remember { mutableStateOf("") }
     val inviting = state is HomeInviteUiState.Inviting
+
+    if (scanning) {
+        BarcodeScannerScreen(
+            onScanned = {
+                scanning = false
+                pastedLink = it
+                onInvite(it)
+            },
+            onBack = { scanning = false },
+            modifier = modifier,
+            kind = BarcodeKind.QrCode,
+            camera = qrCamera,
+        )
+        return
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= HomeInviteTabletBreakpoint) 24.dp else 16.dp
@@ -115,15 +149,31 @@ fun HomeInviteScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 24.dp),
             )
-            OutlinedTextField(
-                value = pastedLink,
-                onValueChange = { pastedLink = it },
-                label = { Text(stringResource(Res.string.home_invite_field_label)) },
-                singleLine = true,
-                enabled = !inviting,
-                isError = state is HomeInviteUiState.Failed,
-                modifier = Modifier.fillMaxWidth().testTag(HomeInviteTestTags.LinkField),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = pastedLink,
+                    onValueChange = { pastedLink = it },
+                    label = { Text(stringResource(Res.string.home_invite_field_label)) },
+                    singleLine = true,
+                    enabled = !inviting,
+                    isError = state is HomeInviteUiState.Failed,
+                    modifier = Modifier.weight(1f).testTag(HomeInviteTestTags.LinkField),
+                )
+                if (scanSupported) {
+                    Spacer(Modifier.width(12.dp))
+                    IconButton(
+                        onClick = { scanning = true },
+                        enabled = !inviting,
+                        modifier = Modifier.size(44.dp).testTag(HomeInviteTestTags.ScanButton),
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_scan),
+                            contentDescription = stringResource(Res.string.home_invite_scan),
+                            modifier = Modifier.size(40.dp),
+                        )
+                    }
+                }
+            }
             when (state) {
                 is HomeInviteUiState.Failed -> Text(
                     text = stringResource(state.error.message()),

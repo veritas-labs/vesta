@@ -32,12 +32,15 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.BarcodeCameraView
+import uk.veritaslabs.vesta.ui.components.BarcodeKind
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.barcode_scanner_hint
 import vesta.shared.generated.resources.barcode_scanner_title
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.qr_scanner_hint
+import vesta.shared.generated.resources.qr_scanner_title
 
 internal object BarcodeScannerTestTags {
     const val BackButton = "barcode_scanner_back_button"
@@ -46,7 +49,7 @@ internal object BarcodeScannerTestTags {
 /**
  * Full-screen barcode scanner: a back button over [camera] and a hint. [onScanned] gets the first barcode the
  * camera reports; [onBack] leaves without a result. [camera] is the platform preview, a parameter so previews
- * and tests can stand in for real hardware.
+ * and tests can stand in for real hardware. [kind] is what to look for, which also picks the title and hint.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,8 +57,9 @@ fun BarcodeScannerScreen(
     onScanned: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    kind: BarcodeKind = BarcodeKind.Product,
     camera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
-        BarcodeCameraView(onBarcode, cameraModifier)
+        BarcodeCameraView(onBarcode, cameraModifier, kind)
     },
 ) {
     Column(
@@ -65,7 +69,11 @@ fun BarcodeScannerScreen(
             .safeDrawingPadding(),
     ) {
         TopAppBar(
-            title = { Text(stringResource(Res.string.barcode_scanner_title)) },
+            title = { Text(
+                    stringResource(
+                        if (kind == BarcodeKind.QrCode) Res.string.qr_scanner_title else Res.string.barcode_scanner_title,
+                    ),
+                ) },
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(BarcodeScannerTestTags.BackButton)) {
                     Icon(
@@ -92,7 +100,9 @@ fun BarcodeScannerScreen(
             BarcodeScannerReticle(Modifier.fillMaxSize())
         }
         Text(
-            text = stringResource(Res.string.barcode_scanner_hint),
+            text = stringResource(
+                if (kind == BarcodeKind.QrCode) Res.string.qr_scanner_hint else Res.string.barcode_scanner_hint,
+            ),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(16.dp),

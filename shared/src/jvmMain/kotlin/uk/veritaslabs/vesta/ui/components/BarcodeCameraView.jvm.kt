@@ -57,6 +57,11 @@ private val ProductBarcodeFormats = listOf(
     BarcodeFormat.UPC_E,
 )
 
+private fun BarcodeKind.formats(): List<BarcodeFormat> = when (this) {
+    BarcodeKind.Product -> ProductBarcodeFormats
+    BarcodeKind.QrCode -> listOf(BarcodeFormat.QR_CODE)
+}
+
 /** A barcode must decode to the same value in this many consecutive frames before it's reported. */
 private const val ConfirmationFrames = 3
 
@@ -81,7 +86,7 @@ private fun openWebcam(webcam: Webcam): Boolean {
 private class ScannedFrame(val image: ImageBitmap, val barcode: String?)
 
 @Composable
-actual fun BarcodeCameraView(onBarcode: (String) -> Unit, modifier: Modifier) {
+actual fun BarcodeCameraView(onBarcode: (String) -> Unit, modifier: Modifier, kind: BarcodeKind) {
     val currentOnBarcode by rememberUpdatedState(onBarcode)
     var frame by remember { mutableStateOf<ImageBitmap?>(null) }
     var noCamera by remember { mutableStateOf(false) }
@@ -100,7 +105,7 @@ actual fun BarcodeCameraView(onBarcode: (String) -> Unit, modifier: Modifier) {
             val reader = MultiFormatReader().apply {
                 setHints(
                     mapOf(
-                        DecodeHintType.POSSIBLE_FORMATS to ProductBarcodeFormats,
+                        DecodeHintType.POSSIBLE_FORMATS to kind.formats(),
                         DecodeHintType.TRY_HARDER to true,
                     ),
                 )

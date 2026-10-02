@@ -52,8 +52,13 @@ private val ProductBarcodeFormats = intArrayOf(
     Barcode.FORMAT_UPC_E,
 )
 
+private fun BarcodeKind.formats(): IntArray = when (this) {
+    BarcodeKind.Product -> ProductBarcodeFormats
+    BarcodeKind.QrCode -> intArrayOf(Barcode.FORMAT_QR_CODE)
+}
+
 @Composable
-actual fun BarcodeCameraView(onBarcode: (String) -> Unit, modifier: Modifier) {
+actual fun BarcodeCameraView(onBarcode: (String) -> Unit, modifier: Modifier, kind: BarcodeKind) {
     val context = LocalContext.current
     var granted by remember {
         mutableStateOf(context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
@@ -64,7 +69,7 @@ actual fun BarcodeCameraView(onBarcode: (String) -> Unit, modifier: Modifier) {
     }
 
     if (granted) {
-        CameraPreview(onBarcode, modifier)
+        CameraPreview(onBarcode, kind, modifier)
     } else {
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
@@ -84,17 +89,18 @@ actual fun BarcodeCameraView(onBarcode: (String) -> Unit, modifier: Modifier) {
 }
 
 @Composable
-private fun CameraPreview(onBarcode: (String) -> Unit, modifier: Modifier) {
+private fun CameraPreview(onBarcode: (String) -> Unit, kind: BarcodeKind, modifier: Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnBarcode by rememberUpdatedState(onBarcode)
     var noCamera by remember { mutableStateOf(false) }
     val previewView = remember { PreviewView(context) }
 
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, kind) {
         val analysisExecutor = Executors.newSingleThreadExecutor()
+        val formats = kind.formats()
         val scanner = BarcodeScanning.getClient(
-            BarcodeScannerOptions.Builder().setBarcodeFormats(ProductBarcodeFormats.first(), *ProductBarcodeFormats.drop(1).toIntArray()).build(),
+            BarcodeScannerOptions.Builder().setBarcodeFormats(formats.first(), *formats.drop(1).toIntArray()).build(),
         )
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var provider: ProcessCameraProvider? = null

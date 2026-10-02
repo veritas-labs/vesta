@@ -140,6 +140,8 @@
     <string name="pantry_edit_barcode_scan">Scan barcode</string>
     <string name="barcode_scanner_title">Scan barcode</string>
     <string name="barcode_scanner_hint">Point the camera at the barcode</string>
+    <string name="qr_scanner_title">Scan QR code</string>
+    <string name="qr_scanner_hint">Point the camera at the QR code</string>
     <string name="barcode_scanner_permission_message">Vesta needs camera access to scan barcodes.</string>
     <string name="barcode_scanner_permission_grant">Allow camera</string>
     <string name="barcode_scanner_no_camera">No camera found</string>
@@ -187,6 +189,7 @@
     <string name="home_invite_title">Invite someone</string>
     <string name="home_invite_body">Ask them to choose Join a home, then paste the link they show you.</string>
     <string name="home_invite_field_label">Join link</string>
+    <string name="home_invite_scan">Scan QR code</string>
     <string name="home_invite_submit">Send invite</string>
     <string name="home_invite_progress">Waiting for them to accept…</string>
     <string name="home_invite_done">Invited. They are now a member.</string>

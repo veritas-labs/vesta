@@ -1,6 +1,9 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -82,5 +85,45 @@ class HomeInviteScreenTest {
 
         // Assert
         onNodeWithTag(HomeInviteTestTags.Done).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun scanningAQrCodeFillsTheLinkAndSendsIt() = runComposeUiTest {
+        // Arrange
+        var sent: String? = null
+        setContent {
+            VestaTheme {
+                HomeInviteScreen(
+                    HomeInviteUiState.Idle,
+                    onInvite = { sent = it },
+                    scanSupported = true,
+                    qrCamera = { onBarcode, cameraModifier ->
+                        Box(cameraModifier.testTag("fake_camera").clickable { onBarcode("vesta://join/abc") })
+                    },
+                )
+            }
+        }
+
+        // Act
+        onNodeWithTag(HomeInviteTestTags.ScanButton).performClick()
+        onNodeWithTag("fake_camera").performClick()
+
+        // Assert
+        assertEquals("vesta://join/abc", sent)
+        onNodeWithTag(HomeInviteTestTags.LinkField).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun hidesTheScanButtonWhereScanningIsUnsupported() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeInviteScreen(HomeInviteUiState.Idle, scanSupported = false) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomeInviteTestTags.ScanButton).assertDoesNotExist()
     }
 }
