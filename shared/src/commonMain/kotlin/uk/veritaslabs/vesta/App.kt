@@ -89,7 +89,8 @@ private data class HomeEditTarget(val homeId: String?, val session: Int)
 private enum class SettingsDestination { Settings, SyncedDevices, ProfileName }
 
 /**
- * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name.
+ * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name, and an
+ * `onEditHome` that opens the Home's editor over it.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
  * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
  * approval is offered over whatever screen is showing. With [deviceSync], the Synced devices screen (under Settings, from the Home picker) lists and
@@ -105,8 +106,8 @@ fun App(
     deviceSync: DeviceSyncHost? = null,
     homeJoining: HomeJoining? = null,
     profiles: ProfileRepository? = null,
-    homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name ->
-        HomeContent(id, name)
+    homeContent: @Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit = { id, name, onEditHome ->
+        HomeContent(id, name, onEditHome = onEditHome)
     },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
@@ -146,7 +147,9 @@ fun App(
                         mode = ProfileNameMode.Setup,
                         onSave = { name -> scope.launch { profiles.rename(name) } },
                     )
-                } else homeId?.let { id -> homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) } ?: run {
+                } else homeId?.takeIf { editTarget == null }?.let { id ->
+                    homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) { openEditor(id) }
+                } ?: run {
                     val target = editTarget
                     val pairing = pairingSession
                     if (joiningHome && homeJoining != null) {
@@ -203,8 +206,6 @@ fun App(
                             onJoinHome = { if (homeJoining != null) joiningHome = true },
                             onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
                             onSettingsClick = { settingsDestination = SettingsDestination.Settings },
-                            onEditHome = { openEditor(it.id) },
-                            onDeleteHome = { home -> homeRepository?.let { scope.launch { it.delete(home.id) } } },
                         )
                     }
                 }
@@ -229,11 +230,15 @@ private fun HomeContent(
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
     onRemoveMember: suspend (memberId: String) -> Unit = {},
+    onEditHome: () -> Unit = {},
+    onDeleteHome: suspend () -> Unit = {},
     joining: HomeJoining? = null,
 ) {
     val scope = rememberCoroutineScope()
     var leaveBlocked by remember { mutableStateOf(false) }
     val selectedHome = LocalSelectedHome.current
+    val memberList by members.collectAsStateWithLifecycle(emptyList())
+    val isAdmin = memberList.any { it.isYou && it.role == MemberRole.Admin }
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
@@ -252,18 +257,20 @@ private fun HomeContent(
             x0xConnectivity = rememberX0xConnectivity(),
             onPantryClick = { destination = HomeDestination.Pantry },
             onMembersClick = { destination = HomeDestination.Members },
+            isAdmin = isAdmin,
+            onEditHome = onEditHome,
+            onDeleteHome = { scope.launch { onDeleteHome() } },
+            onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
+            leaveBlocked = leaveBlocked,
+            onLeaveBlockedDismiss = { leaveBlocked = false },
         )
         HomeDestination.Members -> {
-            val memberList by members.collectAsStateWithLifecycle(emptyList())
             MembersScreen(
                 members = memberList,
                 onHomeClick = { destination = HomeDestination.Dashboard },
                 onInviteClick = { destination = HomeDestination.Invite },
                 onSetRole = { member, role -> scope.launch { onSetRole(member.memberId, role) } },
                 onRemoveMember = { member -> scope.launch { onRemoveMember(member.memberId) } },
-                onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
-                leaveBlocked = leaveBlocked,
-                onLeaveBlockedDismiss = { leaveBlocked = false },
             )
         }
         HomeDestination.Invite -> {
@@ -379,7 +386,7 @@ private enum class HomeDestination { Dashboard, Members, Invite, Pantry, PantryC
 @Composable
 fun VestaApp(
     openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
-    homeContent: (@Composable (homeId: String, homeName: String) -> Unit)? = null,
+    homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
 ) {
@@ -412,7 +419,7 @@ fun VestaApp(
         deviceSync = deviceSync,
         homeJoining = deviceDataSync?.joining,
         profiles = profiles,
-        homeContent = homeContent ?: { homeId, homeName ->
+        homeContent = homeContent ?: { homeId, homeName, onEditHome ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             val members = remember(homeId) { memberRepository.members(homeId) }
             HomeContent(
@@ -420,6 +427,8 @@ fun VestaApp(
                 onLeave = { homeRepository.leave(homeId) },
                 onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
                 onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },
+                onEditHome = onEditHome,
+                onDeleteHome = { homeRepository.delete(homeId) },
                 joining = deviceDataSync?.joining,
             )
         },

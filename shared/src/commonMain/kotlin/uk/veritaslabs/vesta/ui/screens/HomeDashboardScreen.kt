@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,14 +13,22 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Devices
@@ -39,7 +48,19 @@ import uk.veritaslabs.vesta.x0x.X0xConnectivityIndicator
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.home_dashboard_back
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_pantry
+import vesta.shared.generated.resources.home_dashboard_more_options
+import vesta.shared.generated.resources.members_leave
+import vesta.shared.generated.resources.members_leave_blocked_body
+import vesta.shared.generated.resources.members_leave_blocked_ok
+import vesta.shared.generated.resources.members_leave_blocked_title
+import vesta.shared.generated.resources.members_leave_cancel
+import vesta.shared.generated.resources.members_leave_confirm
+import vesta.shared.generated.resources.members_leave_confirm_body
+import vesta.shared.generated.resources.members_leave_confirm_title
+import vesta.shared.generated.resources.onboarding_delete_home
+import vesta.shared.generated.resources.onboarding_edit_home
 import vesta.shared.generated.resources.pantry_title
 
 private val HomeDashboardTabletBreakpoint = 600.dp
@@ -49,6 +70,12 @@ internal object HomeDashboardTestTags {
     const val BackButton = "home_dashboard_back_button"
     const val PantryTile = "home_dashboard_pantry_tile"
     const val X0xIndicator = "home_dashboard_x0x_indicator"
+    const val OverflowButton = "home_dashboard_overflow_button"
+    const val EditMenuItem = "home_dashboard_edit_menu_item"
+    const val LeaveMenuItem = "home_dashboard_leave_menu_item"
+    const val DeleteMenuItem = "home_dashboard_delete_menu_item"
+    const val ConfirmLeave = "home_dashboard_leave_confirm"
+    const val BlockedDialog = "home_dashboard_leave_blocked"
 }
 
 private data class DashboardTile(
@@ -64,6 +91,10 @@ private data class DashboardTile(
  * [homeName], its back arrow calls [onBack] (to the Home picker), and its trailing indicator shows
  * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Members
  * ([onMembersClick]).
+ *
+ * The app bar's overflow menu has Edit home ([onEditHome]) and Delete home ([onDeleteHome]), both only for an
+ * [isAdmin], and Leave home, which asks for confirmation before calling [onLeaveHome]. [leaveBlocked] shows why
+ * the user can't leave (they are the only admin) until [onLeaveBlockedDismiss].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +106,14 @@ fun HomeDashboardScreen(
     onPantryClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
     onMembersClick: () -> Unit = {},
+    isAdmin: Boolean = false,
+    onEditHome: () -> Unit = {},
+    onDeleteHome: () -> Unit = {},
+    onLeaveHome: () -> Unit = {},
+    leaveBlocked: Boolean = false,
+    onLeaveBlockedDismiss: () -> Unit = {},
 ) {
+    var confirmingLeave by remember { mutableStateOf(false) }
     val tiles = listOf(
         DashboardTile(HomeDashboardTestTags.PantryTile, Res.string.pantry_title, Res.drawable.ic_pantry, onPantryClick),
     )
@@ -99,15 +137,51 @@ fun HomeDashboardScreen(
                     }
                 },
                 actions = {
-                    X0xConnectivityIndicator(
-                        x0xConnectivity,
-                        modifier = Modifier.padding(end = contentPadding).testTag(HomeDashboardTestTags.X0xIndicator),
-                    )
+                    X0xConnectivityIndicator(x0xConnectivity, modifier = Modifier.testTag(HomeDashboardTestTags.X0xIndicator))
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.padding(end = contentPadding - 12.dp)) {
+                        IconButton(
+                            onClick = { menuExpanded = true },
+                            modifier = Modifier.testTag(HomeDashboardTestTags.OverflowButton),
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_dots_vertical),
+                                contentDescription = stringResource(Res.string.home_dashboard_more_options),
+                            )
+                        }
+                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                            if (isAdmin) DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.onboarding_edit_home)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onEditHome()
+                                },
+                                modifier = Modifier.testTag(HomeDashboardTestTags.EditMenuItem),
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.members_leave)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    confirmingLeave = true
+                                },
+                                modifier = Modifier.testTag(HomeDashboardTestTags.LeaveMenuItem),
+                            )
+                            if (isAdmin) DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.onboarding_delete_home), color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onDeleteHome()
+                                },
+                                modifier = Modifier.testTag(HomeDashboardTestTags.DeleteMenuItem),
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
             LazyVerticalGrid(
@@ -129,6 +203,37 @@ fun HomeDashboardScreen(
             }
             HomeNavigationBar(selected = HomeTab.Home, onHomeClick = onHomeClick, onMembersClick = onMembersClick)
         }
+    }
+
+    if (confirmingLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmingLeave = false },
+            title = { Text(stringResource(Res.string.members_leave_confirm_title)) },
+            text = { Text(stringResource(Res.string.members_leave_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingLeave = false
+                        onLeaveHome()
+                    },
+                    modifier = Modifier.testTag(HomeDashboardTestTags.ConfirmLeave),
+                ) { Text(stringResource(Res.string.members_leave_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingLeave = false }) { Text(stringResource(Res.string.members_leave_cancel)) }
+            },
+        )
+    }
+    if (leaveBlocked) {
+        AlertDialog(
+            onDismissRequest = onLeaveBlockedDismiss,
+            title = { Text(stringResource(Res.string.members_leave_blocked_title)) },
+            text = { Text(stringResource(Res.string.members_leave_blocked_body)) },
+            confirmButton = {
+                TextButton(onClick = onLeaveBlockedDismiss) { Text(stringResource(Res.string.members_leave_blocked_ok)) }
+            },
+            modifier = Modifier.testTag(HomeDashboardTestTags.BlockedDialog),
+        )
     }
 }
 

@@ -23,20 +23,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,8 +56,6 @@ import vesta.shared.generated.resources.ic_settings
 import vesta.shared.generated.resources.home_picker_settings
 import vesta.shared.generated.resources.img_armchair
 import vesta.shared.generated.resources.onboarding_create_home
-import vesta.shared.generated.resources.onboarding_delete_home
-import vesta.shared.generated.resources.onboarding_edit_home
 import vesta.shared.generated.resources.onboarding_empty_subtitle
 import vesta.shared.generated.resources.onboarding_empty_title
 import vesta.shared.generated.resources.onboarding_get_started
@@ -83,8 +73,6 @@ internal object HomePickerTestTags {
     const val JoinHomeButton = "home_picker_join_home_button"
     const val SettingsButton = "home_picker_settings_button"
     const val PairDeviceButton = "home_picker_pair_device_button"
-    const val EditHomeButton = "home_picker_edit_home_button"
-    const val DeleteHomeButton = "home_picker_delete_home_button"
 
     /** Tag for the list row of the home with the given [homeId], independent of its display name. */
     fun homeItem(homeId: String) = "home_picker_item_$homeId"
@@ -109,8 +97,6 @@ fun HomePickerScreen(
     onJoinHome: () -> Unit = {},
     onPairDevice: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onEditHome: (HomeListItem) -> Unit = {},
-    onDeleteHome: (HomeListItem) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -124,8 +110,6 @@ fun HomePickerScreen(
             onJoinHome = onJoinHome,
             onPairDevice = onPairDevice,
             onSettingsClick = onSettingsClick,
-            onEditHome = onEditHome,
-            onDeleteHome = onDeleteHome,
         )
     }
 }
@@ -137,7 +121,6 @@ fun HomePickerScreen(
  * actions. [onPairDevice] links this device to the user's other devices, so it can be done before any Home exists.
  * The cog beside the heading (hidden while there are no homes) calls [onSettingsClick]: the app's settings are global, so they live here rather than inside a Home.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePickerScreen(
     homes: List<HomeListItem>,
@@ -147,11 +130,7 @@ fun HomePickerScreen(
     onJoinHome: () -> Unit = {},
     onPairDevice: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onEditHome: (HomeListItem) -> Unit = {},
-    onDeleteHome: (HomeListItem) -> Unit = {},
 ) {
-    var homeForActions by remember { mutableStateOf<HomeListItem?>(null) }
-
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
@@ -226,7 +205,6 @@ fun HomePickerScreen(
                             modifier = (if (isTablet) Modifier else Modifier.fillMaxWidth())
                                 .testTag(HomePickerTestTags.homeItem(home.id)),
                             onClick = { onHomeSelected(home) },
-                            onLongClick = { homeForActions = home },
                         )
                     }
                     item {
@@ -283,56 +261,6 @@ fun HomePickerScreen(
             }
             Spacer(Modifier.height(contentPadding))
         }
-    }
-
-    homeForActions?.let { actionsTarget ->
-        val sheetState = rememberModalBottomSheetState()
-        ModalBottomSheet(
-            onDismissRequest = { homeForActions = null },
-            sheetState = sheetState,
-        ) {
-            HomePickerActionsSheetContent(
-                home = actionsTarget,
-                onEdit = {
-                    homeForActions = null
-                    onEditHome(actionsTarget)
-                },
-                onDelete = {
-                    homeForActions = null
-                    onDeleteHome(actionsTarget)
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomePickerActionsSheetContent(
-    home: HomeListItem,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(
-            text = home.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(Modifier.height(16.dp))
-        OutlinedButton(
-            onClick = onEdit,
-            modifier = Modifier.fillMaxWidth().testTag(HomePickerTestTags.EditHomeButton),
-        ) {
-            Text(stringResource(Res.string.onboarding_edit_home))
-        }
-        Spacer(Modifier.height(8.dp))
-        TextButton(
-            onClick = onDelete,
-            modifier = Modifier.fillMaxWidth().testTag(HomePickerTestTags.DeleteHomeButton),
-        ) {
-            Text(stringResource(Res.string.onboarding_delete_home), color = MaterialTheme.colorScheme.error)
-        }
-        Spacer(Modifier.height(8.dp))
     }
 }
 

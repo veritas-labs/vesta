@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBarTestTags
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
@@ -27,6 +29,22 @@ class MembersScreenTest {
 
         // Assert
         onNodeWithTag(MembersTestTags.InviteButton).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theInviteRowComesAfterTheMembersAndMatchesTheirSize() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam)) } }
+
+        // Act
+        val invite = onNodeWithTag(MembersTestTags.InviteButton).fetchSemanticsNode().boundsInRoot
+        val lastMember = onAllNodesWithTag(MembersTestTags.Row)[1].fetchSemanticsNode().boundsInRoot
+
+        // Assert
+        assertTrue(invite.top >= lastMember.bottom)
+        assertEquals(lastMember.height, invite.height)
+        assertEquals(lastMember.width, invite.width)
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -86,52 +104,6 @@ class MembersScreenTest {
         onAllNodesWithTag(MembersTestTags.Row).assertCountEquals(2)
         onNodeWithText("Mark (You)").assertIsDisplayed()
         onNodeWithText("Sam").assertIsDisplayed()
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun leavingNeedsConfirmation() = runComposeUiTest {
-        // Arrange
-        var leaves = 0
-        setContent { VestaTheme { MembersScreen(onLeaveHome = { leaves++ }) } }
-
-        // Act
-        onNodeWithTag(MembersTestTags.LeaveButton).performClick()
-        val beforeConfirm = leaves
-        onNodeWithTag(MembersTestTags.ConfirmLeave).performClick()
-
-        // Assert
-        assertEquals(0, beforeConfirm)
-        assertEquals(1, leaves)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun cancellingTheLeaveConfirmationDoesNotLeave() = runComposeUiTest {
-        // Arrange
-        var leaves = 0
-        setContent { VestaTheme { MembersScreen(onLeaveHome = { leaves++ }) } }
-        onNodeWithTag(MembersTestTags.LeaveButton).performClick()
-
-        // Act
-        onNodeWithText("Cancel").performClick()
-
-        // Assert
-        assertEquals(0, leaves)
-        onNodeWithTag(MembersTestTags.ConfirmLeave).assertDoesNotExist()
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun explainsWhyTheOnlyAdminCannotLeave() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { MembersScreen(leaveBlocked = true) } }
-
-        // Act
-        // (no user interaction — checking the screen's initial state)
-
-        // Assert
-        onNodeWithTag(MembersTestTags.BlockedDialog).assertIsDisplayed()
     }
 
     private val admin = MemberListItem("1", "Mark", MemberRole.Admin, isYou = true)

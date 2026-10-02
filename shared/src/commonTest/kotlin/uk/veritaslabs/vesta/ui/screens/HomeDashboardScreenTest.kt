@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
@@ -94,5 +95,116 @@ class HomeDashboardScreenTest {
 
         // Assert
         assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    private fun ComposeUiTest.openMenu() = onNodeWithTag(HomeDashboardTestTags.OverflowButton).performClick()
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAdminsOverflowMenuHasEditLeaveAndDelete() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = true) } }
+
+        // Act
+        openMenu()
+
+        // Assert
+        onNodeWithTag(HomeDashboardTestTags.EditMenuItem).assertIsDisplayed()
+        onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).assertIsDisplayed()
+        onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aMembersOverflowMenuHasOnlyLeave() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = false) } }
+
+        // Act
+        openMenu()
+
+        // Assert
+        onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).assertIsDisplayed()
+        onNodeWithTag(HomeDashboardTestTags.EditMenuItem).assertDoesNotExist()
+        onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun editHomeInTheMenuInvokesOnEditHome() = runComposeUiTest {
+        // Arrange
+        var edits = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = true, onEditHome = { edits++ }) } }
+
+        // Act
+        openMenu()
+        onNodeWithTag(HomeDashboardTestTags.EditMenuItem).performClick()
+
+        // Assert
+        assertEquals(1, edits)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun deleteHomeInTheMenuInvokesOnDeleteHome() = runComposeUiTest {
+        // Arrange
+        var deletes = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = true, onDeleteHome = { deletes++ }) } }
+
+        // Act
+        openMenu()
+        onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).performClick()
+
+        // Assert
+        assertEquals(1, deletes)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun leavingNeedsConfirmation() = runComposeUiTest {
+        // Arrange
+        var leaves = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", onLeaveHome = { leaves++ }) } }
+
+        // Act
+        openMenu()
+        onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).performClick()
+        val beforeConfirm = leaves
+        onNodeWithTag(HomeDashboardTestTags.ConfirmLeave).performClick()
+
+        // Assert
+        assertEquals(0, beforeConfirm)
+        assertEquals(1, leaves)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun cancellingTheLeaveConfirmationDoesNotLeave() = runComposeUiTest {
+        // Arrange
+        var leaves = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", onLeaveHome = { leaves++ }) } }
+        openMenu()
+        onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).performClick()
+
+        // Act
+        onNodeWithText("Cancel").performClick()
+
+        // Assert
+        assertEquals(0, leaves)
+        onNodeWithTag(HomeDashboardTestTags.ConfirmLeave).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun explainsWhyTheOnlyAdminCannotLeave() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", leaveBlocked = true) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomeDashboardTestTags.BlockedDialog).assertIsDisplayed()
     }
 }

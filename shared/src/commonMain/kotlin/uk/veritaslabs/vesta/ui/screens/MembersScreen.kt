@@ -1,12 +1,12 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,9 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,14 +46,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_user_plus
 import vesta.shared.generated.resources.members_invite
-import vesta.shared.generated.resources.members_leave
-import vesta.shared.generated.resources.members_leave_blocked_body
-import vesta.shared.generated.resources.members_leave_blocked_ok
-import vesta.shared.generated.resources.members_leave_blocked_title
 import vesta.shared.generated.resources.members_leave_cancel
-import vesta.shared.generated.resources.members_leave_confirm
-import vesta.shared.generated.resources.members_leave_confirm_body
-import vesta.shared.generated.resources.members_leave_confirm_title
 import vesta.shared.generated.resources.members_remove
 import vesta.shared.generated.resources.members_remove_confirm_body
 import vesta.shared.generated.resources.members_remove_confirm_title
@@ -73,9 +65,6 @@ private val MembersTabletBreakpoint = 600.dp
 internal object MembersTestTags {
     const val InviteButton = "members_invite_button"
     const val Row = "members_row"
-    const val LeaveButton = "members_leave_button"
-    const val ConfirmLeave = "members_leave_confirm"
-    const val BlockedDialog = "members_leave_blocked"
     const val ConfirmRole = "members_confirm_role"
     const val RemoveMember = "members_remove_member"
     const val ConfirmRemove = "members_confirm_remove"
@@ -101,11 +90,11 @@ data class MemberListItem(
 )
 
 /**
- * The Members tab of a Home: the [members] (name and role badge, the current user marked "You"), and an Invite
- * button ([onInviteClick]) for bringing someone into the Home, a dialog on each other member's row, for an admin, to make
- * them an admin or an ordinary member ([onSetRole]) or remove them from the Home ([onRemoveMember], after confirming), and a Leave Home button that asks for confirmation
- * before calling [onLeaveHome]. [leaveBlocked] shows why the user can't leave (they are the only admin) until
- * [onLeaveBlockedDismiss]. The bottom nav bar has Home ([onHomeClick]) and Members (selected).
+ * The Members tab of a Home: the [members] (name and role badge, the current user marked "You") followed by an
+ * Invite row ([onInviteClick]) shaped like a member's, for bringing someone into the Home, and a dialog on each
+ * other member's row, for an admin, to make them an admin or an ordinary member ([onSetRole]) or remove them from
+ * the Home ([onRemoveMember], after confirming). Leaving the Home is in the dashboard's overflow menu. The bottom
+ * nav bar has Home ([onHomeClick]) and Members (selected).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,12 +104,8 @@ fun MembersScreen(
     onInviteClick: () -> Unit = {},
     onSetRole: (MemberListItem, MemberRole) -> Unit = { _, _ -> },
     onRemoveMember: (MemberListItem) -> Unit = {},
-    onLeaveHome: () -> Unit = {},
-    leaveBlocked: Boolean = false,
-    onLeaveBlockedDismiss: () -> Unit = {},
     onHomeClick: () -> Unit = {},
 ) {
-    var confirmingLeave by remember { mutableStateOf(false) }
     var managing by remember { mutableStateOf<MemberListItem?>(null) }
     var removing by remember { mutableStateOf<MemberListItem?>(null) }
     val canManage = members.any { it.isYou && it.role == MemberRole.Admin }
@@ -136,28 +121,12 @@ fun MembersScreen(
                 ),
             )
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding, vertical = 4.dp)) {
-                Button(onClick = onInviteClick, modifier = Modifier.testTag(MembersTestTags.InviteButton)) {
-                    Row {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_user_plus),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(Res.string.members_invite))
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(members, key = { it.memberId }) { member ->
                         MemberRow(member, onClick = if (canManage && !member.isYou) ({ managing = member }) else null)
                     }
+                    item(key = "invite") { InviteRow(onClick = onInviteClick) }
                 }
-                TextButton(
-                    onClick = { confirmingLeave = true },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    modifier = Modifier.testTag(MembersTestTags.LeaveButton),
-                ) { Text(stringResource(Res.string.members_leave)) }
             }
             HomeNavigationBar(selected = HomeTab.Members, onHomeClick = onHomeClick)
         }
@@ -224,44 +193,43 @@ fun MembersScreen(
             dismissButton = { TextButton(onClick = { removing = null }) { Text(stringResource(Res.string.members_leave_cancel)) } },
         )
     }
-    if (confirmingLeave) {
-        AlertDialog(
-            onDismissRequest = { confirmingLeave = false },
-            title = { Text(stringResource(Res.string.members_leave_confirm_title)) },
-            text = { Text(stringResource(Res.string.members_leave_confirm_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmingLeave = false
-                        onLeaveHome()
-                    },
-                    modifier = Modifier.testTag(MembersTestTags.ConfirmLeave),
-                ) { Text(stringResource(Res.string.members_leave_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmingLeave = false }) { Text(stringResource(Res.string.members_leave_cancel)) }
-            },
-        )
-    }
-    if (leaveBlocked) {
-        AlertDialog(
-            onDismissRequest = onLeaveBlockedDismiss,
-            title = { Text(stringResource(Res.string.members_leave_blocked_title)) },
-            text = { Text(stringResource(Res.string.members_leave_blocked_body)) },
-            confirmButton = {
-                TextButton(onClick = onLeaveBlockedDismiss) { Text(stringResource(Res.string.members_leave_blocked_ok)) }
-            },
-            modifier = Modifier.testTag(MembersTestTags.BlockedDialog),
-        )
+}
+
+/** The last row of the member list: same size and shape as a [MemberRow], inviting someone into the Home. */
+@Composable
+private fun InviteRow(onClick: () -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        // Same 1dp border as a MemberRow (in the fill colour) so the two are exactly the same size.
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).testTag(MembersTestTags.InviteButton),
+    ) {
+        // Padded and sized like a MemberRow (12dp around a 40dp avatar) so the heights match.
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp).height(40.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_user_plus),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(text = stringResource(Res.string.members_invite), style = MaterialTheme.typography.titleMedium)
+        }
     }
 }
 
 @Composable
 private fun MemberRow(member: MemberListItem, onClick: (() -> Unit)?) {
     val rowModifier = Modifier.fillMaxWidth().testTag(MembersTestTags.Row)
+    // Styled like the Home picker's AvatarButton: a bordered, rounded card with no fill.
     Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.small,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = if (onClick != null) rowModifier.clickable(onClick = onClick) else rowModifier,
     ) {
         Row(

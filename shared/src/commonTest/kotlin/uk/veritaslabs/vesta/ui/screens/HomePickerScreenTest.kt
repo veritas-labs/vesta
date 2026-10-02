@@ -2,11 +2,9 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import kotlin.test.Test
@@ -131,53 +129,5 @@ class HomePickerScreenTest {
 
         // Assert
         assertTrue(joined)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun longPressingAHomeOpensActionsSheetWithEditAndDelete() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { HomePickerScreen(homes = homes) } }
-
-        // Act
-        onNodeWithTag(HomePickerTestTags.homeItem("the-johnsons")).performTouchInput { longClick() }
-
-        // Assert
-        onNodeWithTag(HomePickerTestTags.EditHomeButton).assertIsDisplayed()
-        onNodeWithTag(HomePickerTestTags.DeleteHomeButton).assertIsDisplayed()
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun editHomeInSheetInvokesOnEditHomeForThatHome() = runComposeUiTest {
-        // Arrange
-        var edited: HomeListItem? = null
-        setContent {
-            VestaTheme { HomePickerScreen(homes = homes, onEditHome = { edited = it }) }
-        }
-
-        // Act
-        onNodeWithTag(HomePickerTestTags.homeItem("flat-4b")).performTouchInput { longClick() }
-        onNodeWithTag(HomePickerTestTags.EditHomeButton).performClick()
-
-        // Assert
-        assertEquals("flat-4b", edited?.id)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun deleteHomeInSheetInvokesOnDeleteHomeForThatHome() = runComposeUiTest {
-        // Arrange
-        var deleted: HomeListItem? = null
-        setContent {
-            VestaTheme { HomePickerScreen(homes = homes, onDeleteHome = { deleted = it }) }
-        }
-
-        // Act
-        onNodeWithTag(HomePickerTestTags.homeItem("flat-4b")).performTouchInput { longClick() }
-        onNodeWithTag(HomePickerTestTags.DeleteHomeButton).performClick()
-
-        // Assert
-        assertEquals("flat-4b", deleted?.id)
     }
 }
