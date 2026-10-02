@@ -1,16 +1,9 @@
 package uk.veritaslabs.vesta.homejoin
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharedFlow
 
 /** A Home this device has just joined. */
 data class JoinedHome(val homeId: String, val name: String)
-
-/** Why an admin's invitation didn't result in a new member. */
-enum class InviteFailure { NotAnAdmin, NoSuchHome, LinkExpired, AlreadyAMember, NoResponse }
-
-/** Raised by [HomeJoining.invite] when the invitation fails. */
-class InviteException(val reason: InviteFailure) : Exception(reason.name)
 
 /** Someone who opened an invite link (docs/adr/ADR-018-invite-links.md) and is waiting for an admin to approve them. */
 data class JoinRequest(
@@ -35,26 +28,11 @@ enum class RedeemResult { Started, Expired, AlreadyInHome }
 enum class RequestResult { Done, NotAnAdmin, NoSuchRequest, InviteNoLongerValid }
 
 /**
- * Joining a Home with a link (docs/adr/ADR-015-joining-a-home.md). The person joining [openLink]s and shows the link;
- * an admin of the Home [invite]s the person who showed it.
+ * Joining a Home with an invite link (docs/adr/ADR-018-invite-links.md, ADR-019). An admin makes a link
+ * ([createInviteLink]) and approves the requests that come of it ([approve], [decline]); the person joining opens it
+ * ([redeemInvite]) and waits.
  */
 interface HomeJoining {
-    /** Emits each time this device joins a Home. */
-    val joined: SharedFlow<JoinedHome>
-
-    /** Starts waiting for an invitation and returns the link to show the admin. Replaces any link already showing. */
-    suspend fun openLink(): JoinLink
-
-    /** Stops waiting for an invitation. */
-    fun cancelLink()
-
-    /**
-     * Invites the person who showed [link] to [homeId], repeating the invitation until they accept it. Fails with an
-     * [InviteException] if this user isn't an admin of the Home, the link has expired or they are already a member, or
-     * nobody accepted in time.
-     */
-    suspend fun invite(homeId: String, link: JoinLink): Result<Unit>
-
     /** The requests to join [homeId] that an admin hasn't declined, oldest first. */
     suspend fun joinRequests(homeId: String): List<JoinRequest>
 

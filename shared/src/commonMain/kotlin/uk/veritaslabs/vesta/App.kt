@@ -40,12 +40,11 @@ import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
 import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.LeaveResult
-import uk.veritaslabs.vesta.homejoin.HomeInviteViewModel
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
-import uk.veritaslabs.vesta.ui.flows.JoinHomeFlow
-import uk.veritaslabs.vesta.ui.screens.HomeInviteScreen
+import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
+import uk.veritaslabs.vesta.ui.screens.RedeemInviteScreen
 import uk.veritaslabs.vesta.home.MemberRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.SelectedHome
@@ -118,7 +117,9 @@ fun App(
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
     var pairingSession by remember { mutableStateOf<Int?>(null) }
     var settingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
-    var joiningHome by remember { mutableStateOf(false) }
+    // Which opening of the screen to paste an invite link into is showing; unique so each gets a fresh view model.
+    var joinSession by remember { mutableStateOf<Int?>(null) }
+    var joinSessions by remember { mutableIntStateOf(0) }
     // What to do once the user has chosen a name, when they tried to create or join a Home before having one.
     var afterNaming by remember { mutableStateOf<(() -> Unit)?>(null) }
     var pairingSessions by remember { mutableIntStateOf(0) }
@@ -173,15 +174,9 @@ fun App(
                 } ?: run {
                     val target = editTarget
                     val pairing = pairingSession
-                    if (joiningHome && homeJoining != null) {
-                        JoinHomeFlow(
-                            homeJoining,
-                            onExit = { joiningHome = false },
-                            onJoined = { joined ->
-                                joiningHome = false
-                                selectedHome.select(joined.homeId)
-                            },
-                        )
+                    if (joinSession != null && homeJoining != null) {
+                        val redeemViewModel = viewModel(key = "redeem-invite-$joinSession") { RedeemInviteViewModel(homeJoining) }
+                        RedeemInviteScreen(redeemViewModel, onBack = { joinSession = null }, onStarted = { joinSession = null })
                     } else if (pairing != null && deviceSync != null) {
                         val pairingViewModel = viewModel(key = "device-pairing-start-$pairing") { deviceSync.newPairingViewModel() }
                         DevicePairingFlow(pairingViewModel, onExit = { pairingSession = null })
@@ -226,7 +221,7 @@ fun App(
                         HomePickerScreen(
                             viewModel,
                             onCreateHome = { needingName { openEditor(null) } },
-                            onJoinHome = { if (homeJoining != null) needingName { joiningHome = true } },
+                            onJoinHome = { if (homeJoining != null) needingName { joinSession = joinSessions++ } },
                             onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
                             onSettingsClick = { settingsDestination = SettingsDestination.Settings },
                             pendingJoins = pendingJoins,
@@ -295,7 +290,7 @@ private fun HomeContent(
             MembersScreen(
                 members = memberList,
                 onHomeClick = { destination = HomeDestination.Dashboard },
-                onInviteClick = { destination = HomeDestination.Invite },
+                onInviteClick = { destination = HomeDestination.InviteLinks },
                 onSetRole = { member, role -> scope.launch { onSetRole(member.memberId, role) } },
                 onRemoveMember = { member -> scope.launch { onRemoveMember(member.memberId) } },
                 joinRequests = joinRequests,
@@ -303,17 +298,9 @@ private fun HomeContent(
                 onDecline = { request -> scope.launch { joining?.decline(request.homeId, request.memberId) } },
             )
         }
-        HomeDestination.Invite -> {
-            val inviteViewModel = viewModel(key = "home-invite-$homeId") { HomeInviteViewModel(homeId, joining) }
-            HomeInviteScreen(
-                inviteViewModel,
-                onBack = { destination = HomeDestination.Members },
-                onCreateInviteLink = { destination = HomeDestination.InviteLinks },
-            )
-        }
         HomeDestination.InviteLinks -> {
             val linksViewModel = viewModel(key = "invite-links-$homeId") { InviteLinksViewModel(homeId, joining) }
-            InviteLinksScreen(linksViewModel, onBack = { destination = HomeDestination.Invite })
+            InviteLinksScreen(linksViewModel, onBack = { destination = HomeDestination.Members })
         }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -411,7 +398,7 @@ class DeviceSyncHost(
     val newPairingViewModel: () -> DevicePairingViewModel,
 )
 
-private enum class HomeDestination { Dashboard, Members, Invite, InviteLinks, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+private enum class HomeDestination { Dashboard, Members, InviteLinks, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With

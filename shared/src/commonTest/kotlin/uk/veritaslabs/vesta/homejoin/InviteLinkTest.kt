@@ -37,12 +37,12 @@ class InviteLinkTest {
     }
 
     @Test
-    fun aJoinLinkIsNotAnInviteLink() {
+    fun aLinkOfAnotherKindIsNotAnInviteLink() {
         // Arrange
-        val joinLink = JoinLink("abc", "member-1", 5L, "Sam").encode()
+        val pairingLink = "vesta://pair/YWJjOjEwMA"
 
         // Act
-        val decoded = InviteLink.decode(joinLink)
+        val decoded = InviteLink.decode(pairingLink)
 
         // Assert
         assertNull(decoded)

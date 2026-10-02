@@ -7,19 +7,10 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.seconds
-import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.home.HomeChangeListener
@@ -29,36 +20,30 @@ import uk.veritaslabs.vesta.automerge.inviteSecretHash
 import uk.veritaslabs.vesta.homejoin.ActiveInvite
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.HomeJoining
-import uk.veritaslabs.vesta.homejoin.InviteException
-import uk.veritaslabs.vesta.homejoin.InviteFailure
 import uk.veritaslabs.vesta.homejoin.InviteLink
-import uk.veritaslabs.vesta.homejoin.JoinLink
 import uk.veritaslabs.vesta.homejoin.JoinRequest
 import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.homejoin.RedeemResult
-import uk.veritaslabs.vesta.homejoin.JoinedHome
 import uk.veritaslabs.vesta.homejoin.RequestResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
-private val LinkLifetime = 5 * 60 * 1000L
 private val InviteLifetime = 7.days
 private const val PendingStatus = "pending"
 private const val ApprovedStatus = "approved"
 private const val DeclinedStatus = "declined"
 
 /**
- * Joining a Home with a link (docs/adr/ADR-015-joining-a-home.md), entirely over x0x direct messages: no x0x group is
- * involved, because a Home's sync is already limited to the devices its roster lists (ADR-014) and every direct message
- * is end-to-end encrypted to its recipient.
+ * Joining a Home with an invite link (docs/adr/ADR-018-invite-links.md, ADR-019), entirely over x0x direct messages: no x0x
+ * group is involved, because a Home's sync is already limited to the devices its roster lists (ADR-014) and every direct
+ * message is end-to-end encrypted to its recipient.
  *
- * - **Joiner** ([openLink]): shows a [JoinLink]. While it is showing and unexpired, the first [HomeJoinMessage.Invite]
- *   from a verified sender creates the Home here, puts the inviter and this user in its roster, and answers
- *   [HomeJoinMessage.Accepted].
- * - **Admin** ([invite]): sends the invitation to the link's agent, every [resendInterval] until it answers (a message
- *   to a peer that isn't listening yet can vanish), then admits that person to the Home's roster.
+ * - **Admin**: makes invite links ([createInviteLink]), is asked to let people in ([HomeJoinMessage.Request]), and
+ *   [approve]s or [decline]s each, sending an Invite until the person answers Accepted and joins the roster.
+ * - **Joiner** ([redeemInvite]): asks the admins a link names, every sync round, until one of them sends the Invite, which
+ *   creates the Home here, puts the inviter and this user in its roster, and is answered with Accepted.
  */
 internal class HomeJoinService(
     private val client: X0xClient,
@@ -67,77 +52,11 @@ internal class HomeJoinService(
     private val homes: HomeChangeListener,
     private val profiles: ProfileRepository,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-    private val resendInterval: Duration = 10.seconds,
-    private val timeout: Duration = 90.seconds,
     private val messageLifetime: Duration = 14.days,
 ) : HomeJoining {
 
-    private val _joined = MutableSharedFlow<JoinedHome>(extraBufferCapacity = 4)
-    override val joined: SharedFlow<JoinedHome> = _joined.asSharedFlow()
-
-    // The link this device is showing; guarded by [lock] together with the work an invitation does.
+    // Serialises the work an Invite does, so two copies of one can't both create the Home.
     private val lock = Mutex()
-    private var offered: JoinLink? = null
-    private val pending = ConcurrentHashMap<Pair<String, String>, CompletableDeferred<Unit>>()
-
-    override suspend fun openLink(): JoinLink {
-        val me = profiles.current()
-        val link = JoinLink(
-            agentId = checkNotNull(client.agent().agentId) { "x0x did not report this device's agent id" },
-            memberId = me.id,
-            expiresAt = nowMillis() + LinkLifetime,
-            name = me.displayName,
-        )
-        lock.withLock { offered = link }
-        return link
-    }
-
-    override fun cancelLink() {
-        offered = null
-    }
-
-    override suspend fun invite(homeId: String, link: JoinLink): Result<Unit> = try {
-        Result.success(sendInvite(homeId, link))
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        Result.failure(e)
-    }
-
-    private suspend fun sendInvite(homeId: String, link: JoinLink) {
-        if (link.isExpired(nowMillis())) throw InviteException(InviteFailure.LinkExpired)
-        val home = database.homeQueries.selectById(homeId).awaitAsOneOrNull() ?: throw InviteException(InviteFailure.NoSuchHome)
-        val me = profiles.current().id
-        val members = database.homeMemberQueries.selectByHome(homeId).awaitAsList()
-        val mine = members.firstOrNull { it.memberId == me }
-        if (mine == null || mine.role != MemberRole.Admin.storageValue) throw InviteException(InviteFailure.NotAnAdmin)
-        if (members.any { it.memberId == link.memberId }) throw InviteException(InviteFailure.AlreadyAMember)
-
-        val message = HomeJoinMessage.encode(
-            HomeJoinMessage.Invite(home.id, home.name, home.shape, home.createdAt, mine.memberId, mine.name),
-        )
-        val accepted = CompletableDeferred<Unit>()
-        val key = homeId to link.agentId
-        pending[key] = accepted
-        try {
-            try {
-                withTimeout(timeout) {
-                    while (!accepted.isCompleted) {
-                        runCatching {
-                            runCatching { client.connectAgent(link.agentId) }
-                            client.sendDirect(link.agentId, message)
-                        }.onFailure { if (it is CancellationException) throw it }
-                        withTimeoutOrNull(resendInterval) { accepted.await() }
-                    }
-                }
-            } catch (e: TimeoutCancellationException) {
-                if (!accepted.isCompleted) throw InviteException(InviteFailure.NoResponse)
-            }
-        } finally {
-            pending.remove(key)
-        }
-        rosters.admit(homeId, link.memberId, link.name, MemberRole.Member.storageValue, link.agentId)
-    }
 
     /** Handles a direct message if it is a Home-join message; returns whether it was one, so the caller can stop there. */
     suspend fun handle(message: X0xDirectMessage): Boolean {
@@ -146,8 +65,7 @@ internal class HomeJoinService(
         val sender = message.sender ?: return true
         when (decoded) {
             is HomeJoinMessage.Invite -> acceptInvite(sender, decoded)
-            is HomeJoinMessage.Accepted ->
-                if (pending[decoded.homeId to sender]?.complete(Unit) == null) completeApproved(sender, decoded.homeId)
+            is HomeJoinMessage.Accepted -> completeApproved(sender, decoded.homeId)
             is HomeJoinMessage.Left -> {
                 acceptLeft(sender, decoded)
                 acknowledge(sender, decoded.homeId, HomeJoinMessage.LeftKind)
@@ -391,27 +309,19 @@ internal class HomeJoinService(
         }.onFailure { if (it is CancellationException) throw it }
     }
 
-    /** Who is joining, and how: through a [JoinLink] this device is showing, or an invite link it opened. */
-    private class Joiner(val memberId: String, val name: String, val agentId: String, val viaLink: Boolean)
-
     /**
-     * An Invite arrived. It is accepted from an agent that an invite link we opened named (ADR-018), or else from anyone
-     * while we are showing an unexpired join link (ADR-015).
+     * An Invite arrived. It is accepted only from an agent that an invite link we opened named (ADR-018), and only while
+     * that request hasn't been refused. Returns who is joining, or null if the Invite is to be ignored.
      */
     private suspend fun joinerFor(sender: String, invite: HomeJoinMessage.Invite): Joiner? {
-        val join = database.pendingJoinQueries.selectById(invite.homeId).awaitAsOneOrNull()
-        if (join != null && join.denial == null && sender in join.agents()) {
-            val me = profiles.current()
-            val agentId = client.agent().agentId ?: return null
-            return Joiner(me.id, me.displayName, agentId, viaLink = false)
-        }
-        val link = offered ?: return null
-        if (link.isExpired(nowMillis())) {
-            offered = null
-            return null
-        }
-        return Joiner(link.memberId, link.name, link.agentId, viaLink = true)
+        val join = database.pendingJoinQueries.selectById(invite.homeId).awaitAsOneOrNull() ?: return null
+        if (join.denial != null || sender !in join.agents()) return null
+        val me = profiles.current()
+        val agentId = client.agent().agentId ?: return null
+        return Joiner(me.id, me.displayName, agentId)
     }
+
+    private class Joiner(val memberId: String, val name: String, val agentId: String)
 
     private suspend fun acceptInvite(sender: String, invite: HomeJoinMessage.Invite) = lock.withLock {
         // A Home this device already has: if we are in it and this is who invited us, our Accepted may have been lost
@@ -435,9 +345,7 @@ internal class HomeJoinService(
         // A device only syncs a Home with the agents its roster lists, so it has to be told who invited it.
         rosters.admit(invite.homeId, invite.inviterMemberId, invite.inviterName, MemberRole.Admin.storageValue, sender)
         rosters.admit(invite.homeId, joiner.memberId, joiner.name, MemberRole.Member.storageValue, joiner.agentId)
-        if (joiner.viaLink) offered = null
         database.pendingJoinQueries.delete(invite.homeId)
         sendQuietly(sender, HomeJoinMessage.encode(HomeJoinMessage.Accepted(invite.homeId)))
-        _joined.tryEmit(JoinedHome(invite.homeId, invite.homeName))
     }
 }

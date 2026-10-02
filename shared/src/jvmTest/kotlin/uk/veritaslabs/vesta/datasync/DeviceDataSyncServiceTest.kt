@@ -29,9 +29,6 @@ import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.home.RemoveMemberResult
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.homejoin.InviteException
-import uk.veritaslabs.vesta.homejoin.InviteFailure
-import uk.veritaslabs.vesta.homejoin.JoinLink
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
@@ -49,7 +46,6 @@ class DeviceDataSyncServiceTest {
         val pantries = PantrySources(database)
         val sync = DeviceDataSyncService(
             node, database, devices, pantries, interval = 50.milliseconds,
-            joinResendInterval = 100.milliseconds, joinTimeout = 1.seconds,
         )
         val homes = HomeRepository(database, sync.homeChanges)
         val profiles = ProfileRepository(database, changes = sync.profileChanges)
@@ -392,7 +388,7 @@ class DeviceDataSyncServiceTest {
     }
 
     @Test
-    fun aPersonWhoShowsAJoinLinkIsInvitedIntoAHomeAndSyncsIt() = runBlocking {
+    fun aPersonWhoOpensAnInviteLinkIsApprovedIntoAHomeAndSyncsIt() = runBlocking {
         // Arrange
         val x = Device("agent-x")
         val y = Device("agent-y")
@@ -400,13 +396,14 @@ class DeviceDataSyncServiceTest {
         x.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null) }
         x.start()
         y.start()
-        val link = y.sync.joining.openLink()
+        val link = x.sync.joining.createInviteLink(homeId)!!
 
         // Act
-        val result = x.sync.joining.invite(homeId, link)
+        y.sync.joining.redeemInvite(link)
+        eventually { x.sync.joining.joinRequests(homeId).isNotEmpty() }
+        x.sync.joining.approve(homeId, y.profiles.current().id)
 
         // Assert
-        assertTrue(result.isSuccess)
         eventually { y.homeNames() == listOf("Maple Street") }
         eventually { x.memberIds(homeId).size == 2 && y.memberIds(homeId).size == 2 }
         assertEquals(x.memberIds(homeId).sorted(), y.memberIds(homeId).sorted())
@@ -430,76 +427,6 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         eventually { x.agentId in y.node.sentTo }
-        scope.cancel()
-    }
-
-    @Test
-    fun aDeviceThatIsNotShowingAJoinLinkIgnoresAnInvitation() = runBlocking {
-        // Arrange
-        val x = Device("agent-x")
-        val y = Device("agent-y")
-        val homeId = x.homes.create("Maple Street", HomeShape.Family)
-        x.start()
-        y.start()
-        val link = y.sync.joining.openLink()
-        y.sync.joining.cancelLink()
-
-        // Act
-        val result = x.sync.joining.invite(homeId, link)
-
-        // Assert
-        assertEquals(InviteFailure.NoResponse, (result.exceptionOrNull() as InviteException).reason)
-        assertEquals(emptyList(), y.homeNames())
-        assertEquals(1, x.memberIds(homeId).size)
-        scope.cancel()
-    }
-
-    @Test
-    fun onlyAnAdminCanInvite() = runBlocking {
-        // Arrange
-        val (x, y, homeId) = twoPeopleInOneHome()
-        val newcomer = Device("agent-new")
-        x.start()
-        y.start()
-        newcomer.start()
-        val link = newcomer.sync.joining.openLink()
-
-        // Act
-        val result = y.sync.joining.invite(homeId, link) // Y is an ordinary member
-
-        // Assert
-        assertEquals(InviteFailure.NotAnAdmin, (result.exceptionOrNull() as InviteException).reason)
-        scope.cancel()
-    }
-
-    @Test
-    fun invitingAnExistingMemberFails() = runBlocking {
-        // Arrange
-        val (x, y, homeId) = twoPeopleInOneHome()
-        x.start()
-        y.start()
-        val link = y.sync.joining.openLink()
-
-        // Act
-        val result = x.sync.joining.invite(homeId, link)
-
-        // Assert
-        assertEquals(InviteFailure.AlreadyAMember, (result.exceptionOrNull() as InviteException).reason)
-        scope.cancel()
-    }
-
-    @Test
-    fun anExpiredLinkCannotBeUsed() = runBlocking {
-        // Arrange
-        val x = Device("agent-x")
-        val homeId = x.homes.create("Maple Street", HomeShape.Family)
-        val expired = JoinLink("agent-y", "member-y", expiresAt = 0L, name = "Sam")
-
-        // Act
-        val result = x.sync.joining.invite(homeId, expired)
-
-        // Assert
-        assertEquals(InviteFailure.LinkExpired, (result.exceptionOrNull() as InviteException).reason)
         scope.cancel()
     }
 

@@ -4,7 +4,6 @@ import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -13,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -24,7 +22,6 @@ import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.InviteLink
-import uk.veritaslabs.vesta.homejoin.JoinLink
 import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.homejoin.RedeemResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -146,10 +143,9 @@ class HomeJoinRedeemTest {
 
         // Act
         admin.join.approve(homeId, sam.myId())
-        val joined = sam.join.joined.first()
+        eventually { sam.homeIds() == listOf(homeId) }
 
         // Assert
-        assertEquals(homeId, joined.homeId)
         eventually { admin.memberIds().toSet() == setOf(admin.myId(), sam.myId()) }
         assertEquals(setOf(admin.myId(), sam.myId()), sam.memberIds().toSet())
         assertEquals(listOf(homeId), sam.homeIds())
@@ -320,19 +316,5 @@ class HomeJoinRedeemTest {
 
         // Assert
         assertEquals(emptyList(), sam.join.pendingJoins())
-    }
-
-    @Test
-    fun theShortLivedJoinLinkStillWorksAlongsideInviteLinks() = runBlocking {
-        // Arrange
-        val sam = Party("agent-sam")
-        val link: JoinLink = sam.join.openLink()
-
-        // Act
-        sam.receive("agent-admin", HomeJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mark", "Mark"))
-
-        // Assert
-        assertEquals(listOf(homeId), sam.homeIds())
-        assertTrue(link.memberId in sam.memberIds())
     }
 }

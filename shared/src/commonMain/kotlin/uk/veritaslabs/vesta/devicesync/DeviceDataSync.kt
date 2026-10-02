@@ -19,7 +19,7 @@ interface DeviceDataSync {
     /** Pass to the [uk.veritaslabs.vesta.profile.ProfileRepository] so a name change made here reaches the other devices and Homes. */
     val profileChanges: ProfileChangeListener
 
-    /** Joining a Home with a link, and inviting someone to one (docs/adr/ADR-015-joining-a-home.md). */
+    /** Joining a Home with an invite link, and inviting someone to one (docs/adr/ADR-018-invite-links.md). */
     val joining: HomeJoining
 
     /** Syncs for as long as it runs: handles incoming sync messages and keeps every device up to date. Never returns normally. */

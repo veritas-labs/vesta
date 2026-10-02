@@ -48,15 +48,13 @@ class DeviceDataSyncService(
     private val devices: SyncedDeviceRepository,
     private val pantrySources: PantrySources,
     private val interval: Duration = 30.seconds,
-    joinResendInterval: Duration = 10.seconds,
-    joinTimeout: Duration = 90.seconds,
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, pantrySources)
     private val profiles = ProfileRepository(database)
     private val profile = ProfileRegistry(database, profiles)
     private val rosters = HomeRosters(database, profiles)
-    private val join = HomeJoinService(client, database, rosters, registry, profiles, resendInterval = joinResendInterval, timeout = joinTimeout)
+    private val join = HomeJoinService(client, database, rosters, registry, profiles)
 
     override val homeChanges: HomeChangeListener get() = registry
 

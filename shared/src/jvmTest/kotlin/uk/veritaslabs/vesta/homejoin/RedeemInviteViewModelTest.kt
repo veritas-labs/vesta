@@ -54,13 +54,13 @@ class RedeemInviteViewModelTest {
     }
 
     @Test
-    fun aJoinLinkIsNotAnInviteLink() = runTest {
+    fun aLinkOfAnotherKindIsNotAnInviteLink() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
         val viewModel = RedeemInviteViewModel(FakeHomeJoining(), nowMillis = { 0L })
 
         // Act
-        viewModel.onRedeem(JoinLink("agent-y", "member-y", 1_000L, "Sam").encode())
+        viewModel.onRedeem("vesta://pair/YWJjOjEwMA")
 
         // Assert
         assertEquals(RedeemInviteUiState.Failed(RedeemInviteError.InvalidLink), viewModel.uiState.value)

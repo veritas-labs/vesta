@@ -185,21 +185,6 @@
     <string name="synced_devices_remove_confirm_body">%1$s will no longer be paired with this device. You can pair it again later.</string>
     <string name="synced_devices_remove_confirm">Remove</string>
     <string name="synced_devices_remove_cancel">Cancel</string>
-    <string name="join_home_title">Join a home</string>
-    <string name="join_home_body">Show this to an admin of the home. They paste it into Members, Invite.</string>
-    <string name="home_invite_title">Invite someone</string>
-    <string name="home_invite_body">Ask them to choose Join a home, then paste the link they show you.</string>
-    <string name="home_invite_field_label">Join link</string>
-    <string name="home_invite_scan">Scan QR code</string>
-    <string name="home_invite_submit">Send invite</string>
-    <string name="home_invite_progress">Waiting for them to accept…</string>
-    <string name="home_invite_done">Invited. They are now a member.</string>
-    <string name="home_invite_error_invalid">That is not a Vesta join link.</string>
-    <string name="home_invite_error_expired">That link has expired. Ask them to show a new one.</string>
-    <string name="home_invite_error_already_member">They are already in this home.</string>
-    <string name="home_invite_error_not_admin">Only an admin can invite people.</string>
-    <string name="home_invite_error_no_response">They did not answer. Check their Vesta is on the join screen and try again.</string>
-    <string name="home_invite_error_failed">The invitation could not be sent. Try again.</string>
     <string name="profile_name_title_setup">What should we call you?</string>
     <string name="profile_name_body_setup">This is how other people see you in a home. You can change it later in Settings.</string>
     <string name="profile_name_title_rename">Your name</string>
@@ -216,7 +201,6 @@
     <string name="members_request_approved">Approved. Waiting for their device…</string>
     <string name="members_request_approve">Approve</string>
     <string name="members_request_decline">Decline</string>
-    <string name="home_invite_create_link">Or share an invite link instead</string>
     <string name="invite_links_title">Invite links</string>
     <string name="invite_links_body">Anyone with a link can ask to join this home. You approve each request.</string>
     <string name="invite_links_create">Create invite link</string>
@@ -228,7 +212,6 @@
     <string name="invite_links_revoke">Revoke</string>
     <string name="invite_links_created_title">Invite link</string>
     <string name="invite_links_created_body">Send this to the person joining. When they open it you will be asked to approve them.</string>
-    <string name="join_home_have_invite_link">I have an invite link</string>
     <string name="redeem_invite_title">Join with an invite link</string>
     <string name="redeem_invite_body">Paste the link an admin sent you, or scan its QR code. They will be asked to approve you.</string>
     <string name="redeem_invite_field_label">Invite link</string>
