@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -38,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
@@ -56,6 +59,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_devices
 import vesta.shared.generated.resources.ic_link
+import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_settings
 import vesta.shared.generated.resources.home_picker_settings
 import vesta.shared.generated.resources.img_armchair
@@ -225,6 +229,26 @@ fun HomePickerScreen(
                             onLongClick = { homeForActions = home },
                         )
                     }
+                    item {
+                        // Same footprint and shape as an AvatarButton card in either orientation.
+                        val shape = MaterialTheme.shapes.small
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(if (isTablet) Modifier.fillMaxHeight().heightIn(min = 184.dp) else Modifier.height(64.dp))
+                                .clip(shape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .clickable(onClick = onCreateHome)
+                                .testTag(HomePickerTestTags.CreateHomeButton),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_plus),
+                                contentDescription = stringResource(Res.string.onboarding_create_home),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -249,14 +273,14 @@ fun HomePickerScreen(
                     modifier = Modifier.weight(1f).fillMaxHeight().testTag(HomePickerTestTags.JoinHomeButton),
                 )
             }
-            Spacer(Modifier.height(contentPadding))
-            PrimaryButton(
-                label = stringResource(
-                    Res.string.onboarding_create_home,
-                ),
-                onClick = onCreateHome,
-                modifier = Modifier.align(Alignment.CenterHorizontally).testTag(HomePickerTestTags.CreateHomeButton),
-            )
+            if (homes.isEmpty()) {
+                Spacer(Modifier.height(contentPadding))
+                PrimaryButton(
+                    label = stringResource(Res.string.onboarding_create_home),
+                    onClick = onCreateHome,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).testTag(HomePickerTestTags.CreateHomeButton),
+                )
+            }
             Spacer(Modifier.height(contentPadding))
         }
     }
