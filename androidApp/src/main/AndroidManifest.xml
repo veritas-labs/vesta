@@ -4,6 +4,7 @@
     <!-- The embedded x0x daemon joins the gossip mesh over QUIC and serves
          its REST API on loopback. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <!-- The Pantry item form's barcode scanner. Not required: devices without a camera just can't scan. -->
     <uses-permission android:name="android.permission.CAMERA"/>

@@ -85,6 +85,7 @@
     <string name="settings_synced_devices">Paired devices</string>
     <string name="settings_section_network">Network</string>
     <string name="settings_network_status">x0x status</string>
+    <string name="settings_network_mobile_data">Use mobile data</string>
     <string name="settings_network_peers">Peers</string>
     <string name="settings_network_connected">Connected</string>
     <string name="settings_network_connecting">Connecting…</string>

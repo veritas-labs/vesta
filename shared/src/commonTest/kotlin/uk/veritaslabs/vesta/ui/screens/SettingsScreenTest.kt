@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -92,6 +93,34 @@ class SettingsScreenTest {
         // Assert
         onNodeWithText("Offline").assertIsDisplayed()
         onNodeWithTag(SettingsTestTags.NetworkPeersRow).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun mobileDataSwitchIsOffByDefault() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { SettingsScreen() } }
+
+        // Act
+        onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.MobileDataRow))
+
+        // Assert
+        onNodeWithTag(SettingsTestTags.MobileDataRow).assertIsOff()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun togglingMobileDataReportsTheNewValue() = runComposeUiTest {
+        // Arrange
+        var requested: Boolean? = null
+        setContent { VestaTheme { SettingsScreen(useMobileData = false, onUseMobileDataChange = { requested = it }) } }
+        onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.MobileDataRow))
+
+        // Act
+        onNodeWithTag(SettingsTestTags.MobileDataRow).performClick()
+
+        // Assert
+        assertEquals(true, requested)
     }
 
     @OptIn(ExperimentalTestApi::class)

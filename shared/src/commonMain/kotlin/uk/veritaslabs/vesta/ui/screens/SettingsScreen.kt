@@ -52,6 +52,7 @@ import vesta.shared.generated.resources.settings_network_connecting
 import vesta.shared.generated.resources.settings_network_offline
 import vesta.shared.generated.resources.settings_network_peers
 import vesta.shared.generated.resources.settings_network_status
+import vesta.shared.generated.resources.settings_network_mobile_data
 import vesta.shared.generated.resources.settings_section_application
 import vesta.shared.generated.resources.settings_section_device
 import vesta.shared.generated.resources.settings_section_appearance
@@ -75,11 +76,13 @@ internal object SettingsTestTags {
     const val PlatformRow = "settings_device_platform"
     const val NetworkStatusRow = "settings_network_status"
     const val NetworkPeersRow = "settings_network_peers"
+    const val MobileDataRow = "settings_network_mobile_data"
 }
 
 /**
  * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
- * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information.
+ * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
+ * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), off by default.
  * The Synced devices row calls [onSyncedDevicesClick]; with a [profileName], a Profile section shows it and its row calls
  * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
@@ -92,6 +95,8 @@ fun SettingsScreen(
     x0xConnectivity: X0xConnectivity = X0xConnectivity.Connecting,
     darkTheme: Boolean = isSystemInDarkTheme(),
     onDarkThemeChange: (Boolean) -> Unit = {},
+    useMobileData: Boolean = false,
+    onUseMobileDataChange: (Boolean) -> Unit = {},
     onSyncedDevicesClick: () -> Unit = {},
     profileName: String? = null,
     onProfileNameClick: () -> Unit = {},
@@ -203,6 +208,14 @@ fun SettingsScreen(
                                 connected.peers.toString(),
                                 Modifier.testTag(SettingsTestTags.NetworkPeersRow),
                             )
+                        }
+                        SettingsRow(
+                            label = stringResource(Res.string.settings_network_mobile_data),
+                            modifier = Modifier
+                                .toggleable(value = useMobileData, role = Role.Switch, onValueChange = onUseMobileDataChange)
+                                .testTag(SettingsTestTags.MobileDataRow),
+                        ) {
+                            Switch(checked = useMobileData, onCheckedChange = null)
                         }
                     }
                 }

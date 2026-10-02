@@ -36,6 +36,7 @@ import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
 import uk.veritaslabs.vesta.x0x.X0xClient
+import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
 import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.LeaveResult
@@ -138,6 +139,9 @@ fun App(
     val systemDark = isSystemInDarkTheme()
     var darkOverride by remember { mutableStateOf<Boolean?>(null) }
     val darkTheme = darkOverride ?: systemDark
+    // Off until the user opts in; not persisted yet. Platforms that run x0x in-process stop it on mobile data unless this is on.
+    var useMobileData by remember { mutableStateOf(X0xNetworkPolicy.useMobileData.value) }
+    LaunchedEffect(useMobileData) { X0xNetworkPolicy.useMobileData.value = useMobileData }
     val darkThemeSetting = remember(darkTheme) { DarkThemeSetting(darkTheme) { darkOverride = it } }
     CompositionLocalProvider(LocalSelectedHome provides selectedHome, LocalDarkThemeSetting provides darkThemeSetting) {
         VestaTheme(darkTheme = darkTheme) {
@@ -194,6 +198,8 @@ fun App(
                             x0xConnectivity = rememberX0xConnectivity(),
                             darkTheme = darkThemeSetting.enabled,
                             onDarkThemeChange = darkThemeSetting.onChange,
+                            useMobileData = useMobileData,
+                            onUseMobileDataChange = { useMobileData = it },
                             onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },
                             profileName = profile?.displayName,
                             onProfileNameClick = { settingsDestination = SettingsDestination.ProfileName },
