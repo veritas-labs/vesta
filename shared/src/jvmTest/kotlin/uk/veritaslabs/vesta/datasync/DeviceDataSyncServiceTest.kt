@@ -26,6 +26,9 @@ import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.MemberRepository
 import uk.veritaslabs.vesta.home.RoleChangeResult
 import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.LeaveResult
+import uk.veritaslabs.vesta.home.RemoveMemberResult
+import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.InviteException
 import uk.veritaslabs.vesta.homejoin.InviteFailure
 import uk.veritaslabs.vesta.homejoin.JoinLink
@@ -497,6 +500,79 @@ class DeviceDataSyncServiceTest {
         assertEquals(RoleChangeResult.Changed, result)
         eventually { y.roleOf(homeId, y.profiles.current().id) == "admin" }
         assertEquals("admin", x.roleOf(homeId, y.profiles.current().id))
+        scope.cancel()
+    }
+
+    @Test
+    fun aMemberRemovedByAnAdminLosesTheHomeOnTheirDevice() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val members = MemberRepository(x.database, x.profiles, x.sync.rosterChanges)
+
+        // Act
+        val result = members.removeMember(homeId, y.profiles.current().id)
+
+        // Assert
+        assertEquals(RemoveMemberResult.Removed, result)
+        eventually { y.homeNames().isEmpty() }
+        assertEquals(listOf(x.profiles.current().id), x.memberIds(homeId))
+        assertEquals(mapOf(x.profiles.current().id to setOf("agent-x")), x.sync.rosterDevices(homeId))
+        scope.cancel()
+    }
+
+    @Test
+    fun aMemberWhoLeavesIsDroppedFromTheOthersRoster() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val leaver = HomeRepository(y.database, y.sync.homeChanges, y.profiles, y.sync.rosterChanges)
+
+        // Act
+        val result = leaver.leave(homeId)
+
+        // Assert
+        assertEquals(LeaveResult.Left, result)
+        eventually { x.memberIds(homeId) == listOf(x.profiles.current().id) }
+        assertEquals(emptyList(), y.homeNames())
+        scope.cancel()
+    }
+
+    @Test
+    fun anOrdinaryMemberCannotRemoveAnotherMemberBySendingTheMessageThemselves() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+
+        // Act: Y is an ordinary member, and says X has been removed from Home
+        y.node.sendDirect(x.agentId, HomeJoinMessage.encode(HomeJoinMessage.Removed(homeId)))
+        delay(300.milliseconds)
+
+        // Assert
+        assertEquals(listOf("Maple Street"), x.homeNames())
+        scope.cancel()
+    }
+
+    @Test
+    fun aMemberCannotBeDroppedByADeviceThatIsNotTheirs() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+
+        // Act: Y claims X has left
+        y.node.sendDirect(x.agentId, HomeJoinMessage.encode(HomeJoinMessage.Left(homeId, x.profiles.current().id)))
+        delay(300.milliseconds)
+
+        // Assert
+        assertEquals(2, x.memberIds(homeId).size)
         scope.cancel()
     }
 }

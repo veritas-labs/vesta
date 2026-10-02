@@ -199,4 +199,39 @@ class MembersScreenTest {
         // Assert
         onNodeWithTag(MembersTestTags.ConfirmRole).assertDoesNotExist()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAdminCanRemoveAMemberAfterConfirming() = runComposeUiTest {
+        // Arrange
+        var removed: String? = null
+        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam), onRemoveMember = { removed = it.memberId }) } }
+
+        // Act
+        onNodeWithText("Sam").performClick()
+        onNodeWithTag(MembersTestTags.RemoveMember).performClick()
+        val beforeConfirm = removed
+        onNodeWithTag(MembersTestTags.ConfirmRemove).performClick()
+
+        // Assert
+        assertEquals(null, beforeConfirm)
+        assertEquals("2", removed)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun cancellingTheRemovalDoesNotRemoveAnyone() = runComposeUiTest {
+        // Arrange
+        var removed: String? = null
+        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam), onRemoveMember = { removed = it.memberId }) } }
+        onNodeWithText("Sam").performClick()
+        onNodeWithTag(MembersTestTags.RemoveMember).performClick()
+
+        // Act
+        onNodeWithText("Cancel").performClick()
+
+        // Assert
+        assertEquals(null, removed)
+        onNodeWithTag(MembersTestTags.ConfirmRemove).assertDoesNotExist()
+    }
 }

@@ -63,9 +63,14 @@ class MemberRepositoryTest {
 
     private class Recorder : RosterChangeListener {
         val changes = mutableListOf<Triple<String, String, String>>()
+        val removed = mutableListOf<Pair<String, String>>()
         override suspend fun roleChanged(homeId: String, memberId: String, role: String) {
             changes += Triple(homeId, memberId, role)
         }
+        override suspend fun memberRemoved(homeId: String, memberId: String) {
+            removed += homeId to memberId
+        }
+        override suspend fun memberLeft(homeId: String, memberId: String) = Unit
     }
 
     private suspend fun adminHomeWith(db: uk.veritaslabs.vesta.db.VestaDatabase, profiles: ProfileRepository, vararg others: Pair<String, String>) {
@@ -165,5 +170,70 @@ class MemberRepositoryTest {
 
         // Assert
         assertEquals(RoleChangeResult.NoSuchMember, result)
+    }
+
+    @Test
+    fun anAdminCanRemoveAMember() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark" })
+        val recorder = Recorder()
+        adminHomeWith(db, profiles, "sam" to "member")
+
+        // Act
+        val result = MemberRepository(db, profiles, recorder).removeMember("home-1", "sam")
+
+        // Assert
+        assertEquals(RemoveMemberResult.Removed, result)
+        assertEquals(listOf(profiles.current().id), db.homeMemberQueries.selectByHome("home-1").awaitAsList().map { it.memberId })
+        assertEquals(listOf("home-1" to "sam"), recorder.removed)
+    }
+
+    @Test
+    fun anOrdinaryMemberCannotRemoveAnyone() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark" })
+        val recorder = Recorder()
+        db.homeQueries.insert("home-1", "Flat 4B", "flatshare", 1L)
+        db.homeMemberQueries.insert("home-1", "boss", "Boss", null, "admin", 1L)
+        db.homeMemberQueries.insert("home-1", profiles.current().id, "Mark", null, "member", 2L)
+        db.homeMemberQueries.insert("home-1", "sam", "Sam", null, "member", 3L)
+
+        // Act
+        val result = MemberRepository(db, profiles, recorder).removeMember("home-1", "sam")
+
+        // Assert
+        assertEquals(RemoveMemberResult.NotAnAdmin, result)
+        assertEquals(emptyList(), recorder.removed)
+        assertEquals(3, db.homeMemberQueries.selectByHome("home-1").awaitAsList().size)
+    }
+
+    @Test
+    fun anAdminCannotRemoveThemselves() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark" })
+        adminHomeWith(db, profiles, "sam" to "admin")
+
+        // Act
+        val result = MemberRepository(db, profiles).removeMember("home-1", profiles.current().id)
+
+        // Assert
+        assertEquals(RemoveMemberResult.IsYou, result)
+    }
+
+    @Test
+    fun anUnknownMemberCannotBeRemoved() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark" })
+        adminHomeWith(db, profiles)
+
+        // Act
+        val result = MemberRepository(db, profiles).removeMember("home-1", "ghost")
+
+        // Assert
+        assertEquals(RemoveMemberResult.NoSuchMember, result)
     }
 }

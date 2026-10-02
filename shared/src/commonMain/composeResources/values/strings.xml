@@ -56,6 +56,9 @@
     <string name="members_you">You</string>
     <string name="members_role_admin">Admin</string>
     <string name="members_role_member">Member</string>
+    <string name="members_remove">Remove</string>
+    <string name="members_remove_confirm_title">Remove %1$s?</string>
+    <string name="members_remove_confirm_body">They will lose access to this home on all their devices.</string>
     <string name="members_manage_make_admin">Make admin</string>
     <string name="members_manage_make_admin_body">%1$s will be able to invite people and change roles.</string>
     <string name="members_manage_remove_admin">Remove admin</string>

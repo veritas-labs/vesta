@@ -28,6 +28,7 @@ class HomeRepository(
     private val database: VestaDatabase,
     private val changes: HomeChangeListener? = null,
     private val profiles: ProfileRepository = ProfileRepository(database),
+    private val rosterChanges: RosterChangeListener? = null,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -73,8 +74,8 @@ class HomeRepository(
     /**
      * The current user leaves the Home with the given [id], which removes it from their devices. The only admin of a Home
      * that has other members can't leave ([LeaveResult.OnlyAdmin], CORE-EXPERIENCE §5). Leaving as the only member
-     * leaves nobody, so it ends the Home. Telling the Home's other members is not done yet: nothing syncs a Home's roster
-     * to other people (docs/adr/ADR-014-home-membership.md).
+     * leaves nobody, so it ends the Home. The other members are told by [rosterChanges] before the Home goes
+     * (docs/adr/ADR-014-home-membership.md).
      */
     suspend fun leave(id: String): LeaveResult {
         val me = profiles.current().id
@@ -83,6 +84,7 @@ class HomeRepository(
         val iAmAdmin = members.any { it.memberId == me && it.role == admin }
         val otherAdmins = members.any { it.memberId != me && it.role == admin }
         if (iAmAdmin && !otherAdmins && members.any { it.memberId != me }) return LeaveResult.OnlyAdmin
+        rosterChanges?.memberLeft(id, me) // before the Home, and its roster, are gone
         delete(id)
         return LeaveResult.Left
     }

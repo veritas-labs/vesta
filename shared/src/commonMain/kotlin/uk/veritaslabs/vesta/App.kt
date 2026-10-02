@@ -197,6 +197,7 @@ private fun HomeContent(
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
+    onRemoveMember: suspend (memberId: String) -> Unit = {},
     joining: HomeJoining? = null,
 ) {
     val scope = rememberCoroutineScope()
@@ -228,6 +229,7 @@ private fun HomeContent(
                 onHomeClick = { destination = HomeDestination.Dashboard },
                 onInviteClick = { destination = HomeDestination.Invite },
                 onSetRole = { member, role -> scope.launch { onSetRole(member.memberId, role) } },
+                onRemoveMember = { member -> scope.launch { onRemoveMember(member.memberId) } },
                 onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
                 leaveBlocked = leaveBlocked,
                 onLeaveBlockedDismiss = { leaveBlocked = false },
@@ -357,7 +359,7 @@ fun VestaApp(
     val deviceDataSync = remember { dataSync?.invoke(database, client, devices) }
     LaunchedEffect(deviceDataSync) { deviceDataSync?.run() }
     val profiles = remember { ProfileRepository(database) }
-    val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles) }
+    val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val agentAccess = remember { AgentAccessRepository(database) }
     val deviceSync = remember {
@@ -385,6 +387,7 @@ fun VestaApp(
                 homeId, homeName, pantrySource, members,
                 onLeave = { homeRepository.leave(homeId) },
                 onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
+                onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },
                 joining = deviceDataSync?.joining,
             )
         },

@@ -130,8 +130,53 @@ internal class HomeJoinService(
         when (decoded) {
             is HomeJoinMessage.Invite -> acceptInvite(sender, decoded)
             is HomeJoinMessage.Accepted -> pending[decoded.homeId to sender]?.complete(Unit)
+            is HomeJoinMessage.Left -> acceptLeft(sender, decoded)
+            is HomeJoinMessage.Removed -> acceptRemoved(sender, decoded)
         }
         return true
+    }
+
+    /**
+     * An admin removes [memberId] from [homeId]: they are tombstoned in the roster, which stops the Home syncing with
+     * their devices, and those devices are told so they can drop the Home (best effort: one that is offline isn't).
+     */
+    suspend fun removeMember(homeId: String, memberId: String) {
+        val devices = rosters.devices(homeId)[memberId].orEmpty()
+        rosters.remove(homeId, memberId)
+        val message = HomeJoinMessage.encode(HomeJoinMessage.Removed(homeId))
+        devices.forEach { sendQuietly(it, message) }
+    }
+
+    /** The current user, [memberId], leaves [homeId]: the devices of the other members are told (best effort). */
+    suspend fun announceLeft(homeId: String, memberId: String) {
+        val others = rosters.devices(homeId).filterKeys { it != memberId }.values.flatten().toSet()
+        val message = HomeJoinMessage.encode(HomeJoinMessage.Left(homeId, memberId))
+        others.forEach { sendQuietly(it, message) }
+    }
+
+    /** A member says they have left: believed only from a device the roster lists for that member. */
+    private suspend fun acceptLeft(sender: String, message: HomeJoinMessage.Left) {
+        if (sender !in rosters.devices(message.homeId)[message.memberId].orEmpty()) return
+        rosters.remove(message.homeId, message.memberId)
+    }
+
+    /** This user has been removed from a Home: believed only from a device the roster lists for one of its admins. */
+    private suspend fun acceptRemoved(sender: String, message: HomeJoinMessage.Removed) {
+        val homeId = message.homeId
+        val admins = database.homeMemberQueries.selectByHome(homeId).awaitAsList()
+            .filter { it.role == MemberRole.Admin.storageValue }.map { it.memberId }
+        val devices = rosters.devices(homeId)
+        if (admins.none { sender in devices[it].orEmpty() }) return
+        // As leaving does: the Home goes from this device, and from the user's others as the registry syncs.
+        database.homeQueries.deleteById(homeId)
+        homes.deleted(homeId)
+    }
+
+    private suspend fun sendQuietly(agentId: String, payload: ByteArray) {
+        runCatching {
+            runCatching { client.connectAgent(agentId) }
+            client.sendDirect(agentId, payload)
+        }.onFailure { if (it is CancellationException) throw it }
     }
 
     private suspend fun acceptInvite(sender: String, invite: HomeJoinMessage.Invite) = lock.withLock {

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.home
 
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -188,5 +189,52 @@ class HomeRepositoryTest {
         // Assert
         assertEquals(LeaveResult.Left, result)
         assertNull(repository.get("home-1"))
+    }
+
+    @Test
+    fun leavingTellsTheOtherMembersBeforeTheHomeIsDeleted() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark" })
+        val told = mutableListOf<Triple<String, String, Boolean>>()
+        val listener = object : RosterChangeListener {
+            override suspend fun roleChanged(homeId: String, memberId: String, role: String) = Unit
+            override suspend fun memberRemoved(homeId: String, memberId: String) = Unit
+            override suspend fun memberLeft(homeId: String, memberId: String) {
+                told += Triple(homeId, memberId, db.homeQueries.selectById(homeId).awaitAsOneOrNull() != null)
+            }
+        }
+        val repository = HomeRepository(db, profiles = profiles, rosterChanges = listener)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+
+        // Act
+        repository.leave(id)
+
+        // Assert
+        assertEquals(listOf(Triple(id, profiles.current().id, true)), told)
+        assertNull(repository.get(id))
+    }
+
+    @Test
+    fun beingRefusedLeavingTellsNoOne() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark" })
+        var told = 0
+        val listener = object : RosterChangeListener {
+            override suspend fun roleChanged(homeId: String, memberId: String, role: String) = Unit
+            override suspend fun memberRemoved(homeId: String, memberId: String) = Unit
+            override suspend fun memberLeft(homeId: String, memberId: String) { told++ }
+        }
+        val repository = HomeRepository(db, profiles = profiles, rosterChanges = listener)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        db.homeMemberQueries.insert(id, "sam", "Sam", null, "member", 2L)
+
+        // Act
+        val result = repository.leave(id)
+
+        // Assert
+        assertEquals(LeaveResult.OnlyAdmin, result)
+        assertEquals(0, told)
     }
 }

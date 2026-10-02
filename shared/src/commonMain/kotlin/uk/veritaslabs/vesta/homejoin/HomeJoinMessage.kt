@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * What an admin and someone joining a Home say to each other over x0x direct messages
+ * What an admin and someone joining, leaving or being removed from a Home say to each other over x0x direct messages
  * (docs/adr/ADR-015-joining-a-home.md). Discriminated by `kind`; the `homejoin.` prefix keeps these apart from the
  * device-sync (ADR-012) and agent-command (ADR-009) messages on the same stream, which simply don't decode as these.
  */
@@ -29,6 +29,16 @@ sealed interface HomeJoinMessage {
     @Serializable
     @SerialName("homejoin.accepted")
     data class Accepted(val homeId: String) : HomeJoinMessage
+
+    /** A member to the others: "I have left this Home", so they drop me from the roster. */
+    @Serializable
+    @SerialName("homejoin.left")
+    data class Left(val homeId: String, val memberId: String) : HomeJoinMessage
+
+    /** An admin to a member they have removed: "you are no longer in this Home". */
+    @Serializable
+    @SerialName("homejoin.removed")
+    data class Removed(val homeId: String) : HomeJoinMessage
 
     companion object {
         private val json = Json {

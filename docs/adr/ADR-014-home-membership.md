@@ -192,11 +192,7 @@ explains they must make someone else an admin first, which isn't possible yet si
 otherwise removes the Home, through the same path as deleting it, so the registry tombstone takes it off the user's
 other devices. Leaving as the only member leaves nobody, so it ends the Home.
 
-- **Not done: telling the Home's other members.** Setting the roster's `removed` tombstone for the leaver and pushing
-  it to the other members before the Home (and its roster) is deleted needs Home-to-member sync, which doesn't exist.
-  Until then leaving is only local to the user's own devices. When that sync is built, leave must send the tombstone
-  first, then delete.
-- Removing the leaver's agents from the Home's x0x group (§4) waits for the same reason.
+- Telling the Home's other members was left for later; slice 9 does it.
 
 **Slice 6 (2026-10-02): a Home syncs between its members.** The sync service's peers are now per document. The
 Home registry and the Profile still sync only between the user's own paired devices. A Home's own documents (its Pantry
@@ -237,6 +233,30 @@ It reaches the member's devices through the usual roster sync. This unblocks lea
 - An admin can't open the role dialog on their own row; stepping down is possible through the repository but has no UI.
 - Concurrent role changes by two admins resolve last-writer-wins.
 - Removing a member is the remaining part of §4.
+
+**Slice 9 (2026-10-02): removing a member, and leaving tells the others.** On the Members tab an admin opens a member and
+chooses Remove (after confirming). `MemberRepository.removeMember` refuses unless the user is an admin and it isn't
+themselves (they leave instead). The removed member is tombstoned in the roster, which stops the Home syncing with their
+devices on every member's side, and their devices are sent a `homejoin.removed` direct message.
+
+Roster sync alone can't deliver either end of a departure: once someone is removed (or has left) nobody lists their
+devices as peers, so the tombstone never reaches them, and a leaver's Home and roster are deleted before a sync round
+trip could finish. So departures are two small direct messages, each believed only from the right devices:
+
+- **`removed`** (admin to the removed member's devices): applied only from a device the receiver's roster lists for one of
+  the Home's admins. The receiving device then drops the Home, as if the user had left it, and the registry tombstone
+  takes it off their other devices.
+- **`left`** (member to the others): applied only from a device the roster lists for *that* member; the others
+  tombstone them, and the tombstone syncs on among the rest. `HomeRepository.leave` sends it before deleting the Home.
+
+Both are best effort, a message to an offline device is lost. A leaver nobody heard from stays on the others' rosters
+until an admin removes them, and a removed device that was offline keeps its copy of the Home (nothing syncs to it any
+more, and it is told on no later occasion). Dropping the Home on a *reachable* removed device departs from
+[[ADR-012]]'s "nothing remotely wipes a removed device" for the Home's data; that was chosen deliberately, as being
+removed is leaving against your will, and an offline device is unaffected. No x0x group is involved ([[ADR-015]]), so
+there are no keys to rotate.
+
+With this, every part of §4 is built except the x0x-group aspects ADR-015 dropped.
 
 ## References
 

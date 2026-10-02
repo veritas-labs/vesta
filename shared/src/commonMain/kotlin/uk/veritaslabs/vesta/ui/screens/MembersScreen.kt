@@ -55,6 +55,9 @@ import vesta.shared.generated.resources.members_leave_cancel
 import vesta.shared.generated.resources.members_leave_confirm
 import vesta.shared.generated.resources.members_leave_confirm_body
 import vesta.shared.generated.resources.members_leave_confirm_title
+import vesta.shared.generated.resources.members_remove
+import vesta.shared.generated.resources.members_remove_confirm_body
+import vesta.shared.generated.resources.members_remove_confirm_title
 import vesta.shared.generated.resources.members_manage_make_admin
 import vesta.shared.generated.resources.members_manage_make_admin_body
 import vesta.shared.generated.resources.members_manage_remove_admin
@@ -74,6 +77,8 @@ internal object MembersTestTags {
     const val ConfirmLeave = "members_leave_confirm"
     const val BlockedDialog = "members_leave_blocked"
     const val ConfirmRole = "members_confirm_role"
+    const val RemoveMember = "members_remove_member"
+    const val ConfirmRemove = "members_confirm_remove"
 }
 
 /** The role a member has in a Home; [storageValue] is the `HomeMember.role` column's value. */
@@ -98,7 +103,7 @@ data class MemberListItem(
 /**
  * The Members tab of a Home: the [members] (name and role badge, the current user marked "You"), and an Invite
  * button ([onInviteClick]) for bringing someone into the Home, a dialog on each other member's row, for an admin, to make
- * them an admin or an ordinary member ([onSetRole]), and a Leave Home button that asks for confirmation
+ * them an admin or an ordinary member ([onSetRole]) or remove them from the Home ([onRemoveMember], after confirming), and a Leave Home button that asks for confirmation
  * before calling [onLeaveHome]. [leaveBlocked] shows why the user can't leave (they are the only admin) until
  * [onLeaveBlockedDismiss]. The bottom nav bar has Home ([onHomeClick]) and Members (selected).
  */
@@ -109,6 +114,7 @@ fun MembersScreen(
     members: List<MemberListItem> = emptyList(),
     onInviteClick: () -> Unit = {},
     onSetRole: (MemberListItem, MemberRole) -> Unit = { _, _ -> },
+    onRemoveMember: (MemberListItem) -> Unit = {},
     onLeaveHome: () -> Unit = {},
     leaveBlocked: Boolean = false,
     onLeaveBlockedDismiss: () -> Unit = {},
@@ -116,6 +122,7 @@ fun MembersScreen(
 ) {
     var confirmingLeave by remember { mutableStateOf(false) }
     var managing by remember { mutableStateOf<MemberListItem?>(null) }
+    var removing by remember { mutableStateOf<MemberListItem?>(null) }
     val canManage = members.any { it.isYou && it.role == MemberRole.Admin }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= MembersTabletBreakpoint) 24.dp else 16.dp
@@ -184,7 +191,37 @@ fun MembersScreen(
                     )
                 }
             },
-            dismissButton = { TextButton(onClick = { managing = null }) { Text(stringResource(Res.string.members_leave_cancel)) } },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            managing = null
+                            removing = member
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        modifier = Modifier.testTag(MembersTestTags.RemoveMember),
+                    ) { Text(stringResource(Res.string.members_remove)) }
+                    TextButton(onClick = { managing = null }) { Text(stringResource(Res.string.members_leave_cancel)) }
+                }
+            },
+        )
+    }
+    removing?.let { member ->
+        AlertDialog(
+            onDismissRequest = { removing = null },
+            title = { Text(stringResource(Res.string.members_remove_confirm_title, member.name)) },
+            text = { Text(stringResource(Res.string.members_remove_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        removing = null
+                        onRemoveMember(member)
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag(MembersTestTags.ConfirmRemove),
+                ) { Text(stringResource(Res.string.members_remove)) }
+            },
+            dismissButton = { TextButton(onClick = { removing = null }) { Text(stringResource(Res.string.members_leave_cancel)) } },
         )
     }
     if (confirmingLeave) {

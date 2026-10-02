@@ -63,6 +63,8 @@ class DeviceDataSyncService(
 
     override val rosterChanges: RosterChangeListener = object : RosterChangeListener {
         override suspend fun roleChanged(homeId: String, memberId: String, role: String) = rosters.setRole(homeId, memberId, role)
+        override suspend fun memberRemoved(homeId: String, memberId: String) = join.removeMember(homeId, memberId)
+        override suspend fun memberLeft(homeId: String, memberId: String) = join.announceLeft(homeId, memberId)
     }
 
     // One sync step at a time: every step reads and writes the per-peer sync states.
