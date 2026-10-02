@@ -17,8 +17,10 @@ moment: if each side retries in the background, the handshake completes whenever
 1. **Create.** An admin chooses Members → Invite → "Create invite link". The link, `vesta://invite/<token>`, carries the
    Home id, a random secret, an expiry (default 7 days, at most 30) and the agent ids of the Home's admin devices at that
    moment (capped at 5). The admin shares it any way they like, as text or a QR code.
-2. **Record.** The Home document gets an `invite:<sha256(secret)>` entry (creator, expiry, `revoked`, `uses`), following
-   the roster's flat-key convention ([[ADR-014]]). The secret itself is never stored. Because the entry syncs, any admin
+2. **Record.** The Home's roster document gets flat `invite:<sha256(secret)>:…` keys (`createdBy`, `expiresAt`, `maxUses`,
+   `revoked`), following the roster's convention ([[ADR-014]]). Uses are one `usedBy:<memberId>` key per admitted member
+   rather than a counter, because two admin devices incrementing a counter at once would lose one on merge. The secret
+   itself is never stored. Because the entry syncs, any admin
    device holding the document can validate the link, and revoking from any admin device reaches the others.
 3. **Redeem.** The joiner opens the link. The device saves a pending join (Home id, secret, the admin agents, expiry) and
    sends `homejoin.request` (secret, member id, name, agent id) to each listed agent, again every sync round until it gets
@@ -32,8 +34,8 @@ moment: if each side retries in the background, the handshake completes whenever
    the joiner stops retrying and shows why. Only a request that fails the secret check is denied silently: a stranger
    learns nothing about which Homes exist.
 
-**Single use.** Approval increments `uses` and an invite admits one member by default; a second request on a spent invite
-is denied. Because `uses` syncs eventually, two admin devices approving at once can both admit. That is accepted: each
+**Single use.** Approval records the member in `usedBy` and an invite admits one member by default; a second request on a spent invite
+is denied. Because `usedBy` syncs eventually, two admin devices approving at once can both admit. That is accepted: each
 admission still needed an admin's explicit approval.
 
 **Keep both flows.** [[ADR-015]]'s link carries no secret, so there is nothing to leak, and it stays the in-person

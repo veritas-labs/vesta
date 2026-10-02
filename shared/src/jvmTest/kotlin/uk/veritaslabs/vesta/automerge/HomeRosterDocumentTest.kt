@@ -145,4 +145,148 @@ class HomeRosterDocumentTest {
         assertFalse(changed)
         assertEquals(emptyList(), doc.readRoster())
     }
+
+    @Test
+    fun aWrittenInviteIsRead() {
+        // Arrange
+        val doc = Document()
+
+        // Act
+        val changed = putRosterInvite(doc, "hash-1", createdBy = "m1", expiresAt = 5_000L, maxUses = 1)
+
+        // Assert
+        assertTrue(changed)
+        assertEquals(
+            listOf(RosterInvite("hash-1", "m1", 5_000L, 1, revoked = false, usedBy = emptySet())),
+            doc.readInvites(),
+        )
+    }
+
+    @Test
+    fun anInviteIsNotMistakenForAMember() {
+        // Arrange
+        val doc = Document()
+
+        // Act
+        putRosterInvite(doc, "hash-1", "m1", 5_000L, 1)
+
+        // Assert
+        assertEquals(emptyList(), doc.readRoster())
+    }
+
+    @Test
+    fun writingAnExistingInviteAgainChangesNothing() {
+        // Arrange
+        val doc = Document()
+        putRosterInvite(doc, "hash-1", "m1", 5_000L, 1)
+
+        // Act
+        val changed = putRosterInvite(doc, "hash-1", "m2", 9_000L, 5)
+
+        // Assert
+        assertFalse(changed)
+        assertEquals("m1", doc.readInvites().single().createdBy)
+    }
+
+    @Test
+    fun revokingAnInviteMarksItRevokedOnce() {
+        // Arrange
+        val doc = Document()
+        putRosterInvite(doc, "hash-1", "m1", 5_000L, 1)
+
+        // Act
+        val changed = revokeRosterInvite(doc, "hash-1")
+        val again = revokeRosterInvite(doc, "hash-1")
+
+        // Assert
+        assertTrue(changed)
+        assertFalse(again)
+        assertTrue(doc.readInvites().single().revoked)
+    }
+
+    @Test
+    fun revokingOrUsingAnUnknownInviteDoesNothing() {
+        // Arrange
+        val doc = Document()
+
+        // Act
+        val revoked = revokeRosterInvite(doc, "nope")
+        val used = useRosterInvite(doc, "nope", "m2")
+
+        // Assert
+        assertFalse(revoked)
+        assertFalse(used)
+        assertEquals(emptyList(), doc.readInvites())
+    }
+
+    @Test
+    fun twoAdminDevicesSpendingAnInviteConcurrentlyBothCount() {
+        // Arrange
+        val first = Document()
+        putRosterInvite(first, "hash-1", "m1", 5_000L, 2)
+        val second = first.fork()
+
+        // Act
+        useRosterInvite(first, "hash-1", "sam")
+        useRosterInvite(second, "hash-1", "alex")
+        first.merge(second)
+
+        // Assert
+        assertEquals(setOf("sam", "alex"), first.readInvites().single().usedBy)
+    }
+
+    @Test
+    fun anInviteIsValidUntilItExpires() {
+        // Arrange
+        val invite = RosterInvite("h", "m1", expiresAt = 100L, maxUses = 1, revoked = false, usedBy = emptySet())
+
+        // Act
+        val before = invite.statusFor("sam", 99L)
+        val at = invite.statusFor("sam", 100L)
+
+        // Assert
+        assertEquals(InviteStatus.Valid, before)
+        assertEquals(InviteStatus.Expired, at)
+    }
+
+    @Test
+    fun aRevokedInviteIsRevokedEvenWhenExpired() {
+        // Arrange
+        val invite = RosterInvite("h", "m1", 100L, 1, revoked = true, usedBy = emptySet())
+
+        // Act
+        val status = invite.statusFor("sam", 500L)
+
+        // Assert
+        assertEquals(InviteStatus.Revoked, status)
+    }
+
+    @Test
+    fun aSpentInviteIsUsedForOthersButStillValidForWhoSpentIt() {
+        // Arrange
+        val invite = RosterInvite("h", "m1", 100L, maxUses = 1, revoked = false, usedBy = setOf("sam"))
+
+        // Act
+        val other = invite.statusFor("alex", 50L)
+        val same = invite.statusFor("sam", 50L)
+
+        // Assert
+        assertEquals(InviteStatus.Used, other)
+        assertEquals(InviteStatus.Valid, same)
+    }
+
+    @Test
+    fun anInviteSecretIsHashedAndTheHashIsStable() {
+        // Arrange
+        val secret = newInviteSecret()
+
+        // Act
+        val hash = inviteSecretHash(secret)
+
+        // Assert
+        assertEquals(hash, inviteSecretHash(secret))
+        assertEquals(64, hash.length)
+        assertTrue(secret !in hash)
+        assertTrue(newInviteSecret() != secret)
+    }
 }

@@ -10,7 +10,16 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
+import uk.veritaslabs.vesta.automerge.InviteStatus
+import uk.veritaslabs.vesta.automerge.RosterInvite
 import uk.veritaslabs.vesta.automerge.claimRosterDevice
+import uk.veritaslabs.vesta.automerge.inviteSecretHash
+import uk.veritaslabs.vesta.automerge.newInviteSecret
+import uk.veritaslabs.vesta.automerge.putRosterInvite
+import uk.veritaslabs.vesta.automerge.readInvites
+import uk.veritaslabs.vesta.automerge.revokeRosterInvite
+import uk.veritaslabs.vesta.automerge.useRosterInvite
+import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.automerge.putRosterMember
 import uk.veritaslabs.vesta.automerge.readRoster
 import uk.veritaslabs.vesta.automerge.releaseRosterDevice
@@ -19,6 +28,7 @@ import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.setRosterRole
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.vesta.ui.screens.MemberRole
 
 private const val RosterFeature = "roster"
 
@@ -107,6 +117,60 @@ internal class HomeRosters(
             }
         }
         changed.forEach { _changes.tryEmit(it) }
+    }
+
+    /**
+     * Makes an invite link for [homeId] on behalf of [memberId], who must be an admin the roster still lists
+     * (docs/adr/ADR-018-invite-links.md), and records it in the roster. The link names the devices of the Home's admins,
+     * [memberId]'s first, up to [InviteLink.MaxAdminAgents]. Null when [memberId] isn't an admin of this Home or no admin
+     * device is known yet.
+     */
+    suspend fun createInvite(homeId: String, memberId: String, ttlMillis: Long, maxUses: Int = 1): InviteLink? {
+        val link = lock.withLock {
+            val doc = open(homeId) ?: return null
+            val admins = doc.readRoster().filter { it.role == MemberRole.Admin.storageValue && !it.removed }
+            if (admins.none { it.memberId == memberId }) return null
+            val agents = admins.sortedBy { it.memberId != memberId }.flatMap { it.devices.sorted() }
+                .distinct().take(InviteLink.MaxAdminAgents).takeIf { it.isNotEmpty() } ?: return null
+            val secret = newInviteSecret()
+            val expiresAt = nowMillis() + ttlMillis
+            putRosterInvite(doc, inviteSecretHash(secret), memberId, expiresAt, maxUses)
+            persist(homeId, doc)
+            InviteLink(homeId, secret, expiresAt, agents)
+        }
+        _changes.tryEmit(homeId)
+        return link
+    }
+
+    /** Every invite recorded for [homeId], for an admin to see and revoke. */
+    suspend fun invites(homeId: String): List<RosterInvite> =
+        lock.withLock { open(homeId)?.readInvites()?.filter { it.isComplete }.orEmpty() }
+
+    /**
+     * Whether [secret] can admit [memberId] to [homeId] at the current time; null when this Home has no such invite (or
+     * it hasn't fully arrived), which callers answer silently so a stranger learns nothing.
+     */
+    suspend fun checkInvite(homeId: String, secret: String, memberId: String): InviteStatus? = lock.withLock {
+        val hash = inviteSecretHash(secret)
+        open(homeId)?.readInvites()?.firstOrNull { it.secretHash == hash && it.isComplete }?.statusFor(memberId, nowMillis())
+    }
+
+    /** Records that [secret] was spent admitting [memberId] to [homeId]. */
+    suspend fun useInvite(homeId: String, secret: String, memberId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            useRosterInvite(doc, inviteSecretHash(secret), memberId).also { if (it) persist(homeId, doc) }
+        }
+        if (changed) _changes.tryEmit(homeId)
+    }
+
+    /** Revokes the invite with this [secretHash] in [homeId]: no new request with it will be accepted. */
+    suspend fun revokeInvite(homeId: String, secretHash: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            revokeRosterInvite(doc, secretHash).also { if (it) persist(homeId, doc) }
+        }
+        if (changed) _changes.tryEmit(homeId)
     }
 
     suspend fun generate(homeId: String, state: SyncState): ByteArray? =
