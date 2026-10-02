@@ -71,6 +71,8 @@ import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
+import uk.veritaslabs.vesta.x0x.X0xConnectivity
+import uk.veritaslabs.vesta.x0x.isReachingNetwork
 import uk.veritaslabs.vesta.x0x.rememberX0xConnectivity
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
@@ -95,7 +97,8 @@ private enum class SettingsDestination { Settings, SyncedDevices, ProfileName }
  * `onEditHome` that opens the Home's editor over it.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
  * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
- * approval is offered over whatever screen is showing. With [deviceSync], the Synced devices screen (under Settings, from the Home picker) lists and
+ * approval is offered over whatever screen is showing. [x0xConnectivity] says whether the device is reaching the x0x network
+ * (the Home picker tells waiting join requests so); it polls the local daemon by default. With [deviceSync], the Synced devices screen (under Settings, from the Home picker) lists and
  * removes the user's real devices; without one (previews) it is always empty.
  */
 @Composable
@@ -108,6 +111,7 @@ fun App(
     deviceSync: DeviceSyncHost? = null,
     homeJoining: HomeJoining? = null,
     profiles: ProfileRepository? = null,
+    x0xConnectivity: @Composable () -> X0xConnectivity = { rememberX0xConnectivity() },
     homeContent: @Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit = { id, name, onEditHome ->
         HomeContent(id, name, onEditHome = onEditHome)
     },
@@ -218,6 +222,7 @@ fun App(
                         HomeEditScreen(editViewModel, onFinished = { editTarget = null })
                     } else {
                         val viewModel = viewModel { HomePickerViewModel(homes, selectedHome) }
+                        val connectivity = x0xConnectivity()
                         HomePickerScreen(
                             viewModel,
                             onCreateHome = { needingName { openEditor(null) } },
@@ -225,6 +230,7 @@ fun App(
                             onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
                             onSettingsClick = { settingsDestination = SettingsDestination.Settings },
                             pendingJoins = pendingJoins,
+                            networkConnected = connectivity.isReachingNetwork,
                             onCancelPendingJoin = { join -> scope.launch { homeJoining?.cancelPendingJoin(join.homeId) } },
                         )
                     }

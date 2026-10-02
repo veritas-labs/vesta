@@ -68,6 +68,7 @@ import vesta.shared.generated.resources.pending_join_denied_expired
 import vesta.shared.generated.resources.pending_join_denied_revoked
 import vesta.shared.generated.resources.pending_join_denied_used
 import vesta.shared.generated.resources.pending_join_dismiss
+import vesta.shared.generated.resources.pending_join_no_network
 import vesta.shared.generated.resources.pending_join_waiting
 import vesta.shared.generated.resources.onboarding_empty_subtitle
 import vesta.shared.generated.resources.onboarding_empty_title
@@ -118,6 +119,7 @@ fun HomePickerScreen(
     onSettingsClick: () -> Unit = {},
     pendingJoins: List<PendingJoin> = emptyList(),
     onCancelPendingJoin: (PendingJoin) -> Unit = {},
+    networkConnected: Boolean = true,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -133,6 +135,7 @@ fun HomePickerScreen(
             onSettingsClick = onSettingsClick,
             pendingJoins = pendingJoins,
             onCancelPendingJoin = onCancelPendingJoin,
+            networkConnected = networkConnected,
         )
     }
 }
@@ -144,7 +147,8 @@ fun HomePickerScreen(
  * actions. [onPairDevice] links this device to the user's other devices, so it can be done before any Home exists.
  * The cog beside the heading (hidden while there are no homes) calls [onSettingsClick]: the app's settings are global, so they live here rather than inside a Home.
  * Under the heading, a card for each invite link this user opened that no admin has answered yet, or refused
- * ([pendingJoins], docs/adr/ADR-018-invite-links.md), with a button ([onCancelPendingJoin]) to give up on it.
+ * ([pendingJoins], docs/adr/ADR-018-invite-links.md), with a button ([onCancelPendingJoin]) to give up on it. While
+ * [networkConnected] is false a waiting card says it is waiting for a network connection, since nothing can reach an admin.
  */
 @Composable
 fun HomePickerScreen(
@@ -157,6 +161,7 @@ fun HomePickerScreen(
     onSettingsClick: () -> Unit = {},
     pendingJoins: List<PendingJoin> = emptyList(),
     onCancelPendingJoin: (PendingJoin) -> Unit = {},
+    networkConnected: Boolean = true,
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -210,7 +215,9 @@ fun HomePickerScreen(
 
             if (pendingJoins.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    pendingJoins.forEach { join -> PendingJoinCard(join, onCancel = { onCancelPendingJoin(join) }) }
+                    pendingJoins.forEach { join ->
+                        PendingJoinCard(join, networkConnected = networkConnected, onCancel = { onCancelPendingJoin(join) })
+                    }
                 }
                 Spacer(Modifier.height(contentPadding))
             }
@@ -300,9 +307,9 @@ fun HomePickerScreen(
 
 /** An invite link still waiting on an admin, or refused: the Home's name, where it stands, and a way to give up on it. */
 @Composable
-private fun PendingJoinCard(join: PendingJoin, onCancel: () -> Unit) {
+private fun PendingJoinCard(join: PendingJoin, networkConnected: Boolean, onCancel: () -> Unit) {
     val status = when (join.denial) {
-        null -> Res.string.pending_join_waiting
+        null -> if (networkConnected) Res.string.pending_join_waiting else Res.string.pending_join_no_network
         HomeJoinMessage.DeniedExpired -> Res.string.pending_join_denied_expired
         HomeJoinMessage.DeniedRevoked -> Res.string.pending_join_denied_revoked
         HomeJoinMessage.DeniedUsed -> Res.string.pending_join_denied_used

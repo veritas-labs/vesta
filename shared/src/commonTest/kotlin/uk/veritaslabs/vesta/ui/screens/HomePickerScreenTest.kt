@@ -192,4 +192,46 @@ class HomePickerScreenTest {
         // Assert
         assertEquals(declined, dismissed)
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aWaitingJoinSaysItIsWaitingForAnAdminWhenTheNetworkIsReached() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomePickerScreen(homes = homes, pendingJoins = listOf(waiting), networkConnected = true) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("Waiting for an admin to approve you…").assertIsDisplayed()
+        onNodeWithText("Waiting for a network connection…").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aWaitingJoinSaysItIsWaitingForANetworkConnectionWhenTheNetworkIsNotReached() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomePickerScreen(homes = homes, pendingJoins = listOf(waiting), networkConnected = false) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("Waiting for a network connection…").assertIsDisplayed()
+        onNodeWithText("Waiting for an admin to approve you…").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aRefusedJoinStillSaysWhyWhenTheNetworkIsNotReached() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomePickerScreen(homes = homes, pendingJoins = listOf(declined), networkConnected = false) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("An admin declined your request.").assertIsDisplayed()
+        onNodeWithText("Waiting for a network connection…").assertDoesNotExist()
+    }
 }

@@ -4,6 +4,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilExactlyOneExists
@@ -22,6 +23,7 @@ import uk.veritaslabs.vesta.homejoin.FakeHomeJoining
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.ui.screens.HomePickerTestTags
+import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteTestTags
 
 /** Joining a Home from the picker (docs/adr/ADR-019-one-way-to-join.md): Join a home goes straight to the invite link screen. */
@@ -46,7 +48,7 @@ class JoinHomeFromPickerTest {
     @Test
     fun theJoinTileOpensTheInviteLinkScreenDirectly() = runComposeUiTest {
         // Arrange
-        setContent { App(homeJoining = FakeHomeJoining()) }
+        setContent { App(homeJoining = FakeHomeJoining(), x0xConnectivity = { X0xConnectivity.Connected(peers = 5) }) }
 
         // Act
         waitUntilExactlyOneExists(hasTestTag(HomePickerTestTags.JoinHomeButton))
@@ -61,7 +63,7 @@ class JoinHomeFromPickerTest {
     fun pastingTheLinkAsksToJoinAndReturnsToThePicker() = runComposeUiTest {
         // Arrange
         val joining = FakeHomeJoining()
-        setContent { App(homeJoining = joining) }
+        setContent { App(homeJoining = joining, x0xConnectivity = { X0xConnectivity.Connected(peers = 5) }) }
         waitUntilExactlyOneExists(hasTestTag(HomePickerTestTags.JoinHomeButton))
         onNodeWithTag(HomePickerTestTags.JoinHomeButton).performClick()
 
@@ -78,7 +80,7 @@ class JoinHomeFromPickerTest {
     @Test
     fun backFromTheInviteLinkScreenReturnsToThePicker() = runComposeUiTest {
         // Arrange
-        setContent { App(homeJoining = FakeHomeJoining()) }
+        setContent { App(homeJoining = FakeHomeJoining(), x0xConnectivity = { X0xConnectivity.Connected(peers = 5) }) }
         waitUntilExactlyOneExists(hasTestTag(HomePickerTestTags.JoinHomeButton))
         onNodeWithTag(HomePickerTestTags.JoinHomeButton).performClick()
 
@@ -97,10 +99,38 @@ class JoinHomeFromPickerTest {
         val joining = FakeHomeJoining().apply { pending.value = listOf(PendingJoin("home-1", "Maple Street", 1L, denial = null)) }
 
         // Act
-        setContent { App(homeJoining = joining) }
+        setContent { App(homeJoining = joining, x0xConnectivity = { X0xConnectivity.Connected(peers = 5) }) }
 
         // Assert
         waitUntilExactlyOneExists(hasTestTag(HomePickerTestTags.pendingJoin("home-1")))
         onNodeWithTag(HomePickerTestTags.pendingJoin("home-1")).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aRequestWaitsForANetworkConnectionWhileTheDaemonHasNoPeers() = runComposeUiTest {
+        // Arrange
+        val joining = FakeHomeJoining().apply { pending.value = listOf(PendingJoin("home-1", "Maple Street", 1L, denial = null)) }
+
+        // Act
+        setContent { App(homeJoining = joining, x0xConnectivity = { X0xConnectivity.Connected(peers = 0) }) }
+
+        // Assert
+        waitUntilExactlyOneExists(hasTestTag(HomePickerTestTags.pendingJoin("home-1")))
+        onNodeWithText("Waiting for a network connection…").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aRequestWaitsForAnAdminOnceTheDaemonHasPeers() = runComposeUiTest {
+        // Arrange
+        val joining = FakeHomeJoining().apply { pending.value = listOf(PendingJoin("home-1", "Maple Street", 1L, denial = null)) }
+
+        // Act
+        setContent { App(homeJoining = joining, x0xConnectivity = { X0xConnectivity.Connected(peers = 3) }) }
+
+        // Assert
+        waitUntilExactlyOneExists(hasTestTag(HomePickerTestTags.pendingJoin("home-1")))
+        onNodeWithText("Waiting for an admin to approve you…").assertIsDisplayed()
     }
 }

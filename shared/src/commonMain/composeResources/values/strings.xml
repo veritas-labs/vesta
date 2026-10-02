@@ -223,6 +223,7 @@
     <string name="redeem_invite_error_expired">That link has expired. Ask the admin for a new one.</string>
     <string name="redeem_invite_error_already_in_home">You are already in this home.</string>
     <string name="redeem_invite_error_failed">The request could not be sent. Try again.</string>
+    <string name="pending_join_no_network">Waiting for a network connection…</string>
     <string name="pending_join_waiting">Waiting for an admin to approve you…</string>
     <string name="pending_join_denied_expired">That invite link has expired.</string>
     <string name="pending_join_denied_revoked">That invite link was cancelled.</string>
