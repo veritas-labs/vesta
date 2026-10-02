@@ -1,29 +1,33 @@
--- Membership of a Profile in a Home, with role (FR-4, DQ for the Member
--- List / role badges in CORE-EXPERIENCE.md §5). The creator of a Home is
--- always inserted with role = 'admin'.
+-- A person's membership of a Home, with role (FR-4, the Member List and role badges in CORE-EXPERIENCE.md §5).
+-- memberId is the member's Profile id, the same on every device of that person (docs/adr/ADR-014-home-membership.md);
+-- it is deliberately not a foreign key to Profile, because members on other devices have no Profile row here. name
+-- and avatarResourceId are copied from the Profile. The creator of a Home is always inserted with role = 'admin'.
+-- Keep in sync with migrations/8.sqm, which recreates this table for databases that predate it.
 CREATE TABLE HomeMember (
     homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
-    profileId TEXT NOT NULL REFERENCES Profile(id) ON DELETE CASCADE,
+    memberId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    avatarResourceId TEXT,
     role TEXT NOT NULL,
     joinedAt INTEGER NOT NULL,
-    PRIMARY KEY (homeId, profileId)
+    PRIMARY KEY (homeId, memberId)
 );
 
 selectByHome:
-SELECT * FROM HomeMember WHERE homeId = ?;
+SELECT * FROM HomeMember WHERE homeId = ? ORDER BY joinedAt, name COLLATE NOCASE;
 
-selectByProfile:
-SELECT * FROM HomeMember WHERE profileId = ?;
+selectByMember:
+SELECT * FROM HomeMember WHERE memberId = ?;
 
 insert:
-INSERT INTO HomeMember(homeId, profileId, role, joinedAt)
-VALUES (?, ?, ?, ?);
+INSERT INTO HomeMember(homeId, memberId, name, avatarResourceId, role, joinedAt)
+VALUES (?, ?, ?, ?, ?, ?);
 
 updateRole:
-UPDATE HomeMember SET role = ? WHERE homeId = ? AND profileId = ?;
+UPDATE HomeMember SET role = ? WHERE homeId = ? AND memberId = ?;
 
 deleteMember:
-DELETE FROM HomeMember WHERE homeId = ? AND profileId = ?;
+DELETE FROM HomeMember WHERE homeId = ? AND memberId = ?;
 
 countAdmins:
 SELECT COUNT(*) FROM HomeMember WHERE homeId = ? AND role = 'admin';

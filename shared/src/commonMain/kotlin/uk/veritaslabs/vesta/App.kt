@@ -36,6 +36,8 @@ import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
+import uk.veritaslabs.vesta.home.MemberRepository
+import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.SelectedHome
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeEditScreen
@@ -52,6 +54,7 @@ import uk.veritaslabs.vesta.ui.screens.PantryListItem
 import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
+import uk.veritaslabs.vesta.ui.screens.MemberListItem
 import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
@@ -173,6 +176,7 @@ private fun HomeContent(
     homeId: String,
     homeName: String,
     pantrySource: PantrySource? = null,
+    members: Flow<List<MemberListItem>> = flowOf(emptyList()),
 ) {
     val selectedHome = LocalSelectedHome.current
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
@@ -194,7 +198,10 @@ private fun HomeContent(
             onPantryClick = { destination = HomeDestination.Pantry },
             onMembersClick = { destination = HomeDestination.Members },
         )
-        HomeDestination.Members -> MembersScreen(onHomeClick = { destination = HomeDestination.Dashboard })
+        HomeDestination.Members -> {
+            val memberList by members.collectAsStateWithLifecycle(emptyList())
+            MembersScreen(members = memberList, onHomeClick = { destination = HomeDestination.Dashboard })
+        }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
             val onAddItem = {
@@ -314,7 +321,9 @@ fun VestaApp(
     val devices = remember { SyncedDeviceRepository(database) }
     val deviceDataSync = remember { dataSync?.invoke(database, client, devices) }
     LaunchedEffect(deviceDataSync) { deviceDataSync?.run() }
-    val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges) }
+    val profiles = remember { ProfileRepository(database) }
+    val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles) }
+    val memberRepository = remember { MemberRepository(database, profiles) }
     val agentAccess = remember { AgentAccessRepository(database) }
     val deviceSync = remember {
         val service = DeviceSyncService(client, database, devices)
@@ -335,7 +344,8 @@ fun VestaApp(
         deviceSync = deviceSync,
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
-            HomeContent(homeId, homeName, pantrySource)
+            val members = remember(homeId) { memberRepository.members(homeId) }
+            HomeContent(homeId, homeName, pantrySource, members)
         },
     )
 }

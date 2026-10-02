@@ -8,14 +8,17 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeDetails
 import uk.veritaslabs.vesta.ui.screens.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomeShape
+import uk.veritaslabs.vesta.ui.screens.MemberRole
 
 /** Reads and writes Homes in the local [VestaDatabase], telling [changes] about each change. */
 class HomeRepository(
     private val database: VestaDatabase,
     private val changes: HomeChangeListener? = null,
+    private val profiles: ProfileRepository = ProfileRepository(database),
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -30,11 +33,23 @@ class HomeRepository(
             HomeDetails(id = it.id, name = it.name, shape = HomeShape.fromStorageValue(it.shape))
         }
 
-    /** Creates a Home named [name] with the given [shape], returning its new id. */
+    /**
+     * Creates a Home named [name] with the given [shape], returning its new id. The creator, the current Profile, is
+     * its first member and its admin (docs/adr/ADR-014-home-membership.md).
+     */
     suspend fun create(name: String, shape: HomeShape): String {
         val id = Uuid.random().toString()
         val createdAt = nowMillis()
+        val creator = profiles.current()
         database.homeQueries.insert(id, name, shape.storageValue, createdAt)
+        database.homeMemberQueries.insert(
+            homeId = id,
+            memberId = creator.id,
+            name = creator.displayName,
+            avatarResourceId = creator.avatarResourceId,
+            role = MemberRole.Admin.storageValue,
+            joinedAt = createdAt,
+        )
         changes?.saved(StoredHome(id, name, shape.storageValue, createdAt))
         return id
     }

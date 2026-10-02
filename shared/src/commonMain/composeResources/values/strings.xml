@@ -53,6 +53,9 @@
     <string name="home_dashboard_nav_members">Members</string>
     <string name="members_title">Members</string>
     <string name="members_invite">Invite</string>
+    <string name="members_you">You</string>
+    <string name="members_role_admin">Admin</string>
+    <string name="members_role_member">Member</string>
     <string name="home_picker_settings">Settings</string>
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>

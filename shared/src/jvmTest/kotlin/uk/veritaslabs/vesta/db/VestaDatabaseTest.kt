@@ -14,11 +14,10 @@ class VestaDatabaseTest {
     @Test
     fun homeMembershipJoinsAcrossTables() = runTest {
         val db = openInMemoryDatabase()
-        db.profileQueries.insert("profile-1", "Arthur", null, "default")
         db.homeQueries.insert("home-1", "The Johnsons", "family", 1_000L)
-        db.homeMemberQueries.insert("home-1", "profile-1", "admin", 1_000L)
+        db.homeMemberQueries.insert("home-1", "profile-1", "Arthur", null, "admin", 1_000L)
 
-        val homes = db.homeQueries.selectForProfile("profile-1").awaitAsList()
+        val homes = db.homeQueries.selectForMember("profile-1").awaitAsList()
         assertEquals(listOf("The Johnsons"), homes.map { it.name })
         assertEquals(1L, db.homeMemberQueries.countAdmins("home-1").awaitAsOne())
     }
@@ -28,7 +27,7 @@ class VestaDatabaseTest {
         val db = openInMemoryDatabase()
         db.profileQueries.insert("profile-1", "Arthur", null, "default")
         db.homeQueries.insert("home-1", "The Johnsons", "family", 1_000L)
-        db.homeMemberQueries.insert("home-1", "profile-1", "admin", 1_000L)
+        db.homeMemberQueries.insert("home-1", "profile-1", "Arthur", null, "admin", 1_000L)
 
         db.homeQueries.deleteById("home-1")
 

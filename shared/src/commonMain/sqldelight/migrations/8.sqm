@@ -1,0 +1,13 @@
+-- Version 8 -> 9: HomeMember is keyed by memberId (a Profile id shared across a person's devices) instead of a
+-- foreign key to Profile, and carries the member's name and avatar (docs/adr/ADR-014-home-membership.md).
+-- Nothing wrote the old table, so it is dropped rather than copied.
+DROP TABLE HomeMember;
+CREATE TABLE HomeMember (
+    homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
+    memberId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    avatarResourceId TEXT,
+    role TEXT NOT NULL,
+    joinedAt INTEGER NOT NULL,
+    PRIMARY KEY (homeId, memberId)
+);

@@ -6,6 +6,9 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.vesta.ui.screens.MemberListItem
+import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.ui.screens.HomeDetails
 import uk.veritaslabs.vesta.ui.screens.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomeShape
@@ -64,6 +67,22 @@ class HomeRepositoryTest {
 
         // Assert
         assertEquals(HomeDetails(id = id, name = "Flat 4B", shape = HomeShape.Flatshare), repository.get(id))
+    }
+
+    @Test
+    fun createMakesTheCurrentProfileTheHomesAdminMember() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        val profiles = ProfileRepository(db, deviceName = { "Mark's laptop" })
+        val repository = HomeRepository(db, profiles = profiles, nowMillis = { 42L })
+
+        // Act
+        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+
+        // Assert
+        val me = profiles.current()
+        val members = MemberRepository(db, profiles).members(id).first()
+        assertEquals(listOf(MemberListItem(me.id, "Mark's laptop", MemberRole.Admin, isYou = true)), members)
     }
 
     @Test
