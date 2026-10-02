@@ -55,6 +55,9 @@ sends an Invite after approval, and the joiner now accepts one only from an agen
   since a secret can't be shown again once made; unused ones can be revoked. There is **no share sheet yet**: the codebase has
   no share capability, so it needs a platform implementation per target (follow-up). Creating a link writes the creator's
   member entry and this device into the roster first, as a Home made a moment ago hasn't published them yet.
+- **Slice 3** was in effect done by slice 1 (the Join a home tile opens the paste or scan screen). It added an app-level test
+  of tile → screen → request sent → back at the picker, and reworded the screen to "Join a home" with the tile's text
+  pointing at an invite link from an admin.
 
 ## Implementation slices
 

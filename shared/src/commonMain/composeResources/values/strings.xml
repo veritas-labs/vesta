@@ -14,7 +14,7 @@
     <string name="onboarding_pair_device">Pair device</string>
     <string name="onboarding_join_home">Join a home</string>
     <string name="onboarding_pair_device_description">Pair this device with your other devices.</string>
-    <string name="onboarding_join_home_description">Use an invite to join an existing home.</string>
+    <string name="onboarding_join_home_description">Use an invite link from an admin.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_edit_home">Edit home</string>
     <string name="onboarding_delete_home">Delete home</string>
@@ -212,8 +212,8 @@
     <string name="invite_links_revoke">Revoke</string>
     <string name="invite_links_created_title">Invite someone</string>
     <string name="invite_links_created_body">Show this to the person joining, or send them the link. When they open it you will be asked to approve them.</string>
-    <string name="redeem_invite_title">Join with an invite link</string>
-    <string name="redeem_invite_body">Paste the link an admin sent you, or scan its QR code. They will be asked to approve you.</string>
+    <string name="redeem_invite_title">Join a home</string>
+    <string name="redeem_invite_body">Paste the invite link an admin sent you, or scan its QR code. An admin then approves your request.</string>
     <string name="redeem_invite_field_label">Invite link</string>
     <string name="redeem_invite_scan">Scan QR code</string>
     <string name="redeem_invite_submit">Ask to join</string>
