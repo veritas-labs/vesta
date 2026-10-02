@@ -42,8 +42,10 @@ import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.homejoin.HomeInviteViewModel
 import uk.veritaslabs.vesta.homejoin.HomeJoining
+import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.ui.flows.JoinHomeFlow
 import uk.veritaslabs.vesta.ui.screens.HomeInviteScreen
+import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
 import uk.veritaslabs.vesta.home.MemberRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.SelectedHome
@@ -257,6 +259,8 @@ private fun HomeContent(
     var leaveBlocked by remember { mutableStateOf(false) }
     val selectedHome = LocalSelectedHome.current
     val memberList by members.collectAsStateWithLifecycle(emptyList())
+    val joinRequests by remember(homeId, joining) { joining?.observeJoinRequests(homeId) ?: flowOf(emptyList()) }
+        .collectAsStateWithLifecycle(emptyList())
     val isAdmin = memberList.any { it.isYou && it.role == MemberRole.Admin }
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
@@ -290,11 +294,22 @@ private fun HomeContent(
                 onInviteClick = { destination = HomeDestination.Invite },
                 onSetRole = { member, role -> scope.launch { onSetRole(member.memberId, role) } },
                 onRemoveMember = { member -> scope.launch { onRemoveMember(member.memberId) } },
+                joinRequests = joinRequests,
+                onApprove = { request -> scope.launch { joining?.approve(request.homeId, request.memberId) } },
+                onDecline = { request -> scope.launch { joining?.decline(request.homeId, request.memberId) } },
             )
         }
         HomeDestination.Invite -> {
             val inviteViewModel = viewModel(key = "home-invite-$homeId") { HomeInviteViewModel(homeId, joining) }
-            HomeInviteScreen(inviteViewModel, onBack = { destination = HomeDestination.Members })
+            HomeInviteScreen(
+                inviteViewModel,
+                onBack = { destination = HomeDestination.Members },
+                onCreateInviteLink = { destination = HomeDestination.InviteLinks },
+            )
+        }
+        HomeDestination.InviteLinks -> {
+            val linksViewModel = viewModel(key = "invite-links-$homeId") { InviteLinksViewModel(homeId, joining) }
+            InviteLinksScreen(linksViewModel, onBack = { destination = HomeDestination.Invite })
         }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -392,7 +407,7 @@ class DeviceSyncHost(
     val newPairingViewModel: () -> DevicePairingViewModel,
 )
 
-private enum class HomeDestination { Dashboard, Members, Invite, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+private enum class HomeDestination { Dashboard, Members, Invite, InviteLinks, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With

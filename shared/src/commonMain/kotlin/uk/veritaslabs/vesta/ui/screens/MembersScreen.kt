@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.homejoin.JoinRequest
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBar
 import uk.veritaslabs.vesta.ui.components.HomeTab
 import uk.veritaslabs.vesta.ui.components.ProfileAvatar
@@ -55,6 +57,11 @@ import vesta.shared.generated.resources.members_remove
 import vesta.shared.generated.resources.members_remove_confirm_body
 import vesta.shared.generated.resources.members_remove_confirm_title
 import vesta.shared.generated.resources.members_manage_make_admin
+import vesta.shared.generated.resources.members_request_approve
+import vesta.shared.generated.resources.members_request_approved
+import vesta.shared.generated.resources.members_request_decline
+import vesta.shared.generated.resources.members_request_wants_to_join
+import vesta.shared.generated.resources.members_requests_title
 import vesta.shared.generated.resources.members_manage_make_admin_body
 import vesta.shared.generated.resources.members_manage_remove_admin
 import vesta.shared.generated.resources.members_manage_remove_admin_body
@@ -72,6 +79,13 @@ internal object MembersTestTags {
     const val ConfirmRole = "members_confirm_role"
     const val RemoveMember = "members_remove_member"
     const val ConfirmRemove = "members_confirm_remove"
+    const val RequestRow = "members_request_row"
+
+    /** The Approve button of the request from [memberId], independent of displayed copy. */
+    fun approve(memberId: String) = "members_request_approve_$memberId"
+
+    /** The Decline button of the request from [memberId]. */
+    fun decline(memberId: String) = "members_request_decline_$memberId"
 }
 
 /** The role a member has in a Home; [storageValue] is the `HomeMember.role` column's value. */
@@ -99,6 +113,9 @@ data class MemberListItem(
  * other member's row, for an admin, to make them an admin or an ordinary member ([onSetRole]) or remove them from
  * the Home ([onRemoveMember], after confirming). Leaving the Home is in the dashboard's overflow menu. The bottom
  * nav bar has Home ([onHomeClick]) and Members (selected).
+ *
+ * For an admin, [joinRequests] (people who opened one of the Home's invite links, docs/adr/ADR-018-invite-links.md) come
+ * first, each with Approve ([onApprove]) and Decline ([onDecline]); one already approved only waits for their device.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,6 +126,9 @@ fun MembersScreen(
     onSetRole: (MemberListItem, MemberRole) -> Unit = { _, _ -> },
     onRemoveMember: (MemberListItem) -> Unit = {},
     onHomeClick: () -> Unit = {},
+    joinRequests: List<JoinRequest> = emptyList(),
+    onApprove: (JoinRequest) -> Unit = {},
+    onDecline: (JoinRequest) -> Unit = {},
 ) {
     var managing by remember { mutableStateOf<MemberListItem?>(null) }
     var removing by remember { mutableStateOf<MemberListItem?>(null) }
@@ -130,6 +150,18 @@ fun MembersScreen(
             )
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding, vertical = 4.dp)) {
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (canManage && joinRequests.isNotEmpty()) {
+                        item(key = "requests-title") {
+                            Text(
+                                text = stringResource(Res.string.members_requests_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        items(joinRequests, key = { "request-${it.memberId}" }) { request ->
+                            RequestRow(request, onApprove = { onApprove(request) }, onDecline = { onDecline(request) })
+                        }
+                    }
                     items(members, key = { it.memberId }) { member ->
                         MemberRow(member, onClick = if (canManage && !member.isYou) ({ managing = member }) else null)
                     }
@@ -203,6 +235,43 @@ fun MembersScreen(
     }
 }
 
+/** Someone asking to join the Home: Approve and Decline until an admin has approved, then a note that it is under way. */
+@Composable
+private fun RequestRow(request: JoinRequest, onApprove: () -> Unit, onDecline: () -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        modifier = Modifier.fillMaxWidth().testTag(MembersTestTags.RequestRow),
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ProfileAvatar(name = request.name, size = 40.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = request.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        text = stringResource(
+                            if (request.approved) Res.string.members_request_approved else Res.string.members_request_wants_to_join,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (!request.approved) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    TextButton(onClick = onDecline, modifier = Modifier.testTag(MembersTestTags.decline(request.memberId))) {
+                        Text(stringResource(Res.string.members_request_decline))
+                    }
+                    Button(onClick = onApprove, modifier = Modifier.testTag(MembersTestTags.approve(request.memberId))) {
+                        Text(stringResource(Res.string.members_request_approve))
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** The last row of the member list: same size and shape as a [MemberRow], inviting someone into the Home. */
 @Composable
 private fun InviteRow(onClick: () -> Unit) {
@@ -269,16 +338,21 @@ private val PreviewMembers = listOf(
     MemberListItem("2", "Sam", MemberRole.Member),
 )
 
+private val PreviewRequests = listOf(
+    JoinRequest("home-1", "3", "Alex", createdAt = 1L, approved = false),
+    JoinRequest("home-1", "4", "Jo", createdAt = 2L, approved = true),
+)
+
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun MembersScreenPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { MembersScreen(members = PreviewMembers) }
+    VestaTheme(darkTheme = false) { MembersScreen(members = PreviewMembers, joinRequests = PreviewRequests) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun MembersScreenPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { MembersScreen(members = PreviewMembers) }
+    VestaTheme(darkTheme = true) { MembersScreen(members = PreviewMembers, joinRequests = PreviewRequests) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)

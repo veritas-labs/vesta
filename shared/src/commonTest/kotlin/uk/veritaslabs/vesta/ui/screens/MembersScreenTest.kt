@@ -13,6 +13,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import uk.veritaslabs.vesta.homejoin.JoinRequest
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBarTestTags
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
@@ -205,5 +206,80 @@ class MembersScreenTest {
         // Assert
         assertEquals(null, removed)
         onNodeWithTag(MembersTestTags.ConfirmRemove).assertDoesNotExist()
+    }
+
+    private val pendingRequest = JoinRequest("home-1", "alex", "Alex", createdAt = 1L, approved = false)
+    private val approvedRequest = JoinRequest("home-1", "jo", "Jo", createdAt = 2L, approved = true)
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAdminSeesRequestsToJoinAboveTheMembers() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam), joinRequests = listOf(pendingRequest)) } }
+
+        // Act
+        val request = onNodeWithTag(MembersTestTags.RequestRow).fetchSemanticsNode().boundsInRoot
+        val firstMember = onAllNodesWithTag(MembersTestTags.Row)[0].fetchSemanticsNode().boundsInRoot
+
+        // Assert
+        assertTrue(request.bottom <= firstMember.top)
+        onNodeWithText("Alex").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anOrdinaryMemberDoesNotSeeRequestsToJoin() = runComposeUiTest {
+        // Arrange
+        val me = MemberListItem("3", "Pat", MemberRole.Member, isYou = true)
+        setContent { VestaTheme { MembersScreen(members = listOf(admin.copy(isYou = false), me), joinRequests = listOf(pendingRequest)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onAllNodesWithTag(MembersTestTags.RequestRow).assertCountEquals(0)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun approvingARequestPassesItOn() = runComposeUiTest {
+        // Arrange
+        var approved: JoinRequest? = null
+        setContent { VestaTheme { MembersScreen(members = listOf(admin), joinRequests = listOf(pendingRequest), onApprove = { approved = it }) } }
+
+        // Act
+        onNodeWithTag(MembersTestTags.approve("alex")).performClick()
+
+        // Assert
+        assertEquals(pendingRequest, approved)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun decliningARequestPassesItOn() = runComposeUiTest {
+        // Arrange
+        var declined: JoinRequest? = null
+        setContent { VestaTheme { MembersScreen(members = listOf(admin), joinRequests = listOf(pendingRequest), onDecline = { declined = it }) } }
+
+        // Act
+        onNodeWithTag(MembersTestTags.decline("alex")).performClick()
+
+        // Assert
+        assertEquals(pendingRequest, declined)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anApprovedRequestOnlyWaitsForTheirDevice() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MembersScreen(members = listOf(admin), joinRequests = listOf(approvedRequest)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(MembersTestTags.RequestRow).assertIsDisplayed()
+        onNodeWithTag(MembersTestTags.approve("jo")).assertDoesNotExist()
+        onNodeWithTag(MembersTestTags.decline("jo")).assertDoesNotExist()
     }
 }

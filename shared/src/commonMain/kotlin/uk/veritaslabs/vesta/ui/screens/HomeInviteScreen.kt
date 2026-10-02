@@ -17,6 +17,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.device_pairing_back
 import vesta.shared.generated.resources.home_invite_body
+import vesta.shared.generated.resources.home_invite_create_link
 import vesta.shared.generated.resources.home_invite_done
 import vesta.shared.generated.resources.home_invite_error_already_member
 import vesta.shared.generated.resources.home_invite_error_expired
@@ -70,13 +72,25 @@ internal object HomeInviteTestTags {
     const val Progress = "home_invite_progress"
     const val Done = "home_invite_done"
     const val Error = "home_invite_error"
+    const val CreateLinkButton = "home_invite_create_link_button"
 }
 
 /** The [HomeInviteViewModel]-backed screen: invite the person whose join link is pasted into the Home. */
 @Composable
-fun HomeInviteScreen(viewModel: HomeInviteViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeInviteScreen(
+    viewModel: HomeInviteViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onCreateInviteLink: () -> Unit = {},
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeInviteScreen(state = state, onInvite = viewModel::onInvite, onBack = onBack, modifier = modifier)
+    HomeInviteScreen(
+        state = state,
+        onInvite = viewModel::onInvite,
+        onBack = onBack,
+        modifier = modifier,
+        onCreateInviteLink = onCreateInviteLink,
+    )
 }
 
 /**
@@ -87,6 +101,9 @@ fun HomeInviteScreen(viewModel: HomeInviteViewModel, onBack: () -> Unit, modifie
  * Next to the field a scan button (shown when [scanSupported]) opens a full-screen QR scanner over the form; the
  * scanned link fills the field and is sent straight away. [qrCamera] is the preview the scanner shows, a parameter
  * so tests can stand in for real hardware.
+ *
+ * Under the form, [onCreateInviteLink] opens the screen that makes an invite link to share instead
+ * (docs/adr/ADR-018-invite-links.md), for when the other person can't show their join link right now.
  */
 @Composable
 fun HomeInviteScreen(
@@ -94,6 +111,7 @@ fun HomeInviteScreen(
     modifier: Modifier = Modifier,
     onInvite: (String) -> Unit = {},
     onBack: () -> Unit = {},
+    onCreateInviteLink: () -> Unit = {},
     scanSupported: Boolean = isBarcodeScanningSupported,
     qrCamera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
         BarcodeCameraView(onBarcode, cameraModifier, BarcodeKind.QrCode)
@@ -201,6 +219,10 @@ fun HomeInviteScreen(
                 onClick = { onInvite(pastedLink) },
                 modifier = Modifier.padding(top = 16.dp).testTag(HomeInviteTestTags.SubmitButton),
             )
+            TextButton(
+                onClick = onCreateInviteLink,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp).testTag(HomeInviteTestTags.CreateLinkButton),
+            ) { Text(stringResource(Res.string.home_invite_create_link)) }
         }
     }
 }

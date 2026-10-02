@@ -126,4 +126,18 @@ class HomeInviteScreenTest {
         // Assert
         onNodeWithTag(HomeInviteTestTags.ScanButton).assertDoesNotExist()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun offersToShareAnInviteLinkInstead() = runComposeUiTest {
+        // Arrange
+        var opened = 0
+        setContent { VestaTheme { HomeInviteScreen(HomeInviteUiState.Idle, onCreateInviteLink = { opened++ }) } }
+
+        // Act
+        onNodeWithTag(HomeInviteTestTags.CreateLinkButton).performClick()
+
+        // Assert
+        assertEquals(1, opened)
+    }
 }

@@ -211,4 +211,21 @@
     <string name="profile_name_save">Save</string>
     <string name="settings_section_profile">Profile</string>
     <string name="settings_your_name">Your name</string>
+    <string name="members_requests_title">Requests to join</string>
+    <string name="members_request_wants_to_join">Wants to join</string>
+    <string name="members_request_approved">Approved. Waiting for their device…</string>
+    <string name="members_request_approve">Approve</string>
+    <string name="members_request_decline">Decline</string>
+    <string name="home_invite_create_link">Or share an invite link instead</string>
+    <string name="invite_links_title">Invite links</string>
+    <string name="invite_links_body">Anyone with a link can ask to join this home. You approve each request.</string>
+    <string name="invite_links_create">Create invite link</string>
+    <string name="invite_links_create_failed">The link could not be created. Only an admin can make one.</string>
+    <string name="invite_links_active_title">Active links</string>
+    <string name="invite_links_none">No active links.</string>
+    <string name="invite_links_expires_days">Expires in %1$d days · used %2$d of %3$d</string>
+    <string name="invite_links_expires_today">Expires today · used %1$d of %2$d</string>
+    <string name="invite_links_revoke">Revoke</string>
+    <string name="invite_links_created_title">Invite link</string>
+    <string name="invite_links_created_body">Send this to the person joining. When they open it you will be asked to approve them.</string>
 </resources>
