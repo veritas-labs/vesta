@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 class InviteLinkTest {
 
     private fun link(agents: List<String> = listOf("agent-a", "agent-b")) =
-        InviteLink(homeId = "home-1", secret = "s3cr3t", expiresAt = 1_000L, adminAgentIds = agents)
+        InviteLink(homeId = "home-1", secret = "s3cr3t", expiresAt = 1_000L, adminAgentIds = agents, homeName = "Flat 4B: top floor")
 
     @Test
     fun aLinkSurvivesEncodingAndDecoding() {
@@ -63,7 +63,7 @@ class InviteLinkTest {
     @Test
     fun aLinkWithNoAdminAgentsIsRejected() {
         // Arrange
-        val raw = "vesta://invite/" + Base64.UrlSafe.encode("home-1:s3cr3t:1000:".encodeToByteArray())
+        val raw = "vesta://invite/" + Base64.UrlSafe.encode("home-1:s3cr3t:1000::Flat".encodeToByteArray())
 
         // Act
         val decoded = InviteLink.decode(raw)
@@ -87,7 +87,7 @@ class InviteLinkTest {
     @Test
     fun aLinkWithABlankSecretIsRejected() {
         // Arrange
-        val raw = "vesta://invite/" + Base64.UrlSafe.encode("home-1::1000:agent-a".encodeToByteArray())
+        val raw = "vesta://invite/" + Base64.UrlSafe.encode("home-1::1000:agent-a:Flat".encodeToByteArray())
 
         // Act
         val decoded = InviteLink.decode(raw)

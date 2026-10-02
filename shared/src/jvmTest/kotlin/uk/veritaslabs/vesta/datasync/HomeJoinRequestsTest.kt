@@ -6,7 +6,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.InviteStatus
 import uk.veritaslabs.vesta.automerge.inviteSecretHash
 import uk.veritaslabs.vesta.db.VestaDatabase
@@ -393,5 +397,80 @@ class HomeJoinRequestsTest {
 
         // Assert
         assertEquals(emptyList(), admin.join.joinRequests(homeId))
+    }
+
+    @Test
+    fun anAdminCanCreateListAndRevokeInviteLinks() = runBlocking {
+        // Arrange
+        val admin = Admin()
+        admin.setUp()
+
+        // Act
+        val created = admin.join.createInviteLink(homeId)!!
+        val listed = admin.join.inviteLinks(homeId)
+        admin.join.revokeInviteLink(homeId, listed.last().id)
+        val afterRevoke = admin.join.inviteLinks(homeId)
+
+        // Assert
+        assertEquals("Maple Street", created.homeName)
+        assertEquals(2, listed.size)
+        assertEquals(1, afterRevoke.size)
+        assertEquals(0, afterRevoke.single().uses)
+    }
+
+    @Test
+    fun listedInviteLinksLeaveOutExpiredAndSpentOnes() = runBlocking {
+        // Arrange
+        val admin = Admin()
+        val spent = admin.setUp()
+        admin.rosters.useInvite(homeId, spent.secret, "alex")
+
+        // Act
+        val whileValid = admin.join.inviteLinks(homeId)
+        now += 20_000L
+        val afterExpiry = admin.join.inviteLinks(homeId)
+
+        // Assert
+        assertEquals(emptyList(), whileValid)
+        assertEquals(emptyList(), afterExpiry)
+    }
+
+    @Test
+    fun anOrdinaryMemberCannotCreateListOrRevokeInviteLinks() = runBlocking {
+        // Arrange
+        val admin = Admin()
+        val link = admin.setUp()
+        admin.rosters.setRole(homeId, admin.myId(), "member")
+        admin.rosters.project(homeId)
+
+        // Act
+        val created = admin.join.createInviteLink(homeId)
+        val listed = admin.join.inviteLinks(homeId)
+        admin.join.revokeInviteLink(homeId, inviteSecretHash(link.secret))
+
+        // Assert
+        assertEquals(null, created)
+        assertEquals(emptyList(), listed)
+        assertEquals(InviteStatus.Valid, admin.rosters.checkInvite(homeId, link.secret, "newcomer"))
+    }
+
+    @Test
+    fun observedRequestsFollowTheTable() = runBlocking {
+        // Arrange
+        val admin = Admin()
+        val link = admin.setUp()
+        val seen = mutableListOf<List<String>>()
+        val job = launch(Dispatchers.Unconfined) { admin.join.observeJoinRequests(homeId).collect { seen += it.map { r -> r.memberId } } }
+
+        // Act
+        admin.requestFromSam(link)
+        withTimeout(5_000) { while (seen.lastOrNull() != listOf("sam")) delay(20) }
+        admin.join.decline(homeId, "sam")
+        withTimeout(5_000) { while (seen.lastOrNull() != emptyList<String>()) delay(20) }
+        job.cancel()
+
+        // Assert
+        assertEquals(listOf("sam"), seen.first { it.isNotEmpty() })
+        assertEquals(emptyList(), seen.last())
     }
 }

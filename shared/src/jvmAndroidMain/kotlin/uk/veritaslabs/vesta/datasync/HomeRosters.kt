@@ -132,11 +132,12 @@ internal class HomeRosters(
             if (admins.none { it.memberId == memberId }) return null
             val agents = admins.sortedBy { it.memberId != memberId }.flatMap { it.devices.sorted() }
                 .distinct().take(InviteLink.MaxAdminAgents).takeIf { it.isNotEmpty() } ?: return null
+            val homeName = database.homeQueries.selectById(homeId).awaitAsOneOrNull()?.name ?: return null
             val secret = newInviteSecret()
             val expiresAt = nowMillis() + ttlMillis
             putRosterInvite(doc, inviteSecretHash(secret), memberId, expiresAt, maxUses)
             persist(homeId, doc)
-            InviteLink(homeId, secret, expiresAt, agents)
+            InviteLink(homeId, secret, expiresAt, agents, homeName)
         }
         _changes.tryEmit(homeId)
         return link

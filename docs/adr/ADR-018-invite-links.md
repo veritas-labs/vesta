@@ -15,7 +15,7 @@ moment: if each side retries in the background, the handshake completes whenever
 **The admin makes the link, the joiner redeems it later.**
 
 1. **Create.** An admin chooses Members → Invite → "Create invite link". The link, `vesta://invite/<token>`, carries the
-   Home id, a random secret, an expiry (default 7 days, at most 30) and the agent ids of the Home's admin devices at that
+   Home id and name, a random secret, an expiry (default 7 days, at most 30) and the agent ids of the Home's admin devices at that
    moment (capped at 5). The admin shares it any way they like, as text or a QR code.
 2. **Record.** The Home's roster document gets flat `invite:<sha256(secret)>:…` keys (`createdBy`, `expiresAt`, `maxUses`,
    `revoked`), following the roster's convention ([[ADR-014]]). Uses are one `usedBy:<memberId>` key per admitted member
@@ -69,6 +69,9 @@ path. The picker's "Join a home" gains a second entry for pasting an invite link
   refused). Every sync round resends the Request to each named admin, except after expiry or a refusal. An Invite is
   accepted from an agent the link named, so ADR-015's join link keeps working beside it. A pending join outlives its link's
   expiry by 14 days, so an Invite approved just before it still lands, and is dropped once the Home arrives another way.
+- **Slice 5.** The link also carries the Home's name (last, as it may contain the separator) so the joiner's picker can say which
+  Home it waits on; `PendingJoin` keeps it. `HomeJoining` creates, lists and revokes links, and exposes requests and pending
+  joins as flows for the screens.
 
 ## Implementation slices
 

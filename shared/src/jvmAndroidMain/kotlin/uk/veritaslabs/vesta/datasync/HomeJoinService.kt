@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.datasync
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
+import app.cash.sqldelight.coroutines.asFlow
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -10,9 +11,11 @@ import kotlin.time.Duration.Companion.seconds
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -23,6 +26,7 @@ import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
 import uk.veritaslabs.vesta.automerge.InviteStatus
 import uk.veritaslabs.vesta.automerge.inviteSecretHash
+import uk.veritaslabs.vesta.homejoin.ActiveInvite
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.homejoin.InviteException
@@ -40,6 +44,7 @@ import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
 private val LinkLifetime = 5 * 60 * 1000L
+private val InviteLifetime = 7.days
 private const val PendingStatus = "pending"
 private const val ApprovedStatus = "approved"
 private const val DeclinedStatus = "declined"
@@ -194,13 +199,38 @@ internal class HomeJoinService(
         val now = nowMillis()
         if (link.isExpired(now)) return RedeemResult.Expired
         if (database.homeQueries.selectById(link.homeId).awaitAsOneOrNull() != null) return RedeemResult.AlreadyInHome
-        database.pendingJoinQueries.upsert(link.homeId, link.secret, link.adminAgentIds.joinToString(","), link.expiresAt, now)
+        database.pendingJoinQueries.upsert(link.homeId, link.homeName, link.secret, link.adminAgentIds.joinToString(","), link.expiresAt, now)
         database.pendingJoinQueries.selectById(link.homeId).awaitAsOneOrNull()?.let { sendJoinRequest(it.homeId, it.secret, it.agents()) }
         return RedeemResult.Started
     }
 
     override suspend fun pendingJoins(): List<PendingJoin> =
-        database.pendingJoinQueries.selectAll().awaitAsList().map { PendingJoin(it.homeId, it.expiresAt, it.denial) }
+        database.pendingJoinQueries.selectAll().awaitAsList().map { PendingJoin(it.homeId, it.homeName, it.expiresAt, it.denial) }
+
+    override fun observeJoinRequests(homeId: String): Flow<List<JoinRequest>> =
+        database.joinRequestQueries.selectUndecidedOrApprovedByHome(homeId).asFlow().map { query ->
+            query.awaitAsList().map { JoinRequest(it.homeId, it.memberId, it.name, it.createdAt, approved = it.status == ApprovedStatus) }
+        }
+
+    override fun observePendingJoins(): Flow<List<PendingJoin>> =
+        database.pendingJoinQueries.selectAll().asFlow().map { query ->
+            query.awaitAsList().map { PendingJoin(it.homeId, it.homeName, it.expiresAt, it.denial) }
+        }
+
+    override suspend fun createInviteLink(homeId: String): InviteLink? =
+        rosters.createInvite(homeId, profiles.current().id, InviteLifetime.inWholeMilliseconds)
+
+    override suspend fun inviteLinks(homeId: String): List<ActiveInvite> {
+        if (!isAdminOf(homeId)) return emptyList()
+        val now = nowMillis()
+        return rosters.invites(homeId)
+            .filter { !it.revoked && now < it.expiresAt && it.usedBy.size < it.maxUses }
+            .map { ActiveInvite(it.secretHash, it.expiresAt, it.usedBy.size, it.maxUses) }
+    }
+
+    override suspend fun revokeInviteLink(homeId: String, id: String) {
+        if (isAdminOf(homeId)) rosters.revokeInvite(homeId, id)
+    }
 
     override suspend fun cancelPendingJoin(homeId: String) {
         database.pendingJoinQueries.delete(homeId)

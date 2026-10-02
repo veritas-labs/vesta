@@ -1,6 +1,7 @@
 -- Version 12 -> 13: adds PendingJoin (see uk/veritaslabs/vesta/db/PendingJoin.sq).
 CREATE TABLE IF NOT EXISTS PendingJoin (
     homeId TEXT NOT NULL PRIMARY KEY,
+    homeName TEXT NOT NULL,
     secret TEXT NOT NULL,
     adminAgents TEXT NOT NULL,
     expiresAt INTEGER NOT NULL,

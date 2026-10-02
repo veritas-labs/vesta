@@ -75,7 +75,7 @@ class HomeJoinRedeemTest {
         return admin to link
     }
 
-    private fun linkNaming(vararg agents: String) = InviteLink(homeId, "s3cr3t", expiresAt = 10_000L, adminAgentIds = agents.toList())
+    private fun linkNaming(vararg agents: String) = InviteLink(homeId, "s3cr3t", expiresAt = 10_000L, adminAgentIds = agents.toList(), homeName = "Maple Street")
 
     private suspend fun eventually(check: suspend () -> Boolean) {
         withTimeout(10.seconds) { while (!check()) delay(20.milliseconds) }
@@ -103,7 +103,7 @@ class HomeJoinRedeemTest {
         assertEquals(RedeemResult.Started, result)
         assertEquals(listOf<HomeJoinMessage>(expected), first)
         assertEquals(listOf<HomeJoinMessage>(expected), second)
-        assertEquals(listOf(PendingJoin(homeId, 10_000L, denial = null)), sam.join.pendingJoins())
+        assertEquals(listOf(PendingJoin(homeId, "Maple Street", 10_000L, denial = null)), sam.join.pendingJoins())
     }
 
     @Test
@@ -227,7 +227,7 @@ class HomeJoinRedeemTest {
         sam.receive("agent-a", HomeJoinMessage.Denied(homeId, HomeJoinMessage.DeniedDeclined))
 
         // Assert
-        assertEquals(listOf(PendingJoin(homeId, 10_000L, HomeJoinMessage.DeniedDeclined)), sam.join.pendingJoins())
+        assertEquals(listOf(PendingJoin(homeId, "Maple Street", 10_000L, HomeJoinMessage.DeniedDeclined)), sam.join.pendingJoins())
     }
 
     @Test

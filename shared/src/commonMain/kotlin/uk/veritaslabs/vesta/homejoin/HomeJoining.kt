@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.homejoin
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 
 /** A Home this device has just joined. */
@@ -22,7 +23,10 @@ data class JoinRequest(
 )
 
 /** An invite link this user opened that hasn't been answered yet; [denial] is the reason once an admin refused it. */
-data class PendingJoin(val homeId: String, val expiresAt: Long, val denial: String?)
+data class PendingJoin(val homeId: String, val homeName: String, val expiresAt: Long, val denial: String?)
+
+/** An invite link an admin made that can still be used; [id] says which one to revoke. */
+data class ActiveInvite(val id: String, val expiresAt: Long, val uses: Int, val maxUses: Int)
 
 /** What came of opening an invite link. */
 enum class RedeemResult { Started, Expired, AlreadyInHome }
@@ -74,4 +78,19 @@ interface HomeJoining {
 
     /** Stops waiting on [homeId]'s invite link, or forgets that it was refused. */
     suspend fun cancelPendingJoin(homeId: String)
+
+    /** The requests to join [homeId] that an admin hasn't declined, re-emitted whenever they change. */
+    fun observeJoinRequests(homeId: String): Flow<List<JoinRequest>>
+
+    /** The invite links this user opened that wait for an answer or were refused, re-emitted whenever they change. */
+    fun observePendingJoins(): Flow<List<PendingJoin>>
+
+    /** Makes an invite link for [homeId] (docs/adr/ADR-018-invite-links.md); null unless this user is an admin of it. */
+    suspend fun createInviteLink(homeId: String): InviteLink?
+
+    /** The invite links of [homeId] that can still be used; empty unless this user is an admin of it. */
+    suspend fun inviteLinks(homeId: String): List<ActiveInvite>
+
+    /** Revokes the invite link [id] of [homeId], so nobody new can ask with it. Only an admin of the Home can. */
+    suspend fun revokeInviteLink(homeId: String, id: String)
 }

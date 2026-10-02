@@ -42,7 +42,7 @@ class HomeRostersInviteTest {
 
         // Assert
         assertEquals(
-            InviteLink(homeId, link!!.secret, expiresAt = 6_000L, adminAgentIds = listOf("agent-jo", "agent-mark-1", "agent-mark-2")),
+            InviteLink(homeId, link!!.secret, expiresAt = 6_000L, adminAgentIds = listOf("agent-jo", "agent-mark-1", "agent-mark-2"), homeName = "Maple Street"),
             link,
         )
     }

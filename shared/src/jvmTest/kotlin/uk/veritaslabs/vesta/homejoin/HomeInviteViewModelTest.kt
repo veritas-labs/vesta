@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -32,6 +33,11 @@ class HomeInviteViewModelTest {
         override suspend fun redeemInvite(link: InviteLink) = error("not used")
         override suspend fun pendingJoins() = emptyList<PendingJoin>()
         override suspend fun cancelPendingJoin(homeId: String) = Unit
+        override fun observeJoinRequests(homeId: String) = flowOf(emptyList<JoinRequest>())
+        override fun observePendingJoins() = flowOf(emptyList<PendingJoin>())
+        override suspend fun createInviteLink(homeId: String) = null
+        override suspend fun inviteLinks(homeId: String) = emptyList<ActiveInvite>()
+        override suspend fun revokeInviteLink(homeId: String, id: String) = Unit
     }
 
     private val link = JoinLink("agent-y", "member-y", expiresAt = 1_000L, name = "Sam")
