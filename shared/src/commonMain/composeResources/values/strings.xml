@@ -168,7 +168,7 @@
     <string name="home_edit_save">Save</string>
     <string name="home_edit_delete">Delete home</string>
     <string name="home_edit_more_options">More options</string>
-    <string name="home_edit_cancel">Cancel</string>
+    <string name="home_edit_back">Back</string>
 
     <string name="agent_approval_title">Allow this agent to manage your home?</string>
     <string name="agent_approval_body">The agent %1$s is trusted on your x0x network and is asking to list your homes and add items to their pantries.</string>

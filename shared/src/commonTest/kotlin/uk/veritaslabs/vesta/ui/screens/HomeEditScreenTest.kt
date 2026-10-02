@@ -80,13 +80,13 @@ class HomeEditScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun cancelInvokesOnCancel() = runComposeUiTest {
+    fun backInvokesOnCancel() = runComposeUiTest {
         // Arrange
         var cancelled = false
         setContent { VestaTheme { HomeEditScreen(onCancel = { cancelled = true }) } }
 
         // Act
-        onNodeWithTag(HomeEditTestTags.CancelButton).performClick()
+        onNodeWithTag(HomeEditTestTags.BackButton).performClick()
 
         // Assert
         assertEquals(true, cancelled)

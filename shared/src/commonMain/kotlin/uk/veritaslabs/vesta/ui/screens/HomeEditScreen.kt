@@ -43,10 +43,9 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
-import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.home_edit_cancel
+import vesta.shared.generated.resources.home_edit_back
 import vesta.shared.generated.resources.home_edit_create_title
 import vesta.shared.generated.resources.home_edit_delete
 import vesta.shared.generated.resources.home_edit_edit_title
@@ -65,6 +64,7 @@ import vesta.shared.generated.resources.home_edit_shape_other
 import vesta.shared.generated.resources.home_edit_shape_other_description
 import vesta.shared.generated.resources.home_edit_shape_single_support
 import vesta.shared.generated.resources.home_edit_shape_single_support_description
+import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_dots_vertical
 
 private val HomeEditTabletBreakpoint = 600.dp
@@ -78,7 +78,7 @@ internal object HomeEditTestTags {
     const val SaveButton = "home_edit_save_button"
     const val OverflowButton = "home_edit_overflow_button"
     const val DeleteMenuItem = "home_edit_delete_menu_item"
-    const val CancelButton = "home_edit_cancel_button"
+    const val BackButton = "home_edit_back_button"
 
     /** Tag for the option of the given [shape], independent of its displayed label. */
     fun shapeOption(shape: HomeShape) = "home_edit_shape_${shape.storageValue}"
@@ -186,6 +186,14 @@ fun HomeEditScreen(
                         ),
                     )
                 },
+                navigationIcon = {
+                    IconButton(onClick = onCancel, modifier = Modifier.testTag(HomeEditTestTags.BackButton)) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_left),
+                            contentDescription = stringResource(Res.string.home_edit_back),
+                        )
+                    }
+                },
                 actions = {
                     home?.id?.let { id ->
                         var menuExpanded by remember { mutableStateOf(false) }
@@ -215,6 +223,7 @@ fun HomeEditScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                     actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
@@ -258,11 +267,6 @@ fun HomeEditScreen(
                     //     }
                     // }
 
-                    SecondaryButton(
-                        label = stringResource(Res.string.home_edit_cancel),
-                        onClick = onCancel,
-                        modifier = Modifier.padding(top = 24.dp).testTag(HomeEditTestTags.CancelButton),
-                    )
                     PrimaryButton(
                         label = stringResource(
                             if (home == null) Res.string.home_edit_save_create else Res.string.home_edit_save,
@@ -271,7 +275,7 @@ fun HomeEditScreen(
                         onClick = {
                             onSave(HomeDetails(id = home?.id, name = name.trim(), shape = shape))
                         },
-                        modifier = Modifier.padding(top = 16.dp).testTag(HomeEditTestTags.SaveButton),
+                        modifier = Modifier.padding(top = 24.dp).testTag(HomeEditTestTags.SaveButton),
                     )
                 }
             }
