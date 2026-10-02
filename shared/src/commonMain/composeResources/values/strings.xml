@@ -9,7 +9,7 @@
 
     <string name="onboarding_title">Choose a home</string>
     <string name="onboarding_empty_title">Welcome to Vesta</string>
-    <string name="onboarding_empty_subtitle">Your home, in order.</string>
+    <string name="onboarding_empty_subtitle">Organise your home</string>
     <string name="onboarding_create_home">Create a home</string>
     <string name="onboarding_pair_device">Pair device</string>
     <string name="onboarding_join_home">Join a home</string>
