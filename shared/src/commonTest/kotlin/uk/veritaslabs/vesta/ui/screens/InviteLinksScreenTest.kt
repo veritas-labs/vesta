@@ -20,21 +20,49 @@ class InviteLinksScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun theCreateButtonMakesALink() = runComposeUiTest {
+    fun theNewLinkIsShownToCopyWithAWayToManageLinks() = runComposeUiTest {
         // Arrange
-        var creates = 0
-        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(), onCreate = { creates++ }) } }
+        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(created = created)) } }
 
         // Act
-        onNodeWithTag(InviteLinksTestTags.CreateButton).performClick()
+        // (no user interaction — checking the screen's initial state)
 
         // Assert
-        assertEquals(1, creates)
+        onNodeWithTag(DevicePairingGeneratedTestTags.CopyLinkButton).assertIsDisplayed()
+        onNodeWithTag(InviteLinksTestTags.ManageButton).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun saysSoWhenThereAreNoActiveLinks() = runComposeUiTest {
+    fun tappingManageLinksAsksToManage() = runComposeUiTest {
+        // Arrange
+        var manages = 0
+        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(created = created), onManage = { manages++ }) } }
+
+        // Act
+        onNodeWithTag(InviteLinksTestTags.ManageButton).performClick()
+
+        // Assert
+        assertEquals(1, manages)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun backFromTheNewLinkLeavesTheScreen() = runComposeUiTest {
+        // Arrange
+        var backs = 0
+        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(created = created), onBack = { backs++ }) } }
+
+        // Act
+        onNodeWithTag(DevicePairingGeneratedTestTags.BackButton).performClick()
+
+        // Assert
+        assertEquals(1, backs)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsProgressWhileTheLinkIsBeingMade() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState()) } }
 
@@ -42,16 +70,33 @@ class InviteLinksScreenTest {
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithTag(InviteLinksTestTags.None).assertIsDisplayed()
+        onNodeWithTag(InviteLinksTestTags.Progress).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun listsEachActiveLinkAndRevokesTheOneTapped() = runComposeUiTest {
+    fun showsWhenNoLinkCouldBeMadeAndBackLeaves() = runComposeUiTest {
+        // Arrange
+        var backs = 0
+        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(failed = true), onBack = { backs++ }) } }
+
+        // Act
+        onNodeWithTag(InviteLinksTestTags.BackButton).performClick()
+
+        // Assert
+        onNodeWithTag(InviteLinksTestTags.Error).assertIsDisplayed()
+        assertEquals(1, backs)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun managingListsEachActiveLinkAndRevokesTheOneTapped() = runComposeUiTest {
         // Arrange
         val revoked = mutableListOf<String>()
         val links = listOf(InviteLinkItem("a", 6, 0, 1), InviteLinkItem("b", 0, 1, 3))
-        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(links = links), onRevoke = { revoked += it }) } }
+        setContent {
+            VestaTheme { InviteLinksScreen(InviteLinksUiState(created = created, managing = true, links = links), onRevoke = { revoked += it }) }
+        }
 
         // Act
         onAllNodesWithTag(InviteLinksTestTags.RevokeButton)[1].performClick()
@@ -63,44 +108,34 @@ class InviteLinksScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun showsWhenALinkCouldNotBeMade() = runComposeUiTest {
+    fun managingWithNoLinksSaysSo() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(failed = true)) } }
+        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(created = created, managing = true)) } }
 
         // Act
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithTag(InviteLinksTestTags.Error).assertIsDisplayed()
+        onNodeWithTag(InviteLinksTestTags.None).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun aJustMadeLinkIsShownToShareAndBackReturnsToTheList() = runComposeUiTest {
+    fun backWhileManagingReturnsToTheLinkNotOutOfTheScreen() = runComposeUiTest {
         // Arrange
-        var dismissed = 0
-        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(created = created), onDismissCreated = { dismissed++ }) } }
-
-        // Act
-        onNodeWithTag(DevicePairingGeneratedTestTags.CopyLinkButton).assertIsDisplayed()
-        onNodeWithTag(DevicePairingGeneratedTestTags.BackButton).performClick()
-
-        // Assert
-        assertEquals(1, dismissed)
-        onAllNodesWithTag(InviteLinksTestTags.CreateButton).assertCountEquals(0)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun theBackArrowLeavesTheScreen() = runComposeUiTest {
-        // Arrange
+        var stops = 0
         var backs = 0
-        setContent { VestaTheme { InviteLinksScreen(InviteLinksUiState(), onBack = { backs++ }) } }
+        setContent {
+            VestaTheme {
+                InviteLinksScreen(InviteLinksUiState(created = created, managing = true), onStopManaging = { stops++ }, onBack = { backs++ })
+            }
+        }
 
         // Act
         onNodeWithTag(InviteLinksTestTags.BackButton).performClick()
 
         // Assert
-        assertEquals(1, backs)
+        assertEquals(1, stops)
+        assertEquals(0, backs)
     }
 }

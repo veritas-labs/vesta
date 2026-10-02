@@ -26,43 +26,26 @@ class InviteLinksViewModelTest {
     private fun useMainDispatcher(scheduler: TestCoroutineScheduler) = Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
 
     @Test
-    fun theActiveLinksAreListedWithTheDaysTheyHaveLeft() = runTest {
-        // Arrange
-        useMainDispatcher(testScheduler)
-        val joining = FakeHomeJoining().apply { links += ActiveInvite("a", expiresAt = 3 * day + 5, uses = 1, maxUses = 2) }
-
-        // Act
-        val viewModel = InviteLinksViewModel("home-1", joining, nowMillis = { 0L })
-
-        // Assert
-        assertEquals(listOf(InviteLinkItem("a", daysLeft = 3, uses = 1, maxUses = 2)), viewModel.uiState.value.links)
-    }
-
-    @Test
-    fun creatingALinkShowsItAndListsTheNewOne() = runTest {
+    fun openingTheScreenMakesALinkToShow() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
         val joining = FakeHomeJoining().apply { created = link }
-        val viewModel = InviteLinksViewModel("home-1", joining, nowMillis = { 0L })
-        joining.links += ActiveInvite("new", 7 * day, 0, 1)
 
         // Act
-        viewModel.onCreate()
+        val viewModel = InviteLinksViewModel("home-1", joining, nowMillis = { 0L })
 
         // Assert
-        assertEquals(link, viewModel.uiState.value.created)
-        assertEquals(false, viewModel.uiState.value.failed)
-        assertEquals(listOf("new"), viewModel.uiState.value.links.map { it.id })
+        assertEquals(InviteLinksUiState(created = link), viewModel.uiState.value)
+        assertEquals(1, joining.createCalls)
     }
 
     @Test
     fun aLinkThatCouldNotBeMadeIsReported() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
-        val viewModel = InviteLinksViewModel("home-1", FakeHomeJoining(), nowMillis = { 0L })
 
         // Act
-        viewModel.onCreate()
+        val viewModel = InviteLinksViewModel("home-1", FakeHomeJoining(), nowMillis = { 0L })
 
         // Assert
         assertNull(viewModel.uiState.value.created)
@@ -70,25 +53,45 @@ class InviteLinksViewModelTest {
     }
 
     @Test
-    fun dismissingTheNewLinkReturnsToTheList() = runTest {
+    fun withoutAJoiningServiceNoLinkCanBeMade() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
-        val viewModel = InviteLinksViewModel("home-1", FakeHomeJoining().apply { created = link }, nowMillis = { 0L })
-        viewModel.onCreate()
 
         // Act
-        viewModel.onDismissCreated()
+        val viewModel = InviteLinksViewModel("home-1", null, nowMillis = { 0L })
 
         // Assert
-        assertNull(viewModel.uiState.value.created)
+        assertEquals(InviteLinksUiState(failed = true), viewModel.uiState.value)
+    }
+
+    @Test
+    fun managingListsTheActiveLinksWithTheDaysTheyHaveLeft() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val joining = FakeHomeJoining().apply {
+            created = link
+            links += ActiveInvite("a", expiresAt = 3 * day + 5, uses = 1, maxUses = 2)
+        }
+        val viewModel = InviteLinksViewModel("home-1", joining, nowMillis = { 0L })
+
+        // Act
+        viewModel.onManage()
+
+        // Assert
+        assertEquals(true, viewModel.uiState.value.managing)
+        assertEquals(listOf(InviteLinkItem("a", daysLeft = 3, uses = 1, maxUses = 2)), viewModel.uiState.value.links)
     }
 
     @Test
     fun revokingALinkRemovesItFromTheList() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
-        val joining = FakeHomeJoining().apply { links += ActiveInvite("a", 7 * day, 0, 1) }
+        val joining = FakeHomeJoining().apply {
+            created = link
+            links += ActiveInvite("a", 7 * day, 0, 1)
+        }
         val viewModel = InviteLinksViewModel("home-1", joining, nowMillis = { 0L })
+        viewModel.onManage()
 
         // Act
         viewModel.onRevoke("a")
@@ -99,15 +102,39 @@ class InviteLinksViewModelTest {
     }
 
     @Test
-    fun withoutAJoiningServiceThereAreNoLinksAndNoneCanBeMade() = runTest {
+    fun goingBackFromManagingKeepsTheLinkThatWasShown() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
-        val viewModel = InviteLinksViewModel("home-1", null, nowMillis = { 0L })
+        val joining = FakeHomeJoining().apply { created = link }
+        val viewModel = InviteLinksViewModel("home-1", joining, nowMillis = { 0L })
+        viewModel.onManage()
 
         // Act
-        viewModel.onCreate()
+        viewModel.onStopManaging()
 
         // Assert
-        assertEquals(InviteLinksUiState(failed = true), viewModel.uiState.value)
+        assertEquals(InviteLinksUiState(created = link), viewModel.uiState.value)
+        assertEquals(1, joining.createCalls)
+    }
+
+    @Test
+    fun goingBackAfterRevokingMakesANewLinkInCaseTheShownOneWasRevoked() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val joining = FakeHomeJoining().apply {
+            created = link
+            links += ActiveInvite("a", 7 * day, 0, 1)
+        }
+        val viewModel = InviteLinksViewModel("home-1", joining, nowMillis = { 0L })
+        viewModel.onManage()
+        viewModel.onRevoke("a")
+
+        // Act
+        viewModel.onStopManaging()
+
+        // Assert
+        assertEquals(2, joining.createCalls)
+        assertEquals(link, viewModel.uiState.value.created)
+        assertEquals(false, viewModel.uiState.value.managing)
     }
 }

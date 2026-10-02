@@ -59,7 +59,8 @@ internal object DevicePairingGeneratedTestTags {
  * as a scannable QR code, with the raw [pairingLink] text underneath for
  * cases where scanning isn't possible — copyable to the clipboard via
  * [onCopyLink], or abandoned via the back arrow ([onCancel]). [title] and [body] default to the pairing copy; joining
- * a Home shows its own link here too (`docs/adr/ADR-015-joining-a-home.md`). Reached from
+ * a Home shows its own link here too (`docs/adr/ADR-018-invite-links.md`), with its own [footer] under the copy button.
+ * Reached from
  * [DevicePairingScreen]'s "generate" action.
  */
 @Composable
@@ -70,6 +71,7 @@ fun DevicePairingGeneratedScreen(
     body: String = stringResource(Res.string.device_pairing_generated_body),
     onCopyLink: () -> Unit = {},
     onCancel: () -> Unit = {},
+    footer: @Composable () -> Unit = {},
 ) {
     // LocalClipboardManager.setText is deprecated in favor of the suspend
     // LocalClipboard/ClipEntry API, but stays synchronous and needs no
@@ -165,6 +167,7 @@ fun DevicePairingGeneratedScreen(
                     },
                     modifier = Modifier.padding(top = 24.dp).testTag(DevicePairingGeneratedTestTags.CopyLinkButton),
                 )
+                footer()
             }
         }
     }

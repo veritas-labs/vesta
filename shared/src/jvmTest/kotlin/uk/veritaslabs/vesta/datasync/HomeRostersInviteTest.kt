@@ -201,4 +201,54 @@ class HomeRostersInviteTest {
         // Assert
         assertEquals(listOf(homeId), changed)
     }
+
+    /** A Home as just created: its creator is an admin in the roster, but no device of theirs has been published yet. */
+    private suspend fun justMadeHome(publishedMember: Boolean = true): Triple<HomeRosters, String, VestaDatabase> {
+        val database = openInMemoryDatabase()
+        val profiles = ProfileRepository(database)
+        val rosters = HomeRosters(database, profiles, nowMillis = { now })
+        val me = profiles.current().id
+        database.homeQueries.insert(homeId, "Maple Street", "family", 1L)
+        database.homeMemberQueries.upsert(homeId, me, "Mark", null, "admin", 1L)
+        if (publishedMember) rosters.publish(homeId, agentId = null, pairedAgents = emptySet())
+        return Triple(rosters, me, database)
+    }
+
+    @Test
+    fun aJustMadeHomeNamesTheCreatorsOwnDeviceEvenBeforeItWasPublished() = runBlocking {
+        // Arrange
+        val (rosters, me) = justMadeHome()
+
+        // Act
+        val link = rosters.createInvite(homeId, me, ttlMillis = 5_000L, ownAgentId = "agent-mark")
+
+        // Assert
+        assertEquals(listOf("agent-mark"), link!!.adminAgentIds)
+        assertEquals(setOf("agent-mark"), rosters.devices(homeId)[me])
+    }
+
+    @Test
+    fun aHomeWhoseRosterHasNothingYetStillGetsTheCreatorAsAdminAndDevice() = runBlocking {
+        // Arrange
+        val (rosters, me) = justMadeHome(publishedMember = false)
+
+        // Act
+        val link = rosters.createInvite(homeId, me, ttlMillis = 5_000L, ownAgentId = "agent-mark")
+
+        // Assert
+        assertEquals(listOf("agent-mark"), link!!.adminAgentIds)
+        assertEquals(setOf("agent-mark"), rosters.devices(homeId)[me])
+    }
+
+    @Test
+    fun withNoDeviceKnownAtAllNoInviteIsMade() = runBlocking {
+        // Arrange
+        val (rosters, me) = justMadeHome()
+
+        // Act
+        val link = rosters.createInvite(homeId, me, ttlMillis = 5_000L)
+
+        // Assert
+        assertNull(link)
+    }
 }

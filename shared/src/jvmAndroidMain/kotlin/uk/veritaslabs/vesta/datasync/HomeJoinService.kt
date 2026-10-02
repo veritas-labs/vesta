@@ -135,8 +135,10 @@ internal class HomeJoinService(
             query.awaitAsList().map { PendingJoin(it.homeId, it.homeName, it.expiresAt, it.denial) }
         }
 
-    override suspend fun createInviteLink(homeId: String): InviteLink? =
-        rosters.createInvite(homeId, profiles.current().id, InviteLifetime.inWholeMilliseconds)
+    override suspend fun createInviteLink(homeId: String): InviteLink? {
+        val ownAgent = runCatching { client.agent().agentId }.getOrNull()
+        return rosters.createInvite(homeId, profiles.current().id, InviteLifetime.inWholeMilliseconds, ownAgentId = ownAgent)
+    }
 
     override suspend fun inviteLinks(homeId: String): List<ActiveInvite> {
         if (!isAdminOf(homeId)) return emptyList()

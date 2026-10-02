@@ -47,6 +47,15 @@ sends an Invite after approval, and the joiner now accepts one only from an agen
 - The picker no longer opens a Home by itself on joining; the Home appears in the list once approved. Whether to open it
   automatically is a later UX choice.
 
+## Implementation notes
+
+- **Slice 1** removed the join-link code and rewired Members → Invite and Join a home to the invite screens.
+- **Slice 2:** opening Invite makes a link at once (QR and copy) with a "Manage links" button under it; managing lists and
+  revokes, and going back after a revoke makes a fresh link in case the one shown was revoked. Each visit makes a new link,
+  since a secret can't be shown again once made; unused ones can be revoked. There is **no share sheet yet**: the codebase has
+  no share capability, so it needs a platform implementation per target (follow-up). Creating a link writes the creator's
+  member entry and this device into the roster first, as a Home made a moment ago hasn't published them yet.
+
 ## Implementation slices
 
 1. Remove the join-link mechanism from the service, interface, flow and tests; accept an Invite only through an invite link.

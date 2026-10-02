@@ -11,19 +11,24 @@ import kotlinx.coroutines.launch
 
 private const val DayMillis = 24 * 60 * 60 * 1000L
 
-/** One invite link of a Home as the links screen lists it. */
+/** One invite link of a Home as the manage-links list shows it. */
 data class InviteLinkItem(val id: String, val daysLeft: Int, val uses: Int, val maxUses: Int)
 
-/** [uk.veritaslabs.vesta.ui.screens.InviteLinksScreen]'s state: the active links, and the one just made, to share. */
+/**
+ * [uk.veritaslabs.vesta.ui.screens.InviteLinksScreen]'s state: the [created] link to show (null while it is being made),
+ * [failed] if none could be, and, while [managing], the [links] that can still be used.
+ */
 data class InviteLinksUiState(
-    val links: List<InviteLinkItem> = emptyList(),
     val created: InviteLink? = null,
     val failed: Boolean = false,
+    val managing: Boolean = false,
+    val links: List<InviteLinkItem> = emptyList(),
 )
 
 /**
- * Backs the invite links screen: an admin makes, shares and revokes the invite links of [homeId]
- * (docs/adr/ADR-018-invite-links.md). Without [joining] (previews) there are none and none can be made.
+ * Backs the invite screen (docs/adr/ADR-018-invite-links.md, ADR-019): opening it makes a link for [homeId] to show the
+ * person joining, and from there an admin can manage the Home's links, revoking any. Without [joining] (previews) no
+ * link can be made.
  */
 class InviteLinksViewModel(
     private val homeId: String,
@@ -34,28 +39,41 @@ class InviteLinksViewModel(
     private val _uiState = MutableStateFlow(InviteLinksUiState())
     val uiState: StateFlow<InviteLinksUiState> = _uiState.asStateFlow()
 
+    // Whether a link was revoked while managing, which may have been the one on show.
+    private var revokedAny = false
+
     init {
-        refresh()
+        create()
     }
 
-    fun onCreate() {
-        viewModelScope.launch {
-            val link = joining?.createInviteLink(homeId)
-            _uiState.update { it.copy(created = link, failed = link == null) }
-            refresh()
-        }
+    fun onManage() {
+        revokedAny = false
+        _uiState.update { it.copy(managing = true) }
+        refresh()
     }
 
     fun onRevoke(id: String) {
         viewModelScope.launch {
             joining?.revokeInviteLink(homeId, id)
+            revokedAny = true
             refresh()
         }
     }
 
-    /** Back from the just-made link to the list. */
-    fun onDismissCreated() {
-        _uiState.update { it.copy(created = null) }
+    /** Back from the manage list to the link. A new link is made if one was revoked, as it may have been the one shown. */
+    fun onStopManaging() {
+        _uiState.update { it.copy(managing = false) }
+        if (revokedAny) {
+            _uiState.update { it.copy(created = null) }
+            create()
+        }
+    }
+
+    private fun create() {
+        viewModelScope.launch {
+            val link = joining?.createInviteLink(homeId)
+            _uiState.update { it.copy(created = link, failed = link == null) }
+        }
     }
 
     private fun refresh() {

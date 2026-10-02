@@ -36,7 +36,11 @@ class FakeHomeJoining : HomeJoining {
     }
     override fun observeJoinRequests(homeId: String): Flow<List<JoinRequest>> = requests.map { list -> list.filter { it.homeId == homeId } }
     override fun observePendingJoins(): Flow<List<PendingJoin>> = pending
-    override suspend fun createInviteLink(homeId: String) = created
+    var createCalls = 0
+    override suspend fun createInviteLink(homeId: String): InviteLink? {
+        createCalls++
+        return created
+    }
     override suspend fun inviteLinks(homeId: String) = links.toList()
     override suspend fun revokeInviteLink(homeId: String, id: String) {
         revoked += homeId to id

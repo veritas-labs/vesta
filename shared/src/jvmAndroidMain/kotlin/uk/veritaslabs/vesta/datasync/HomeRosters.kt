@@ -122,14 +122,29 @@ internal class HomeRosters(
     /**
      * Makes an invite link for [homeId] on behalf of [memberId], who must be an admin the roster still lists
      * (docs/adr/ADR-018-invite-links.md), and records it in the roster. The link names the devices of the Home's admins,
-     * [memberId]'s first, up to [InviteLink.MaxAdminAgents]. Null when [memberId] isn't an admin of this Home or no admin
-     * device is known yet.
+     * [memberId]'s first, up to [InviteLink.MaxAdminAgents]. With [ownAgentId], this device's agent, [memberId] (this
+     * user) and that device are first written into the roster from the `HomeMember` table: a Home just made hasn't
+     * published them yet, and the device is an admin device by definition. Null when [memberId] isn't an admin of this
+     * Home or no admin device is known.
      */
-    suspend fun createInvite(homeId: String, memberId: String, ttlMillis: Long, maxUses: Int = 1): InviteLink? {
+    suspend fun createInvite(
+        homeId: String,
+        memberId: String,
+        ttlMillis: Long,
+        maxUses: Int = 1,
+        ownAgentId: String? = null,
+    ): InviteLink? {
         val link = lock.withLock {
             val doc = open(homeId) ?: return null
+            ownAgentId?.let { agent ->
+                // As [publish] would, so a Home made a moment ago doesn't have to wait for the next sync round.
+                database.homeMemberQueries.selectByHome(homeId).awaitAsList().firstOrNull { it.memberId == memberId }?.let { row ->
+                    putRosterMember(doc, row.memberId, row.name, row.avatarResourceId, row.role, row.joinedAt)
+                    claimRosterDevice(doc, agent, memberId)
+                }
+            }
+            if (doc.readRoster().none { it.memberId == memberId && it.role == MemberRole.Admin.storageValue && !it.removed }) return null
             val admins = doc.readRoster().filter { it.role == MemberRole.Admin.storageValue && !it.removed }
-            if (admins.none { it.memberId == memberId }) return null
             val agents = admins.sortedBy { it.memberId != memberId }.flatMap { it.devices.sorted() }
                 .distinct().take(InviteLink.MaxAdminAgents).takeIf { it.isNotEmpty() } ?: return null
             val homeName = database.homeQueries.selectById(homeId).awaitAsOneOrNull()?.name ?: return null
