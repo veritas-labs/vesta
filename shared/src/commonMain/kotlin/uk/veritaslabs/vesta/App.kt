@@ -132,6 +132,8 @@ fun App(
     fun needingName(action: () -> Unit) {
         if (profiles != null && profile?.named == false) afterNaming = action else action()
     }
+    val pendingJoins by remember(homeJoining) { homeJoining?.observePendingJoins() ?: flowOf(emptyList()) }
+        .collectAsStateWithLifecycle(emptyList())
     val syncedDeviceList by (deviceSync?.devices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
     // Drop the selection if its Home goes away (deleted, or left).
     LaunchedEffect(homes, selectedHome) {
@@ -227,6 +229,8 @@ fun App(
                             onJoinHome = { if (homeJoining != null) needingName { joiningHome = true } },
                             onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
                             onSettingsClick = { settingsDestination = SettingsDestination.Settings },
+                            pendingJoins = pendingJoins,
+                            onCancelPendingJoin = { join -> scope.launch { homeJoining?.cancelPendingJoin(join.homeId) } },
                         )
                     }
                 }

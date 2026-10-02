@@ -1,6 +1,6 @@
 # ADR-018: Invite links — joining a Home without both devices online together
 
-**Status:** Proposed (2026-10-02). Not implemented. Builds on [[ADR-015]] (joining with a link), [[ADR-014]] (roster) and
+**Status:** Accepted (2026-10-02). Implemented. Builds on [[ADR-015]] (joining with a link), [[ADR-014]] (roster) and
 [[ADR-017]] (retrying messages to offline devices). Adds a second way to join; [[ADR-015]]'s flow stays.
 
 ## Context
@@ -71,7 +71,9 @@ path. The picker's "Join a home" gains a second entry for pasting an invite link
   expiry by 14 days, so an Invite approved just before it still lands, and is dropped once the Home arrives another way.
 - **Slice 5.** The link also carries the Home's name (last, as it may contain the separator) so the joiner's picker can say which
   Home it waits on; `PendingJoin` keeps it. `HomeJoining` creates, lists and revokes links, and exposes requests and pending
-  joins as flows for the screens.
+  joins as flows for the screens. Screens: Members shows requests with Approve and Decline to an admin; Invite gains "share an
+  invite link instead", which opens the links screen (create, QR and copy, revoke); the Join a home screen gains "I have an
+  invite link" (paste or scan), after which the picker shows a card per pending or refused link with Cancel or Dismiss.
 
 ## Implementation slices
 

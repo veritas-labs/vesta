@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
+import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -129,5 +131,65 @@ class HomePickerScreenTest {
 
         // Assert
         assertTrue(joined)
+    }
+
+    private val waiting = PendingJoin("maple", "Maple Street", expiresAt = 1_000L, denial = null)
+    private val declined = PendingJoin("elm", "Elm Court", expiresAt = 1_000L, denial = HomeJoinMessage.DeniedDeclined)
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsACardForEachInviteLinkStillWaitingOrRefused() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomePickerScreen(homes = homes, pendingJoins = listOf(waiting, declined)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomePickerTestTags.pendingJoin("maple")).assertIsDisplayed()
+        onNodeWithTag(HomePickerTestTags.pendingJoin("elm")).assertIsDisplayed()
+        onNodeWithText("Maple Street").assertIsDisplayed()
+        onNodeWithText("Elm Court").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsPendingJoinsEvenWithNoHomesYet() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomePickerScreen(homes = emptyList(), pendingJoins = listOf(waiting)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(HomePickerTestTags.pendingJoin("maple")).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun cancellingAPendingJoinPassesItOn() = runComposeUiTest {
+        // Arrange
+        var cancelled: PendingJoin? = null
+        setContent { VestaTheme { HomePickerScreen(homes = homes, pendingJoins = listOf(waiting), onCancelPendingJoin = { cancelled = it }) } }
+
+        // Act
+        onNodeWithTag(HomePickerTestTags.pendingJoinCancel("maple")).performClick()
+
+        // Assert
+        assertEquals(waiting, cancelled)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun dismissingARefusedJoinPassesItOn() = runComposeUiTest {
+        // Arrange
+        var dismissed: PendingJoin? = null
+        setContent { VestaTheme { HomePickerScreen(homes = homes, pendingJoins = listOf(declined), onCancelPendingJoin = { dismissed = it }) } }
+
+        // Act
+        onNodeWithTag(HomePickerTestTags.pendingJoinCancel("elm")).performClick()
+
+        // Assert
+        assertEquals(declined, dismissed)
     }
 }

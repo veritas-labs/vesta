@@ -20,7 +20,8 @@ class FakeHomeJoining : HomeJoining {
     val pending = MutableStateFlow<List<PendingJoin>>(emptyList())
 
     override val joined: SharedFlow<JoinedHome> = MutableSharedFlow()
-    override suspend fun openLink() = error("not used")
+    var joinLink = JoinLink("agent-me", "member-me", expiresAt = 1_000L, name = "Me")
+    override suspend fun openLink() = joinLink
     override fun cancelLink() = Unit
     override suspend fun invite(homeId: String, link: JoinLink): Result<Unit> = Result.success(Unit)
     override suspend fun joinRequests(homeId: String) = requests.value

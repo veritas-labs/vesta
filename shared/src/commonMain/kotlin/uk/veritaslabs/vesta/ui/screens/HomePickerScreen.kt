@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,13 +27,16 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
@@ -41,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
+import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.ui.components.ActionCard
 import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
 import uk.veritaslabs.vesta.ui.components.AvatarButton
@@ -56,6 +62,13 @@ import vesta.shared.generated.resources.ic_settings
 import vesta.shared.generated.resources.home_picker_settings
 import vesta.shared.generated.resources.img_armchair
 import vesta.shared.generated.resources.onboarding_create_home
+import vesta.shared.generated.resources.pending_join_cancel
+import vesta.shared.generated.resources.pending_join_denied_declined
+import vesta.shared.generated.resources.pending_join_denied_expired
+import vesta.shared.generated.resources.pending_join_denied_revoked
+import vesta.shared.generated.resources.pending_join_denied_used
+import vesta.shared.generated.resources.pending_join_dismiss
+import vesta.shared.generated.resources.pending_join_waiting
 import vesta.shared.generated.resources.onboarding_empty_subtitle
 import vesta.shared.generated.resources.onboarding_empty_title
 import vesta.shared.generated.resources.onboarding_get_started
@@ -73,6 +86,12 @@ internal object HomePickerTestTags {
     const val JoinHomeButton = "home_picker_join_home_button"
     const val SettingsButton = "home_picker_settings_button"
     const val PairDeviceButton = "home_picker_pair_device_button"
+
+    /** Tag for the card of the invite link to the Home [homeId] still waiting on, or refused. */
+    fun pendingJoin(homeId: String) = "home_picker_pending_join_$homeId"
+
+    /** Tag for the Cancel (or Dismiss) button of that card. */
+    fun pendingJoinCancel(homeId: String) = "home_picker_pending_join_cancel_$homeId"
 
     /** Tag for the list row of the home with the given [homeId], independent of its display name. */
     fun homeItem(homeId: String) = "home_picker_item_$homeId"
@@ -97,6 +116,8 @@ fun HomePickerScreen(
     onJoinHome: () -> Unit = {},
     onPairDevice: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    pendingJoins: List<PendingJoin> = emptyList(),
+    onCancelPendingJoin: (PendingJoin) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -110,6 +131,8 @@ fun HomePickerScreen(
             onJoinHome = onJoinHome,
             onPairDevice = onPairDevice,
             onSettingsClick = onSettingsClick,
+            pendingJoins = pendingJoins,
+            onCancelPendingJoin = onCancelPendingJoin,
         )
     }
 }
@@ -120,6 +143,8 @@ fun HomePickerScreen(
  * grid/list of [homes] to choose from (when non-empty) plus "Create home", "Join a home" and "Pair device"
  * actions. [onPairDevice] links this device to the user's other devices, so it can be done before any Home exists.
  * The cog beside the heading (hidden while there are no homes) calls [onSettingsClick]: the app's settings are global, so they live here rather than inside a Home.
+ * Under the heading, a card for each invite link this user opened that no admin has answered yet, or refused
+ * ([pendingJoins], docs/adr/ADR-018-invite-links.md), with a button ([onCancelPendingJoin]) to give up on it.
  */
 @Composable
 fun HomePickerScreen(
@@ -130,6 +155,8 @@ fun HomePickerScreen(
     onJoinHome: () -> Unit = {},
     onPairDevice: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    pendingJoins: List<PendingJoin> = emptyList(),
+    onCancelPendingJoin: (PendingJoin) -> Unit = {},
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -180,6 +207,13 @@ fun HomePickerScreen(
                 )
             }
             Spacer(Modifier.height(contentPadding))
+
+            if (pendingJoins.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    pendingJoins.forEach { join -> PendingJoinCard(join, onCancel = { onCancelPendingJoin(join) }) }
+                }
+                Spacer(Modifier.height(contentPadding))
+            }
 
             if (homes.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -264,6 +298,46 @@ fun HomePickerScreen(
     }
 }
 
+/** An invite link still waiting on an admin, or refused: the Home's name, where it stands, and a way to give up on it. */
+@Composable
+private fun PendingJoinCard(join: PendingJoin, onCancel: () -> Unit) {
+    val status = when (join.denial) {
+        null -> Res.string.pending_join_waiting
+        HomeJoinMessage.DeniedExpired -> Res.string.pending_join_denied_expired
+        HomeJoinMessage.DeniedRevoked -> Res.string.pending_join_denied_revoked
+        HomeJoinMessage.DeniedUsed -> Res.string.pending_join_denied_used
+        else -> Res.string.pending_join_denied_declined
+    }
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, if (join.denial == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error),
+        modifier = Modifier.fillMaxWidth().testTag(HomePickerTestTags.pendingJoin(join.homeId)),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = join.homeName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = stringResource(status),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (join.denial == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                )
+            }
+            TextButton(onClick = onCancel, modifier = Modifier.testTag(HomePickerTestTags.pendingJoinCancel(join.homeId))) {
+                Text(stringResource(if (join.denial == null) Res.string.pending_join_cancel else Res.string.pending_join_dismiss))
+            }
+        }
+    }
+}
+
+private val HomePickerPreviewPendingJoins = listOf(
+    PendingJoin("maple", "Maple Street", expiresAt = 1L, denial = null),
+    PendingJoin("elm", "Elm Court", expiresAt = 1L, denial = HomeJoinMessage.DeniedDeclined),
+)
+
 private val HomePickerPreviewHomes = listOf(
     HomeListItem(id = "the-johnsons", name = "The Johnsons"),
     HomeListItem(id = "flat-4b", name = "Flat 4B"),
@@ -273,7 +347,7 @@ private val HomePickerPreviewHomes = listOf(
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun HomePickerScreenPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { HomePickerScreen(homes = HomePickerPreviewHomes) }
+    VestaTheme(darkTheme = false) { HomePickerScreen(homes = HomePickerPreviewHomes, pendingJoins = HomePickerPreviewPendingJoins) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
@@ -303,7 +377,7 @@ private fun HomePickerScreenEmptyPhoneLightPreview() {
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun HomePickerScreenEmptyPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { HomePickerScreen(homes = emptyList()) }
+    VestaTheme(darkTheme = true) { HomePickerScreen(homes = emptyList(), pendingJoins = HomePickerPreviewPendingJoins) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)

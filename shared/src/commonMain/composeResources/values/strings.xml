@@ -228,4 +228,22 @@
     <string name="invite_links_revoke">Revoke</string>
     <string name="invite_links_created_title">Invite link</string>
     <string name="invite_links_created_body">Send this to the person joining. When they open it you will be asked to approve them.</string>
+    <string name="join_home_have_invite_link">I have an invite link</string>
+    <string name="redeem_invite_title">Join with an invite link</string>
+    <string name="redeem_invite_body">Paste the link an admin sent you, or scan its QR code. They will be asked to approve you.</string>
+    <string name="redeem_invite_field_label">Invite link</string>
+    <string name="redeem_invite_scan">Scan QR code</string>
+    <string name="redeem_invite_submit">Ask to join</string>
+    <string name="redeem_invite_progress">Sending your request…</string>
+    <string name="redeem_invite_error_invalid">That is not a Vesta invite link.</string>
+    <string name="redeem_invite_error_expired">That link has expired. Ask the admin for a new one.</string>
+    <string name="redeem_invite_error_already_in_home">You are already in this home.</string>
+    <string name="redeem_invite_error_failed">The request could not be sent. Try again.</string>
+    <string name="pending_join_waiting">Waiting for an admin to approve you…</string>
+    <string name="pending_join_denied_expired">That invite link has expired.</string>
+    <string name="pending_join_denied_revoked">That invite link was cancelled.</string>
+    <string name="pending_join_denied_used">That invite link has already been used.</string>
+    <string name="pending_join_denied_declined">An admin declined your request.</string>
+    <string name="pending_join_cancel">Cancel</string>
+    <string name="pending_join_dismiss">Dismiss</string>
 </resources>
