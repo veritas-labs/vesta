@@ -27,8 +27,11 @@ import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.homejoin.InviteException
 import uk.veritaslabs.vesta.homejoin.InviteFailure
+import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.homejoin.JoinLink
 import uk.veritaslabs.vesta.homejoin.JoinRequest
+import uk.veritaslabs.vesta.homejoin.PendingJoin
+import uk.veritaslabs.vesta.homejoin.RedeemResult
 import uk.veritaslabs.vesta.homejoin.JoinedHome
 import uk.veritaslabs.vesta.homejoin.RequestResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -150,8 +153,7 @@ internal class HomeJoinService(
             }
             is HomeJoinMessage.Ack -> database.pendingMessageQueries.delete(sender, decoded.homeId, decoded.of)
             is HomeJoinMessage.Request -> receiveRequest(sender, decoded)
-            // A joiner's side of invite links (ADR-018) is not handled yet: slice 4.
-            is HomeJoinMessage.Denied -> Unit
+            is HomeJoinMessage.Denied -> receiveDenied(sender, decoded)
         }
         return true
     }
@@ -185,7 +187,55 @@ internal class HomeJoinService(
         database.joinRequestQueries.selectApproved().awaitAsList().forEach { request ->
             inviteMessage(request.homeId)?.let { sendQuietly(request.agentId, it) }
         }
+        resendJoinRequests()
     }
+
+    override suspend fun redeemInvite(link: InviteLink): RedeemResult {
+        val now = nowMillis()
+        if (link.isExpired(now)) return RedeemResult.Expired
+        if (database.homeQueries.selectById(link.homeId).awaitAsOneOrNull() != null) return RedeemResult.AlreadyInHome
+        database.pendingJoinQueries.upsert(link.homeId, link.secret, link.adminAgentIds.joinToString(","), link.expiresAt, now)
+        database.pendingJoinQueries.selectById(link.homeId).awaitAsOneOrNull()?.let { sendJoinRequest(it.homeId, it.secret, it.agents()) }
+        return RedeemResult.Started
+    }
+
+    override suspend fun pendingJoins(): List<PendingJoin> =
+        database.pendingJoinQueries.selectAll().awaitAsList().map { PendingJoin(it.homeId, it.expiresAt, it.denial) }
+
+    override suspend fun cancelPendingJoin(homeId: String) {
+        database.pendingJoinQueries.delete(homeId)
+    }
+
+    /**
+     * Asks the admins of every invite link this user is waiting on again, unless it has expired or was refused. A pending
+     * join is kept after its link expires for as long as an admin might still resend an approved Invite, then forgotten,
+     * as is one whose Home has arrived some other way (from another of the user's devices).
+     */
+    private suspend fun resendJoinRequests() {
+        val now = nowMillis()
+        database.pendingJoinQueries.deleteExpiredBefore(now - messageLifetime.inWholeMilliseconds)
+        database.pendingJoinQueries.selectAll().awaitAsList().forEach { join ->
+            when {
+                database.homeQueries.selectById(join.homeId).awaitAsOneOrNull() != null -> database.pendingJoinQueries.delete(join.homeId)
+                join.denial == null && now < join.expiresAt -> sendJoinRequest(join.homeId, join.secret, join.agents())
+            }
+        }
+    }
+
+    private suspend fun sendJoinRequest(homeId: String, secret: String, adminAgents: List<String>) {
+        val me = profiles.current()
+        val agentId = runCatching { client.agent().agentId }.getOrNull() ?: return
+        val message = HomeJoinMessage.encode(HomeJoinMessage.Request(homeId, secret, me.id, me.displayName, agentId))
+        adminAgents.forEach { sendQuietly(it, message) }
+    }
+
+    /** An admin refused a request of ours: remembered, believed only from an agent the invite link named. */
+    private suspend fun receiveDenied(sender: String, denied: HomeJoinMessage.Denied) {
+        val join = database.pendingJoinQueries.selectById(denied.homeId).awaitAsOneOrNull() ?: return
+        if (sender in join.agents()) database.pendingJoinQueries.setDenial(denied.reason, denied.homeId)
+    }
+
+    private fun uk.veritaslabs.vesta.db.PendingJoin.agents() = adminAgents.split(",").filter { it.isNotBlank() }
 
     override suspend fun joinRequests(homeId: String): List<JoinRequest> =
         database.joinRequestQueries.selectUndecidedOrApprovedByHome(homeId).awaitAsList().map {
@@ -311,23 +361,42 @@ internal class HomeJoinService(
         }.onFailure { if (it is CancellationException) throw it }
     }
 
+    /** Who is joining, and how: through a [JoinLink] this device is showing, or an invite link it opened. */
+    private class Joiner(val memberId: String, val name: String, val agentId: String, val viaLink: Boolean)
+
+    /**
+     * An Invite arrived. It is accepted from an agent that an invite link we opened named (ADR-018), or else from anyone
+     * while we are showing an unexpired join link (ADR-015).
+     */
+    private suspend fun joinerFor(sender: String, invite: HomeJoinMessage.Invite): Joiner? {
+        val join = database.pendingJoinQueries.selectById(invite.homeId).awaitAsOneOrNull()
+        if (join != null && join.denial == null && sender in join.agents()) {
+            val me = profiles.current()
+            val agentId = client.agent().agentId ?: return null
+            return Joiner(me.id, me.displayName, agentId, viaLink = false)
+        }
+        val link = offered ?: return null
+        if (link.isExpired(nowMillis())) {
+            offered = null
+            return null
+        }
+        return Joiner(link.memberId, link.name, link.agentId, viaLink = true)
+    }
+
     private suspend fun acceptInvite(sender: String, invite: HomeJoinMessage.Invite) = lock.withLock {
         // A Home this device already has: if we are in it and this is who invited us, our Accepted may have been lost
         // and the admin is still resending, so say it again. Otherwise there is nothing to join.
         if (database.homeQueries.selectById(invite.homeId).awaitAsOneOrNull() != null) {
             val devices = rosters.devices(invite.homeId)
             if (sender in devices[invite.inviterMemberId].orEmpty() && devices[profiles.current().id].orEmpty().isNotEmpty()) {
+                database.pendingJoinQueries.delete(invite.homeId)
                 sendQuietly(sender, HomeJoinMessage.encode(HomeJoinMessage.Accepted(invite.homeId)))
             }
             return@withLock
         }
-        val link = offered ?: return@withLock
-        if (link.isExpired(nowMillis())) {
-            offered = null
-            return@withLock
-        }
+        val joiner = joinerFor(sender, invite) ?: return@withLock
         // The same person on another device: nothing to join.
-        if (invite.inviterMemberId == link.memberId) return@withLock
+        if (invite.inviterMemberId == joiner.memberId) return@withLock
 
         database.homeQueries.insert(invite.homeId, invite.homeName, invite.shape, invite.createdAt)
         // The admin seeded the Pantry; ours starts empty and fills from theirs (ADR-013).
@@ -335,12 +404,10 @@ internal class HomeJoinService(
         homes.saved(StoredHome(invite.homeId, invite.homeName, invite.shape, invite.createdAt))
         // A device only syncs a Home with the agents its roster lists, so it has to be told who invited it.
         rosters.admit(invite.homeId, invite.inviterMemberId, invite.inviterName, MemberRole.Admin.storageValue, sender)
-        rosters.admit(invite.homeId, link.memberId, link.name, MemberRole.Member.storageValue, link.agentId)
-        offered = null
-        runCatching {
-            runCatching { client.connectAgent(sender) }
-            client.sendDirect(sender, HomeJoinMessage.encode(HomeJoinMessage.Accepted(invite.homeId)))
-        }.onFailure { if (it is CancellationException) throw it }
+        rosters.admit(invite.homeId, joiner.memberId, joiner.name, MemberRole.Member.storageValue, joiner.agentId)
+        if (joiner.viaLink) offered = null
+        database.pendingJoinQueries.delete(invite.homeId)
+        sendQuietly(sender, HomeJoinMessage.encode(HomeJoinMessage.Accepted(invite.homeId)))
         _joined.tryEmit(JoinedHome(invite.homeId, invite.homeName))
     }
 }

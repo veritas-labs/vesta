@@ -29,6 +29,9 @@ class HomeInviteViewModelTest {
         override suspend fun joinRequests(homeId: String) = emptyList<JoinRequest>()
         override suspend fun approve(homeId: String, memberId: String) = error("not used")
         override suspend fun decline(homeId: String, memberId: String) = error("not used")
+        override suspend fun redeemInvite(link: InviteLink) = error("not used")
+        override suspend fun pendingJoins() = emptyList<PendingJoin>()
+        override suspend fun cancelPendingJoin(homeId: String) = Unit
     }
 
     private val link = JoinLink("agent-y", "member-y", expiresAt = 1_000L, name = "Sam")

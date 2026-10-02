@@ -65,6 +65,10 @@ path. The picker's "Join a home" gains a second entry for pasting an invite link
   answers Accepted. That answer admits them and spends the invite, so approval survives a restart. A declined row is kept,
   so a repeated request is answered with `Denied` again and isn't put to an admin twice. Rows older than 14 days are dropped.
   A device that already lists the requester as a member re-sends Invite only to a device the roster lists for them.
+- **Slice 4.** The `PendingJoin` table holds each link the user opened (secret, admin agents, expiry, and `denial` once
+  refused). Every sync round resends the Request to each named admin, except after expiry or a refusal. An Invite is
+  accepted from an agent the link named, so ADR-015's join link keeps working beside it. A pending join outlives its link's
+  expiry by 14 days, so an Invite approved just before it still lands, and is dropped once the Home arrives another way.
 
 ## Implementation slices
 

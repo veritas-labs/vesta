@@ -32,7 +32,7 @@ class AgentCommandLogTest {
         assertNull(log.reply("agent-1", "c2"))
     }
 
-    /** The schema as it was at version 2: everything except AgentCommandLog, AgentAccess, SyncedDevice, DeviceSyncGroup, UserDocument, PendingMessage, JoinRequest and Profile.named. */
+    /** The schema as it was at version 2: everything except AgentCommandLog, AgentAccess, SyncedDevice, DeviceSyncGroup, UserDocument, PendingMessage, JoinRequest, PendingJoin and Profile.named. */
     private object VersionTwoSchema : SqlSchema<QueryResult.AsyncValue<Unit>> {
         override val version = 2L
 
@@ -73,7 +73,7 @@ class AgentCommandLogTest {
         log.record("agent-1", "c1", "reply")
 
         // Assert
-        assertEquals(12L, VestaDatabase.Schema.version)
+        assertEquals(13L, VestaDatabase.Schema.version)
         assertEquals("reply", log.reply("agent-1", "c1"))
     }
 }

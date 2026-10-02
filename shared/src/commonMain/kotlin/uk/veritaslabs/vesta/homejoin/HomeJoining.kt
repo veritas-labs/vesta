@@ -21,6 +21,12 @@ data class JoinRequest(
     val approved: Boolean,
 )
 
+/** An invite link this user opened that hasn't been answered yet; [denial] is the reason once an admin refused it. */
+data class PendingJoin(val homeId: String, val expiresAt: Long, val denial: String?)
+
+/** What came of opening an invite link. */
+enum class RedeemResult { Started, Expired, AlreadyInHome }
+
 /** What came of an admin approving or declining a [JoinRequest]. */
 enum class RequestResult { Done, NotAnAdmin, NoSuchRequest, InviteNoLongerValid }
 
@@ -56,4 +62,16 @@ interface HomeJoining {
 
     /** Declines [memberId]'s request to join [homeId], and tells them so. Only an admin of the Home can. */
     suspend fun decline(homeId: String, memberId: String): RequestResult
+
+    /**
+     * Opens an invite link: asks the admins it names to let this user into the Home, again every sync round until one
+     * answers. Fails if the link has expired or this device already has the Home. The Home arrives on [joined].
+     */
+    suspend fun redeemInvite(link: InviteLink): RedeemResult
+
+    /** The invite links this user opened that still wait for an answer, or were refused. */
+    suspend fun pendingJoins(): List<PendingJoin>
+
+    /** Stops waiting on [homeId]'s invite link, or forgets that it was refused. */
+    suspend fun cancelPendingJoin(homeId: String)
 }
