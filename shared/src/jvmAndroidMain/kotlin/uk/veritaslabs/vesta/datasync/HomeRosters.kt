@@ -150,16 +150,24 @@ internal class HomeRosters(
      * Whether [secret] can admit [memberId] to [homeId] at the current time; null when this Home has no such invite (or
      * it hasn't fully arrived), which callers answer silently so a stranger learns nothing.
      */
-    suspend fun checkInvite(homeId: String, secret: String, memberId: String): InviteStatus? = lock.withLock {
-        val hash = inviteSecretHash(secret)
-        open(homeId)?.readInvites()?.firstOrNull { it.secretHash == hash && it.isComplete }?.statusFor(memberId, nowMillis())
+    suspend fun checkInvite(homeId: String, secret: String, memberId: String): InviteStatus? =
+        inviteStatus(homeId, inviteSecretHash(secret), memberId)
+
+    /** As [checkInvite], for an invite known only by the hash of its secret. */
+    suspend fun inviteStatus(homeId: String, secretHash: String, memberId: String): InviteStatus? = lock.withLock {
+        open(homeId)?.readInvites()?.firstOrNull { it.secretHash == secretHash && it.isComplete }
+            ?.statusFor(memberId, nowMillis())
     }
 
     /** Records that [secret] was spent admitting [memberId] to [homeId]. */
-    suspend fun useInvite(homeId: String, secret: String, memberId: String) {
+    suspend fun useInvite(homeId: String, secret: String, memberId: String) =
+        useInviteHash(homeId, inviteSecretHash(secret), memberId)
+
+    /** As [useInvite], for an invite known only by the hash of its secret. */
+    suspend fun useInviteHash(homeId: String, secretHash: String, memberId: String) {
         val changed = lock.withLock {
             val doc = open(homeId) ?: return
-            useRosterInvite(doc, inviteSecretHash(secret), memberId).also { if (it) persist(homeId, doc) }
+            useRosterInvite(doc, secretHash, memberId).also { if (it) persist(homeId, doc) }
         }
         if (changed) _changes.tryEmit(homeId)
     }

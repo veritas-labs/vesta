@@ -11,6 +11,19 @@ enum class InviteFailure { NotAnAdmin, NoSuchHome, LinkExpired, AlreadyAMember, 
 /** Raised by [HomeJoining.invite] when the invitation fails. */
 class InviteException(val reason: InviteFailure) : Exception(reason.name)
 
+/** Someone who opened an invite link (docs/adr/ADR-018-invite-links.md) and is waiting for an admin to approve them. */
+data class JoinRequest(
+    val homeId: String,
+    val memberId: String,
+    val name: String,
+    val createdAt: Long,
+    /** True once an admin approved it and the Home is on its way to them. */
+    val approved: Boolean,
+)
+
+/** What came of an admin approving or declining a [JoinRequest]. */
+enum class RequestResult { Done, NotAnAdmin, NoSuchRequest, InviteNoLongerValid }
+
 /**
  * Joining a Home with a link (docs/adr/ADR-015-joining-a-home.md). The person joining [openLink]s and shows the link;
  * an admin of the Home [invite]s the person who showed it.
@@ -31,4 +44,16 @@ interface HomeJoining {
      * nobody accepted in time.
      */
     suspend fun invite(homeId: String, link: JoinLink): Result<Unit>
+
+    /** The requests to join [homeId] that an admin hasn't declined, oldest first. */
+    suspend fun joinRequests(homeId: String): List<JoinRequest>
+
+    /**
+     * Approves [memberId]'s request to join [homeId]: the Home is sent to them, repeatedly if need be, and they are
+     * added to the roster once they answer. Only an admin of the Home can, and only while the invite is still valid.
+     */
+    suspend fun approve(homeId: String, memberId: String): RequestResult
+
+    /** Declines [memberId]'s request to join [homeId], and tells them so. Only an admin of the Home can. */
+    suspend fun decline(homeId: String, memberId: String): RequestResult
 }

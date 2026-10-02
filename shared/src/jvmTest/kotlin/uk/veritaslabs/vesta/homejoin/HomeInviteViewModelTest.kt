@@ -26,6 +26,9 @@ class HomeInviteViewModelTest {
             invited += homeId to link
             return result
         }
+        override suspend fun joinRequests(homeId: String) = emptyList<JoinRequest>()
+        override suspend fun approve(homeId: String, memberId: String) = error("not used")
+        override suspend fun decline(homeId: String, memberId: String) = error("not used")
     }
 
     private val link = JoinLink("agent-y", "member-y", expiresAt = 1_000L, name = "Sam")

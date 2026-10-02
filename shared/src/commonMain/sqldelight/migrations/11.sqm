@@ -1,0 +1,11 @@
+-- Version 11 -> 12: adds JoinRequest (see uk/veritaslabs/vesta/db/JoinRequest.sq).
+CREATE TABLE IF NOT EXISTS JoinRequest (
+    homeId TEXT NOT NULL,
+    memberId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    agentId TEXT NOT NULL,
+    secretHash TEXT NOT NULL,
+    status TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    PRIMARY KEY (homeId, memberId)
+);

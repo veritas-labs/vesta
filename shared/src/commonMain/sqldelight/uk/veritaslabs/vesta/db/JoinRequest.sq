@@ -1,0 +1,39 @@
+-- People who opened an invite link of a Home this device's user administers and are waiting for an admin to approve them
+-- (docs/adr/ADR-018-invite-links.md). One row per Home and person. `status` is 'pending' (awaiting an admin's decision),
+-- 'approved' (the Invite is being sent until they answer Accepted) or 'declined' (kept so a repeated request is
+-- answered with Denied again instead of asking an admin twice). Only the hash of the invite's secret is kept.
+-- Keep in sync with migrations/11.sqm, which creates this table for databases that predate it.
+CREATE TABLE IF NOT EXISTS JoinRequest (
+    homeId TEXT NOT NULL,
+    memberId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    agentId TEXT NOT NULL,
+    secretHash TEXT NOT NULL,
+    status TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    PRIMARY KEY (homeId, memberId)
+);
+
+selectUndecidedOrApprovedByHome:
+SELECT * FROM JoinRequest WHERE homeId = ? AND status != 'declined' ORDER BY createdAt;
+
+selectById:
+SELECT * FROM JoinRequest WHERE homeId = ? AND memberId = ?;
+
+selectApproved:
+SELECT * FROM JoinRequest WHERE status = 'approved' ORDER BY createdAt;
+
+selectApprovedByAgent:
+SELECT * FROM JoinRequest WHERE homeId = ? AND agentId = ? AND status = 'approved';
+
+insertPending:
+INSERT OR IGNORE INTO JoinRequest(homeId, memberId, name, agentId, secretHash, status, createdAt) VALUES (?, ?, ?, ?, ?, 'pending', ?);
+
+setStatus:
+UPDATE JoinRequest SET status = ? WHERE homeId = ? AND memberId = ?;
+
+delete:
+DELETE FROM JoinRequest WHERE homeId = ? AND memberId = ?;
+
+deleteOlderThan:
+DELETE FROM JoinRequest WHERE createdAt < ?;

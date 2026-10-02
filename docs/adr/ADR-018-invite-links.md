@@ -58,6 +58,14 @@ path. The picker's "Join a home" gains a second entry for pasting an invite link
   background behaviour, not decided here).
 - Whether x0x stores could serve as a mailbox so the joiner needn't retry. Not investigated; this ADR assumes DM retry.
 
+## Implementation notes
+
+- **Slice 3.** The `JoinRequest` table holds each request with a status: `pending`, `approved` or `declined`. Approving
+  sets `approved` and sends Invite; every sync round resends it, and a repeated request gets it again, until the joiner
+  answers Accepted. That answer admits them and spends the invite, so approval survives a restart. A declined row is kept,
+  so a repeated request is answered with `Denied` again and isn't put to an admin twice. Rows older than 14 days are dropped.
+  A device that already lists the requester as a member re-sends Invite only to a device the roster lists for them.
+
 ## Implementation slices
 
 1. `homejoin.request` and `homejoin.denied` messages, `InviteLink` encode and decode, with tests.

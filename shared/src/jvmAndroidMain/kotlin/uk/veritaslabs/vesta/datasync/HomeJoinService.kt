@@ -21,18 +21,25 @@ import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
+import uk.veritaslabs.vesta.automerge.InviteStatus
+import uk.veritaslabs.vesta.automerge.inviteSecretHash
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.homejoin.InviteException
 import uk.veritaslabs.vesta.homejoin.InviteFailure
 import uk.veritaslabs.vesta.homejoin.JoinLink
+import uk.veritaslabs.vesta.homejoin.JoinRequest
 import uk.veritaslabs.vesta.homejoin.JoinedHome
+import uk.veritaslabs.vesta.homejoin.RequestResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
 private val LinkLifetime = 5 * 60 * 1000L
+private const val PendingStatus = "pending"
+private const val ApprovedStatus = "approved"
+private const val DeclinedStatus = "declined"
 
 /**
  * Joining a Home with a link (docs/adr/ADR-015-joining-a-home.md), entirely over x0x direct messages: no x0x group is
@@ -131,7 +138,8 @@ internal class HomeJoinService(
         val sender = message.sender ?: return true
         when (decoded) {
             is HomeJoinMessage.Invite -> acceptInvite(sender, decoded)
-            is HomeJoinMessage.Accepted -> pending[decoded.homeId to sender]?.complete(Unit)
+            is HomeJoinMessage.Accepted ->
+                if (pending[decoded.homeId to sender]?.complete(Unit) == null) completeApproved(sender, decoded.homeId)
             is HomeJoinMessage.Left -> {
                 acceptLeft(sender, decoded)
                 acknowledge(sender, decoded.homeId, HomeJoinMessage.LeftKind)
@@ -141,8 +149,9 @@ internal class HomeJoinService(
                 acknowledge(sender, decoded.homeId, HomeJoinMessage.RemovedKind)
             }
             is HomeJoinMessage.Ack -> database.pendingMessageQueries.delete(sender, decoded.homeId, decoded.of)
-            // Invite links (ADR-018) are not handled yet: slices 3 and 4.
-            is HomeJoinMessage.Request, is HomeJoinMessage.Denied -> Unit
+            is HomeJoinMessage.Request -> receiveRequest(sender, decoded)
+            // A joiner's side of invite links (ADR-018) is not handled yet: slice 4.
+            is HomeJoinMessage.Denied -> Unit
         }
         return true
     }
@@ -172,6 +181,100 @@ internal class HomeJoinService(
     suspend fun resendPending() {
         database.pendingMessageQueries.deleteOlderThan(nowMillis() - messageLifetime.inWholeMilliseconds)
         database.pendingMessageQueries.selectAll().awaitAsList().forEach { sendQuietly(it.recipient, it.payload) }
+        database.joinRequestQueries.deleteOlderThan(nowMillis() - messageLifetime.inWholeMilliseconds)
+        database.joinRequestQueries.selectApproved().awaitAsList().forEach { request ->
+            inviteMessage(request.homeId)?.let { sendQuietly(request.agentId, it) }
+        }
+    }
+
+    override suspend fun joinRequests(homeId: String): List<JoinRequest> =
+        database.joinRequestQueries.selectUndecidedOrApprovedByHome(homeId).awaitAsList().map {
+            JoinRequest(it.homeId, it.memberId, it.name, it.createdAt, approved = it.status == ApprovedStatus)
+        }
+
+    override suspend fun approve(homeId: String, memberId: String): RequestResult {
+        if (!isAdminOf(homeId)) return RequestResult.NotAnAdmin
+        val request = database.joinRequestQueries.selectById(homeId, memberId).awaitAsOneOrNull()
+            ?.takeIf { it.status != DeclinedStatus } ?: return RequestResult.NoSuchRequest
+        val status = rosters.inviteStatus(homeId, request.secretHash, memberId)
+        if (status != InviteStatus.Valid) {
+            // Revoked, spent or expired while it waited, or gone from the roster.
+            database.joinRequestQueries.delete(homeId, memberId)
+            status?.let { denial(it) }?.let { sendQuietly(request.agentId, deniedMessage(homeId, it)) }
+            return RequestResult.InviteNoLongerValid
+        }
+        database.joinRequestQueries.setStatus(ApprovedStatus, homeId, memberId)
+        inviteMessage(homeId)?.let { sendQuietly(request.agentId, it) }
+        return RequestResult.Done
+    }
+
+    override suspend fun decline(homeId: String, memberId: String): RequestResult {
+        if (!isAdminOf(homeId)) return RequestResult.NotAnAdmin
+        val request = database.joinRequestQueries.selectById(homeId, memberId).awaitAsOneOrNull()
+            ?.takeIf { it.status == PendingStatus } ?: return RequestResult.NoSuchRequest
+        database.joinRequestQueries.setStatus(DeclinedStatus, homeId, memberId)
+        sendQuietly(request.agentId, deniedMessage(homeId, HomeJoinMessage.DeniedDeclined))
+        return RequestResult.Done
+    }
+
+    /**
+     * Someone says they opened an invite link of [request]'s Home. Believed only from the agent it names, and only
+     * if this user is an admin of the Home. A member who is already in sends it again when our Invite was lost, so they
+     * get it again. Otherwise the secret has to be valid: a wrong or unknown one is ignored, so a stranger learns nothing,
+     * a known but unusable one is told why, and a good one waits for an admin to approve it.
+     */
+    private suspend fun receiveRequest(sender: String, request: HomeJoinMessage.Request) {
+        val homeId = request.homeId
+        if (sender != request.agentId || !isAdminOf(homeId)) return
+        if (database.homeMemberQueries.selectByHome(homeId).awaitAsList().any { it.memberId == request.memberId }) {
+            if (sender in rosters.devices(homeId)[request.memberId].orEmpty()) inviteMessage(homeId)?.let { sendQuietly(sender, it) }
+            return
+        }
+        val hash = inviteSecretHash(request.secret)
+        val status = rosters.inviteStatus(homeId, hash, request.memberId) ?: return
+        denial(status)?.let { return sendQuietly(sender, deniedMessage(homeId, it)) }
+        when (database.joinRequestQueries.selectById(homeId, request.memberId).awaitAsOneOrNull()?.status) {
+            null -> database.joinRequestQueries.insertPending(
+                homeId, request.memberId, request.name, sender, hash, nowMillis(),
+            )
+            DeclinedStatus -> sendQuietly(sender, deniedMessage(homeId, HomeJoinMessage.DeniedDeclined))
+            ApprovedStatus -> inviteMessage(homeId)?.let { sendQuietly(sender, it) }
+            else -> Unit
+        }
+    }
+
+    /** An approved joiner answered Accepted: they join the roster, and the invite is spent on them. */
+    private suspend fun completeApproved(sender: String, homeId: String) {
+        val request = database.joinRequestQueries.selectApprovedByAgent(homeId, sender).awaitAsOneOrNull() ?: return
+        rosters.admit(homeId, request.memberId, request.name, MemberRole.Member.storageValue, request.agentId)
+        rosters.useInviteHash(homeId, request.secretHash, request.memberId)
+        database.joinRequestQueries.delete(homeId, request.memberId)
+    }
+
+    private suspend fun isAdminOf(homeId: String): Boolean {
+        val me = profiles.current().id
+        return database.homeMemberQueries.selectByHome(homeId).awaitAsList()
+            .any { it.memberId == me && it.role == MemberRole.Admin.storageValue }
+    }
+
+    /** The [HomeJoinMessage.Invite] for [homeId] from this user, or null if this device has no such Home or user in it. */
+    private suspend fun inviteMessage(homeId: String): ByteArray? {
+        val home = database.homeQueries.selectById(homeId).awaitAsOneOrNull() ?: return null
+        val me = profiles.current().id
+        val mine = database.homeMemberQueries.selectByHome(homeId).awaitAsList().firstOrNull { it.memberId == me } ?: return null
+        return HomeJoinMessage.encode(
+            HomeJoinMessage.Invite(home.id, home.name, home.shape, home.createdAt, mine.memberId, mine.name),
+        )
+    }
+
+    private fun deniedMessage(homeId: String, reason: String) = HomeJoinMessage.encode(HomeJoinMessage.Denied(homeId, reason))
+
+    /** The reason to tell a joiner an invite won't work, or null when it will. */
+    private fun denial(status: InviteStatus): String? = when (status) {
+        InviteStatus.Valid -> null
+        InviteStatus.Expired -> HomeJoinMessage.DeniedExpired
+        InviteStatus.Revoked -> HomeJoinMessage.DeniedRevoked
+        InviteStatus.Used -> HomeJoinMessage.DeniedUsed
     }
 
     /** Remembers [payload] for [agentId] until they acknowledge it, and tries it now. */
