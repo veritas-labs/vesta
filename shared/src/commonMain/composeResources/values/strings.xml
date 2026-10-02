@@ -174,4 +174,18 @@
     <string name="synced_devices_remove_confirm_body">%1$s will no longer be paired with this device. You can pair it again later.</string>
     <string name="synced_devices_remove_confirm">Remove</string>
     <string name="synced_devices_remove_cancel">Cancel</string>
+    <string name="join_home_title">Join a home</string>
+    <string name="join_home_body">Show this to an admin of the home. They paste it into Members, Invite.</string>
+    <string name="home_invite_title">Invite someone</string>
+    <string name="home_invite_body">Ask them to choose Join a home, then paste the link they show you.</string>
+    <string name="home_invite_field_label">Join link</string>
+    <string name="home_invite_submit">Send invite</string>
+    <string name="home_invite_progress">Waiting for them to accept…</string>
+    <string name="home_invite_done">Invited. They are now a member.</string>
+    <string name="home_invite_error_invalid">That is not a Vesta join link.</string>
+    <string name="home_invite_error_expired">That link has expired. Ask them to show a new one.</string>
+    <string name="home_invite_error_already_member">They are already in this home.</string>
+    <string name="home_invite_error_not_admin">Only an admin can invite people.</string>
+    <string name="home_invite_error_no_response">They did not answer. Check their Vesta is on the join screen and try again.</string>
+    <string name="home_invite_error_failed">The invitation could not be sent. Try again.</string>
 </resources>

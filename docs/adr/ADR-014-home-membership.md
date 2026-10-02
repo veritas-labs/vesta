@@ -220,6 +220,10 @@ the §5 rule, in the form "listed in the roster".
 - **Trust.** As the Consequences say, roster claims are not signed, so any member can add a device to the Home's peers.
   That is accepted for v1 household trust.
 
+**Slice 7 (2026-10-02): joining.** The invite and join flow is [[ADR-015]]: a pairing-style join link, direct messages
+only, no x0x group. That closes slice 6's "no person can join a Home in the app yet". Still not built: admin removal of
+a member and changing roles (§4), and so the "Make someone else an admin" step that leaving needs.
+
 ## References
 
 - [[ADR-005]], [[ADR-012]], [[ADR-013]].

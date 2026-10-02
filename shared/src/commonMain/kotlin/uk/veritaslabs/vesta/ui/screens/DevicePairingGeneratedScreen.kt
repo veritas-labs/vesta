@@ -58,13 +58,16 @@ internal object DevicePairingGeneratedTestTags {
  * Shows a just-generated pairing link (see `docs/adr/ADR-003-device-sync.md`)
  * as a scannable QR code, with the raw [pairingLink] text underneath for
  * cases where scanning isn't possible — copyable to the clipboard via
- * [onCopyLink], or abandoned via the back arrow ([onCancel]). Reached from
+ * [onCopyLink], or abandoned via the back arrow ([onCancel]). [title] and [body] default to the pairing copy; joining
+ * a Home shows its own link here too (`docs/adr/ADR-015-joining-a-home.md`). Reached from
  * [DevicePairingScreen]'s "generate" action.
  */
 @Composable
 fun DevicePairingGeneratedScreen(
     pairingLink: String,
     modifier: Modifier = Modifier,
+    title: String = stringResource(Res.string.device_pairing_generated_title),
+    body: String = stringResource(Res.string.device_pairing_generated_body),
     onCopyLink: () -> Unit = {},
     onCancel: () -> Unit = {},
 ) {
@@ -110,13 +113,13 @@ fun DevicePairingGeneratedScreen(
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = stringResource(Res.string.device_pairing_generated_title),
+                    text = title,
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = stringResource(Res.string.device_pairing_generated_body),
+                    text = body,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

@@ -21,6 +21,7 @@ import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeChangeListener
+import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
@@ -45,13 +46,19 @@ class DeviceDataSyncService(
     private val devices: SyncedDeviceRepository,
     private val pantrySources: PantrySources,
     private val interval: Duration = 30.seconds,
+    joinResendInterval: Duration = 10.seconds,
+    joinTimeout: Duration = 90.seconds,
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, pantrySources)
-    private val profile = ProfileRegistry(database, ProfileRepository(database))
-    private val rosters = HomeRosters(database, ProfileRepository(database))
+    private val profiles = ProfileRepository(database)
+    private val profile = ProfileRegistry(database, profiles)
+    private val rosters = HomeRosters(database, profiles)
+    private val join = HomeJoinService(client, database, rosters, registry, profiles, resendInterval = joinResendInterval, timeout = joinTimeout)
 
     override val homeChanges: HomeChangeListener get() = registry
+
+    override val joining: HomeJoining get() = join
 
     // One sync step at a time: every step reads and writes the per-peer sync states.
     private val lock = Mutex()
@@ -68,7 +75,13 @@ class DeviceDataSyncService(
         launch { X0xEventHub(client).directMessages.collect { message -> launch { attempt { handle(message) } } } }
         launch { registry.changes.collect { attempt { syncDocument(HomeRegistryDocumentId) } } }
         launch { registry.changes.collect { attempt { publishRosters() } } }
-        launch { rosters.changes.collect { homeId -> attempt { syncDocument(rosterDocumentId(homeId)) } } }
+        launch {
+            // A roster change can add a device to a Home's peers, which then needs everything the Home has.
+            rosters.changes.collect { homeId ->
+                attempt { syncDocument(rosterDocumentId(homeId)) }
+                attempt { syncDocument(pantryDocumentId(homeId)) }
+            }
+        }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
         launch { pantrySources.localChanges.collect { homeId -> attempt { syncDocument(pantryDocumentId(homeId)) } } }
         // A newly paired device, or one that has gone, changes who there is to sync with.
@@ -97,7 +110,12 @@ class DeviceDataSyncService(
      * Handles one direct message: a sync message is applied and answered if its sender is a peer for that document
      * ([peersFor]); anything else is ignored.
      */
-    suspend fun handle(message: X0xDirectMessage) = lock.withLock {
+    suspend fun handle(message: X0xDirectMessage) {
+        if (join.handle(message)) return // a Home-join message, not a sync message
+        syncFrom(message)
+    }
+
+    private suspend fun syncFrom(message: X0xDirectMessage) = lock.withLock {
         if (message.verified != true) return@withLock
         val sender = message.sender ?: return@withLock
         val bytes = message.payload?.let { runCatching { Base64.Default.decode(it) }.getOrNull() } ?: return@withLock

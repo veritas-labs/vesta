@@ -37,6 +37,10 @@ import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.LeaveResult
+import uk.veritaslabs.vesta.homejoin.HomeInviteViewModel
+import uk.veritaslabs.vesta.homejoin.HomeJoining
+import uk.veritaslabs.vesta.ui.flows.JoinHomeFlow
+import uk.veritaslabs.vesta.ui.screens.HomeInviteScreen
 import uk.veritaslabs.vesta.home.MemberRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.SelectedHome
@@ -94,6 +98,7 @@ fun App(
     homeRepository: HomeRepository? = null,
     agentAccess: AgentAccessRepository? = null,
     deviceSync: DeviceSyncHost? = null,
+    homeJoining: HomeJoining? = null,
     homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name ->
         HomeContent(id, name)
     },
@@ -103,6 +108,7 @@ fun App(
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
     var pairingSession by remember { mutableStateOf<Int?>(null) }
     var settingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
+    var joiningHome by remember { mutableStateOf(false) }
     var pairingSessions by remember { mutableIntStateOf(0) }
     var editSessions by remember { mutableIntStateOf(0) }
     fun openEditor(homeId: String?) {
@@ -125,7 +131,16 @@ fun App(
                 homeId?.let { id -> homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) } ?: run {
                     val target = editTarget
                     val pairing = pairingSession
-                    if (pairing != null && deviceSync != null) {
+                    if (joiningHome && homeJoining != null) {
+                        JoinHomeFlow(
+                            homeJoining,
+                            onExit = { joiningHome = false },
+                            onJoined = { joined ->
+                                joiningHome = false
+                                selectedHome.select(joined.homeId)
+                            },
+                        )
+                    } else if (pairing != null && deviceSync != null) {
                         val pairingViewModel = viewModel(key = "device-pairing-start-$pairing") { deviceSync.newPairingViewModel() }
                         DevicePairingFlow(pairingViewModel, onExit = { pairingSession = null })
                     } else if (settingsDestination == SettingsDestination.Settings) {
@@ -153,6 +168,7 @@ fun App(
                         HomePickerScreen(
                             viewModel,
                             onCreateHome = { openEditor(null) },
+                            onJoinHome = { if (homeJoining != null) joiningHome = true },
                             onPairDevice = { if (deviceSync != null) pairingSession = pairingSessions++ },
                             onSettingsClick = { settingsDestination = SettingsDestination.Settings },
                             onEditHome = { openEditor(it.id) },
@@ -179,6 +195,7 @@ private fun HomeContent(
     pantrySource: PantrySource? = null,
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
+    joining: HomeJoining? = null,
 ) {
     val scope = rememberCoroutineScope()
     var leaveBlocked by remember { mutableStateOf(false) }
@@ -207,10 +224,15 @@ private fun HomeContent(
             MembersScreen(
                 members = memberList,
                 onHomeClick = { destination = HomeDestination.Dashboard },
+                onInviteClick = { destination = HomeDestination.Invite },
                 onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
                 leaveBlocked = leaveBlocked,
                 onLeaveBlockedDismiss = { leaveBlocked = false },
             )
+        }
+        HomeDestination.Invite -> {
+            val inviteViewModel = viewModel(key = "home-invite-$homeId") { HomeInviteViewModel(homeId, joining) }
+            HomeInviteScreen(inviteViewModel, onBack = { destination = HomeDestination.Members })
         }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -308,7 +330,7 @@ class DeviceSyncHost(
     val newPairingViewModel: () -> DevicePairingViewModel,
 )
 
-private enum class HomeDestination { Dashboard, Members, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+private enum class HomeDestination { Dashboard, Members, Invite, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With
@@ -352,10 +374,11 @@ fun VestaApp(
         homeRepository = homeRepository,
         agentAccess = agentAccess,
         deviceSync = deviceSync,
+        homeJoining = deviceDataSync?.joining,
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             val members = remember(homeId) { memberRepository.members(homeId) }
-            HomeContent(homeId, homeName, pantrySource, members) { homeRepository.leave(homeId) }
+            HomeContent(homeId, homeName, pantrySource, members, { homeRepository.leave(homeId) }, deviceDataSync?.joining)
         },
     )
 }
