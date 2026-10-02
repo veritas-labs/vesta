@@ -52,7 +52,7 @@ class DeviceDataSyncServiceTest {
             joinResendInterval = 100.milliseconds, joinTimeout = 1.seconds,
         )
         val homes = HomeRepository(database, sync.homeChanges)
-        val profiles = ProfileRepository(database)
+        val profiles = ProfileRepository(database, changes = sync.profileChanges)
 
         init {
             node.onDirect = { message: X0xDirectMessage -> scope.launch { sync.handle(message) } }
@@ -573,6 +573,63 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         assertEquals(2, x.memberIds(homeId).size)
+        scope.cancel()
+    }
+
+    @Test
+    fun aNameChosenOnOneDeviceReachesTheirOtherDevice() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        eventually { a.profileIds().isNotEmpty() }
+        delay(20.milliseconds)
+        b.start()
+        eventually { b.profileIds() == a.profileIds() }
+
+        // Act
+        a.profiles.rename("Mark")
+
+        // Assert
+        eventually { b.profiles.current().displayName == "Mark" && b.profiles.current().named }
+        scope.cancel()
+    }
+
+    @Test
+    fun aNameChosenBeforePairingBeatsTheOlderDevicesPlaceholder() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        network.offline += b.agentId
+        a.start()
+        eventually { a.profileIds().isNotEmpty() }
+        delay(20.milliseconds)
+        b.profiles.rename("Mark")
+        val bProfile = b.profileIds().single()
+
+        // Act
+        network.offline -= b.agentId
+        b.start()
+
+        // Assert
+        eventually { a.profileIds() == listOf(bProfile) }
+        assertEquals("Mark", a.profiles.current().displayName)
+        assertEquals(listOf(bProfile), b.profileIds())
+        scope.cancel()
+    }
+
+    @Test
+    fun aMembersNewNameReachesTheOtherMembersOfAHome() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val xMember = x.profiles.current().id
+
+        // Act
+        x.profiles.rename("Xavier")
+
+        // Assert
+        eventually { y.database.homeMemberQueries.selectByHome(homeId).awaitAsList().first { it.memberId == xMember }.name == "Xavier" }
         scope.cancel()
     }
 }

@@ -1,8 +1,10 @@
 package uk.veritaslabs.vesta
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -61,6 +63,8 @@ import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
 import uk.veritaslabs.vesta.ui.screens.MemberListItem
 import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.ui.screens.ProfileNameMode
+import uk.veritaslabs.vesta.ui.screens.ProfileNameScreen
 import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
@@ -82,7 +86,7 @@ val LocalDarkThemeSetting = compositionLocalOf<DarkThemeSetting> { error("No Dar
 private data class HomeEditTarget(val homeId: String?, val session: Int)
 
 /** The app-wide settings screens, reached from the Home picker. */
-private enum class SettingsDestination { Settings, SyncedDevices }
+private enum class SettingsDestination { Settings, SyncedDevices, ProfileName }
 
 /**
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name.
@@ -100,6 +104,7 @@ fun App(
     agentAccess: AgentAccessRepository? = null,
     deviceSync: DeviceSyncHost? = null,
     homeJoining: HomeJoining? = null,
+    profiles: ProfileRepository? = null,
     homeContent: @Composable (homeId: String, homeName: String) -> Unit = { id, name ->
         HomeContent(id, name)
     },
@@ -116,6 +121,7 @@ fun App(
         editTarget = HomeEditTarget(homeId, session = editSessions++)
     }
     val scope = rememberCoroutineScope()
+    val profile by remember(profiles) { profiles?.observe() ?: flowOf(null) }.collectAsStateWithLifecycle(null)
     val syncedDeviceList by (deviceSync?.devices?.devices ?: flowOf(emptyList())).collectAsStateWithLifecycle(emptyList())
     // Drop the selection if its Home goes away (deleted, or left).
     LaunchedEffect(homes, selectedHome) {
@@ -129,7 +135,18 @@ fun App(
     CompositionLocalProvider(LocalSelectedHome provides selectedHome, LocalDarkThemeSetting provides darkThemeSetting) {
         VestaTheme(darkTheme = darkTheme) {
             Box(modifier = Modifier.fillMaxSize()) {
-                homeId?.let { id -> homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) } ?: run {
+                val currentProfile = profile
+                if (profiles != null && currentProfile == null) {
+                    // The Profile is still loading: nothing to show yet, rather than a flash of the Home picker.
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+                } else if (profiles != null && currentProfile != null && !currentProfile.named) {
+                    // A name is needed before anything else (CORE-EXPERIENCE: a Profile is required to join or create a Home).
+                    ProfileNameScreen(
+                        initialName = currentProfile.displayName,
+                        mode = ProfileNameMode.Setup,
+                        onSave = { name -> scope.launch { profiles.rename(name) } },
+                    )
+                } else homeId?.let { id -> homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) } ?: run {
                     val target = editTarget
                     val pairing = pairingSession
                     if (joiningHome && homeJoining != null) {
@@ -144,12 +161,26 @@ fun App(
                     } else if (pairing != null && deviceSync != null) {
                         val pairingViewModel = viewModel(key = "device-pairing-start-$pairing") { deviceSync.newPairingViewModel() }
                         DevicePairingFlow(pairingViewModel, onExit = { pairingSession = null })
+                    } else if (settingsDestination == SettingsDestination.ProfileName && profiles != null) {
+                        ProfileNameScreen(
+                            initialName = profile?.displayName.orEmpty(),
+                            mode = ProfileNameMode.Rename,
+                            onSave = { name ->
+                                scope.launch {
+                                    profiles.rename(name)
+                                    settingsDestination = SettingsDestination.Settings
+                                }
+                            },
+                            onBack = { settingsDestination = SettingsDestination.Settings },
+                        )
                     } else if (settingsDestination == SettingsDestination.Settings) {
                         SettingsScreen(
                             x0xConnectivity = rememberX0xConnectivity(),
                             darkTheme = darkThemeSetting.enabled,
                             onDarkThemeChange = darkThemeSetting.onChange,
                             onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },
+                            profileName = profile?.displayName,
+                            onProfileNameClick = { settingsDestination = SettingsDestination.ProfileName },
                             onBack = { settingsDestination = null },
                         )
                     } else if (settingsDestination == SettingsDestination.SyncedDevices) {
@@ -358,7 +389,7 @@ fun VestaApp(
     val devices = remember { SyncedDeviceRepository(database) }
     val deviceDataSync = remember { dataSync?.invoke(database, client, devices) }
     LaunchedEffect(deviceDataSync) { deviceDataSync?.run() }
-    val profiles = remember { ProfileRepository(database) }
+    val profiles = remember { ProfileRepository(database, changes = deviceDataSync?.profileChanges) }
     val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val agentAccess = remember { AgentAccessRepository(database) }
@@ -380,6 +411,7 @@ fun VestaApp(
         agentAccess = agentAccess,
         deviceSync = deviceSync,
         homeJoining = deviceDataSync?.joining,
+        profiles = profiles,
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             val members = remember(homeId) { memberRepository.members(homeId) }

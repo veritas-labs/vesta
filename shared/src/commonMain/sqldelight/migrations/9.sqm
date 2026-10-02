@@ -1,0 +1,3 @@
+-- Version 9 -> 10: Profile.named, whether the user has chosen their display name (docs/adr/ADR-016-profile-setup.md).
+-- Existing Profiles carry a placeholder device name, so they start unnamed and the user is asked once.
+ALTER TABLE Profile ADD COLUMN named INTEGER NOT NULL DEFAULT 0;

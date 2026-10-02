@@ -195,4 +195,15 @@
     <string name="home_invite_error_not_admin">Only an admin can invite people.</string>
     <string name="home_invite_error_no_response">They did not answer. Check their Vesta is on the join screen and try again.</string>
     <string name="home_invite_error_failed">The invitation could not be sent. Try again.</string>
+    <string name="profile_name_title_setup">What should we call you?</string>
+    <string name="profile_name_body_setup">This is how other people see you in a home. You can change it later in Settings.</string>
+    <string name="profile_name_title_rename">Your name</string>
+    <string name="profile_name_body_rename">This is how other people see you in a home.</string>
+    <string name="profile_name_field_label">Display name</string>
+    <string name="profile_name_counter">%1$d/%2$d</string>
+    <string name="profile_name_error">Use %1$d to %2$d characters.</string>
+    <string name="profile_name_setup_continue">Continue</string>
+    <string name="profile_name_save">Save</string>
+    <string name="settings_section_profile">Profile</string>
+    <string name="settings_your_name">Your name</string>
 </resources>

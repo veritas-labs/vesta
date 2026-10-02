@@ -145,7 +145,7 @@ prerequisite.
 - `createdAt` is when the entry was first published (the first run with this feature), not when the Profile row was
   made: `Profile` has no timestamp column. The "older device wins" rule is therefore approximate for devices upgraded
   at different times, which only matters in that the surviving name may be the other device's.
-- Names are device names until Profile setup exists, so after pairing every device shows the winner's.
+- Names are device names until the user chooses one ([[ADR-016]]), so after pairing every device shows the winner's.
 - A cleared avatar isn't propagated (nothing can clear one yet).
 
 **Slice 3 (2026-10-02): the roster is a document, with each member's devices.** Each Home has a roster document
@@ -257,6 +257,9 @@ removed is leaving against your will, and an offline device is unaffected. No x0
 there are no keys to rotate.
 
 With this, every part of §4 is built except the x0x-group aspects ADR-015 dropped.
+
+**Slice 10 (2026-10-02): the name is chosen.** The device-name placeholder is replaced by a name the user picks, and can
+change; see [[ADR-016]]. A member's name in every Home follows their Profile.
 
 ## References
 

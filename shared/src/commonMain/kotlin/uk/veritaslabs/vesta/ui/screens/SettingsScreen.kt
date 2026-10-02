@@ -55,6 +55,8 @@ import vesta.shared.generated.resources.settings_network_status
 import vesta.shared.generated.resources.settings_section_application
 import vesta.shared.generated.resources.settings_section_device
 import vesta.shared.generated.resources.settings_section_appearance
+import vesta.shared.generated.resources.settings_section_profile
+import vesta.shared.generated.resources.settings_your_name
 import vesta.shared.generated.resources.settings_section_network
 import vesta.shared.generated.resources.settings_synced_devices
 import vesta.shared.generated.resources.settings_title
@@ -69,6 +71,7 @@ internal object SettingsTestTags {
     const val VersionRow = "settings_application_version"
     const val BuildRow = "settings_application_build"
     const val SyncedDevicesRow = "settings_synced_devices"
+    const val YourNameRow = "settings_your_name"
     const val PlatformRow = "settings_device_platform"
     const val NetworkStatusRow = "settings_network_status"
     const val NetworkPeersRow = "settings_network_peers"
@@ -77,7 +80,8 @@ internal object SettingsTestTags {
 /**
  * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information.
- * The Synced devices row calls [onSyncedDevicesClick]; the back arrow calls [onBack].
+ * The Synced devices row calls [onSyncedDevicesClick]; with a [profileName], a Profile section shows it and its row calls
+ * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +93,8 @@ fun SettingsScreen(
     darkTheme: Boolean = isSystemInDarkTheme(),
     onDarkThemeChange: (Boolean) -> Unit = {},
     onSyncedDevicesClick: () -> Unit = {},
+    profileName: String? = null,
+    onProfileNameClick: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -115,6 +121,23 @@ fun SettingsScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding).testTag(SettingsTestTags.List),
                 contentPadding = PaddingValues(bottom = 16.dp),
             ) {
+                profileName?.let { name ->
+                    item {
+                        SettingsSection(stringResource(Res.string.settings_section_profile)) {
+                            SettingsRow(
+                                label = stringResource(Res.string.settings_your_name),
+                                modifier = Modifier.testTag(SettingsTestTags.YourNameRow),
+                                onClick = onProfileNameClick,
+                            ) {
+                                Text(
+                                    text = name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
                 item {
                     SettingsSection(stringResource(Res.string.settings_section_appearance)) {
                         SettingsRow(

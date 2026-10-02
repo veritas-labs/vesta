@@ -60,4 +60,45 @@ class ProfileRegistryDocumentTest {
         assertEquals(false, changed)
         assertEquals(100L, doc.readProfiles().single().createdAt)
     }
+
+    @Test
+    fun aNameTheUserChoseBeatsAnOlderPlaceholder() {
+        // Arrange
+        val doc = Document()
+        putProfile(doc, "old", "Laptop", null, createdAt = 100L)
+        putProfile(doc, "young", "Mark", null, createdAt = 200L, named = true)
+
+        // Act
+        val canonical = doc.readProfiles().canonical()
+
+        // Assert
+        assertEquals("young", canonical?.id)
+    }
+
+    @Test
+    fun theOldestWinsWhenBothNamesWereChosen() {
+        // Arrange
+        val doc = Document()
+        putProfile(doc, "young", "Mark", null, createdAt = 200L, named = true)
+        putProfile(doc, "old", "Marcus", null, createdAt = 100L, named = true)
+
+        // Act
+        val canonical = doc.readProfiles().canonical()
+
+        // Assert
+        assertEquals("old", canonical?.id)
+    }
+
+    @Test
+    fun aChosenNameIsNeverTakenBack() {
+        // Arrange
+        val doc = Document()
+        putProfile(doc, "p", "Mark", null, createdAt = 100L, named = true)
+
+        // Act
+        putProfile(doc, "p", "Mark", null, createdAt = 100L, named = false)
+
+        // Assert
+        assertEquals(true, doc.readProfiles().single().named)
+    }
 }

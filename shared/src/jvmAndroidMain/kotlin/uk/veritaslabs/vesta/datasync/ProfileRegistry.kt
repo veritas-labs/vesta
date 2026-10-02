@@ -40,7 +40,7 @@ internal class ProfileRegistry(
         val profile = profiles.current()
         val changed = lock.withLock {
             val doc = open()
-            putProfile(doc, profile.id, profile.displayName, profile.avatarResourceId, nowMillis())
+            putProfile(doc, profile.id, profile.displayName, profile.avatarResourceId, nowMillis(), profile.named)
                 .also { if (it) persist(doc) }
         }
         if (changed) _changes.tryEmit(Unit)
@@ -58,7 +58,7 @@ internal class ProfileRegistry(
     /** Makes this device's Profile the one the document settles on, if it isn't already. Returns the id it replaced, if any. */
     suspend fun project(): String? {
         val settled = lock.withLock { open().readProfiles().canonical() } ?: return null
-        return profiles.adopt(CurrentProfile(settled.id, settled.name, settled.avatar))
+        return profiles.adopt(CurrentProfile(settled.id, settled.name, settled.avatar, settled.named))
     }
 
     private suspend fun open(): Document = document ?: run {

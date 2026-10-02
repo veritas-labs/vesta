@@ -148,4 +148,32 @@ class SettingsScreenTest {
         // Assert
         assertEquals(1, backs)
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsTheUsersNameAndOpensItForChanging() = runComposeUiTest {
+        // Arrange
+        var clicks = 0
+        setContent { VestaTheme { SettingsScreen(profileName = "Mark", onProfileNameClick = { clicks++ }) } }
+
+        // Act
+        onNodeWithText("Mark").assertIsDisplayed()
+        onNodeWithTag(SettingsTestTags.YourNameRow).performClick()
+
+        // Assert
+        assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun hidesTheProfileSectionWithoutAProfile() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { SettingsScreen() } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(SettingsTestTags.YourNameRow).assertDoesNotExist()
+    }
 }
