@@ -134,6 +134,19 @@ Deliberately narrower than the Decision above, to be filled in by the slices tha
   named after the device. Profile sync across devices (§1) is the next prerequisite for a second device to be the same
   member.
 
+**Slice 2 (2026-10-02): the Profile syncs between paired devices.** A per-user Automerge document `user:profile` (one
+entry per Profile id: name, avatar, `createdAt`; no wrapping map) rides the [[ADR-013]] sync. A device publishes its
+Profile into it and, after each merge, adopts the **canonical** one: the oldest `createdAt`, lowest id on a tie. Two
+devices that each made a Profile before pairing therefore converge on one id. Adoption renames the local `Profile`
+row's id and re-keys its `HomeMember` rows, so Homes created before pairing follow. It resolves ADR-014 §1's
+prerequisite.
+
+- `createdAt` is when the entry was first published (the first run with this feature), not when the Profile row was
+  made: `Profile` has no timestamp column. The "older device wins" rule is therefore approximate for devices upgraded
+  at different times, which only matters in that the surviving name may be the other device's.
+- Names are device names until Profile setup exists, so after pairing every device shows the winner's.
+- A cleared avatar isn't propagated (nothing can clear one yet).
+
 ## References
 
 - [[ADR-005]], [[ADR-012]], [[ADR-013]].

@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.home
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.coroutines.asFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -19,10 +20,13 @@ class MemberRepository(
 
     /** The members of [homeId], the current user first and then in the order they joined; re-emitted on change. */
     fun members(homeId: String): Flow<List<MemberListItem>> = flow {
-        val me = profiles.current().id
+        profiles.current() // make sure there is a Profile to be "you"
         emitAll(
-            database.homeMemberQueries.selectByHome(homeId).asFlow().map { query ->
-                query.awaitAsList()
+            combine(
+                database.profileQueries.selectAll().asFlow().map { it.awaitAsList().firstOrNull()?.id },
+                database.homeMemberQueries.selectByHome(homeId).asFlow().map { it.awaitAsList() },
+            ) { me, rows ->
+                rows
                     .map { row ->
                         MemberListItem(
                             memberId = row.memberId,

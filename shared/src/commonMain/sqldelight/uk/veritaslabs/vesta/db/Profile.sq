@@ -24,6 +24,9 @@ VALUES (?, ?, ?, ?);
 updateProfile:
 UPDATE Profile SET displayName = ?, avatarResourceId = ?, x0xInstanceName = ? WHERE id = ?;
 
+updateId:
+UPDATE Profile SET id = ? WHERE id = ?;
+
 deleteById:
 DELETE FROM Profile WHERE id = ?;
 

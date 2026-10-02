@@ -23,6 +23,17 @@ insert:
 INSERT INTO HomeMember(homeId, memberId, name, avatarResourceId, role, joinedAt)
 VALUES (?, ?, ?, ?, ?, ?);
 
+-- Re-keys a person's memberships when their device adopts the Profile id the user's other devices already use
+-- (docs/adr/ADR-014-home-membership.md). OR IGNORE leaves any row that already exists under the new id.
+updateMemberId:
+UPDATE OR IGNORE HomeMember SET memberId = ? WHERE memberId = ?;
+
+deleteMemberships:
+DELETE FROM HomeMember WHERE memberId = ?;
+
+updateMemberProfile:
+UPDATE HomeMember SET name = ?, avatarResourceId = ? WHERE memberId = ?;
+
 updateRole:
 UPDATE HomeMember SET role = ? WHERE homeId = ? AND memberId = ?;
 

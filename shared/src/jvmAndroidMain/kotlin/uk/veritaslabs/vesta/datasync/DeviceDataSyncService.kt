@@ -14,11 +14,13 @@ import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.PantrySources
+import uk.veritaslabs.vesta.automerge.ProfileDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeChangeListener
+import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
@@ -28,7 +30,7 @@ private const val MaxBufferedPerHome = 64
 
 /**
  * Syncs the user's data between their own paired devices (docs/adr/ADR-013-device-data-sync.md): the Home registry
- * ([HomeRegistry]) and each Home's Pantry document, as Automerge sync messages in x0x direct messages
+ * ([HomeRegistry]), the user's Profile ([ProfileRegistry]) and each Home's Pantry document, as Automerge sync messages in x0x direct messages
  * ([SyncEnvelope], ADR-006). The peers are the devices in the DeviceSync group roster ([SyncedDeviceRepository]),
  * and messages from anyone else are ignored, so group membership is the access control.
  *
@@ -44,6 +46,7 @@ class DeviceDataSyncService(
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, pantrySources)
+    private val profile = ProfileRegistry(database, ProfileRepository(database))
 
     override val homeChanges: HomeChangeListener get() = registry
 
@@ -56,8 +59,10 @@ class DeviceDataSyncService(
 
     override suspend fun run() = coroutineScope {
         registry.importLocalHomes()
+        attempt { profile.publish() }
         launch { X0xEventHub(client).directMessages.collect { message -> launch { attempt { handle(message) } } } }
         launch { registry.changes.collect { attempt { syncDocument(HomeRegistryDocumentId) } } }
+        launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
         launch { pantrySources.localChanges.collect { homeId -> attempt { syncDocument(pantryDocumentId(homeId)) } } }
         // A newly paired device, or one that has gone, changes who there is to sync with.
         launch { devices.devices.collect { attempt { syncEverything() } } }
@@ -94,7 +99,7 @@ class DeviceDataSyncService(
     }
 
     private suspend fun documentIds(): List<String> =
-        listOf(HomeRegistryDocumentId) + database.homeQueries.selectAll().awaitAsList().map { pantryDocumentId(it.id) }
+        listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList().map { pantryDocumentId(it.id) }
 
     private suspend fun receive(sender: String, documentId: String, message: ByteArray) {
         if (documentId == HomeRegistryDocumentId) {
@@ -106,6 +111,9 @@ class DeviceDataSyncService(
             }
             val existing = database.homeQueries.selectAll().awaitAsList().mapTo(mutableSetOf()) { it.id }
             waiting.keys.retainAll(existing)
+        } else if (documentId == ProfileDocumentId) {
+            profile.receive(stateFor(documentId, sender), message)
+            profile.project()
         } else if (documentId.endsWith(PantrySuffix)) {
             val homeId = documentId.removeSuffix(PantrySuffix)
             if (!receivePantry(sender, homeId, message)) {
@@ -136,6 +144,7 @@ class DeviceDataSyncService(
             while (true) {
                 val message = when (documentId) {
                     HomeRegistryDocumentId -> registry.generate(state)
+                    ProfileDocumentId -> profile.generate(state)
                     else -> pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())

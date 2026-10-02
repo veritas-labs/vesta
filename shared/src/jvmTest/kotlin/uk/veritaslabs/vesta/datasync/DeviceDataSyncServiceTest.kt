@@ -49,6 +49,11 @@ class DeviceDataSyncServiceTest {
 
         suspend fun pairedWith(other: Device) = apply { devices.add(other.agentId, other.agentId) }
 
+        suspend fun profileIds() = database.profileQueries.selectAll().awaitAsList().map { it.id }
+
+        suspend fun memberIds(homeId: String) =
+            database.homeMemberQueries.selectByHome(homeId).awaitAsList().map { it.memberId }
+
         suspend fun homeNames() = database.homeQueries.selectAll().awaitAsList().map { it.name }.sorted()
 
         suspend fun pantryTitles(homeId: String) =
@@ -171,6 +176,30 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         eventually { b.homeNames() == listOf("While Away") }
+        scope.cancel()
+    }
+
+    @Test
+    fun pairedDevicesSettleOnTheOlderDevicesProfileAndMoveTheirMembershipsToIt() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        network.offline += b.agentId // b is not reachable until it starts, so it makes its own Profile first
+        a.start()
+        eventually { a.profileIds().isNotEmpty() }
+        val aProfile = a.profileIds().single()
+        delay(20.milliseconds) // so b's Profile is unambiguously the younger
+        val bHome = b.homes.create("Made On B", HomeShape.Other)
+        val bProfileBefore = b.profileIds().single()
+
+        // Act
+        network.offline -= b.agentId
+        b.start()
+
+        // Assert
+        eventually { b.profileIds() == listOf(aProfile) }
+        eventually { b.memberIds(bHome) == listOf(aProfile) }
+        assertEquals(listOf(aProfile), a.profileIds())
+        assertTrue(bProfileBefore != aProfile)
         scope.cancel()
     }
 }
