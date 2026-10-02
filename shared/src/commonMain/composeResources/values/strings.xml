@@ -26,7 +26,7 @@
 
     <string name="device_pairing_generated_title">Scan this on a device you already use</string>
     <string name="device_pairing_generated_body">Or copy the pairing link below and send it to the other device however you like.</string>
-    <string name="device_pairing_generated_copy_link">Copy pairing link</string>
+    <string name="device_pairing_generated_copy_link">Copy link</string>
     <string name="device_pairing_paste_field_label">Pairing link</string>
     <string name="device_pairing_paste_field_placeholder">Paste the link here</string>
     <string name="device_pairing_paste_submit">Pair device</string>
