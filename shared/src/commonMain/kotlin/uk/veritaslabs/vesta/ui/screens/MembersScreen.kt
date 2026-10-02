@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,10 @@ import vesta.shared.generated.resources.members_leave_cancel
 import vesta.shared.generated.resources.members_leave_confirm
 import vesta.shared.generated.resources.members_leave_confirm_body
 import vesta.shared.generated.resources.members_leave_confirm_title
+import vesta.shared.generated.resources.members_manage_make_admin
+import vesta.shared.generated.resources.members_manage_make_admin_body
+import vesta.shared.generated.resources.members_manage_remove_admin
+import vesta.shared.generated.resources.members_manage_remove_admin_body
 import vesta.shared.generated.resources.members_role_admin
 import vesta.shared.generated.resources.members_role_member
 import vesta.shared.generated.resources.members_title
@@ -68,6 +73,7 @@ internal object MembersTestTags {
     const val LeaveButton = "members_leave_button"
     const val ConfirmLeave = "members_leave_confirm"
     const val BlockedDialog = "members_leave_blocked"
+    const val ConfirmRole = "members_confirm_role"
 }
 
 /** The role a member has in a Home; [storageValue] is the `HomeMember.role` column's value. */
@@ -91,7 +97,8 @@ data class MemberListItem(
 
 /**
  * The Members tab of a Home: the [members] (name and role badge, the current user marked "You"), and an Invite
- * button ([onInviteClick]) for bringing someone into the Home, and a Leave Home button that asks for confirmation
+ * button ([onInviteClick]) for bringing someone into the Home, a dialog on each other member's row, for an admin, to make
+ * them an admin or an ordinary member ([onSetRole]), and a Leave Home button that asks for confirmation
  * before calling [onLeaveHome]. [leaveBlocked] shows why the user can't leave (they are the only admin) until
  * [onLeaveBlockedDismiss]. The bottom nav bar has Home ([onHomeClick]) and Members (selected).
  */
@@ -101,12 +108,15 @@ fun MembersScreen(
     modifier: Modifier = Modifier,
     members: List<MemberListItem> = emptyList(),
     onInviteClick: () -> Unit = {},
+    onSetRole: (MemberListItem, MemberRole) -> Unit = { _, _ -> },
     onLeaveHome: () -> Unit = {},
     leaveBlocked: Boolean = false,
     onLeaveBlockedDismiss: () -> Unit = {},
     onHomeClick: () -> Unit = {},
 ) {
     var confirmingLeave by remember { mutableStateOf(false) }
+    var managing by remember { mutableStateOf<MemberListItem?>(null) }
+    val canManage = members.any { it.isYou && it.role == MemberRole.Admin }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= MembersTabletBreakpoint) 24.dp else 16.dp
 
@@ -132,7 +142,9 @@ fun MembersScreen(
                 }
                 Spacer(Modifier.height(16.dp))
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(members, key = { it.memberId }) { member -> MemberRow(member) }
+                    items(members, key = { it.memberId }) { member ->
+                        MemberRow(member, onClick = if (canManage && !member.isYou) ({ managing = member }) else null)
+                    }
                 }
                 TextButton(
                     onClick = { confirmingLeave = true },
@@ -144,6 +156,37 @@ fun MembersScreen(
         }
     }
 
+    managing?.let { member ->
+        val newRole = if (member.role == MemberRole.Admin) MemberRole.Member else MemberRole.Admin
+        AlertDialog(
+            onDismissRequest = { managing = null },
+            title = { Text(member.name) },
+            text = {
+                Text(
+                    stringResource(
+                        if (newRole == MemberRole.Admin) Res.string.members_manage_make_admin_body else Res.string.members_manage_remove_admin_body,
+                        member.name,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        managing = null
+                        onSetRole(member, newRole)
+                    },
+                    modifier = Modifier.testTag(MembersTestTags.ConfirmRole),
+                ) {
+                    Text(
+                        stringResource(
+                            if (newRole == MemberRole.Admin) Res.string.members_manage_make_admin else Res.string.members_manage_remove_admin,
+                        ),
+                    )
+                }
+            },
+            dismissButton = { TextButton(onClick = { managing = null }) { Text(stringResource(Res.string.members_leave_cancel)) } },
+        )
+    }
     if (confirmingLeave) {
         AlertDialog(
             onDismissRequest = { confirmingLeave = false },
@@ -177,11 +220,12 @@ fun MembersScreen(
 }
 
 @Composable
-private fun MemberRow(member: MemberListItem) {
+private fun MemberRow(member: MemberListItem, onClick: (() -> Unit)?) {
+    val rowModifier = Modifier.fillMaxWidth().testTag(MembersTestTags.Row)
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth().testTag(MembersTestTags.Row),
+        modifier = if (onClick != null) rowModifier.clickable(onClick = onClick) else rowModifier,
     ) {
         Row(
             modifier = Modifier.padding(12.dp),

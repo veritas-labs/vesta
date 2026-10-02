@@ -16,6 +16,7 @@ import uk.veritaslabs.vesta.automerge.readRoster
 import uk.veritaslabs.vesta.automerge.releaseRosterDevice
 import uk.veritaslabs.vesta.automerge.retireRosterMember
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
+import uk.veritaslabs.vesta.automerge.setRosterRole
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
@@ -75,6 +76,15 @@ internal class HomeRosters(
             (member || device).also { if (it) persist(homeId, doc) }
         }
         project(homeId)
+        if (changed) _changes.tryEmit(homeId)
+    }
+
+    /** Sets [memberId]'s role in [homeId]'s roster to [role], an admin's decision, which overwrites the role the roster had. */
+    suspend fun setRole(homeId: String, memberId: String, role: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            setRosterRole(doc, memberId, role).also { if (it) persist(homeId, doc) }
+        }
         if (changed) _changes.tryEmit(homeId)
     }
 

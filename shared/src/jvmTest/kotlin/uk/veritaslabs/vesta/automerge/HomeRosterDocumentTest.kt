@@ -116,4 +116,33 @@ class HomeRosterDocumentTest {
         // Assert
         assertFalse(changed)
     }
+
+    @Test
+    fun settingARoleOverwritesTheOneThere() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Sam", null, "member", 100L)
+
+        // Act
+        val changed = setRosterRole(doc, "m1", "admin")
+        val unchanged = putRosterMember(doc, "m1", "Sam", null, "member", 100L) // a device republishing its own entry
+
+        // Assert
+        assertTrue(changed)
+        assertFalse(unchanged)
+        assertEquals("admin", doc.readRoster().single().role)
+    }
+
+    @Test
+    fun settingTheRoleOfAnUnknownMemberDoesNothing() {
+        // Arrange
+        val doc = Document()
+
+        // Act
+        val changed = setRosterRole(doc, "nobody", "admin")
+
+        // Assert
+        assertFalse(changed)
+        assertEquals(emptyList(), doc.readRoster())
+    }
 }

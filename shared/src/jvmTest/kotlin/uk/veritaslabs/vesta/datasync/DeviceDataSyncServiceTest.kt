@@ -23,6 +23,9 @@ import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
+import uk.veritaslabs.vesta.home.MemberRepository
+import uk.veritaslabs.vesta.home.RoleChangeResult
+import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.homejoin.InviteException
 import uk.veritaslabs.vesta.homejoin.InviteFailure
 import uk.veritaslabs.vesta.homejoin.JoinLink
@@ -65,6 +68,9 @@ class DeviceDataSyncServiceTest {
         }
 
         suspend fun profileIds() = database.profileQueries.selectAll().awaitAsList().map { it.id }
+
+        suspend fun roleOf(homeId: String, memberId: String) =
+            database.homeMemberQueries.selectByHome(homeId).awaitAsList().firstOrNull { it.memberId == memberId }?.role
 
         suspend fun memberIds(homeId: String) =
             database.homeMemberQueries.selectByHome(homeId).awaitAsList().map { it.memberId }
@@ -472,6 +478,25 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         assertEquals(InviteFailure.LinkExpired, (result.exceptionOrNull() as InviteException).reason)
+        scope.cancel()
+    }
+
+    @Test
+    fun anAdminsPromotionOfAMemberReachesTheMembersOwnDevice() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val members = MemberRepository(x.database, x.profiles, x.sync.rosterChanges)
+
+        // Act
+        val result = members.setRole(homeId, y.profiles.current().id, MemberRole.Admin)
+
+        // Assert
+        assertEquals(RoleChangeResult.Changed, result)
+        eventually { y.roleOf(homeId, y.profiles.current().id) == "admin" }
+        assertEquals("admin", x.roleOf(homeId, y.profiles.current().id))
         scope.cancel()
     }
 }

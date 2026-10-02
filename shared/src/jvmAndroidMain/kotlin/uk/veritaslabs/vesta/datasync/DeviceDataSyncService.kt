@@ -21,6 +21,7 @@ import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeChangeListener
+import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
@@ -59,6 +60,10 @@ class DeviceDataSyncService(
     override val homeChanges: HomeChangeListener get() = registry
 
     override val joining: HomeJoining get() = join
+
+    override val rosterChanges: RosterChangeListener = object : RosterChangeListener {
+        override suspend fun roleChanged(homeId: String, memberId: String, role: String) = rosters.setRole(homeId, memberId, role)
+    }
 
     // One sync step at a time: every step reads and writes the per-peer sync states.
     private val lock = Mutex()

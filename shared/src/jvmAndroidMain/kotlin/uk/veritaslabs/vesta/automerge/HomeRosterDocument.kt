@@ -110,6 +110,23 @@ fun claimRosterDevice(doc: Document, agentId: String, memberId: String): Boolean
     return true
 }
 
+/**
+ * Sets [memberId]'s role outright, unlike [putRosterMember], which never overwrites one: this is an admin's decision.
+ * Does nothing for a member the roster doesn't have. Returns whether anything changed.
+ */
+fun setRosterRole(doc: Document, memberId: String, role: String): Boolean {
+    val tx = doc.startTransaction()
+    val key = "$MemberPrefix$memberId:$RoleField"
+    val known = tx.get(ObjectId.ROOT, "$MemberPrefix$memberId:$NameField").isPresent
+    if (!known || (tx.get(ObjectId.ROOT, key).getOrNull() as? AmValue.Str)?.value == role) {
+        tx.rollback()
+        return false
+    }
+    tx.set(ObjectId.ROOT, key, role)
+    tx.commit()
+    return true
+}
+
 /** Removes the claim that [agentId] acts for [memberId], if that is what the roster says. Returns whether anything changed. */
 fun releaseRosterDevice(doc: Document, agentId: String, memberId: String): Boolean {
     val tx = doc.startTransaction()

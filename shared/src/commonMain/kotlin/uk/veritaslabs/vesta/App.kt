@@ -60,6 +60,7 @@ import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
 import uk.veritaslabs.vesta.ui.screens.MemberListItem
+import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
@@ -195,6 +196,7 @@ private fun HomeContent(
     pantrySource: PantrySource? = null,
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
+    onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
     joining: HomeJoining? = null,
 ) {
     val scope = rememberCoroutineScope()
@@ -225,6 +227,7 @@ private fun HomeContent(
                 members = memberList,
                 onHomeClick = { destination = HomeDestination.Dashboard },
                 onInviteClick = { destination = HomeDestination.Invite },
+                onSetRole = { member, role -> scope.launch { onSetRole(member.memberId, role) } },
                 onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
                 leaveBlocked = leaveBlocked,
                 onLeaveBlockedDismiss = { leaveBlocked = false },
@@ -355,7 +358,7 @@ fun VestaApp(
     LaunchedEffect(deviceDataSync) { deviceDataSync?.run() }
     val profiles = remember { ProfileRepository(database) }
     val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles) }
-    val memberRepository = remember { MemberRepository(database, profiles) }
+    val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val agentAccess = remember { AgentAccessRepository(database) }
     val deviceSync = remember {
         val service = DeviceSyncService(client, database, devices)
@@ -378,7 +381,12 @@ fun VestaApp(
         homeContent = homeContent ?: { homeId, homeName ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             val members = remember(homeId) { memberRepository.members(homeId) }
-            HomeContent(homeId, homeName, pantrySource, members, { homeRepository.leave(homeId) }, deviceDataSync?.joining)
+            HomeContent(
+                homeId, homeName, pantrySource, members,
+                onLeave = { homeRepository.leave(homeId) },
+                onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
+                joining = deviceDataSync?.joining,
+            )
         },
     )
 }

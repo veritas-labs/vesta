@@ -224,6 +224,20 @@ the §5 rule, in the form "listed in the roster".
 only, no x0x group. That closes slice 6's "no person can join a Home in the app yet". Still not built: admin removal of
 a member and changing roles (§4), and so the "Make someone else an admin" step that leaving needs.
 
+**Slice 8 (2026-10-02): admin role changes.** On the Members tab an admin taps another member to make them an admin or
+an ordinary member. `MemberRepository.setRole` enforces the rules on the acting device: only an admin can do it, the Home
+keeps at least one admin (`LastAdmin`), and an admin may step down while another remains. It updates `HomeMember` and
+tells a `RosterChangeListener`, which writes the role into the roster document, where it overwrites the one there
+(`setRosterRole`; `putRosterMember` still never overwrites a role, so a device republishing its own entry can't undo it).
+It reaches the member's devices through the usual roster sync. This unblocks leaving as the only admin
+(slice 5): make someone else an admin, then leave.
+
+- Roles are not enforced by the receiving device, which can't tell who wrote a role (unsigned claims, above), so a member
+  who edits their own copy could make themselves an admin. Accepted for v1 household trust, like the rest.
+- An admin can't open the role dialog on their own row; stepping down is possible through the repository but has no UI.
+- Concurrent role changes by two admins resolve last-writer-wins.
+- Removing a member is the remaining part of §4.
+
 ## References
 
 - [[ADR-005]], [[ADR-012]], [[ADR-013]].

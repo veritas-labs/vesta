@@ -133,4 +133,70 @@ class MembersScreenTest {
         // Assert
         onNodeWithTag(MembersTestTags.BlockedDialog).assertIsDisplayed()
     }
+
+    private val admin = MemberListItem("1", "Mark", MemberRole.Admin, isYou = true)
+    private val sam = MemberListItem("2", "Sam", MemberRole.Member)
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAdminCanMakeAnotherMemberAnAdmin() = runComposeUiTest {
+        // Arrange
+        var change: Pair<String, MemberRole>? = null
+        setContent {
+            VestaTheme { MembersScreen(members = listOf(admin, sam), onSetRole = { m, r -> change = m.memberId to r }) }
+        }
+
+        // Act
+        onNodeWithText("Sam").performClick()
+        onNodeWithTag(MembersTestTags.ConfirmRole).performClick()
+
+        // Assert
+        assertEquals("2" to MemberRole.Admin, change)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAdminCanTakeAdminAwayFromAnotherAdmin() = runComposeUiTest {
+        // Arrange
+        var change: Pair<String, MemberRole>? = null
+        val otherAdmin = sam.copy(role = MemberRole.Admin)
+        setContent {
+            VestaTheme { MembersScreen(members = listOf(admin, otherAdmin), onSetRole = { m, r -> change = m.memberId to r }) }
+        }
+
+        // Act
+        onNodeWithText("Sam").performClick()
+        onNodeWithTag(MembersTestTags.ConfirmRole).performClick()
+
+        // Assert
+        assertEquals("2" to MemberRole.Member, change)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anOrdinaryMemberCannotOpenTheRoleDialog() = runComposeUiTest {
+        // Arrange
+        val me = MemberListItem("1", "Mark", MemberRole.Member, isYou = true)
+        val boss = MemberListItem("2", "Sam", MemberRole.Admin)
+        setContent { VestaTheme { MembersScreen(members = listOf(me, boss)) } }
+
+        // Act
+        onNodeWithText("Sam").performClick()
+
+        // Assert
+        onNodeWithTag(MembersTestTags.ConfirmRole).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAdminCannotOpenTheRoleDialogOnTheirOwnRow() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam)) } }
+
+        // Act
+        onNodeWithText("Mark (You)").performClick()
+
+        // Assert
+        onNodeWithTag(MembersTestTags.ConfirmRole).assertDoesNotExist()
+    }
 }

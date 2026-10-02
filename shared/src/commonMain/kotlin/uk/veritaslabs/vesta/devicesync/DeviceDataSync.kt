@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.devicesync
 
 import uk.veritaslabs.vesta.home.HomeChangeListener
+import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 
 /**
@@ -10,6 +11,9 @@ import uk.veritaslabs.vesta.homejoin.HomeJoining
 interface DeviceDataSync {
     /** Pass to the [uk.veritaslabs.vesta.home.HomeRepository] so Home changes made here reach the other devices. */
     val homeChanges: HomeChangeListener
+
+    /** Pass to the [uk.veritaslabs.vesta.home.MemberRepository] so role changes made here reach the Home's other members. */
+    val rosterChanges: RosterChangeListener
 
     /** Joining a Home with a link, and inviting someone to one (docs/adr/ADR-015-joining-a-home.md). */
     val joining: HomeJoining
