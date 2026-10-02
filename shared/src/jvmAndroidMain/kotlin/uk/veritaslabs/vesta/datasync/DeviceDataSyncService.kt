@@ -16,6 +16,7 @@ import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
+import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
@@ -26,6 +27,7 @@ import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
 
 private const val PantrySuffix = ":pantry"
+private const val RosterSuffix = ":roster"
 private const val MaxBufferedPerHome = 64
 
 /**
@@ -47,6 +49,7 @@ class DeviceDataSyncService(
 
     private val registry = HomeRegistry(database, pantrySources)
     private val profile = ProfileRegistry(database, ProfileRepository(database))
+    private val rosters = HomeRosters(database, ProfileRepository(database))
 
     override val homeChanges: HomeChangeListener get() = registry
 
@@ -54,14 +57,18 @@ class DeviceDataSyncService(
     private val lock = Mutex()
     private val states = mutableMapOf<Pair<String, String>, SyncState>()
 
-    // Pantry messages that arrived before their Home did (the registry and the Pantry sync side by side).
-    private val waiting = mutableMapOf<String, MutableList<Pair<String, ByteArray>>>()
+    // Pantry and roster messages that arrived before their Home did (the registry and a Home's documents sync side by
+    // side): the sending peer, the document id and the sync message.
+    private val waiting = mutableMapOf<String, MutableList<Triple<String, String, ByteArray>>>()
 
     override suspend fun run() = coroutineScope {
         registry.importLocalHomes()
         attempt { profile.publish() }
+        attempt { publishRosters() }
         launch { X0xEventHub(client).directMessages.collect { message -> launch { attempt { handle(message) } } } }
         launch { registry.changes.collect { attempt { syncDocument(HomeRegistryDocumentId) } } }
+        launch { registry.changes.collect { attempt { publishRosters() } } }
+        launch { rosters.changes.collect { homeId -> attempt { syncDocument(rosterDocumentId(homeId)) } } }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
         launch { pantrySources.localChanges.collect { homeId -> attempt { syncDocument(pantryDocumentId(homeId)) } } }
         // A newly paired device, or one that has gone, changes who there is to sync with.
@@ -71,6 +78,9 @@ class DeviceDataSyncService(
             delay(interval)
         }
     }
+
+    /** The agents that act for each member of [homeId], by member id, as its roster says. */
+    internal suspend fun rosterDevices(homeId: String): Map<String, Set<String>> = rosters.devices(homeId)
 
     /** Handles one direct message: a sync message from a paired device is applied and answered; anything else is ignored. */
     suspend fun handle(message: X0xDirectMessage) = lock.withLock {
@@ -88,6 +98,7 @@ class DeviceDataSyncService(
      * each round is what lets a device that was away catch up. It costs a small handshake per document and peer.
      */
     suspend fun syncEverything() = lock.withLock {
+        attempt { publishRosters() }
         val peers = devices.agentIds()
         states.clear()
         connected.clear()
@@ -99,7 +110,8 @@ class DeviceDataSyncService(
     }
 
     private suspend fun documentIds(): List<String> =
-        listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList().map { pantryDocumentId(it.id) }
+        listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
+            .flatMap { listOf(pantryDocumentId(it.id), rosterDocumentId(it.id)) }
 
     private suspend fun receive(sender: String, documentId: String, message: ByteArray) {
         if (documentId == HomeRegistryDocumentId) {
@@ -107,19 +119,24 @@ class DeviceDataSyncService(
             val created = registry.project()
             // Homes can now exist that a Pantry message was waiting for.
             created.forEach { homeId ->
-                waiting.remove(homeId)?.forEach { (peer, queued) -> receivePantry(peer, homeId, queued) }
+                waiting.remove(homeId)?.forEach { (peer, documentId, queued) -> receiveHomeDocument(peer, documentId, queued) }
             }
+            publishRosters() // a Home that has arrived may now have a member row for this user to publish
+
             val existing = database.homeQueries.selectAll().awaitAsList().mapTo(mutableSetOf()) { it.id }
             waiting.keys.retainAll(existing)
         } else if (documentId == ProfileDocumentId) {
             profile.receive(stateFor(documentId, sender), message)
-            profile.project()
-        } else if (documentId.endsWith(PantrySuffix)) {
-            val homeId = documentId.removeSuffix(PantrySuffix)
-            if (!receivePantry(sender, homeId, message)) {
-                waiting.getOrPut(homeId) { mutableListOf() }.let { if (it.size < MaxBufferedPerHome) it += sender to message }
+            // A device that took on the shared Profile retires its old member id, then publishes the new one.
+            profile.project()?.let { rosters.retire(it) }
+            publishRosters()
+        } else if (documentId.endsWith(PantrySuffix) || documentId.endsWith(RosterSuffix)) {
+            val homeId = documentId.removeSuffix(PantrySuffix).removeSuffix(RosterSuffix)
+            if (!receiveHomeDocument(sender, documentId, message)) {
+                waiting.getOrPut(homeId) { mutableListOf() }.let { if (it.size < MaxBufferedPerHome) it += Triple(sender, documentId, message) }
                 return
             }
+            if (documentId.endsWith(RosterSuffix)) publishRosters()
         } else {
             return // a document this version doesn't know about
         }
@@ -127,11 +144,21 @@ class DeviceDataSyncService(
         devices.agentIds().forEach { pump(documentId, it) }
     }
 
-    /** Applies a Pantry message; false when this device has no such Home yet. */
-    private suspend fun receivePantry(sender: String, homeId: String, message: ByteArray): Boolean {
-        val source = pantrySources.forHome(homeId) ?: return false
-        source.receiveSync(stateFor(pantryDocumentId(homeId), sender), message)
+    /** Applies a Pantry or roster message; false when this device has no such Home yet. */
+    private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
+        if (documentId.endsWith(RosterSuffix)) {
+            val homeId = documentId.removeSuffix(RosterSuffix)
+            return rosters.receive(homeId, stateFor(documentId, sender), message).also { if (it) rosters.project(homeId) }
+        }
+        val source = pantrySources.forHome(documentId.removeSuffix(PantrySuffix)) ?: return false
+        source.receiveSync(stateFor(documentId, sender), message)
         return true
+    }
+
+    /** Writes this user's member and this device's agent into every Home's roster; the agent is left out while x0x can't say what it is. */
+    private suspend fun publishRosters() {
+        val agentId = runCatching { client.agent().agentId }.getOrNull()
+        database.homeQueries.selectAll().awaitAsList().forEach { rosters.publish(it.id, agentId) }
     }
 
     private val connected = mutableSetOf<String>()
@@ -145,7 +172,9 @@ class DeviceDataSyncService(
                 val message = when (documentId) {
                     HomeRegistryDocumentId -> registry.generate(state)
                     ProfileDocumentId -> profile.generate(state)
-                    else -> pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
+                    else -> if (documentId.endsWith(RosterSuffix)) {
+                        rosters.generate(documentId.removeSuffix(RosterSuffix), state)
+                    } else pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())
             }

@@ -23,6 +23,11 @@ insert:
 INSERT INTO HomeMember(homeId, memberId, name, avatarResourceId, role, joinedAt)
 VALUES (?, ?, ?, ?, ?, ?);
 
+-- Writes a member as the Home's roster document says (docs/adr/ADR-014-home-membership.md).
+upsert:
+INSERT OR REPLACE INTO HomeMember(homeId, memberId, name, avatarResourceId, role, joinedAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
 -- Re-keys a person's memberships when their device adopts the Profile id the user's other devices already use
 -- (docs/adr/ADR-014-home-membership.md). OR IGNORE leaves any row that already exists under the new id.
 updateMemberId:

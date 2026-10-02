@@ -33,14 +33,18 @@ class ProfileRepository(
     /**
      * Makes [profile] this device's Profile, as the user's other devices already know them: the id and details are
      * taken over from the Profile this device has, and the person's memberships follow the new id
-     * (docs/adr/ADR-014-home-membership.md). Does nothing if it already is.
+     * (docs/adr/ADR-014-home-membership.md). Does nothing if it already is. Returns the id this device had, if
+     * it changed, so the Homes can retire it.
      */
-    suspend fun adopt(profile: CurrentProfile) = lock.withLock {
+    suspend fun adopt(profile: CurrentProfile): String? = lock.withLock {
         val existing = database.profileQueries.selectAll().awaitAsList().firstOrNull()
         when {
-            existing == null -> database.profileQueries.insert(profile.id, profile.displayName, profile.avatarResourceId, "default")
+            existing == null -> {
+                database.profileQueries.insert(profile.id, profile.displayName, profile.avatarResourceId, "default")
+                null
+            }
             existing.id == profile.id && existing.displayName == profile.displayName &&
-                existing.avatarResourceId == profile.avatarResourceId -> return@withLock
+                existing.avatarResourceId == profile.avatarResourceId -> null
             else -> {
                 if (existing.id != profile.id) {
                     database.profileQueries.updateId(profile.id, existing.id)
@@ -50,6 +54,7 @@ class ProfileRepository(
                 }
                 database.profileQueries.updateProfile(profile.displayName, profile.avatarResourceId, existing.x0xInstanceName, profile.id)
                 database.homeMemberQueries.updateMemberProfile(profile.displayName, profile.avatarResourceId, profile.id)
+                existing.id.takeIf { it != profile.id }
             }
         }
     }

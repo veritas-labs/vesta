@@ -202,4 +202,45 @@ class DeviceDataSyncServiceTest {
         assertTrue(bProfileBefore != aProfile)
         scope.cancel()
     }
+
+    @Test
+    fun aMembersDevicesAreOneMemberOnBothDevicesAndBothAreInTheirRoster() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val aProfile = a.profileIds().single()
+        delay(20.milliseconds)
+
+        // Act
+        b.start()
+
+        // Assert
+        eventually { b.memberIds(homeId) == listOf(aProfile) }
+        eventually { a.sync.rosterDevices(homeId) == mapOf(aProfile to setOf("agent-a", "agent-b")) }
+        assertEquals(listOf(aProfile), a.memberIds(homeId))
+        scope.cancel()
+    }
+
+    @Test
+    fun aHomeMadeBeforeASecondDeviceTookOnTheSharedProfileEndsUpWithOneMember() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        network.offline += b.agentId
+        a.start()
+        eventually { a.profileIds().isNotEmpty() }
+        val aProfile = a.profileIds().single()
+        delay(20.milliseconds)
+        val bHome = b.homes.create("Made On B", HomeShape.Other)
+
+        // Act
+        network.offline -= b.agentId
+        b.start()
+
+        // Assert
+        eventually { a.homeNames() == listOf("Made On B") }
+        eventually { a.memberIds(bHome) == listOf(aProfile) && b.memberIds(bHome) == listOf(aProfile) }
+        eventually { b.sync.rosterDevices(bHome) == mapOf(aProfile to setOf("agent-a", "agent-b")) }
+        scope.cancel()
+    }
 }

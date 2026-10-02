@@ -55,10 +55,10 @@ internal class ProfileRegistry(
         if (!doc.heads.contentEquals(before)) persist(doc)
     }
 
-    /** Makes this device's Profile the one the document settles on, if it isn't already. */
-    suspend fun project() {
-        val settled = lock.withLock { open().readProfiles().canonical() } ?: return
-        profiles.adopt(CurrentProfile(settled.id, settled.name, settled.avatar))
+    /** Makes this device's Profile the one the document settles on, if it isn't already. Returns the id it replaced, if any. */
+    suspend fun project(): String? {
+        val settled = lock.withLock { open().readProfiles().canonical() } ?: return null
+        return profiles.adopt(CurrentProfile(settled.id, settled.name, settled.avatar))
     }
 
     private suspend fun open(): Document = document ?: run {

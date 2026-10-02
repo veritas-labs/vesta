@@ -54,6 +54,7 @@ member:<memberId> = {
   removed: bool                // tombstone, so a departure propagates
 }
 ```
+(Implemented as flat scalar keys instead of nested maps; see Implementation notes, slice 3.)
 
 Each device writes only its own `devices[agentId]` entry; only an admin writes another member's `role` or `removed`.
 Because the roster is part of the document, a member who joins later, or is offline, gets it through ordinary sync, and
@@ -146,6 +147,31 @@ prerequisite.
   at different times, which only matters in that the surviving name may be the other device's.
 - Names are device names until Profile setup exists, so after pairing every device shows the winner's.
 - A cleared avatar isn't propagated (nothing can clear one yet).
+
+**Slice 3 (2026-10-02): the roster is a document, with each member's devices.** Each Home has a roster document
+`$homeId:roster`, synced between the user's paired devices over the [[ADR-013]] transport (a message that arrives
+before its Home is held, like a Pantry's). The `HomeMember` table is now a projection of it, like `Home` is of the
+registry. Home-to-Home-member sync is still not built.
+
+**Deviation from §2:** the roster is a **flat set of scalar root keys**, not one nested map per member:
+
+```
+member:<memberId>:name | avatar | role | joinedAt | removed
+device:<agentId> = <memberId>
+```
+
+Two devices of one person both write that person's member, and a nested `member:<id>` map created by each would
+conflict on merge and lose one device's entries (the reason [[ADR-013]] has no wrapping map). Scalars written with the
+same value merge cleanly, so any device may write its own person's keys and no device has to be the one that
+"created" the entry. A device writes only its own `device:` key. `name` and `avatar` are refreshed on every publish;
+`role` and `joinedAt` are only written when absent, so a device never overwrites what an admin set.
+
+- A device publishes its member and agent id on startup, each sync round and when a Home arrives. A device with no
+  member row for the user yet (a Home that just arrived) waits for the roster to bring one, then adds its agent.
+- A device that adopts the shared Profile ([slice 2]) tombstones its old member id (`removed`) in every Home before
+  publishing the new one, so a member entry published under the old id doesn't linger as a second person.
+- Removal of members and devices (§4) is still to do; `removed` is only used for the retired Profile id so far.
+- The agent id comes from x0x; while it is unreadable the device publishes its member without it and tries again.
 
 ## References
 
