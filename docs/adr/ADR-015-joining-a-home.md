@@ -1,6 +1,6 @@
 # ADR-015: Joining a Home with a link
 
-**Status:** Accepted (2026-10-02). Implemented. Builds on [[ADR-014]] (a Home's members and their roster), [[ADR-012]]
+**Status:** Accepted (2026-10-02). Implemented. Its join-link mechanism is superseded by [[ADR-019]] (proposed). Builds on [[ADR-014]] (a Home's members and their roster), [[ADR-012]]
 (the pairing flow this copies) and [[ADR-005]] (one Home, one document set). Replaces the 6-digit invite code of
 CORE-EXPERIENCE §4 and `docs/design/join-home.md` as the *mechanism* (the screens' intent still applies).
 

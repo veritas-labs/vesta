@@ -38,8 +38,9 @@ moment: if each side retries in the background, the handshake completes whenever
 is denied. Because `usedBy` syncs eventually, two admin devices approving at once can both admit. That is accepted: each
 admission still needed an admin's explicit approval.
 
-**Keep both flows.** [[ADR-015]]'s link carries no secret, so there is nothing to leak, and it stays the in-person
-path. The picker's "Join a home" gains a second entry for pasting an invite link.
+**Keep both flows.** *(Superseded by [[ADR-019]]: in use two paths were confusing, so invite links become the only way.)*
+[[ADR-015]]'s link carries no secret, so there is nothing to leak, and it stays the in-person path. The picker's "Join a
+home" gains a second entry for pasting an invite link.
 
 ## Consequences
 
