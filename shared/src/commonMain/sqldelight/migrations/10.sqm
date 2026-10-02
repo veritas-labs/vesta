@@ -1,0 +1,9 @@
+-- Version 10 -> 11: adds PendingMessage (see uk/veritaslabs/vesta/db/PendingMessage.sq).
+CREATE TABLE IF NOT EXISTS PendingMessage (
+    recipient TEXT NOT NULL,
+    homeId TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    payload BLOB NOT NULL,
+    createdAt INTEGER NOT NULL,
+    PRIMARY KEY (recipient, homeId, kind)
+);

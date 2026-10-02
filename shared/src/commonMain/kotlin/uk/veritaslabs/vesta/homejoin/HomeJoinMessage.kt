@@ -40,7 +40,18 @@ sealed interface HomeJoinMessage {
     @SerialName("homejoin.removed")
     data class Removed(val homeId: String) : HomeJoinMessage
 
+    /**
+     * Recipient to sender: "I have your [of] message about this Home" (`left` or `removed`; see [LeftKind] and
+     * [RemovedKind]), so the sender stops resending it (docs/adr/ADR-017-retrying-messages-to-offline-devices.md).
+     */
+    @Serializable
+    @SerialName("homejoin.ack")
+    data class Ack(val homeId: String, val of: String) : HomeJoinMessage
+
     companion object {
+        const val LeftKind = "left"
+        const val RemovedKind = "removed"
+
         private val json = Json {
             classDiscriminator = "kind"
             ignoreUnknownKeys = true

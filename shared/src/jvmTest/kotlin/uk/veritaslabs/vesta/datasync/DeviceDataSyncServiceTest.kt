@@ -415,6 +415,25 @@ class DeviceDataSyncServiceTest {
     }
 
     @Test
+    fun aJoinerAnswersAgainWhenTheInviterRepeatsAnInvitationItAlreadyAccepted() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val xMember = x.profiles.current()
+        val invite = HomeJoinMessage.encode(HomeJoinMessage.Invite(homeId, "Maple Street", "family", 1L, xMember.id, xMember.displayName))
+        y.node.sentTo.clear()
+
+        // Act
+        x.node.sendDirect(y.agentId, invite)
+
+        // Assert
+        eventually { x.agentId in y.node.sentTo }
+        scope.cancel()
+    }
+
+    @Test
     fun aDeviceThatIsNotShowingAJoinLinkIgnoresAnInvitation() = runBlocking {
         // Arrange
         val x = Device("agent-x")
@@ -539,6 +558,75 @@ class DeviceDataSyncServiceTest {
         assertEquals(LeaveResult.Left, result)
         eventually { x.memberIds(homeId) == listOf(x.profiles.current().id) }
         assertEquals(emptyList(), y.homeNames())
+        scope.cancel()
+    }
+
+    @Test
+    fun aMemberRemovedWhileTheirDeviceIsOfflineLosesTheHomeWhenItIsBack() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val members = MemberRepository(x.database, x.profiles, x.sync.rosterChanges)
+        network.offline += y.agentId
+
+        // Act
+        members.removeMember(homeId, y.profiles.current().id)
+        delay(300.milliseconds)
+        assertEquals(listOf("Maple Street"), y.homeNames())
+        network.offline -= y.agentId
+
+        // Assert
+        eventually { y.homeNames().isEmpty() }
+        eventually { x.database.pendingMessageQueries.selectAll().awaitAsList().isEmpty() }
+        scope.cancel()
+    }
+
+    @Test
+    fun aDepartureIsToldToADeviceThatWasOfflineWhenTheMemberLeft() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val leaver = HomeRepository(y.database, y.sync.homeChanges, y.profiles, y.sync.rosterChanges)
+        network.offline += x.agentId
+
+        // Act
+        leaver.leave(homeId)
+        delay(300.milliseconds)
+        assertEquals(2, x.memberIds(homeId).size)
+        network.offline -= x.agentId
+
+        // Assert
+        eventually { x.memberIds(homeId) == listOf(x.profiles.current().id) }
+        eventually { y.database.pendingMessageQueries.selectAll().awaitAsList().isEmpty() }
+        scope.cancel()
+    }
+
+    @Test
+    fun aMessageNobodyAcknowledgesIsGivenUpOnAfterItsLifetime() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        var now = 1_000L
+        val join = HomeJoinService(
+            x.node, x.database, HomeRosters(x.database, x.profiles), x.sync.homeChanges, x.profiles,
+            nowMillis = { now }, messageLifetime = 10.seconds,
+        )
+        network.offline += y.agentId
+        join.removeMember(homeId, y.profiles.current().id)
+
+        // Act
+        now += 5_000L
+        join.resendPending()
+        val before = x.database.pendingMessageQueries.selectAll().awaitAsList().size
+        now += 6_000L
+        join.resendPending()
+
+        // Assert
+        assertEquals(1, before)
+        assertEquals(0, x.database.pendingMessageQueries.selectAll().awaitAsList().size)
         scope.cancel()
     }
 

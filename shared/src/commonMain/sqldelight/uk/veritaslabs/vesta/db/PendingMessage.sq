@@ -1,0 +1,24 @@
+-- Direct messages that must reach a device even if it is offline when they are first sent (docs/adr/ADR-017-retrying-
+-- messages-to-offline-devices.md): a member leaving a Home, or being removed from one. A row is resent every sync round
+-- until the recipient acknowledges it or it expires. One row per recipient, Home and kind, so a repeat replaces the last.
+-- Keep in sync with migrations/10.sqm, which creates this table for databases that predate it.
+CREATE TABLE IF NOT EXISTS PendingMessage (
+    recipient TEXT NOT NULL,
+    homeId TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    payload BLOB NOT NULL,
+    createdAt INTEGER NOT NULL,
+    PRIMARY KEY (recipient, homeId, kind)
+);
+
+selectAll:
+SELECT * FROM PendingMessage ORDER BY createdAt;
+
+upsert:
+INSERT OR REPLACE INTO PendingMessage(recipient, homeId, kind, payload, createdAt) VALUES (?, ?, ?, ?, ?);
+
+delete:
+DELETE FROM PendingMessage WHERE recipient = ? AND homeId = ? AND kind = ?;
+
+deleteOlderThan:
+DELETE FROM PendingMessage WHERE createdAt < ?;

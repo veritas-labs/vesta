@@ -32,7 +32,7 @@ class AgentCommandLogTest {
         assertNull(log.reply("agent-1", "c2"))
     }
 
-    /** The schema as it was at version 2: everything except AgentCommandLog, AgentAccess, SyncedDevice, DeviceSyncGroup, UserDocument and Profile.named. */
+    /** The schema as it was at version 2: everything except AgentCommandLog, AgentAccess, SyncedDevice, DeviceSyncGroup, UserDocument, PendingMessage and Profile.named. */
     private object VersionTwoSchema : SqlSchema<QueryResult.AsyncValue<Unit>> {
         override val version = 2L
 
@@ -43,6 +43,7 @@ class AgentCommandLogTest {
             driver.execute(null, "DROP TABLE SyncedDevice", 0).await()
             driver.execute(null, "DROP TABLE DeviceSyncGroup", 0).await()
             driver.execute(null, "DROP TABLE UserDocument", 0).await()
+            driver.execute(null, "DROP TABLE PendingMessage", 0).await()
             // Added by migration 9, which can't be repeated, unlike the CREATE TABLE IF NOT EXISTS ones.
             driver.execute(null, "ALTER TABLE Profile DROP COLUMN named", 0).await()
             Unit
@@ -72,7 +73,7 @@ class AgentCommandLogTest {
         log.record("agent-1", "c1", "reply")
 
         // Assert
-        assertEquals(10L, VestaDatabase.Schema.version)
+        assertEquals(11L, VestaDatabase.Schema.version)
         assertEquals("reply", log.reply("agent-1", "c1"))
     }
 }

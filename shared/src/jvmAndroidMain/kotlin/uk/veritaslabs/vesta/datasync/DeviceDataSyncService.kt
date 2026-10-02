@@ -167,6 +167,7 @@ class DeviceDataSyncService(
      * each round is what lets a device that was away catch up. It costs a small handshake per document and peer.
      */
     suspend fun syncEverything() = lock.withLock {
+        attempt { join.resendPending() }
         attempt { publishRosters() }
         states.clear()
         connected.clear()

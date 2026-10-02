@@ -34,6 +34,18 @@ class HomeJoinMessageTest {
     }
 
     @Test
+    fun anAckMessageSurvivesEncodingAndDecoding() {
+        // Arrange
+        val ack = HomeJoinMessage.Ack("home-1", HomeJoinMessage.RemovedKind)
+
+        // Act
+        val decoded = HomeJoinMessage.decode(payload(ack))
+
+        // Assert
+        assertEquals(ack, decoded)
+    }
+
+    @Test
     fun otherMessagesOnTheStreamAreNotHomeJoinMessages() {
         // Arrange
         val deviceSyncHello = Base64.Default.encode("""{"kind":"devicesync.hello","name":"Laptop"}""".encodeToByteArray())

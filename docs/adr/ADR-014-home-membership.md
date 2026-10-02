@@ -261,6 +261,9 @@ With this, every part of §4 is built except the x0x-group aspects ADR-015 dropp
 **Slice 10 (2026-10-02): the name is chosen.** The device-name placeholder is replaced by a name the user picks, and can
 change; see [[ADR-016]]. A member's name in every Home follows their Profile.
 
+**Slice 11 (2026-10-02): offline recipients.** `left` and `removed` messages are kept in an outbox and resent each round
+until acknowledged; see [[ADR-017]].
+
 ## References
 
 - [[ADR-005]], [[ADR-012]], [[ADR-013]].

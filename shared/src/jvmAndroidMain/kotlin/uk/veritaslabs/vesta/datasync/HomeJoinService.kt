@@ -5,6 +5,7 @@ import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
@@ -53,6 +54,7 @@ internal class HomeJoinService(
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val resendInterval: Duration = 10.seconds,
     private val timeout: Duration = 90.seconds,
+    private val messageLifetime: Duration = 14.days,
 ) : HomeJoining {
 
     private val _joined = MutableSharedFlow<JoinedHome>(extraBufferCapacity = 4)
@@ -130,8 +132,15 @@ internal class HomeJoinService(
         when (decoded) {
             is HomeJoinMessage.Invite -> acceptInvite(sender, decoded)
             is HomeJoinMessage.Accepted -> pending[decoded.homeId to sender]?.complete(Unit)
-            is HomeJoinMessage.Left -> acceptLeft(sender, decoded)
-            is HomeJoinMessage.Removed -> acceptRemoved(sender, decoded)
+            is HomeJoinMessage.Left -> {
+                acceptLeft(sender, decoded)
+                acknowledge(sender, decoded.homeId, HomeJoinMessage.LeftKind)
+            }
+            is HomeJoinMessage.Removed -> {
+                acceptRemoved(sender, decoded)
+                acknowledge(sender, decoded.homeId, HomeJoinMessage.RemovedKind)
+            }
+            is HomeJoinMessage.Ack -> database.pendingMessageQueries.delete(sender, decoded.homeId, decoded.of)
         }
         return true
     }
@@ -144,15 +153,33 @@ internal class HomeJoinService(
         val devices = rosters.devices(homeId)[memberId].orEmpty()
         rosters.remove(homeId, memberId)
         val message = HomeJoinMessage.encode(HomeJoinMessage.Removed(homeId))
-        devices.forEach { sendQuietly(it, message) }
+        devices.forEach { send(it, homeId, HomeJoinMessage.RemovedKind, message) }
     }
 
     /** The current user, [memberId], leaves [homeId]: the devices of the other members are told (best effort). */
     suspend fun announceLeft(homeId: String, memberId: String) {
         val others = rosters.devices(homeId).filterKeys { it != memberId }.values.flatten().toSet()
         val message = HomeJoinMessage.encode(HomeJoinMessage.Left(homeId, memberId))
-        others.forEach { sendQuietly(it, message) }
+        others.forEach { send(it, homeId, HomeJoinMessage.LeftKind, message) }
     }
+
+    /**
+     * Resends every message still waiting for an acknowledgement, and forgets those that have waited too long. Called
+     * every sync round: that is how a device that was offline when it was sent gets it once it is back.
+     */
+    suspend fun resendPending() {
+        database.pendingMessageQueries.deleteOlderThan(nowMillis() - messageLifetime.inWholeMilliseconds)
+        database.pendingMessageQueries.selectAll().awaitAsList().forEach { sendQuietly(it.recipient, it.payload) }
+    }
+
+    /** Remembers [payload] for [agentId] until they acknowledge it, and tries it now. */
+    private suspend fun send(agentId: String, homeId: String, kind: String, payload: ByteArray) {
+        database.pendingMessageQueries.upsert(agentId, homeId, kind, payload, nowMillis())
+        sendQuietly(agentId, payload)
+    }
+
+    private suspend fun acknowledge(agentId: String, homeId: String, kind: String) =
+        sendQuietly(agentId, HomeJoinMessage.encode(HomeJoinMessage.Ack(homeId, kind)))
 
     /** A member says they have left: believed only from a device the roster lists for that member. */
     private suspend fun acceptLeft(sender: String, message: HomeJoinMessage.Left) {
@@ -180,14 +207,22 @@ internal class HomeJoinService(
     }
 
     private suspend fun acceptInvite(sender: String, invite: HomeJoinMessage.Invite) = lock.withLock {
+        // A Home this device already has: if we are in it and this is who invited us, our Accepted may have been lost
+        // and the admin is still resending, so say it again. Otherwise there is nothing to join.
+        if (database.homeQueries.selectById(invite.homeId).awaitAsOneOrNull() != null) {
+            val devices = rosters.devices(invite.homeId)
+            if (sender in devices[invite.inviterMemberId].orEmpty() && devices[profiles.current().id].orEmpty().isNotEmpty()) {
+                sendQuietly(sender, HomeJoinMessage.encode(HomeJoinMessage.Accepted(invite.homeId)))
+            }
+            return@withLock
+        }
         val link = offered ?: return@withLock
         if (link.isExpired(nowMillis())) {
             offered = null
             return@withLock
         }
-        // The same person on another device, or a Home this device already has: nothing to join.
+        // The same person on another device: nothing to join.
         if (invite.inviterMemberId == link.memberId) return@withLock
-        if (database.homeQueries.selectById(invite.homeId).awaitAsOneOrNull() != null) return@withLock
 
         database.homeQueries.insert(invite.homeId, invite.homeName, invite.shape, invite.createdAt)
         // The admin seeded the Pantry; ours starts empty and fills from theirs (ADR-013).
