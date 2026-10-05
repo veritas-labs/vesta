@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
@@ -428,6 +430,8 @@ fun VestaApp(
     val devices = remember { SyncedDeviceRepository(database) }
     val deviceDataSync = remember { dataSync?.invoke(database, client, devices) }
     LaunchedEffect(deviceDataSync) { deviceDataSync?.run() }
+    // Coming back to the app is a moment other devices may be up (ADR-020), so sync then, not at the next timer round.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { deviceDataSync?.syncNow() }
     val profiles = remember { ProfileRepository(database, changes = deviceDataSync?.profileChanges) }
     val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }

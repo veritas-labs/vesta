@@ -22,6 +22,9 @@ interface DeviceDataSync {
     /** Joining a Home with an invite link, and inviting someone to one (docs/adr/ADR-018-invite-links.md). */
     val joining: HomeJoining
 
+    /** Asks for a sync round now, e.g. because the app came to the foreground. Returns at once; does nothing until [run] is running. */
+    fun syncNow()
+
     /** Syncs for as long as it runs: handles incoming sync messages and keeps every device up to date. Never returns normally. */
     suspend fun run()
 }

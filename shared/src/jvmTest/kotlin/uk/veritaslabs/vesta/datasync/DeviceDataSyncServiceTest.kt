@@ -4,6 +4,8 @@ import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -39,13 +41,13 @@ class DeviceDataSyncServiceTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** One of the user's devices: its own x0x node and database, with a running data sync. */
-    private inner class Device(val agentId: String) {
+    private inner class Device(val agentId: String, interval: Duration = 50.milliseconds) {
         val node = network.node(agentId)
         val database: VestaDatabase = openInMemoryDatabase()
         val devices = SyncedDeviceRepository(database)
         val pantries = PantrySources(database)
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, interval = 50.milliseconds,
+            node, database, devices, pantries, interval = interval,
         )
         val homes = HomeRepository(database, sync.homeChanges)
         val profiles = ProfileRepository(database, changes = sync.profileChanges)
@@ -178,6 +180,52 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         assertEquals(emptyList(), a.homeNames())
+        scope.cancel()
+    }
+
+    @Test
+    fun aDeviceThatComesOnlineIsSyncedAtOnceNotAtTheNextRound() = runBlocking {
+        // Arrange: the timer is an hour, so only the presence event can deliver the Home in time
+        val a = Device("agent-a", interval = 1.hours)
+        val b = Device("agent-b", interval = 1.hours)
+        a.pairedWith(b)
+        b.pairedWith(a)
+        network.offline += b.agentId
+        a.start()
+        b.start()
+        delay(300.milliseconds) // both have run their first round and opened their presence streams
+        a.homes.create("Maple Street", HomeShape.Family)
+        delay(300.milliseconds)
+        assertTrue(b.homeNames().isEmpty())
+
+        // Act
+        network.comeOnline(b.agentId)
+
+        // Assert
+        eventually { b.homeNames() == listOf("Maple Street") }
+        scope.cancel()
+    }
+
+    @Test
+    fun aSyncRequestedWhenTheAppReturnsToTheForegroundRunsARoundNow() = runBlocking {
+        // Arrange
+        val a = Device("agent-a", interval = 1.hours)
+        val b = Device("agent-b", interval = 1.hours)
+        a.pairedWith(b)
+        b.pairedWith(a)
+        network.offline += b.agentId
+        a.start()
+        b.start()
+        delay(300.milliseconds)
+        a.homes.create("Maple Street", HomeShape.Family)
+        delay(300.milliseconds)
+        network.offline -= b.agentId // back, but no presence event arrives
+
+        // Act
+        a.sync.syncNow()
+
+        // Assert
+        eventually { b.homeNames() == listOf("Maple Street") }
         scope.cancel()
     }
 

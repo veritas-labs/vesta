@@ -1,4 +1,4 @@
-# ADR-018: Invite links — joining a Home without both devices online together
+# ADR-018: Invite links — joining a Home without agreeing a time to be online together
 
 **Status:** Accepted (2026-10-02). Implemented. Builds on [[ADR-015]] (joining with a link), [[ADR-014]] (roster) and
 [[ADR-017]] (retrying messages to offline devices). Adds a second way to join; [[ADR-015]]'s flow stays.
@@ -58,6 +58,7 @@ home" gains a second entry for pasting an invite link.
 - Whether the approval card also appears as a notification when the app is in the background (depends on mobile
   background behaviour, not decided here).
 - Whether x0x stores could serve as a mailbox so the joiner needn't retry. Not investigated; this ADR assumes DM retry.
+  See [[ADR-020]]: a store needs an online replica, so it is not a mailbox on its own.
 
 ## Implementation notes
 

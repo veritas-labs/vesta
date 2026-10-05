@@ -40,7 +40,10 @@ sends an Invite after approval, and the joiner now accepts one only from an agen
 
 ## Consequences
 
-- Joining never needs both devices online at once, and there is one flow to explain.
+- Joining never needs both devices online at a *coordinated* time, and there is one flow to explain. It does still need
+  them to overlap eventually: the request, the Invite and Accepted are direct messages, retried each sync round
+  ([[ADR-017]]), so the joiner and an admin device must be online together at least once after the link is redeemed and
+  approved, within the link's 7 days (and the 14-day retry window). If they never overlap, the join doesn't complete.
 - A person cannot ask an admin to invite them by showing a code. They must be sent a link.
 - A forwarded link only ever produces a request an admin can decline; the admin sees the requester's name.
 - Existing short-lived join links stop working. Nothing has shipped with them yet.

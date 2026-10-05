@@ -7,7 +7,9 @@ import uk.veritaslabs.vesta.x0x.X0xAgent
 import uk.veritaslabs.vesta.x0x.X0xApiException
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.vesta.x0x.X0xEventStream
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
+import uk.veritaslabs.vesta.x0x.X0xPresenceEvent
 
 /** A tiny in-memory x0x mesh: nodes can create groups, invite and join, and send each other direct messages. */
 class FakeX0xNetwork {
@@ -26,6 +28,12 @@ class FakeX0xNetwork {
     /** Agents that don't yet see themselves in a group's roster, as while their admission is being committed. */
     val lagging = mutableSetOf<String>()
 
+    /** Takes [agentId] online: its direct messages arrive again, and every other node sees it come online. */
+    fun comeOnline(agentId: String) {
+        offline -= agentId
+        nodes.values.filter { it.agentId != agentId }.forEach { it.onPresence(X0xPresenceEvent("online", agentId)) }
+    }
+
     fun node(agentId: String): Node = Node(agentId).also { nodes[agentId] = it }
 
     inner class Node(val agentId: String) : X0xClient by FakeX0xClient() {
@@ -34,6 +42,14 @@ class FakeX0xNetwork {
         var onDirect: (X0xDirectMessage) -> Unit = {}
 
         val sentTo = mutableListOf<String>()
+
+        /** Called for every presence event while this node's presence stream is open. */
+        var onPresence: (X0xPresenceEvent) -> Unit = {}
+
+        override suspend fun presenceEvents(onEvent: (X0xPresenceEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream {
+            onPresence = onEvent
+            return X0xEventStream { onPresence = {}; onClose(null) }
+        }
 
         override suspend fun agent() = X0xAgent(agentId = agentId)
 

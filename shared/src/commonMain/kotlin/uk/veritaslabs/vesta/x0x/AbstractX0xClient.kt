@@ -82,6 +82,11 @@ abstract class AbstractX0xClient : X0xClient {
             onMessage(json.decodeFromString(X0xDirectMessage.serializer(), event))
         }
 
+    override suspend fun presenceEvents(onEvent: (X0xPresenceEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream =
+        events("/presence/events", onClose) { event ->
+            onEvent(json.decodeFromString(X0xPresenceEvent.serializer(), event))
+        }
+
     // --- Store (replicated KV CRDT) ---
 
     override suspend fun createStore(name: String, topic: String, policy: String): String =

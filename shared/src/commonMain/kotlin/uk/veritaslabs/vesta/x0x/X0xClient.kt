@@ -61,6 +61,12 @@ interface X0xClient {
      */
     suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit, onClose: (Throwable?) -> Unit = {}): X0xEventStream
 
+    /**
+     * Opens the presence SSE stream (`GET /presence/events`): an agent coming online or going offline, as this
+     * daemon sees it. Events are flat. [onClose] behaves as for [gossipEvents].
+     */
+    suspend fun presenceEvents(onEvent: (X0xPresenceEvent) -> Unit, onClose: (Throwable?) -> Unit = {}): X0xEventStream
+
     // --- Store (replicated KV CRDT) ---
 
     suspend fun createStore(name: String, topic: String, policy: String = "signed"): String

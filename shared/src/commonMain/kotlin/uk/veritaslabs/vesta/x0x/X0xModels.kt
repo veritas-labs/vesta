@@ -67,6 +67,16 @@ data class X0xGossipMessage(
     @SerialName("trust_level") val trustLevel: String? = null,
 )
 
+/** A presence transition as delivered on `GET /presence/events`: [event] is `"online"` or `"offline"`. */
+@Serializable
+data class X0xPresenceEvent(
+    val event: String,
+    @SerialName("agent_id") val agentId: String,
+    val reachable: Boolean? = null,
+) {
+    val isOnline: Boolean get() = event == "online"
+}
+
 /** Direct message as delivered on `GET /direct/events` (flat, no envelope). */
 @Serializable
 data class X0xDirectMessage(

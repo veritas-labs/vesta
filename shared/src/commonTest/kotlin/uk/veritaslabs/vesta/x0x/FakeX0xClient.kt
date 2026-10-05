@@ -53,6 +53,8 @@ class FakeX0xClient : X0xClient {
         return JsonObject(emptyMap())
     }
 
+    override suspend fun presenceEvents(onEvent: (X0xPresenceEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream = X0xEventStream { }
+
     override suspend fun health(): X0xHealth? = null
     override suspend fun agent(): X0xAgent = TODO()
     override suspend fun createSession(): X0xSession = TODO()

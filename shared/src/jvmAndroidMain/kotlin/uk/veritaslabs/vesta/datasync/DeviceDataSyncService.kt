@@ -5,6 +5,8 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
@@ -99,6 +101,10 @@ class DeviceDataSyncService(
         launch { pantrySources.localChanges.collect { homeId -> attempt { syncDocument(pantryDocumentId(homeId)) } } }
         // A newly paired device, or one that has gone, changes who there is to sync with.
         launch { devices.devices.collect { attempt { syncEverything() } } }
+        // A peer coming online is the moment a message to it can get through (ADR-020): sync with it now rather than
+        // at the next round. The timer stays as the fallback, as presence events can be late or missed.
+        launch { X0xEventHub(client).presence.collect { event -> if (event.isOnline) attempt { syncWith(event.agentId) } } }
+        launch { syncRequests.consumeEach { attempt { syncEverything() } } }
         while (true) {
             attempt { syncEverything() }
             delay(interval)
@@ -170,6 +176,22 @@ class DeviceDataSyncService(
         states.clear()
         connected.clear()
         documentIds().forEach { id -> peersFor(id).forEach { peer -> pump(id, peer) } }
+    }
+
+    /** Starts the sync over with [peer] alone, and resends anything queued, if it is a peer of any document; otherwise does nothing. */
+    suspend fun syncWith(peer: String) = lock.withLock {
+        val shared = documentIds().filter { peer in peersFor(it) }
+        if (shared.isEmpty()) return@withLock
+        attempt { join.resendPending() }
+        states.keys.removeAll { it.second == peer }
+        connected.remove(peer)
+        shared.forEach { pump(it, peer) }
+    }
+
+    private val syncRequests = Channel<Unit>(Channel.CONFLATED)
+
+    override fun syncNow() {
+        syncRequests.trySend(Unit)
     }
 
     private suspend fun syncDocument(documentId: String) = lock.withLock {

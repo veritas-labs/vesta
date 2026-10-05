@@ -18,7 +18,7 @@ data class Backoff(val initial: Duration = 1.seconds, val max: Duration = 30.sec
 }
 
 /**
- * Owns the daemon's direct-message SSE stream and exposes it as a [Flow] that survives the stream
+ * Owns the daemon's direct-message and presence SSE streams and exposes each as a [Flow] that survives the stream
  * dropping: whenever the stream fails to open or ends, it reconnects after a capped exponential
  * backoff. The delay resets once a connection delivered a message or stayed up for [stableAfter].
  *
@@ -32,7 +32,12 @@ class X0xEventHub(
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
 
-    val directMessages: Flow<X0xDirectMessage> = channelFlow {
+    val directMessages: Flow<X0xDirectMessage> = reconnecting { onItem, onClose -> client.directEvents(onItem, onClose) }
+
+    /** Agents coming online and going offline, from `/presence/events`; reconnects like [directMessages]. */
+    val presence: Flow<X0xPresenceEvent> = reconnecting { onItem, onClose -> client.presenceEvents(onItem, onClose) }
+
+    private fun <T> reconnecting(open: suspend (onItem: (T) -> Unit, onClose: (Throwable?) -> Unit) -> X0xEventStream): Flow<T> = channelFlow {
         var retryDelay = backoff.initial
         while (isActive) {
             val closed = CompletableDeferred<Throwable?>()
@@ -40,12 +45,12 @@ class X0xEventHub(
             val openedAt = timeSource.markNow()
 
             val stream = try {
-                client.directEvents(
-                    onMessage = { message ->
+                open(
+                    { item ->
                         delivered = true
-                        trySend(message)
+                        trySend(item)
                     },
-                    onClose = { closed.complete(it) },
+                    { closed.complete(it) },
                 )
             } catch (e: CancellationException) {
                 throw e
