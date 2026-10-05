@@ -288,6 +288,7 @@ private fun HomeContent(
     val categoriesViewModel = pantrySource?.categoriesSource?.let { source ->
         viewModel(key = "pantry-categories-$homeId") { PantryCategoriesViewModel(source) }
     }
+    val pantryState = pantryViewModel?.uiState?.collectAsStateWithLifecycle()
     val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
@@ -377,6 +378,7 @@ private fun HomeContent(
                 item = item?.toPantryDetails(),
                 categories = categoriesState?.value?.categories.orEmpty(),
                 labels = ShoppingItemFormLabels,
+                suggestions = pantryState?.value?.items.orEmpty(),
                 onEditCategories = { draft ->
                     editingShoppingItem = draft.toShoppingDetails()
                     categoriesBackTo = HomeDestination.ShoppingItemEdit

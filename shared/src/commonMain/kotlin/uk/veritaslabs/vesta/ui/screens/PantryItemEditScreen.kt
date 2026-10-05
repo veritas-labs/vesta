@@ -102,6 +102,26 @@ internal object PantryItemEditTestTags {
 
     /** Tag for the dropdown option with the given category [name], in whichever category dropdown is open. */
     fun categoryOption(name: String) = "pantry_item_edit_category_option_$name"
+
+    /** Tag for the name suggestion for the Pantry entry with the given [key]. */
+    fun suggestion(key: String) = "pantry_item_edit_suggestion_$key"
+}
+
+/** The most name suggestions the item form shows at once. */
+internal const val MaxSuggestions = 5
+
+/**
+ * The [candidates] to suggest for what's been typed in the name field: those whose title contains [typed] (ignoring
+ * case), titles that start with it first, then the order of [candidates]. None once [typed] is blank or is already
+ * exactly one candidate's title (it has been picked).
+ */
+internal fun suggestionsFor(typed: String, candidates: List<PantryListItem>): List<PantryListItem> {
+    val query = typed.trim()
+    if (query.isEmpty() || candidates.any { it.title.equals(query, ignoreCase = true) }) return emptyList()
+    return candidates
+        .filter { it.title.contains(query, ignoreCase = true) }
+        .sortedByDescending { it.title.startsWith(query, ignoreCase = true) }
+        .take(MaxSuggestions)
 }
 
 /**
@@ -173,6 +193,10 @@ val ShoppingItemFormLabels = ItemFormLabels(
  * [onEditCategories]); the caller shows [PantryItemEditPackageScreen] and returns here with the new size in [item].
  * A blank size means a loose item, with no packaging.
  *
+ * While adding an item (no [PantryItemDetails.key]), typing in the name field lists the [suggestions] whose title
+ * contains what's typed (best matches first, at most [MaxSuggestions]); picking one fills in its name, categories,
+ * package size and barcode.
+ *
  * Next to the barcode field a scan icon button (shown when [scanSupported]) opens a full-screen [BarcodeScannerScreen] over
  * the form, which keeps what's been typed; the scanned code fills the barcode field. [barcodeCamera] is the preview
  * the scanner shows, a parameter so tests can stand in for real hardware.
@@ -189,6 +213,7 @@ fun PantryItemEditScreen(
     onEditCategories: (PantryItemDetails) -> Unit = {},
     onEditPackage: (PantryItemDetails) -> Unit = {},
     labels: ItemFormLabels = PantryItemFormLabels,
+    suggestions: List<PantryListItem> = emptyList(),
     scanSupported: Boolean = isBarcodeScanningSupported,
     barcodeCamera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
         BarcodeCameraView(onBarcode, cameraModifier)
@@ -302,6 +327,38 @@ fun PantryItemEditScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(top = 24.dp).testTag(PantryItemEditTestTags.NameField),
                 )
+                val matches = if (item?.key == null) suggestionsFor(title, suggestions) else emptyList()
+                if (matches.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), MaterialTheme.shapes.small),
+                    ) {
+                        matches.forEach { match ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        title = match.title
+                                        primaryCategory = match.primaryCategory
+                                        secondaryCategory = match.secondaryCategory.orEmpty()
+                                        packageSize = match.packageSize
+                                        barcode = match.barcode.orEmpty()
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .testTag(PantryItemEditTestTags.suggestion(match.key)),
+                            ) {
+                                Text(match.title, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    text = listOfNotNull(match.primaryCategory, match.secondaryCategory, match.packageSize.ifBlank { null })
+                                        .joinToString(" · "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
                 CategoryDropdown(
                     label = stringResource(Res.string.pantry_edit_primary_category_label),
                     value = primaryCategory,
