@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.PantrySources
+import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
+import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
@@ -24,6 +26,7 @@ class AgentCommandService(
     private val createClient: () -> X0xClient = ::createX0xClient,
 ) {
     private var current: Pair<VestaDatabase, PantrySources>? = null
+    private var currentShopping: Pair<VestaDatabase, ShoppingListSources>? = null
 
     /** The shared Pantry sources of [database]. */
     @Synchronized
@@ -34,6 +37,15 @@ class AgentCommandService(
     /** [homeId]'s shared Pantry source, for the UI; the Home must exist. */
     suspend fun pantry(database: VestaDatabase, homeId: String): PantryDocumentSource =
         checkNotNull(pantrySources(database).forHome(homeId)) { "no Home with id $homeId" }
+
+    /** [homeId]'s shared shopping-list source, for the UI; the Home must exist. */
+    suspend fun shoppingList(database: VestaDatabase, homeId: String): ShoppingListDocumentSource {
+        val sources = synchronized(this) {
+            currentShopping?.takeIf { it.first === database }?.second
+                ?: ShoppingListSources(database, pantrySources(database)).also { currentShopping = database to it }
+        }
+        return checkNotNull(sources.forHome(homeId)) { "no Home with id $homeId" }
+    }
 
     /** Handles agent commands arriving on x0x until cancelled; never returns normally. */
     @OptIn(ExperimentalUuidApi::class)

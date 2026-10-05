@@ -113,6 +113,37 @@ fun upsertPantryItem(
     return key
 }
 
+/**
+ * Makes sure the Pantry has an entry for the product with the given [barcode]/[title] and returns its dedup key:
+ * creates one (with `useCount = 1`, `stockCount = 0`) when absent, otherwise leaves its fields alone and, when
+ * [countUse], increments `useCount` and refreshes `lastUsedAt`.
+ */
+fun ensurePantryItem(
+    doc: Document,
+    primaryCategory: String,
+    secondaryCategory: String?,
+    title: String,
+    packageSize: String,
+    barcode: String?,
+    countUse: Boolean = true,
+    now: () -> String = { Clock.System.now().toString() },
+): String {
+    val key = pantryDedupKey(barcode, title)
+    if (doc.readPantryItem(key) == null) {
+        return upsertPantryItem(doc, primaryCategory, secondaryCategory, title, packageSize, barcode, now)
+    }
+    if (countUse) {
+        val tx = doc.startTransaction()
+        val itemId = tx.itemsMapId()?.let { (tx.get(it, key).getOrNull() as? AmValue.Map)?.id }
+        if (itemId != null) {
+            tx.set(itemId, LastUsedAtKey, now())
+            tx.increment(itemId, UseCountKey, 1)
+        }
+        tx.commit()
+    }
+    return key
+}
+
 /** Adjusts [key]'s [PantryItem.stockCount] by [delta] (negative to decrement). No-op if [key] has no entry. */
 fun adjustStock(doc: Document, key: String, delta: Int) {
     val tx = doc.startTransaction()

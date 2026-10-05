@@ -122,6 +122,17 @@
     <string name="pantry_categories_remove_confirm_body">Its subcategories are removed too. Items already in this category keep it.</string>
     <string name="pantry_categories_remove_confirm">Remove</string>
 
+    <string name="shopping_title">Shopping list</string>
+    <string name="shopping_add_item">Add shopping item</string>
+    <string name="shopping_empty_title">Nothing to buy</string>
+    <string name="shopping_empty_subtitle">Items you add here are added to the pantry too.</string>
+    <string name="shopping_quantity">×%1$d</string>
+    <string name="shopping_edit_add_title">Add shopping item</string>
+    <string name="shopping_edit_edit_title">Edit shopping item</string>
+    <string name="shopping_edit_quantity_label">Quantity</string>
+    <string name="shopping_quantity_increase">Increase quantity</string>
+    <string name="shopping_quantity_decrease">Decrease quantity</string>
+
     <string name="pantry_edit_no_subcategory">None</string>
     <string name="pantry_edit_edit_categories">Edit categories</string>
     <string name="pantry_edit_add_title">Add pantry item</string>

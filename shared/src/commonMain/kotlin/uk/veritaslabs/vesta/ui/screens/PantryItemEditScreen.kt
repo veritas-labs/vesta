@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.BarcodeCameraView
@@ -73,6 +74,11 @@ import vesta.shared.generated.resources.pantry_edit_primary_category_label
 import vesta.shared.generated.resources.pantry_edit_save
 import vesta.shared.generated.resources.pantry_edit_secondary_category_label
 import vesta.shared.generated.resources.pantry_edit_stock_count_label
+import vesta.shared.generated.resources.shopping_edit_add_title
+import vesta.shared.generated.resources.shopping_edit_edit_title
+import vesta.shared.generated.resources.shopping_edit_quantity_label
+import vesta.shared.generated.resources.shopping_quantity_decrease
+import vesta.shared.generated.resources.shopping_quantity_increase
 
 private val PantryItemEditTabletBreakpoint = 600.dp
 
@@ -116,6 +122,38 @@ data class PantryItemDetails(
 )
 
 /**
+ * The wording of [PantryItemEditScreen]'s title and its count stepper, so the one form can edit a Pantry entry's
+ * stock count (the default) or a shopping-list item's quantity ([ShoppingItemFormLabels], never below [minCount]).
+ */
+data class ItemFormLabels(
+    val addTitle: StringResource,
+    val editTitle: StringResource,
+    val countLabel: StringResource,
+    val decreaseDescription: StringResource,
+    val increaseDescription: StringResource,
+    val minCount: Int = 0,
+)
+
+/** [PantryItemEditScreen]'s wording for a Pantry entry's stock count. */
+val PantryItemFormLabels = ItemFormLabels(
+    Res.string.pantry_edit_add_title,
+    Res.string.pantry_edit_edit_title,
+    Res.string.pantry_edit_stock_count_label,
+    Res.string.pantry_stock_decrease,
+    Res.string.pantry_stock_increase,
+)
+
+/** [PantryItemEditScreen]'s wording for a shopping-list item's quantity. */
+val ShoppingItemFormLabels = ItemFormLabels(
+    Res.string.shopping_edit_add_title,
+    Res.string.shopping_edit_edit_title,
+    Res.string.shopping_edit_quantity_label,
+    Res.string.shopping_quantity_decrease,
+    Res.string.shopping_quantity_increase,
+    minCount = 1,
+)
+
+/**
  * Create/update/delete form for a single Pantry entry (ADR-008). Pass
  * [item] to edit an existing entry, or leave it null to create a new one —
  * the Delete action only appears once [item] (and its [PantryItemDetails.key])
@@ -150,6 +188,7 @@ fun PantryItemEditScreen(
     onCancel: () -> Unit = {},
     onEditCategories: (PantryItemDetails) -> Unit = {},
     onEditPackage: (PantryItemDetails) -> Unit = {},
+    labels: ItemFormLabels = PantryItemFormLabels,
     scanSupported: Boolean = isBarcodeScanningSupported,
     barcodeCamera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
         BarcodeCameraView(onBarcode, cameraModifier)
@@ -160,7 +199,7 @@ fun PantryItemEditScreen(
     var secondaryCategory by remember(item) { mutableStateOf(item?.secondaryCategory.orEmpty()) }
     var packageSize by remember(item) { mutableStateOf(item?.packageSize.orEmpty()) }
     var barcode by remember(item) { mutableStateOf(item?.barcode.orEmpty()) }
-    var stockCount by remember(item) { mutableIntStateOf(item?.stockCount ?: 0) }
+    var stockCount by remember(item) { mutableIntStateOf(item?.stockCount ?: labels.minCount) }
     var scanning by remember { mutableStateOf(false) }
 
     val details = {
@@ -205,11 +244,7 @@ fun PantryItemEditScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (item?.key == null) {
-                            stringResource(Res.string.pantry_edit_add_title)
-                        } else {
-                            stringResource(Res.string.pantry_edit_edit_title)
-                        },
+                        text = stringResource(if (item?.key == null) labels.addTitle else labels.editTitle),
                     )
                 },
                 navigationIcon = {
@@ -340,18 +375,18 @@ fun PantryItemEditScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 ) {
                     Text(
-                        text = stringResource(Res.string.pantry_edit_stock_count_label),
+                        text = stringResource(labels.countLabel),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(
                         onClick = { stockCount-- },
-                        enabled = stockCount > 0,
+                        enabled = stockCount > labels.minCount,
                         modifier = Modifier.testTag(PantryItemEditTestTags.StockDecreaseButton),
                     ) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_minus),
-                            contentDescription = stringResource(Res.string.pantry_stock_decrease),
+                            contentDescription = stringResource(labels.decreaseDescription),
                         )
                     }
                     Text(
@@ -366,7 +401,7 @@ fun PantryItemEditScreen(
                     ) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_plus),
-                            contentDescription = stringResource(Res.string.pantry_stock_increase),
+                            contentDescription = stringResource(labels.increaseDescription),
                         )
                     }
                 }

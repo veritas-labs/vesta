@@ -64,6 +64,12 @@ import uk.veritaslabs.vesta.ui.screens.PantryItemEditScreen
 import uk.veritaslabs.vesta.ui.screens.PantryListItem
 import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
+import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
+import uk.veritaslabs.vesta.ui.screens.ShoppingItemFormLabels
+import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
+import uk.veritaslabs.vesta.ui.screens.ShoppingListScreen
+import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
+import uk.veritaslabs.vesta.ui.screens.ShoppingListViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
 import uk.veritaslabs.vesta.ui.screens.MemberListItem
 import uk.veritaslabs.vesta.ui.screens.MemberRole
@@ -254,6 +260,7 @@ private fun HomeContent(
     homeId: String,
     homeName: String,
     pantrySource: PantrySource? = null,
+    shoppingListSource: ShoppingListSource? = null,
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
@@ -274,6 +281,10 @@ private fun HomeContent(
     val pantryViewModel = pantrySource?.let { source ->
         viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
     }
+    val shoppingViewModel = shoppingListSource?.let { source ->
+        viewModel(key = "shopping-$homeId") { ShoppingListViewModel(source) }
+    }
+    var editingShoppingItem by remember { mutableStateOf<ShoppingItemDetails?>(null) }
     val categoriesViewModel = pantrySource?.categoriesSource?.let { source ->
         viewModel(key = "pantry-categories-$homeId") { PantryCategoriesViewModel(source) }
     }
@@ -286,6 +297,7 @@ private fun HomeContent(
             onBack = { selectedHome.clear() },
             x0xConnectivity = rememberX0xConnectivity(),
             onPantryClick = { destination = HomeDestination.Pantry },
+            onShoppingClick = { destination = HomeDestination.ShoppingList },
             onMembersClick = { destination = HomeDestination.Members },
             isAdmin = isAdmin,
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
@@ -342,6 +354,62 @@ private fun HomeContent(
                     onManageCategories = onManageCategories,
                 )
             }
+        }
+        HomeDestination.ShoppingList -> {
+            val onItemSelected = { item: ShoppingListItem ->
+                editingShoppingItem = item.toDetails()
+                destination = HomeDestination.ShoppingItemEdit
+            }
+            val onAddItem = {
+                editingShoppingItem = null
+                destination = HomeDestination.ShoppingItemEdit
+            }
+            val onBack = { destination = HomeDestination.Dashboard }
+            if (shoppingViewModel != null) {
+                ShoppingListScreen(shoppingViewModel, onItemSelected = onItemSelected, onBack = onBack, onAddItem = onAddItem)
+            } else {
+                ShoppingListScreen(items = emptyList(), onItemSelected = onItemSelected, onBack = onBack, onAddItem = onAddItem)
+            }
+        }
+        HomeDestination.ShoppingItemEdit -> {
+            val item = editingShoppingItem
+            PantryItemEditScreen(
+                item = item?.toPantryDetails(),
+                categories = categoriesState?.value?.categories.orEmpty(),
+                labels = ShoppingItemFormLabels,
+                onEditCategories = { draft ->
+                    editingShoppingItem = draft.toShoppingDetails()
+                    categoriesBackTo = HomeDestination.ShoppingItemEdit
+                    destination = HomeDestination.PantryCategories
+                },
+                onEditPackage = { draft ->
+                    editingShoppingItem = draft.toShoppingDetails()
+                    destination = HomeDestination.ShoppingItemEditPackage
+                },
+                onDelete = { key ->
+                    shoppingViewModel?.remove(key)
+                    destination = HomeDestination.ShoppingList
+                },
+                onSave = { draft ->
+                    shoppingViewModel?.save(draft.toShoppingDetails())
+                    destination = HomeDestination.ShoppingList
+                },
+                onCancel = { destination = HomeDestination.ShoppingList },
+            )
+        }
+        HomeDestination.ShoppingItemEditPackage -> {
+            val draft = editingShoppingItem ?: ShoppingItemDetails()
+            val backToForm = { destination = HomeDestination.ShoppingItemEdit }
+            PantryItemEditPackageScreen(
+                itemName = draft.title,
+                initialValue = draft.packageSize,
+                startLoose = draft.key != null,
+                onDone = { size ->
+                    editingShoppingItem = draft.copy(packageSize = size)
+                    backToForm()
+                },
+                onBack = backToForm,
+            )
         }
         HomeDestination.PantryCategories -> {
             val onBack = { destination = categoriesBackTo }
@@ -407,7 +475,26 @@ class DeviceSyncHost(
     val newPairingViewModel: () -> DevicePairingViewModel,
 )
 
-private enum class HomeDestination { Dashboard, Members, InviteLinks, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage }
+private enum class HomeDestination {
+    Dashboard, Members, InviteLinks, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
+    ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage,
+}
+
+private fun ShoppingListItem.toDetails() = ShoppingItemDetails(
+    key = key, primaryCategory = primaryCategory, secondaryCategory = secondaryCategory, title = title,
+    quantity = quantity, packageSize = packageSize, barcode = barcode,
+)
+
+// The shopping-list form is the Pantry's item form, with the quantity carried in the stock-count field.
+private fun ShoppingItemDetails.toPantryDetails() = PantryItemDetails(
+    key = key, primaryCategory = primaryCategory, secondaryCategory = secondaryCategory, title = title,
+    packageSize = packageSize, barcode = barcode, stockCount = quantity,
+)
+
+private fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
+    key = key, primaryCategory = primaryCategory, secondaryCategory = secondaryCategory, title = title,
+    quantity = stockCount, packageSize = packageSize, barcode = barcode,
+)
 
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With
@@ -420,6 +507,7 @@ private enum class HomeDestination { Dashboard, Members, InviteLinks, Pantry, Pa
 @Composable
 fun VestaApp(
     openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
+    openShoppingList: (suspend (VestaDatabase, homeId: String) -> ShoppingListSource)? = null,
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
@@ -457,9 +545,10 @@ fun VestaApp(
         profiles = profiles,
         homeContent = homeContent ?: { homeId, homeName, onEditHome ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
+            val shoppingListSource by produceState<ShoppingListSource?>(null, homeId) { value = openShoppingList?.invoke(database, homeId) }
             val members = remember(homeId) { memberRepository.members(homeId) }
             HomeContent(
-                homeId, homeName, pantrySource, members,
+                homeId, homeName, pantrySource, shoppingListSource, members,
                 onLeave = { homeRepository.leave(homeId) },
                 onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
                 onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },

@@ -15,6 +15,7 @@ fun main() = application {
         val agentCommands = remember { AgentCommandService() }
         VestaApp(
             openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
+            openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
             backgroundServices = { database -> agentCommands.run(database) },
             dataSync = { database, client, devices ->
                 DeviceDataSyncService(client, database, devices, agentCommands.pantrySources(database))

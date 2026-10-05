@@ -16,6 +16,12 @@ scheme. Amended three times, all by explicit user decision:
    items gain a stock count (inventory, not just usage history); Pantry entries can be deleted by a user. See
    Decision.
 
+**4. 2026-10-05 — Shopping list simplified (supersedes the shopping-list half of this ADR).** A Home has exactly
+**one** shopping list, shared by all members, and the list is *static*: items have no `state`. Checking items off
+belongs to a future "Shopping session" (tied to a store), not the list. The Pantry half of this ADR stands. See
+"Fourth amendment: one static list per Home" below, which overrides the shapes and API in the Decision section
+wherever they disagree (multiple lists, `state`/`ItemState`, `setItemState`, `PantryContributedItem`).
+
 ## Context
 
 Shopping lists are the first feature being built on top of [[ADR-005]]'s "one Automerge `Document` per Home" and
@@ -407,6 +413,44 @@ rather than folded in, matching how `TaskListDocument` gave `setTitle` its own f
 update — the state toggle is the highest-frequency edit on an item (tapped repeatedly while shopping) and doesn't
 need to round-trip the item's other fields to make one change. `addItem` takes both documents because it must
 write to both — the caller doesn't need a separate call site to remember to make for the Pantry side.
+
+### Fourth amendment: one static list per Home
+
+Requirements (2026-10-05): shopping lists are downstream of the Pantry (the list knows the Pantry; the Pantry knows
+nothing of lists); a list is static; adding an item that the Pantry lacks adds it to the Pantry; a Home has one list.
+
+```
+ROOT (map)
+└─ "items": Map<key, ShoppingItem>     -- key = pantryDedupKey(barcode, title), like the Pantry
+
+ShoppingItem (map)
+├─ "id": Str                  -- same value as its key
+├─ "primaryCategory": Str
+├─ "secondaryCategory": Str   -- key omitted when none
+├─ "title": Str
+├─ "quantity": Int
+├─ "packageSize": Str
+└─ "barcode": Str             -- key omitted when none
+```
+
+- **No list object, no list id.** "One list per Home" means the document *is* the list; `lists`, `createdAt`,
+  `createShoppingList` and `deleteShoppingList` go away. `documentId` stays `"$homeId:shopping-list"`.
+- **Items are keyed by the Pantry dedup key**, not a random UUID. This is what makes "the same product added twice"
+  one line: adding an item whose key is already on the list *adds the quantities together*. Concurrent first-time
+  adds of the same product on two devices land on the same key (they conflict as the Pantry's do, see Consequences).
+  The key doubles as the link to the Pantry entry, so `pantryItemKey` is dropped.
+- **Editing an item** (any field, any time, no session needed) rewrites it in place; if the title/barcode change moves
+  its dedup key, the entry moves to the new key (merging quantities if that key is already on the list), as the
+  Pantry's own edit does.
+- **Pantry write path.** Adding an item ensures the Pantry has it: absent -> created (`stockCount` 0, `useCount` 1,
+  its categories registered); present -> only `useCount`/`lastUsedAt` are bumped and the Pantry's fields are left
+  alone. Editing a list item creates the Pantry entry if the new key lacks one, without counting a use. The Pantry
+  is written by the caller (the source), so the list's document functions stay pure.
+- **Cross-device Pantry population by observing synced list items (`PantryContributedItem`) is dropped.** The Pantry
+  is itself synced between devices, so the originating device's write reaches the others; this also removes the
+  `useCount` overcounting of Open Question 4.
+- **Shopping sessions** (phase two) will add `state` back, per session, and store-specific ordering; nothing here
+  prevents that.
 
 ## Consequences
 

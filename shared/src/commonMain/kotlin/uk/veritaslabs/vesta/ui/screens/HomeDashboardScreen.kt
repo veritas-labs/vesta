@@ -54,6 +54,8 @@ import vesta.shared.generated.resources.home_dashboard_back
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_pantry
+import vesta.shared.generated.resources.ic_shopping_cart
+import vesta.shared.generated.resources.shopping_title
 import vesta.shared.generated.resources.home_dashboard_more_options
 import vesta.shared.generated.resources.members_leave
 import vesta.shared.generated.resources.members_leave_blocked_body
@@ -73,6 +75,7 @@ private val HomeDashboardTabletBreakpoint = 600.dp
 internal object HomeDashboardTestTags {
     const val BackButton = "home_dashboard_back_button"
     const val PantryTile = "home_dashboard_pantry_tile"
+    const val ShoppingTile = "home_dashboard_shopping_tile"
     const val X0xIndicator = "home_dashboard_x0x_indicator"
     const val OverflowButton = "home_dashboard_overflow_button"
     const val EditMenuItem = "home_dashboard_edit_menu_item"
@@ -91,7 +94,7 @@ private data class DashboardTile(
 
 /**
  * Landing page for a selected Home: a two-column grid of tiles, each an icon with a label, that
- * open the Home's areas. Only the Pantry ([onPantryClick]) exists so far. The app bar is titled with
+ * open the Home's areas. The Pantry ([onPantryClick]) and the shopping list ([onShoppingClick]) so far. The app bar is titled with
  * [homeName], its back arrow calls [onBack] (to the Home picker), and its trailing indicator shows
  * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Members
  * ([onMembersClick]), with a badge of [membersBadge] people waiting to join, for an admin.
@@ -108,6 +111,7 @@ fun HomeDashboardScreen(
     x0xConnectivity: X0xConnectivity = X0xConnectivity.Connecting,
     onBack: () -> Unit = {},
     onPantryClick: () -> Unit = {},
+    onShoppingClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
     onMembersClick: () -> Unit = {},
     isAdmin: Boolean = false,
@@ -121,6 +125,7 @@ fun HomeDashboardScreen(
     var confirmingLeave by remember { mutableStateOf(false) }
     val tiles = listOf(
         DashboardTile(HomeDashboardTestTags.PantryTile, Res.string.pantry_title, Res.drawable.ic_pantry, onPantryClick),
+        DashboardTile(HomeDashboardTestTags.ShoppingTile, Res.string.shopping_title, Res.drawable.ic_shopping_cart, onShoppingClick),
     )
 
     BoxWithConstraints(
