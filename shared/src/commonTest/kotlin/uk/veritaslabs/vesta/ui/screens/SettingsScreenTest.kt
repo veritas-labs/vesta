@@ -146,7 +146,7 @@ class SettingsScreenTest {
         onNodeWithTag(SettingsTestTags.DarkThemeRow).performClick()
 
         // Assert
-        assertEquals(false, requested)
+        assertEquals(true, requested)
     }
 
     @OptIn(ExperimentalTestApi::class)
