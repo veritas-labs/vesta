@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
+import org.automerge.SyncState
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
@@ -73,6 +74,18 @@ class ShoppingListDocumentSource(
         onLocalChange()
     }
 
+    /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
+    suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
+        document.generateSyncMessage(state).orElse(null)
+    }
+
+    /** Applies a sync message from a peer, then republishes and persists the list if it changed. */
+    suspend fun receiveSync(state: SyncState, message: ByteArray) = lock.withLock {
+        val before = document.heads
+        document.receiveSyncMessage(state, message)
+        if (!document.heads.contentEquals(before)) publishAndPersist()
+    }
+
     /** Republishes and persists after [document] changed outside [save]/[remove], e.g. by applying a sync message. */
     suspend fun refresh() = lock.withLock { publishAndPersist() }
 
@@ -118,4 +131,20 @@ suspend fun openShoppingListDocumentSource(
     )
     if (stored == null) source.refresh()
     return source
+}
+
+/**
+ * Stores an empty shopping-list document for [homeId], unless one is stored already. For a Home that was created on
+ * another device: that device seeds the document's root map, and a second one seeded here would give every device its
+ * own competing `items` map, only one of which survives a merge (see [storeEmptyPantry]).
+ */
+suspend fun storeEmptyShoppingList(
+    database: VestaDatabase,
+    homeId: String,
+    nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+) {
+    val queries = database.automergeDocumentQueries
+    val documentId = shoppingListDocumentId(homeId)
+    if (queries.selectById(documentId).awaitAsOneOrNull() != null) return
+    queries.upsert(documentId, homeId, ShoppingListFeature, Document().save(), nowMillis())
 }

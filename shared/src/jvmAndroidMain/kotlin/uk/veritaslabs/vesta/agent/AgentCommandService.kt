@@ -38,14 +38,18 @@ class AgentCommandService(
     suspend fun pantry(database: VestaDatabase, homeId: String): PantryDocumentSource =
         checkNotNull(pantrySources(database).forHome(homeId)) { "no Home with id $homeId" }
 
-    /** [homeId]'s shared shopping-list source, for the UI; the Home must exist. */
-    suspend fun shoppingList(database: VestaDatabase, homeId: String): ShoppingListDocumentSource {
-        val sources = synchronized(this) {
+    /** The shared shopping-list sources of [database]. */
+    fun shoppingListSources(database: VestaDatabase): ShoppingListSources {
+        val pantry = pantrySources(database)
+        return synchronized(this) {
             currentShopping?.takeIf { it.first === database }?.second
-                ?: ShoppingListSources(database, pantrySources(database)).also { currentShopping = database to it }
+                ?: ShoppingListSources(database, pantry).also { currentShopping = database to it }
         }
-        return checkNotNull(sources.forHome(homeId)) { "no Home with id $homeId" }
     }
+
+    /** [homeId]'s shared shopping-list source, for the UI; the Home must exist. */
+    suspend fun shoppingList(database: VestaDatabase, homeId: String): ShoppingListDocumentSource =
+        checkNotNull(shoppingListSources(database).forHome(homeId)) { "no Home with id $homeId" }
 
     /** Handles agent commands arriving on x0x until cancelled; never returns normally. */
     @OptIn(ExperimentalUuidApi::class)

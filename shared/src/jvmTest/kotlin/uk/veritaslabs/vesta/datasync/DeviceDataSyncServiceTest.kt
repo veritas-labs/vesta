@@ -33,6 +33,9 @@ import uk.veritaslabs.vesta.home.RemoveMemberResult
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
+import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
+import uk.veritaslabs.vesta.automerge.ShoppingListSources
+import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
 class DeviceDataSyncServiceTest {
@@ -46,8 +49,9 @@ class DeviceDataSyncServiceTest {
         val database: VestaDatabase = openInMemoryDatabase()
         val devices = SyncedDeviceRepository(database)
         val pantries = PantrySources(database)
+        val shopping = ShoppingListSources(database, pantries)
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, interval = interval,
+            node, database, devices, pantries, shopping, interval = interval,
         )
         val homes = HomeRepository(database, sync.homeChanges)
         val profiles = ProfileRepository(database, changes = sync.profileChanges)
@@ -66,6 +70,7 @@ class DeviceDataSyncServiceTest {
         suspend fun joinedHome(id: String, name: String, shape: HomeShape) {
             database.homeQueries.insert(id, name, shape.storageValue, 1L)
             storeEmptyPantry(database, id)
+            storeEmptyShoppingList(database, id)
         }
 
         suspend fun profileIds() = database.profileQueries.selectAll().awaitAsList().map { it.id }
@@ -77,6 +82,9 @@ class DeviceDataSyncServiceTest {
             database.homeMemberQueries.selectByHome(homeId).awaitAsList().map { it.memberId }
 
         suspend fun homeNames() = database.homeQueries.selectAll().awaitAsList().map { it.name }.sorted()
+
+        suspend fun shoppingTitles(homeId: String) =
+            shopping.forHome(homeId)!!.items.first().map { it.title }.sorted()
 
         suspend fun pantryTitles(homeId: String) =
             pantries.forHome(homeId)!!.contents.first().items.map { it.title }.sorted()
@@ -142,6 +150,27 @@ class DeviceDataSyncServiceTest {
         // Assert
         eventually { a.pantryTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
         assertEquals(listOf("Beef Mince", "Whole Milk"), b.pantryTitles(homeId))
+        scope.cancel()
+    }
+
+    @Test
+    fun shoppingListItemsAddedOnEitherDeviceReachBothAndLandInTheirPantries() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        b.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames().isNotEmpty() }
+
+        // Act
+        a.shopping.forHome(homeId)!!.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Whole Milk"))
+        eventually { b.shoppingTitles(homeId) == listOf("Whole Milk") }
+        b.shopping.forHome(homeId)!!.save(ShoppingItemDetails(primaryCategory = "Meat", title = "Beef Mince"))
+
+        // Assert
+        eventually { a.shoppingTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
+        eventually { a.pantryTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
+        eventually { b.pantryTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
         scope.cancel()
     }
 
@@ -343,6 +372,23 @@ class DeviceDataSyncServiceTest {
         x.sync.admit(homeId, yMember.id, yMember.displayName, "member", y.agentId)
         y.sync.admit(homeId, xMember.id, xMember.displayName, "admin", x.agentId)
         return Triple(x, y, homeId)
+    }
+
+    @Test
+    fun membersOfAHomeWhoAreNotPairedShareItsShoppingList() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+
+        // Act
+        x.shopping.forHome(homeId)!!.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Whole Milk"))
+        eventually { y.shoppingTitles(homeId) == listOf("Whole Milk") }
+        y.shopping.forHome(homeId)!!.save(ShoppingItemDetails(primaryCategory = "Meat", title = "Beef Mince"))
+
+        // Assert
+        eventually { x.shoppingTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
+        scope.cancel()
     }
 
     @Test

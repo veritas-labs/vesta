@@ -18,7 +18,9 @@ fun main() = application {
             openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
             backgroundServices = { database -> agentCommands.run(database) },
             dataSync = { database, client, devices ->
-                DeviceDataSyncService(client, database, devices, agentCommands.pantrySources(database))
+                DeviceDataSyncService(
+                    client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
+                )
             },
         )
     }

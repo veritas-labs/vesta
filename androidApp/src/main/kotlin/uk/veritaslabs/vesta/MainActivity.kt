@@ -28,7 +28,9 @@ class MainActivity : ComponentActivity() {
                 openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
                 openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
                 dataSync = { database, client, devices ->
-                    DeviceDataSyncService(client, database, devices, agentCommands.pantrySources(database))
+                    DeviceDataSyncService(
+                        client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
+                    )
                 },
             )
         }

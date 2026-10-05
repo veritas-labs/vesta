@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
+import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
@@ -343,6 +344,7 @@ internal class HomeJoinService(
         database.homeQueries.insert(invite.homeId, invite.homeName, invite.shape, invite.createdAt)
         // The admin seeded the Pantry; ours starts empty and fills from theirs (ADR-013).
         storeEmptyPantry(database, invite.homeId)
+        storeEmptyShoppingList(database, invite.homeId)
         homes.saved(StoredHome(invite.homeId, invite.homeName, invite.shape, invite.createdAt))
         // A device only syncs a Home with the agents its roster lists, so it has to be told who invited it.
         rosters.admit(invite.homeId, invite.inviterMemberId, invite.inviterName, MemberRole.Admin.storageValue, sender)

@@ -16,6 +16,7 @@ import uk.veritaslabs.vesta.automerge.deleteRegistryHome
 import uk.veritaslabs.vesta.automerge.putRegistryHome
 import uk.veritaslabs.vesta.automerge.readHomeRegistry
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
+import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
@@ -81,6 +82,7 @@ internal class HomeRegistry(
                     database.homeQueries.insert(entry.id, entry.name, entry.shape, entry.createdAt)
                     // Created elsewhere, so that device seeds the Pantry; ours starts empty and fills from it.
                     storeEmptyPantry(database, entry.id, nowMillis)
+                    storeEmptyShoppingList(database, entry.id, nowMillis)
                     created += entry.id
                 }
                 row.name != entry.name || row.shape != entry.shape ->

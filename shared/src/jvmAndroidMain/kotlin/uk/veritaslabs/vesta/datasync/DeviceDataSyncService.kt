@@ -17,6 +17,8 @@ import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
+import uk.veritaslabs.vesta.automerge.ShoppingListSources
+import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
@@ -33,11 +35,12 @@ import uk.veritaslabs.vesta.x0x.X0xEventHub
 
 private const val PantrySuffix = ":pantry"
 private const val RosterSuffix = ":roster"
+private const val ShoppingListSuffix = ":shopping-list"
 private const val MaxBufferedPerHome = 64
 
 /**
  * Syncs the user's data between their own paired devices (docs/adr/ADR-013-device-data-sync.md): the Home registry
- * ([HomeRegistry]), the user's Profile ([ProfileRegistry]) and each Home's Pantry document, as Automerge sync messages in x0x direct messages
+ * ([HomeRegistry]), the user's Profile ([ProfileRegistry]) and each Home's Pantry and shopping-list documents, as Automerge sync messages in x0x direct messages
  * ([SyncEnvelope], ADR-006). The peers are the devices in the DeviceSync group roster ([SyncedDeviceRepository]),
  * and messages from anyone else are ignored, so group membership is the access control.
  *
@@ -49,6 +52,7 @@ class DeviceDataSyncService(
     private val database: VestaDatabase,
     private val devices: SyncedDeviceRepository,
     private val pantrySources: PantrySources,
+    private val shoppingSources: ShoppingListSources = ShoppingListSources(database, pantrySources),
     private val interval: Duration = 30.seconds,
 ) : DeviceDataSync {
 
@@ -95,10 +99,12 @@ class DeviceDataSyncService(
             rosters.changes.collect { homeId ->
                 attempt { syncDocument(rosterDocumentId(homeId)) }
                 attempt { syncDocument(pantryDocumentId(homeId)) }
+                attempt { syncDocument(shoppingListDocumentId(homeId)) }
             }
         }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
         launch { pantrySources.localChanges.collect { homeId -> attempt { syncDocument(pantryDocumentId(homeId)) } } }
+        launch { shoppingSources.localChanges.collect { homeId -> attempt { syncDocument(shoppingListDocumentId(homeId)) } } }
         // A newly paired device, or one that has gone, changes who there is to sync with.
         launch { devices.devices.collect { attempt { syncEverything() } } }
         // A peer coming online is the moment a message to it can get through (ADR-020): sync with it now rather than
@@ -149,7 +155,7 @@ class DeviceDataSyncService(
 
     /**
      * Who [documentId] is synced with. The user's own paired devices share everything; a Home's own documents (its
-     * Pantry and roster) are also shared with every device its roster lists for a member who hasn't been removed
+     * Pantry, shopping list and roster) are also shared with every device its roster lists for a member who hasn't been removed
      * (ADR-014), so the members of a Home sync it between them. The Home registry and Profile are only ever the user's.
      */
     private suspend fun peersFor(documentId: String): Set<String> {
@@ -162,6 +168,7 @@ class DeviceDataSyncService(
     private fun homeIdOf(documentId: String): String? = when {
         documentId.endsWith(PantrySuffix) -> documentId.removeSuffix(PantrySuffix)
         documentId.endsWith(RosterSuffix) -> documentId.removeSuffix(RosterSuffix)
+        documentId.endsWith(ShoppingListSuffix) -> documentId.removeSuffix(ShoppingListSuffix)
         else -> null
     }
 
@@ -200,7 +207,7 @@ class DeviceDataSyncService(
 
     private suspend fun documentIds(): List<String> =
         listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
-            .flatMap { listOf(pantryDocumentId(it.id), rosterDocumentId(it.id)) }
+            .flatMap { listOf(pantryDocumentId(it.id), shoppingListDocumentId(it.id), rosterDocumentId(it.id)) }
 
     private suspend fun receive(sender: String, documentId: String, message: ByteArray) {
         if (documentId == HomeRegistryDocumentId) {
@@ -219,8 +226,8 @@ class DeviceDataSyncService(
             // A device that took on the shared Profile retires its old member id, then publishes the new one.
             profile.project()?.let { rosters.retire(it) }
             publishRosters()
-        } else if (documentId.endsWith(PantrySuffix) || documentId.endsWith(RosterSuffix)) {
-            val homeId = documentId.removeSuffix(PantrySuffix).removeSuffix(RosterSuffix)
+        } else if (homeIdOf(documentId) != null) {
+            val homeId = homeIdOf(documentId)!!
             if (!receiveHomeDocument(sender, documentId, message)) {
                 waiting.getOrPut(homeId) { mutableListOf() }.let { if (it.size < MaxBufferedPerHome) it += Triple(sender, documentId, message) }
                 return
@@ -233,11 +240,16 @@ class DeviceDataSyncService(
         peersFor(documentId).forEach { pump(documentId, it) }
     }
 
-    /** Applies a Pantry or roster message; false when this device has no such Home yet. */
+    /** Applies a Pantry, shopping-list or roster message; false when this device has no such Home yet. */
     private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
         if (documentId.endsWith(RosterSuffix)) {
             val homeId = documentId.removeSuffix(RosterSuffix)
             return rosters.receive(homeId, stateFor(documentId, sender), message).also { if (it) rosters.project(homeId) }
+        }
+        if (documentId.endsWith(ShoppingListSuffix)) {
+            val source = shoppingSources.forHome(documentId.removeSuffix(ShoppingListSuffix)) ?: return false
+            source.receiveSync(stateFor(documentId, sender), message)
+            return true
         }
         val source = pantrySources.forHome(documentId.removeSuffix(PantrySuffix)) ?: return false
         source.receiveSync(stateFor(documentId, sender), message)
@@ -264,6 +276,8 @@ class DeviceDataSyncService(
                     ProfileDocumentId -> profile.generate(state)
                     else -> if (documentId.endsWith(RosterSuffix)) {
                         rosters.generate(documentId.removeSuffix(RosterSuffix), state)
+                    } else if (documentId.endsWith(ShoppingListSuffix)) {
+                        shoppingSources.forHome(documentId.removeSuffix(ShoppingListSuffix))?.generateSync(state)
                     } else pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())

@@ -449,6 +449,10 @@ ShoppingItem (map)
 - **Cross-device Pantry population by observing synced list items (`PantryContributedItem`) is dropped.** The Pantry
   is itself synced between devices, so the originating device's write reaches the others; this also removes the
   `useCount` overcounting of Open Question 4.
+- **Sync (2026-10-05).** `"$homeId:shopping-list"` syncs like the Pantry ([[ADR-013]]): between a user's paired devices
+  and with every device on the Home's roster, over `DeviceDataSyncService`. A Home that arrives from another device
+  (registry projection or invite join) is given an *empty* stored list document (`storeEmptyShoppingList`) so it fills
+  from the creator's seeded one rather than creating a competing `items` map.
 - **Shopping sessions** (phase two) will add `state` back, per session, and store-specific ordering; nothing here
   prevents that.
 
