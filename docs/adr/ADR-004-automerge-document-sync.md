@@ -196,7 +196,7 @@ time, in order, on the SSE reader's own thread — required, because `SyncState`
 3. **Multi-peer group sync.** For a document meant to be shared by more than two devices (e.g. a Home's full
    member list) — no fan-out/broadcast equivalent to [[ADR-002]]/[[ADR-003]]'s MLS group exists here. Every
    relationship is an explicit, separate `connectTo()`. Needs its own design if pursued.
-4. **Real device/peer discovery.** [[ADR-003]]'s pairing flow (`DevicePairing.kt`) is still all `TODO()`. This
+4. **Real device/peer discovery.** [[ADR-003]]'s pairing flow was never built (its `DevicePairing.kt` stubs were deleted; see [[ADR-012]]). This
    PoC's "paste an agent id" is a stand-in, not a production mechanism.
 5. **Reconnection and liveness.** Nothing here detects a peer going offline or retries a dropped connection. Decide
    whether/how to rebuild this deliberately — informed by, not repeating, design 3's retry-object-lifecycle bug.

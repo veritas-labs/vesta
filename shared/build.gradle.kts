@@ -151,23 +151,13 @@ kotlin {
             // target; desktopApp pulls this in for the real app, but shared's
             // own jvmTest doesn't otherwise depend on it.
             implementation(compose.desktop.currentOs)
-            // Executable Gherkin specs (Cucumber-JVM), e.g.
-            // src/jvmTest/resources/features/device-pairing.feature. JVM-only
-            // by nature — see the useJUnitPlatform() note below.
-            implementation(libs.cucumber.java)
-            implementation(libs.cucumber.junitPlatformEngine)
-            // Runs Cucumber via a @Suite class (RunDevicePairingCucumberTest)
-            // rather than relying on the Kotlin Gradle plugin's own jvmTest
-            // discovery to pick up Cucumber's dynamically-named tests
-            // directly — it doesn't; see that class's kdoc for why.
-            implementation(libs.junitPlatform.suite)
             // Gradle 9 no longer auto-provisions this; required to run any
-            // JUnit Platform engine (Cucumber's included) via useJUnitPlatform().
+            // JUnit Platform engine via useJUnitPlatform().
             runtimeOnly(libs.junitPlatform.launcher)
             // kotlin-test resolves to kotlin-test-junit (JUnit4) on the jvm
             // target today (see gradle/libs.versions.toml junit = "4.13.2").
             // The vintage engine lets those existing tests keep running
-            // alongside Cucumber's JUnit Platform engine under one test task.
+            // alongside JUnit Platform engines under one test task.
             runtimeOnly(libs.junitVintage.engine)
             implementation(libs.kotlinx.coroutinesTest)
         }
@@ -197,26 +187,14 @@ dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
 
-// Switches jvmTest to the JUnit Platform launcher so Cucumber's
-// cucumber-junit-platform-engine (glue/config in
-// src/jvmTest/resources/junit-platform.properties) runs alongside the
-// existing kotlin-test-junit (JUnit4, via junit-vintage-engine) tests in one
-// `./gradlew jvmTest` invocation. Deferred to afterEvaluate: the Kotlin
-// Multiplatform plugin sets this task's test framework to plain JUnit4
-// (matching kotlin-test-junit) in its own afterEvaluate hook, which would
-// otherwise run after — and silently revert — a top-level call here.
+// Switches jvmTest to the JUnit Platform launcher (kotlin-test-junit tests run
+// via junit-vintage-engine). Deferred to afterEvaluate: the Kotlin
+// Multiplatform plugin sets this task's test framework to plain JUnit4 in its
+// own afterEvaluate hook, which would otherwise run after — and silently
+// revert — a top-level call here.
 afterEvaluate {
     tasks.named<Test>("jvmTest") {
         useJUnitPlatform()
-        // RunDevicePairingCucumberTest's Constants.PLUGIN_PROPERTY_NAME is set
-        // to "pretty", which writes each Given/When/Then step (and which one
-        // failed) to System.out — but Gradle swallows a test's stdout unless
-        // showStandardStreams is on, so without this only the enclosing
-        // Feature/Scenario/Step node names from the JUnit Platform Suite
-        // (set up in that class) reach the console, not the step text itself.
-        testLogging {
-            showStandardStreams = true
-        }
     }
 }
 
