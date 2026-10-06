@@ -28,6 +28,10 @@ fall apart at scale.
 - Accessible to all ages (8–100) with themed experiences
 - Equally usable by humans (GUI) and AI agents (Skills / MCP servers)
 
+### Sync limits
+
+Devices sync directly, so they must be online together. See [Syncing and joining](SYNC-AND-JOINING.md).
+
 ### Status
 
 Greenfield — foundational product documentation phase.

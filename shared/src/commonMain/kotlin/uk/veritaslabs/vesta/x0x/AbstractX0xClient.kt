@@ -98,19 +98,19 @@ abstract class AbstractX0xClient : X0xClient {
     override suspend fun listStores(): JsonObject = get("/stores")
 
     override suspend fun listStoreKeys(storeId: String): List<X0xStoreKey> {
-        val keys = get("/stores/$storeId/keys")["keys"]?.jsonArray ?: return emptyList()
+        val keys = get("/stores/${encodePathSegment(storeId)}/keys")["keys"]?.jsonArray ?: return emptyList()
         return keys.map { json.decodeFromJsonElement(X0xStoreKey.serializer(), it) }
     }
 
     override suspend fun getValue(storeId: String, key: String): ByteArray? {
-        val result = call("GET", "/stores/$storeId/$key", allowNotFound = true) ?: return null
+        val result = call("GET", storeValuePath(storeId, key), allowNotFound = true) ?: return null
         val encoded = result["value"]?.jsonPrimitive?.content ?: return null
         return Base64.Default.decode(encoded)
     }
 
     override suspend fun putValue(storeId: String, key: String, value: ByteArray, contentType: String) {
         put(
-            "/stores/$storeId/$key",
+            storeValuePath(storeId, key),
             buildJsonObject {
                 put("value", Base64.Default.encode(value))
                 put("content_type", contentType)
@@ -119,12 +119,15 @@ abstract class AbstractX0xClient : X0xClient {
     }
 
     override suspend fun deleteValue(storeId: String, key: String) {
-        delete("/stores/$storeId/$key")
+        delete(storeValuePath(storeId, key))
     }
 
     override suspend fun joinStore(storeId: String, expectedOwner: String) {
-        post("/stores/$storeId/join", buildJsonObject { put("expected_owner", expectedOwner) })
+        post("/stores/${encodePathSegment(storeId)}/join", buildJsonObject { put("expected_owner", expectedOwner) })
     }
+
+    override suspend fun openGroupStore(groupId: String, name: String): String =
+        post("/groups/$groupId/stores", buildJsonObject { put("name", name) })["id"]!!.jsonPrimitive.content
 
     // --- Named groups ---
 
@@ -205,5 +208,22 @@ abstract class AbstractX0xClient : X0xClient {
     private suspend fun events(path: String, onClose: (Throwable?) -> Unit, onEvent: (String) -> Unit): X0xEventStream {
         val (baseUrl, token) = resolveDaemon() ?: throw X0xApiException(0, "x0x daemon not reachable")
         return openSseStream("$baseUrl$path", token, onEvent, onClose)
+    }
+}
+
+/** A store id such as `x0x/group/<gid>/kv/<hash>` holds `/`, so it is one path segment only once encoded. */
+internal fun storeValuePath(storeId: String, key: String): String =
+    "/stores/${encodePathSegment(storeId)}/${encodePathSegment(key)}"
+
+/** Percent-encodes every byte of [segment] outside the RFC 3986 unreserved set, so `/` becomes `%2F`. */
+internal fun encodePathSegment(segment: String): String = buildString {
+    for (byte in segment.encodeToByteArray()) {
+        val c = byte.toInt() and 0xFF
+        val ch = c.toChar()
+        if (ch in 'A'..'Z' || ch in 'a'..'z' || ch in '0'..'9' || ch == '-' || ch == '.' || ch == '_' || ch == '~') {
+            append(ch)
+        } else {
+            append('%').append("0123456789ABCDEF"[c shr 4]).append("0123456789ABCDEF"[c and 0xF])
+        }
     }
 }

@@ -295,11 +295,15 @@ The app embeds x0x **0.45.0** (`ffi/x0x-ffi/Cargo.toml`); all earlier spikes ran
 
 ## Implementation slices
 
+The detailed plan, with the dependency order and risks, is [docs/plans/ADR-020-implementation-plan.md](../plans/ADR-020-implementation-plan.md). It adds
+slices this list lacks, notably a Home x0x group: Vesta has no group per Home today, only the per-person `DeviceSync`
+group, and the mailbox needs one.
+
 1. **Done.** Presence-triggered and foreground-triggered sync rounds in `DeviceDataSyncService`, with tests on the in-memory mesh.
    `X0xClient.presenceEvents` and `X0xEventHub.presence` stream `/presence/events`; an `online` event for a peer runs
    `syncWith(peer)` (restart that peer's sync and resend queued join messages); `DeviceDataSync.syncNow()` runs a full
    round and is called from `App` on `ON_START`. The 30 s timer stays as the fallback.
-2. Document what overlap is required today, in the user-facing help.
+2. **Done.** Document what overlap is required today: [docs/product/SYNC-AND-JOINING.md](../product/SYNC-AND-JOINING.md) (the app has no help screen yet).
 3. **Spike done by hand 2026-10-05** against real daemons, written up in "Spike findings". Still to do: an opt-in automated
    test like [[ADR-012]]'s, and a decision on member-hub versus per-member blind stores.
 4. Mailbox client in the app: entry format, writing and reading `mailbox`, garbage collection, with tests on the in-memory mesh.

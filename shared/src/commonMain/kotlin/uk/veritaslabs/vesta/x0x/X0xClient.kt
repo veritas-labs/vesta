@@ -85,6 +85,14 @@ interface X0xClient {
     /** Replicates a store another agent created; [expectedOwner] must come from an out-of-band source. */
     suspend fun joinStore(storeId: String, expectedOwner: String)
 
+    /**
+     * Opens (creates, or on a repeat call re-opens) the store [name] bound to a group this agent belongs to,
+     * and returns its store id. Any active member can read, write and delete in it; the group's key
+     * encrypts it. A daemon never opens a group store by itself on joining, so every member calls this
+     * once per group. The id contains `/`, which the other store calls encode.
+     */
+    suspend fun openGroupStore(groupId: String, name: String): String
+
     // --- Named groups ---
 
     /** Creates a named group and returns its `group_id`. See `preset` options in the x0x API docs. */
