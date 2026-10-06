@@ -26,7 +26,8 @@ the per-person `DeviceSync` group ([[ADR-012]]). Homes sync over direct messages
    of a member, an existing Home that gets a group, and a device whose group was replaced.
 5. **Roles.** Devices of Vesta admin members are promoted to x0x `admin` by any x0x admin that sees them active, and devices
    of members demoted to plain member are demoted (never the creator, never oneself). Agents that are in the group but on no
-   member's roster entry (the hub, [[ADR-020]]) are left alone: promotion and demotion only touch agents the roster names.
+   member's roster entry are left alone: promotion and demotion only touch agents the roster names. The hub ([[ADR-020]], slice 6)
+   is one the roster names in its own `hub` key, and is kept an x0x admin; it is removed only by an admin choosing to.
 6. **Removal.** A member removed from the roster ([[ADR-014]]) or who left has their devices removed from the group by any
    x0x admin, which rekeys. This is a diff each round (group members that are devices of removed members), so a removal
    that failed (the key package is pending, or the admin was offline) is retried. If the device to remove is the group's

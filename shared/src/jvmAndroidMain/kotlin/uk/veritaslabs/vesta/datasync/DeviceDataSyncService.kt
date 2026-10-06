@@ -29,6 +29,7 @@ import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
 import uk.veritaslabs.vesta.mailbox.MailboxReader
 import uk.veritaslabs.vesta.mailbox.MailboxWriter
+import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.profile.ProfileChangeListener
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -78,6 +79,8 @@ class DeviceDataSyncService(
     override val homeChanges: HomeChangeListener get() = registry
 
     override val joining: HomeJoining get() = join
+
+    override val hubs: HomeHub = HomeHubs(client, database, rosters, profiles)
 
     override val profileChanges: ProfileChangeListener = object : ProfileChangeListener {
         override suspend fun changed() {

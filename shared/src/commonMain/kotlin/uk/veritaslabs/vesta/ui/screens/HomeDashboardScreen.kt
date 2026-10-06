@@ -57,6 +57,7 @@ import vesta.shared.generated.resources.ic_pantry
 import vesta.shared.generated.resources.ic_shopping_cart
 import vesta.shared.generated.resources.shopping_title
 import vesta.shared.generated.resources.home_dashboard_more_options
+import vesta.shared.generated.resources.hub_menu_item
 import vesta.shared.generated.resources.members_leave
 import vesta.shared.generated.resources.members_leave_blocked_body
 import vesta.shared.generated.resources.members_leave_blocked_ok
@@ -81,6 +82,7 @@ internal object HomeDashboardTestTags {
     const val EditMenuItem = "home_dashboard_edit_menu_item"
     const val LeaveMenuItem = "home_dashboard_leave_menu_item"
     const val DeleteMenuItem = "home_dashboard_delete_menu_item"
+    const val HubMenuItem = "home_dashboard_hub_menu_item"
     const val ConfirmLeave = "home_dashboard_leave_confirm"
     const val BlockedDialog = "home_dashboard_leave_blocked"
 }
@@ -99,7 +101,7 @@ private data class DashboardTile(
  * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Members
  * ([onMembersClick]), with a badge of [membersBadge] people waiting to join, for an admin.
  *
- * The app bar's overflow menu has Edit home ([onEditHome]) and Delete home ([onDeleteHome]), both only for an
+ * The app bar's overflow menu has Edit home ([onEditHome]), Always-on hub ([onHubClick]) and Delete home ([onDeleteHome]), all only for an
  * [isAdmin], and Leave home, which asks for confirmation before calling [onLeaveHome]. [leaveBlocked] shows why
  * the user can't leave (they are the only admin) until [onLeaveBlockedDismiss].
  */
@@ -116,6 +118,7 @@ fun HomeDashboardScreen(
     onMembersClick: () -> Unit = {},
     isAdmin: Boolean = false,
     onEditHome: () -> Unit = {},
+    onHubClick: () -> Unit = {},
     onDeleteHome: () -> Unit = {},
     onLeaveHome: () -> Unit = {},
     leaveBlocked: Boolean = false,
@@ -171,6 +174,14 @@ fun HomeDashboardScreen(
                                     onEditHome()
                                 },
                                 modifier = Modifier.testTag(HomeDashboardTestTags.EditMenuItem),
+                            )
+                            if (isAdmin) DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.hub_menu_item)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onHubClick()
+                                },
+                                modifier = Modifier.testTag(HomeDashboardTestTags.HubMenuItem),
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.members_leave)) },

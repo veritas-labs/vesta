@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.devicesync
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.vesta.profile.ProfileChangeListener
+import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 
 /**
@@ -21,6 +22,9 @@ interface DeviceDataSync {
 
     /** Joining a Home with an invite link, and inviting someone to one (docs/adr/ADR-018-invite-links.md). */
     val joining: HomeJoining
+
+    /** A Home's always-on hub: enrolling one, and removing it (docs/adr/ADR-020-syncing-without-overlapping-online-time.md). */
+    val hubs: HomeHub
 
     /** Asks for a sync round now, e.g. because the app came to the foreground. Returns at once; does nothing until [run] is running. */
     fun syncNow()

@@ -111,6 +111,7 @@ class HomeDashboardScreenTest {
 
         // Assert
         onNodeWithTag(HomeDashboardTestTags.EditMenuItem).assertIsDisplayed()
+        onNodeWithTag(HomeDashboardTestTags.HubMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).assertIsDisplayed()
     }
@@ -127,7 +128,23 @@ class HomeDashboardScreenTest {
         // Assert
         onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.EditMenuItem).assertDoesNotExist()
+        onNodeWithTag(HomeDashboardTestTags.HubMenuItem).assertDoesNotExist()
         onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun alwaysOnHubInTheMenuInvokesOnHubClick() = runComposeUiTest {
+        // Arrange
+        var opens = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = true, onHubClick = { opens++ }) } }
+
+        // Act
+        openMenu()
+        onNodeWithTag(HomeDashboardTestTags.HubMenuItem).performClick()
+
+        // Assert
+        assertEquals(1, opens)
     }
 
     @OptIn(ExperimentalTestApi::class)

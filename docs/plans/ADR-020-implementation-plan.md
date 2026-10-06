@@ -143,7 +143,7 @@ Each slice is independently committable and leaves the suite green. Order matter
   every entry; deletion by one writer reaches the replicas.
 - **Done when:** a simulated six-month history leaves a store of bounded size and a fresh device still converges.
 
-### Slice 6 — the hub in the app — needs slice 2
+### Slice 6 — the hub in the app — needs slice 2 — **done 2026-10-06 on the fake mesh, except the invite-link item (deliberately not built, see below)**
 - **Hub enrolment UI** (Home settings → "Always-on hub"): shows the copy-paste block for the hub machine, with a freshly
   minted invite for that Home:
   `x0x group join <invite>` then `x0x group store create <group id> mailbox`, plus the hub requirement (x0xd 0.46.3 or
@@ -152,7 +152,8 @@ Each slice is independently committable and leaves the suite green. Order matter
   agent id, or confirms it from a list of unknown members), the creator device runs `setGroupMemberRole(admin)`.
 - **Roster:** record `hubAgentId` on the Home (decision 3). Show hub status (present in the group; last seen if x0x exposes
   it) on the same screen. Removing the hub removes it from the group (rekey).
-- **Invite links:** ADR-018 lists up to 5 admin agents; put the hub first.
+- **Invite links:** ADR-018 lists up to 5 admin agents; put the hub first. **Not built, on purpose:** a join request is a Vesta direct message, and the hub runs no Vesta, so it can't answer one; naming it would only spend one of the five slots. What a hub does for joining is at the x0x group level (it is an admin, so it can admit a device to the group while the phones are away, tested in `HomeHubsTest`), not at the Vesta approval step, which stays with an admin's device (ADR-020 open points).
+- **As built:** `HomeHub` (commonMain) / `HomeHubs` (`datasync`), `hub` key in the roster document, `HubViewModel` (polls while the screen is on show), `HubScreen` (previews in the light/dark x phone/tablet matrix), and an admin-only "Always-on hub" entry in the dashboard menu. The admin runs the printed commands on the hub machine, then picks the agent that appeared in the group from a list (pasting or scanning an agent id was left out: choosing from the group's unknown members cannot name the wrong machine by a typo). `HomeGroups` keeps the recorded hub an x0x admin and never touches it otherwise. Removing it removes it from the group (rekey, retried while x0x fetches a key package) and then from the roster; a removal that fails leaves it recorded. "Last seen" is not shown (x0x gives none).
 - **Done when:** a hub can be added and removed from the UI against the fake mesh, and the UI matches the preview matrix.
 
 ### Slice 7 — real-daemon opt-in test — needs slices 3–4

@@ -15,6 +15,7 @@ private const val RoleField = "role"
 private const val JoinedAtField = "joinedAt"
 private const val RemovedField = "removed"
 private const val GroupKey = "group"
+private const val HubKey = "hub"
 private const val InvitePrefix = "invite:"
 private const val CreatedByField = "createdBy"
 private const val ExpiresAtField = "expiresAt"
@@ -50,7 +51,8 @@ data class RosterMember(
  * same value merge to exactly that value. So any device may write its own person's keys, and a device writes only its
  * own `device:` key.
  *
- * The Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) is one more scalar, `group = <groupId>`.
+ * The Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) is one more scalar, `group = <groupId>`, and its always-on hub
+ * (docs/adr/ADR-020, an agent that is in the group but acts for no member) another, `hub = <agentId>`.
  *
  * Invites (docs/adr/ADR-018-invite-links.md) live in the same document, as flat keys too:
  *
@@ -276,6 +278,33 @@ fun setRosterGroup(doc: Document, groupId: String): Boolean {
         return false
     }
     tx.set(ObjectId.ROOT, GroupKey, groupId)
+    tx.commit()
+    return true
+}
+
+/** The agent recorded as the Home's always-on hub, or null. */
+fun Read.readRosterHub(): String? = (get(ObjectId.ROOT, HubKey).getOrNull() as? AmValue.Str)?.value?.takeIf { it.isNotEmpty() }
+
+/** Records [agentId] as the Home's hub, replacing any other. Returns whether anything changed. */
+fun setRosterHub(doc: Document, agentId: String): Boolean {
+    val tx = doc.startTransaction()
+    if ((tx.get(ObjectId.ROOT, HubKey).getOrNull() as? AmValue.Str)?.value == agentId) {
+        tx.rollback()
+        return false
+    }
+    tx.set(ObjectId.ROOT, HubKey, agentId)
+    tx.commit()
+    return true
+}
+
+/** Forgets the Home's hub, if one is recorded. Returns whether anything changed. */
+fun clearRosterHub(doc: Document): Boolean {
+    val tx = doc.startTransaction()
+    if (!tx.get(ObjectId.ROOT, HubKey).isPresent) {
+        tx.rollback()
+        return false
+    }
+    tx.delete(ObjectId.ROOT, HubKey)
     tx.commit()
     return true
 }

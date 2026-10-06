@@ -43,8 +43,11 @@ import uk.veritaslabs.vesta.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.homejoin.HomeJoining
+import uk.veritaslabs.vesta.homegroup.HomeHub
+import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
+import uk.veritaslabs.vesta.ui.screens.HubScreen
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteScreen
 import uk.veritaslabs.vesta.home.MemberRepository
@@ -268,6 +271,7 @@ private fun HomeContent(
     onEditHome: () -> Unit = {},
     onDeleteHome: suspend () -> Unit = {},
     joining: HomeJoining? = null,
+    hubs: HomeHub? = null,
 ) {
     val scope = rememberCoroutineScope()
     var leaveBlocked by remember { mutableStateOf(false) }
@@ -303,6 +307,7 @@ private fun HomeContent(
             isAdmin = isAdmin,
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
             onEditHome = onEditHome,
+            onHubClick = { destination = HomeDestination.Hub },
             onDeleteHome = { scope.launch { onDeleteHome() } },
             onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
             leaveBlocked = leaveBlocked,
@@ -323,6 +328,10 @@ private fun HomeContent(
         HomeDestination.InviteLinks -> {
             val linksViewModel = viewModel(key = "invite-links-$homeId") { InviteLinksViewModel(homeId, joining) }
             InviteLinksScreen(linksViewModel, onBack = { destination = HomeDestination.Members })
+        }
+        HomeDestination.Hub -> {
+            val hubViewModel = viewModel(key = "hub-$homeId") { HubViewModel(homeId, hubs) }
+            HubScreen(hubViewModel, onBack = { destination = HomeDestination.Dashboard })
         }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -478,7 +487,7 @@ class DeviceSyncHost(
 )
 
 private enum class HomeDestination {
-    Dashboard, Members, InviteLinks, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
+    Dashboard, Members, InviteLinks, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
     ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage,
 }
 
@@ -557,6 +566,7 @@ fun VestaApp(
                 onEditHome = onEditHome,
                 onDeleteHome = { homeRepository.delete(homeId) },
                 joining = deviceDataSync?.joining,
+                hubs = deviceDataSync?.hubs,
             )
         },
     )

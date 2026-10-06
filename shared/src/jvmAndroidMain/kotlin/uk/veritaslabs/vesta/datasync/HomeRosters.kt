@@ -22,7 +22,10 @@ import uk.veritaslabs.vesta.automerge.useRosterInvite
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.automerge.RosterMember
 import uk.veritaslabs.vesta.automerge.putRosterMember
+import uk.veritaslabs.vesta.automerge.clearRosterHub
 import uk.veritaslabs.vesta.automerge.readRosterGroup
+import uk.veritaslabs.vesta.automerge.readRosterHub
+import uk.veritaslabs.vesta.automerge.setRosterHub
 import uk.veritaslabs.vesta.automerge.setRosterGroup
 import uk.veritaslabs.vesta.automerge.readRoster
 import uk.veritaslabs.vesta.automerge.releaseRosterDevice
@@ -264,6 +267,27 @@ internal class HomeRosters(
         val changed = lock.withLock {
             val doc = open(homeId) ?: return
             setRosterGroup(doc, groupId).also { if (it) persist(homeId, doc) }
+        }
+        if (changed) _changes.tryEmit(homeId)
+    }
+
+    /** The agent [homeId]'s roster records as its always-on hub (docs/adr/ADR-020), or null. */
+    suspend fun hub(homeId: String): String? = lock.withLock { open(homeId)?.readRosterHub() }
+
+    /** Records [agentId] as [homeId]'s hub for every device of the Home to learn. */
+    suspend fun setHub(homeId: String, agentId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            setRosterHub(doc, agentId).also { if (it) persist(homeId, doc) }
+        }
+        if (changed) _changes.tryEmit(homeId)
+    }
+
+    /** Forgets [homeId]'s hub. */
+    suspend fun clearHub(homeId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            clearRosterHub(doc).also { if (it) persist(homeId, doc) }
         }
         if (changed) _changes.tryEmit(homeId)
     }
