@@ -1,0 +1,9 @@
+-- Version 15 -> 16: adds MailboxSnapshot (see uk/veritaslabs/vesta/db/Mailbox.sq).
+CREATE TABLE IF NOT EXISTS MailboxSnapshot (
+    homeId TEXT NOT NULL,
+    generation INTEGER NOT NULL,
+    coversThrough INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL,
+    pruned INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (homeId, generation)
+);

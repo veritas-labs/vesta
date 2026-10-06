@@ -41,3 +41,26 @@ SELECT lastSequence FROM MailboxRead WHERE homeId = ? AND writerAgentId = ?;
 upsertLastRead:
 INSERT OR REPLACE INTO MailboxRead(homeId, writerAgentId, lastSequence) VALUES (?, ?, ?);
 
+
+-- Snapshots this device has published of a Home's documents (docs/adr/ADR-020, garbage collection): each generation
+-- covers all of this device's entries up to `coversThrough`, and `pruned` says those entries have since been deleted.
+CREATE TABLE IF NOT EXISTS MailboxSnapshot (
+    homeId TEXT NOT NULL,
+    generation INTEGER NOT NULL,
+    coversThrough INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL,
+    pruned INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (homeId, generation)
+);
+
+insertSnapshot:
+INSERT OR REPLACE INTO MailboxSnapshot(homeId, generation, coversThrough, createdAt, pruned) VALUES (?, ?, ?, ?, 0);
+
+selectLatestSnapshot:
+SELECT * FROM MailboxSnapshot WHERE homeId = ? ORDER BY generation DESC LIMIT 1;
+
+selectUnprunedSnapshotCreatedBefore:
+SELECT * FROM MailboxSnapshot WHERE homeId = ? AND pruned = 0 AND createdAt <= ? ORDER BY generation DESC LIMIT 1;
+
+markSnapshotsPruned:
+UPDATE MailboxSnapshot SET pruned = 1 WHERE homeId = ? AND generation <= ?;

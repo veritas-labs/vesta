@@ -163,6 +163,7 @@ class DeviceDataSyncService(
         var applied = 0
         database.homeQueries.selectAll().awaitAsList().forEach { home ->
             attempt { mailboxWriter.deposit(home.id) }
+            attempt { mailboxWriter.compact(home.id) }
             attempt { applied += mailboxReader.fetch(home.id) }
         }
         if (applied > 0) attempt { publishRosters() }

@@ -67,6 +67,7 @@ internal class MailboxEntry(
 
         /** The writer and sequence a store key names, or null for a key that isn't a mailbox entry's. */
         fun parseKey(key: String): Pair<String, Long>? {
+            if (SnapshotKeys.isSnapshotKey(key)) return null
             val split = key.lastIndexOf('/')
             if (split <= 0) return null
             val sequence = key.substring(split + 1).takeIf { it.length == SequenceDigits }?.toLongOrNull() ?: return null

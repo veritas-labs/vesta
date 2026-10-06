@@ -132,8 +132,9 @@ Each slice is independently committable and leaves the suite green. Order matter
   directions; DM path still works when both are online; a device with no group is unaffected.
 - **Done when:** the "never online together" scenario passes on the fake mesh, and the existing suite is green.
 
-### Slice 5 — garbage collection — needs slice 3
-- A writer deletes its own entries older than the window (default 30 days) **after** it has deposited a snapshot chunk set
+### Slice 5 — garbage collection — needs slice 3 — **done 2026-10-06 on the fake mesh (`MailboxWriter.compact`, snapshot jump in `MailboxReader`)**
+- **As built:** the first snapshot is written at once (nothing to wait for), then one per 15 days if there are new entries; a writer's entries are deleted when a snapshot that covers them is 30 days old; only the newest snapshot is kept (older generations are deleted as soon as a newer one is complete). The snapshot is every document of the Home (one group of parts each, `snapshot/<writer>/<generation>/<chunk>`), so it covers the writer's entries across documents. Manifest last. A reader waits at a gap unless the writer's newest complete snapshot covers it, then applies the snapshot and moves on. A writer with no record of its numbers continues after the highest of its entries *and* its snapshots' coverage.
+- (Original plan:) A writer deletes its own entries older than the window (default 30 days) **after** it has deposited a snapshot chunk set
   that covers them: `snapshot/<writerAgentId>/<generation>/<part>` plus a small manifest entry naming the generation and the
   heads it covers. Chunks are ≤48 KB.
 - Reader rule: a device that has no mark for a writer, or whose mark is below the oldest remaining entry, loads the latest
