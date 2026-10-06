@@ -112,7 +112,7 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   device not demoted, an admin's device still admin after it stops being a hub, a departed member's hub device removed and unflagged, a removed
   creator that is also a hub). The slice 2 tests cover removing a hub that is a device (it stays in the group).
 
-### Slice 4: pairing and unpairing guard — needs slices 1 and 3
+### Slice 4: pairing and unpairing guard — needs slices 1 and 3 — **done 2026-10-06: traced, no code change needed, three tests**
 
 - Find where a device is added to a member's roster entry and where one is dropped (`HomeRosters` device publishing,
   `DeviceDataSyncService.publishRosters`, `SyncedDeviceRepository.remove`). **Read first; I did not trace unpair into the
@@ -121,6 +121,17 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
 - Unpairing a device that is also a hub: the device leaves the member's roster entry; the group membership stays because the
   flag stays. Unpairing a device that is not a hub follows today's path.
 - **Tests:** pair after hub, hub after pair (both orders), unpair keeps the hub, remove-hub keeps the device.
+
+- **As traced:** pairing is `HomeRosters.publish`, where a device claims only its own agent (`device:<agentId>`); the hub flag is the separate
+  key `hub:<agentId>`, so the two roles never overwrite each other. Unpairing is the same `publish` releasing devices not in `pairedAgents`
+  (deleting the claim only). Pairing a hub's machine therefore keeps both roles, and unpairing a hub-device leaves it a hub, in the group and an
+  x0x admin. No guard was added: a plain member can pair a machine that is already an admin hub, which breaks decision 1's "only an admin's
+  device" rule, but they already control that daemon, so nothing is gained (not confirmed with the owner). Three `HomeHubsTest` cases.
+- **Found, not fixed (pre-existing, not specific to hubs):** a device released from a member's roster entry **stays in the Home's x0x group**.
+  `removeDeparted` handles only whole removed members, and nothing removes a single unpaired device, so a lost or retired phone that is unpaired
+  keeps its group key and can keep reading the mailbox. Confirmed with a throwaway test on the fake mesh (still a member after three reconcile
+  rounds). A fix would remove group members that are neither on the roster nor hubs, after a grace window for a device that is joining; it needs
+  its own decision, tests and a real-daemon check. Open.
 
 ### Slice 5: UI — needs slice 2
 
@@ -166,7 +177,6 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
 - **Admin sprawl.** Several hubs mean several x0x admins holding the group key. The refusal of a plain member's device (decision
   1) is the guard; keep it covered by tests.
 - **Rekey cost.** Removing any hub rekeys the group, which interrupts members for a moment. Unchanged in kind, more frequent.
-- **Unpair path not traced.** Slice 4 may find that unpairing a device does not touch the Home group at all (or does so
-  somewhere other than `removeDeparted`); the slice's scope depends on what it finds.
+- **Unpair path (traced in slice 4).** Unpairing does not touch the Home group at all; see the open gap noted under slice 4.
 - **x0x behaviour assumptions.** Slice 0 exists because "a restart keeps the store open" and "multi-hub rekey is safe" are
   inferred from Spikes 4 and 5, not tested.

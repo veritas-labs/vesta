@@ -348,4 +348,58 @@ class HomeHubsTest {
         assertEquals(HubResult.NotAnAdminDevice, plain)
         assertEquals(setOf("agent-ann"), home.mark.rosters.hubs(homeId))
     }
+
+    @Test
+    fun aHubThatIsLaterPairedAsAMembersDeviceKeepsBothRoles() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        home.enrolHub()
+        home.mark.hubs.useAsHub(homeId, "agent-hub")
+
+        // Act: Vesta is installed on the hub's machine and paired as one of Mark's devices
+        home.mark.rosters.admit(homeId, home.mark.memberId(), "Mark", "admin", "agent-hub")
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertEquals(listOf(HubState("agent-hub", inGroup = true, isDevice = true)), home.mark.hubs.hubs(homeId))
+        assertEquals("admin", network.groups.getValue(home.mark.groupId()!!).members.getValue("agent-hub").role)
+    }
+
+    @Test
+    fun unpairingADeviceThatIsAHubKeepsItAHubAndInTheGroup() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val second = network.node("agent-mark-2")
+        second.joinGroup(home.mark.node.createGroupInvite(home.mark.groupId()!!))
+        home.mark.rosters.admit(homeId, home.mark.memberId(), "Mark", "admin", "agent-mark-2")
+        home.mark.hubs.useAsHub(homeId, "agent-mark-2")
+
+        // Act: Mark's first device no longer lists the second as paired
+        home.mark.rosters.publish(homeId, "agent-mark", pairedAgents = emptySet())
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertEquals(setOf("agent-mark"), home.mark.rosters.members(homeId).first { !it.removed && "agent-mark" in it.devices }.devices)
+        assertEquals(listOf(HubState("agent-mark-2", inGroup = true, isDevice = false)), home.mark.hubs.hubs(homeId))
+        assertEquals("admin", network.groups.getValue(home.mark.groupId()!!).members.getValue("agent-mark-2").role)
+    }
+
+    @Test
+    fun aHubThatWasUnpairedIsTakenOutOfTheGroupWhenItIsRemovedAsAHub() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val second = network.node("agent-mark-2")
+        second.joinGroup(home.mark.node.createGroupInvite(home.mark.groupId()!!))
+        home.mark.rosters.admit(homeId, home.mark.memberId(), "Mark", "admin", "agent-mark-2")
+        home.mark.hubs.useAsHub(homeId, "agent-mark-2")
+        home.mark.rosters.publish(homeId, "agent-mark", pairedAgents = emptySet())
+
+        // Act
+        val result = home.mark.hubs.removeHub(homeId, "agent-mark-2")
+
+        // Assert
+        assertEquals(HubResult.Done, result)
+        assertTrue("agent-mark-2" !in network.groups.getValue(home.mark.groupId()!!).members)
+        assertTrue(home.mark.rosters.hubs(homeId).isEmpty())
+    }
 }
