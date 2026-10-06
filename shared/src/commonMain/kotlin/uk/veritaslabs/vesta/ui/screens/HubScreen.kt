@@ -48,17 +48,22 @@ import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.hub_add_another
 import vesta.shared.generated.resources.hub_body
 import vesta.shared.generated.resources.hub_cancel
 import vesta.shared.generated.resources.hub_candidates_body
 import vesta.shared.generated.resources.hub_candidates_title
 import vesta.shared.generated.resources.hub_connected
 import vesta.shared.generated.resources.hub_copy_commands
+import vesta.shared.generated.resources.hub_device_note
 import vesta.shared.generated.resources.hub_failed
 import vesta.shared.generated.resources.hub_not_connected
+import vesta.shared.generated.resources.hub_own_body
+import vesta.shared.generated.resources.hub_own_title
 import vesta.shared.generated.resources.hub_remove
 import vesta.shared.generated.resources.hub_remove_confirm_body
 import vesta.shared.generated.resources.hub_remove_confirm_title
+import vesta.shared.generated.resources.hub_remove_device_confirm_body
 import vesta.shared.generated.resources.hub_requirement
 import vesta.shared.generated.resources.hub_title
 import vesta.shared.generated.resources.hub_trust_note
@@ -80,6 +85,9 @@ internal object HubTestTags {
     const val CandidateRow = "hub_candidate_row"
     const val UseButton = "hub_use_button"
     const val HubCard = "hub_card"
+    const val AddAnother = "hub_add_another"
+    const val OwnDeviceRow = "hub_own_device_row"
+    const val DeviceNote = "hub_device_note"
     const val Status = "hub_status"
     const val RemoveButton = "hub_remove_button"
     const val ConfirmRemove = "hub_confirm_remove"
@@ -95,24 +103,26 @@ fun HubScreen(viewModel: HubViewModel, onBack: () -> Unit, modifier: Modifier = 
         state = state,
         onUseAsHub = viewModel::onUseAsHub,
         onRemove = viewModel::onRemove,
+        onAddAnother = viewModel::onAddAnother,
         onBack = onBack,
         modifier = modifier,
     )
 }
 
 /**
- * A Home's always-on hub (docs/adr/ADR-020-syncing-without-overlapping-online-time.md). With no hub, the commands to run on
- * the always-on machine ([HubUiState.commands], copyable) and the agents that have joined the Home's group
- * ([HubUiState.candidates]), each with a way to choose it ([onUseAsHub]). With one ([HubUiState.hub]), whether it is in the
- * group, and Remove ([onRemove]) after a confirmation. [HubUiState.unavailable] and [HubUiState.failed] say why nothing can
- * be shown or done. [onBack] leaves.
+ * A Home's always-on hubs (docs/adr/ADR-020-syncing-without-overlapping-online-time.md). Each recorded hub ([HubUiState.hubs]) is
+ * shown with whether it is in the group and Remove ([onRemove]) after a confirmation. With none, or after [onAddAnother], the
+ * commands to run on the always-on machine ([HubUiState.commands], copyable), the agents that have joined the Home's group
+ * ([HubUiState.candidates]) and the user's own devices that can be hubs ([HubUiState.ownDevices]), each with a way to choose it
+ * ([onUseAsHub]). [HubUiState.unavailable] and [HubUiState.failed] say why nothing can be shown or done. [onBack] leaves.
  */
 @Composable
 fun HubScreen(
     state: HubUiState,
     modifier: Modifier = Modifier,
     onUseAsHub: (String) -> Unit = {},
-    onRemove: () -> Unit = {},
+    onRemove: (String) -> Unit = {},
+    onAddAnother: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -139,7 +149,21 @@ fun HubScreen(
                 state.loading -> Column(Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(modifier = Modifier.testTag(HubTestTags.Progress))
                 }
-                state.hub != null -> RecordedHub(state.hub, onRemove)
+                state.hubs.isNotEmpty() -> {
+                    state.hubs.forEach { hub -> RecordedHub(hub, onRemove = { onRemove(hub.agentId) }) }
+                    Text(
+                        text = stringResource(Res.string.hub_trust_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (state.adding) {
+                        Enrolment(state, onUseAsHub)
+                    } else {
+                        TextButton(onClick = onAddAnother, modifier = Modifier.fillMaxWidth().testTag(HubTestTags.AddAnother)) {
+                            Text(stringResource(Res.string.hub_add_another))
+                        }
+                    }
+                }
                 state.unavailable -> Text(
                     text = stringResource(Res.string.hub_unavailable),
                     style = MaterialTheme.typography.bodyMedium,
@@ -197,11 +221,13 @@ private fun Enrolment(state: HubUiState, onUseAsHub: (String) -> Unit) {
         modifier = Modifier.fillMaxWidth().testTag(HubTestTags.CopyButton),
         onClick = { clipboard.setText(AnnotatedString(commands)) },
     )
-    Text(
-        text = stringResource(Res.string.hub_trust_note),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    if (state.hubs.isEmpty()) {
+        Text(
+            text = stringResource(Res.string.hub_trust_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     if (state.candidates.isEmpty()) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CircularProgressIndicator(modifier = Modifier.padding(4.dp), strokeWidth = 2.dp)
@@ -225,15 +251,28 @@ private fun Enrolment(state: HubUiState, onUseAsHub: (String) -> Unit) {
         )
         state.candidates.forEach { agentId -> CandidateRow(agentId, onUse = { onUseAsHub(agentId) }) }
     }
+    if (state.ownDevices.isNotEmpty()) {
+        Text(
+            text = stringResource(Res.string.hub_own_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = stringResource(Res.string.hub_own_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        state.ownDevices.forEach { agentId -> CandidateRow(agentId, onUse = { onUseAsHub(agentId) }, tag = HubTestTags.OwnDeviceRow) }
+    }
 }
 
 @Composable
-private fun CandidateRow(agentId: String, onUse: () -> Unit) {
+private fun CandidateRow(agentId: String, onUse: () -> Unit, tag: String = HubTestTags.CandidateRow) {
     Surface(
         shape = MaterialTheme.shapes.small,
         color = Color.Transparent,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth().testTag(HubTestTags.CandidateRow),
+        modifier = Modifier.fillMaxWidth().testTag(tag),
     ) {
         Row(modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -247,7 +286,7 @@ private fun CandidateRow(agentId: String, onUse: () -> Unit) {
     }
 }
 
-/** The recorded hub, whether it is in the group, and Remove, which asks first. */
+/** One recorded hub, whether it is in the group, and Remove, which asks first. */
 @Composable
 private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
     var confirming by remember { mutableStateOf(false) }
@@ -269,13 +308,16 @@ private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
                 color = if (hub.inGroup) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(HubTestTags.Status),
             )
+            if (hub.isDevice) {
+                Text(
+                    text = stringResource(Res.string.hub_device_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(HubTestTags.DeviceNote),
+                )
+            }
         }
     }
-    Text(
-        text = stringResource(Res.string.hub_trust_note),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
     TextButton(
         onClick = { confirming = true },
         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
@@ -285,7 +327,7 @@ private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirming = false },
             title = { Text(stringResource(Res.string.hub_remove_confirm_title)) },
-            text = { Text(stringResource(Res.string.hub_remove_confirm_body)) },
+            text = { Text(stringResource(if (hub.isDevice) Res.string.hub_remove_device_confirm_body else Res.string.hub_remove_confirm_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -305,6 +347,7 @@ private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
 internal fun shortAgentId(agentId: String): String = if (agentId.length <= 16) agentId else agentId.take(8) + "…" + agentId.takeLast(8)
 
 private const val PreviewAgent = "9f2c41d07a3be58c1d6e0f4a8b7c2d3e5f60718293a4b5c6d7e8f90a1b2c3d4e"
+private const val PreviewAgent2 = "3b7e90a1c5d2486f1e0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e"
 private const val PreviewCommands = "x0x group join x0x://invite/AbCdEf…\nx0x group store create 7c1e…a9 mailbox"
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
@@ -322,13 +365,25 @@ private fun HubScreenPhoneDarkPreview() {
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun HubScreenPhoneLightHubPreview() {
-    VestaTheme(darkTheme = false) { HubScreen(HubUiState(loading = false, hub = HubItem(PreviewAgent, inGroup = true))) }
+    VestaTheme(darkTheme = false) { HubScreen(HubUiState(loading = false, hubs = listOf(HubItem(PreviewAgent, inGroup = true)))) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun HubScreenPhoneDarkHubPreview() {
-    VestaTheme(darkTheme = true) { HubScreen(HubUiState(loading = false, hub = HubItem(PreviewAgent, inGroup = false), failed = true)) }
+    VestaTheme(darkTheme = true) { HubScreen(HubUiState(loading = false, hubs = listOf(HubItem(PreviewAgent, inGroup = false)), failed = true)) }
+}
+
+@Preview(name = "Light", group = "Phone", device = Devices.PHONE)
+@Composable
+private fun HubScreenPhoneLightTwoHubsPreview() {
+    VestaTheme(darkTheme = false) { HubScreen(HubUiState(loading = false, hubs = twoHubs())) }
+}
+
+@Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
+@Composable
+private fun HubScreenPhoneDarkTwoHubsPreview() {
+    VestaTheme(darkTheme = true) { HubScreen(HubUiState(loading = false, hubs = twoHubs())) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
@@ -346,11 +401,29 @@ private fun HubScreenTabletDarkPreview() {
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun HubScreenTabletLightHubPreview() {
-    VestaTheme(darkTheme = false) { HubScreen(HubUiState(loading = false, hub = HubItem(PreviewAgent, inGroup = true))) }
+    VestaTheme(darkTheme = false) { HubScreen(HubUiState(loading = false, hubs = listOf(HubItem(PreviewAgent, inGroup = true)))) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun HubScreenTabletDarkHubPreview() {
-    VestaTheme(darkTheme = true) { HubScreen(HubUiState(loading = false, hub = HubItem(PreviewAgent, inGroup = true))) }
+    VestaTheme(darkTheme = true) { HubScreen(HubUiState(loading = false, hubs = listOf(HubItem(PreviewAgent, inGroup = true)))) }
 }
+
+@Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
+@Composable
+private fun HubScreenTabletLightAddingPreview() {
+    VestaTheme(darkTheme = false) {
+        HubScreen(HubUiState(loading = false, hubs = twoHubs().take(1), adding = true, commands = PreviewCommands, ownDevices = listOf(PreviewAgent2)))
+    }
+}
+
+@Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
+@Composable
+private fun HubScreenTabletDarkAddingPreview() {
+    VestaTheme(darkTheme = true) {
+        HubScreen(HubUiState(loading = false, hubs = twoHubs().take(1), adding = true, commands = PreviewCommands, candidates = listOf(PreviewAgent2)))
+    }
+}
+
+private fun twoHubs() = listOf(HubItem(PreviewAgent, inGroup = true), HubItem(PreviewAgent2, inGroup = true, isDevice = true))

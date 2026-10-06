@@ -133,7 +133,7 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   rounds). A fix would remove group members that are neither on the roster nor hubs, after a grace window for a device that is joining; it needs
   its own decision, tests and a real-daemon check. Open.
 
-### Slice 5: UI — needs slice 2
+### Slice 5: UI — needs slice 2 — **done 2026-10-06; previews written but not rendered, UI not run in the real app**
 
 - `HubUiState`/`HubItem` become a list; `HubScreen` shows each hub with its status and "Remove", a note on a hub that is also
   your device ("This is your computer; removing it as a hub keeps it in the Home"), and the candidates list; the enrolment
@@ -142,6 +142,13 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
 - `HubViewModel`: poll as now; map `HubResult.NotAnAdminDevice` to a message.
 - **Previews:** light/dark x phone/tablet grouped by device, with states: no hub, one hub, two hubs, a hub that is also this
   device. AAA tests for the view model.
+
+- **As built:** `HubUiState` has `hubs`, `adding`, `ownDevices`; `HubViewModel` gets `onRemove(agentId)`, `onAddAnother()` and an `offerOwnDevice`
+  flag, and makes the enrolment invite only when it is shown (no hub yet, or after "Add another hub"). `VestaApp(ownDeviceCanBeHub)` is true in
+  `desktopApp`, false on Android and iOS (decision 4, as a parameter rather than a platform check). `HubScreen` lists a card per hub with its own Remove
+  and confirmation (different text and a note for a hub that is also a device), an "Add another hub" button, and a "Your devices" section. Five new
+  strings. Five new view-model tests, three new screen tests; four new previews (two hubs on phone, adding another on tablet, light and dark).
+  **Not done:** the previews have not been looked at and the screen has not been run; Android and iOS compile not checked.
 
 ### Slice 6: real-daemon test — needs slices 2-4, opt-in like `HubDaemonIntegrationTest`
 

@@ -242,6 +242,11 @@
     <string name="hub_remove_confirm_body">It leaves this home\'s group and cannot read anything new. What it already has stays on that computer.</string>
     <string name="hub_failed">That did not work. Try again.</string>
     <string name="hub_cancel">Cancel</string>
+    <string name="hub_add_another">Add another hub</string>
+    <string name="hub_device_note">This is one of your own devices. Removing it as a hub keeps it in this home.</string>
+    <string name="hub_remove_device_confirm_body">It stops being a hub but stays in this home\'s group as your device.</string>
+    <string name="hub_own_title">Your devices</string>
+    <string name="hub_own_body">A computer of yours that runs Vesta can be a hub too, and keeps this home in sync while Vesta is closed.</string>
     <string name="redeem_invite_title">Join a home</string>
     <string name="redeem_invite_body">Paste the invite link an admin sent you, or scan its QR code. An admin then approves your request.</string>
     <string name="redeem_invite_field_label">Invite link</string>

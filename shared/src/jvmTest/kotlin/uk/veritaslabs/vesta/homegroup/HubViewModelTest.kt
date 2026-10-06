@@ -41,7 +41,7 @@ class HubViewModelTest {
         assertFalse(state.loading)
         assertFalse(state.unavailable)
         assertEquals(hubs.enrolment!!.commands, state.commands)
-        assertNull(state.hub)
+        assertEquals(emptyList(), state.hubs)
     }
 
     @Test
@@ -90,7 +90,7 @@ class HubViewModelTest {
         // Assert
         val state = viewModel.uiState.value
         assertEquals(listOf("agent-hub"), hubs.used)
-        assertEquals(HubItem("agent-hub", inGroup = true), state.hub)
+        assertEquals(listOf(HubItem("agent-hub", inGroup = true)), state.hubs)
         assertNull(state.commands)
         assertEquals(emptyList(), state.candidates)
         assertFalse(state.failed)
@@ -114,7 +114,7 @@ class HubViewModelTest {
         // Assert
         assertTrue(failed)
         assertFalse(viewModel.uiState.value.failed)
-        assertNull(viewModel.uiState.value.hub)
+        assertEquals(emptyList(), viewModel.uiState.value.hubs)
         assertEquals(listOf("agent-hub"), viewModel.uiState.value.candidates)
     }
 
@@ -122,18 +122,18 @@ class HubViewModelTest {
     fun aRecordedHubIsShownWithWhetherItIsInTheGroupAndFollowsIt() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
-        val hubs = FakeHomeHub().apply { hub = "agent-hub" }
+        val hubs = FakeHomeHub().apply { hubIds = listOf("agent-hub") }
         val viewModel = HubViewModel("home-1", hubs, pollInterval = 3.seconds)
         backgroundScope.launch { viewModel.poll() }
-        val before = viewModel.uiState.value.hub
+        val before = viewModel.uiState.value.hubs
 
         // Act
         hubs.inGroup = true
         advanceTimeBy(4.seconds)
 
         // Assert
-        assertEquals(HubItem("agent-hub", inGroup = false), before)
-        assertEquals(HubItem("agent-hub", inGroup = true), viewModel.uiState.value.hub)
+        assertEquals(listOf(HubItem("agent-hub", inGroup = false)), before)
+        assertEquals(listOf(HubItem("agent-hub", inGroup = true)), viewModel.uiState.value.hubs)
         assertEquals(0, hubs.enrolmentCalls)
     }
 
@@ -142,18 +142,18 @@ class HubViewModelTest {
         // Arrange
         useMainDispatcher(testScheduler)
         val hubs = FakeHomeHub().apply {
-            hub = "agent-hub"
+            hubIds = listOf("agent-hub")
             inGroup = true
         }
         val viewModel = HubViewModel("home-1", hubs)
 
         // Act
-        viewModel.onRemove()
+        viewModel.onRemove("agent-hub")
 
         // Assert
         val state = viewModel.uiState.value
         assertEquals(1, hubs.removeCalls)
-        assertNull(state.hub)
+        assertEquals(emptyList(), state.hubs)
         assertEquals(hubs.enrolment!!.commands, state.commands)
         assertFalse(state.failed)
     }
@@ -163,17 +163,17 @@ class HubViewModelTest {
         // Arrange
         useMainDispatcher(testScheduler)
         val hubs = FakeHomeHub().apply {
-            hub = "agent-hub"
+            hubIds = listOf("agent-hub")
             inGroup = true
             removeResult = HubResult.Failed
         }
         val viewModel = HubViewModel("home-1", hubs)
 
         // Act
-        viewModel.onRemove()
+        viewModel.onRemove("agent-hub")
 
         // Assert
-        assertEquals(HubItem("agent-hub", inGroup = true), viewModel.uiState.value.hub)
+        assertEquals(listOf(HubItem("agent-hub", inGroup = true)), viewModel.uiState.value.hubs)
         assertTrue(viewModel.uiState.value.failed)
     }
 
@@ -212,7 +212,7 @@ class HubViewModelTest {
     fun aDaemonThatIsDownLeavesWhatWasShown() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
-        val hubs = FakeHomeHub().apply { hub = "agent-hub" }
+        val hubs = FakeHomeHub().apply { hubIds = listOf("agent-hub") }
         val viewModel = HubViewModel("home-1", hubs, pollInterval = 3.seconds)
         backgroundScope.launch { viewModel.poll() }
 
@@ -221,6 +221,104 @@ class HubViewModelTest {
         advanceTimeBy(4.seconds)
 
         // Assert
-        assertEquals(HubItem("agent-hub", inGroup = false), viewModel.uiState.value.hub)
+        assertEquals(listOf(HubItem("agent-hub", inGroup = false)), viewModel.uiState.value.hubs)
+    }
+
+    @Test
+    fun withAHubRecordedNoInviteIsMadeUntilTheAdminAsksToAddAnother() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val hubs = FakeHomeHub().apply { hubIds = listOf("agent-hub") }
+        val viewModel = HubViewModel("home-1", hubs, pollInterval = 3.seconds)
+        backgroundScope.launch { viewModel.poll() }
+        advanceTimeBy(7.seconds)
+        val before = viewModel.uiState.value
+
+        // Act
+        viewModel.onAddAnother()
+        val after = viewModel.uiState.value
+
+        // Assert
+        assertNull(before.commands)
+        assertFalse(before.adding)
+        assertTrue(after.adding)
+        assertEquals(hubs.enrolment!!.commands, after.commands)
+        assertEquals(1, hubs.enrolmentCalls)
+    }
+
+    @Test
+    fun severalHubsAreShownAndEachIsRemovedOnItsOwn() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val hubs = FakeHomeHub().apply {
+            hubIds = listOf("agent-hub-1", "agent-hub-2")
+            inGroup = true
+            deviceHubs = setOf("agent-hub-2")
+        }
+        val viewModel = HubViewModel("home-1", hubs)
+        val before = viewModel.uiState.value.hubs
+
+        // Act
+        viewModel.onRemove("agent-hub-1")
+
+        // Assert
+        assertEquals(listOf(HubItem("agent-hub-1", true), HubItem("agent-hub-2", true, isDevice = true)), before)
+        assertEquals(listOf("agent-hub-1"), hubs.removed)
+        assertEquals(listOf(HubItem("agent-hub-2", true, isDevice = true)), viewModel.uiState.value.hubs)
+    }
+
+    @Test
+    fun choosingAnotherHubKeepsTheFirstAndLeavesTheAddingView() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val hubs = FakeHomeHub().apply {
+            hubIds = listOf("agent-hub-1")
+            inGroup = true
+            candidates = listOf("agent-hub-2")
+        }
+        val viewModel = HubViewModel("home-1", hubs)
+        viewModel.onAddAnother()
+
+        // Act
+        viewModel.onUseAsHub("agent-hub-2")
+
+        // Assert
+        val state = viewModel.uiState.value
+        assertEquals(listOf("agent-hub-1", "agent-hub-2"), state.hubs.map { it.agentId })
+        assertEquals(emptyList(), state.candidates)
+    }
+
+    @Test
+    fun theUsersOwnDevicesAreOfferedOnlyWhereThePlatformAllowsIt() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val hubs = FakeHomeHub().apply { ownDevices = listOf("agent-desktop") }
+
+        // Act
+        val desktop = HubViewModel("home-1", hubs, offerOwnDevice = true).uiState.value
+        val phone = HubViewModel("home-1", hubs).uiState.value
+
+        // Assert
+        assertEquals(listOf("agent-desktop"), desktop.ownDevices)
+        assertEquals(emptyList(), phone.ownDevices)
+    }
+
+    @Test
+    fun choosingTheUsersOwnDeviceMakesItAHub() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val hubs = FakeHomeHub().apply {
+            ownDevices = listOf("agent-desktop")
+            deviceHubs = setOf("agent-desktop")
+        }
+        val viewModel = HubViewModel("home-1", hubs, offerOwnDevice = true)
+
+        // Act
+        viewModel.onUseAsHub("agent-desktop")
+
+        // Assert
+        val state = viewModel.uiState.value
+        assertEquals(listOf(HubItem("agent-desktop", true, isDevice = true)), state.hubs)
+        assertEquals(emptyList(), state.ownDevices)
     }
 }

@@ -272,6 +272,7 @@ private fun HomeContent(
     onDeleteHome: suspend () -> Unit = {},
     joining: HomeJoining? = null,
     hubs: HomeHub? = null,
+    ownDeviceCanBeHub: Boolean = false,
     onOpened: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
@@ -333,7 +334,7 @@ private fun HomeContent(
             InviteLinksScreen(linksViewModel, onBack = { destination = HomeDestination.Members })
         }
         HomeDestination.Hub -> {
-            val hubViewModel = viewModel(key = "hub-$homeId") { HubViewModel(homeId, hubs) }
+            val hubViewModel = viewModel(key = "hub-$homeId") { HubViewModel(homeId, hubs, offerOwnDevice = ownDeviceCanBeHub) }
             HubScreen(hubViewModel, onBack = { destination = HomeDestination.Dashboard })
         }
         HomeDestination.Pantry -> {
@@ -517,6 +518,8 @@ private fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
  * runs for as long as the app is shown, with the database (created here, so callers can't have it earlier).
  * [dataSync], if given, builds the sync of the user's data (Homes, Pantries) between their paired devices from the
  * database, the x0x client and the device list; it is fed Home changes and run for as long as the app is shown.
+ * [ownDeviceCanBeHub] lets a user make this device an always-on hub of a Home (docs/adr/ADR-020, several-hubs amendment): true where
+ * the x0x daemon keeps running when the app is closed, as on the desktop, not where it is embedded and stops with the app.
  */
 @Composable
 fun VestaApp(
@@ -525,6 +528,7 @@ fun VestaApp(
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
+    ownDeviceCanBeHub: Boolean = false,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
     LaunchedEffect(database) { backgroundServices?.invoke(this, database) }
@@ -570,6 +574,7 @@ fun VestaApp(
                 onDeleteHome = { homeRepository.delete(homeId) },
                 joining = deviceDataSync?.joining,
                 hubs = deviceDataSync?.hubs,
+                ownDeviceCanBeHub = ownDeviceCanBeHub,
                 onOpened = { deviceDataSync?.syncNow() },
             )
         },

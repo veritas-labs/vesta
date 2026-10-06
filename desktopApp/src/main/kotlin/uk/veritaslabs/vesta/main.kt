@@ -22,6 +22,7 @@ fun main() = application {
                     client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
                 )
             },
+            ownDeviceCanBeHub = true,
         )
     }
 }
