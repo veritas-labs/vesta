@@ -113,8 +113,13 @@ internal class HomeGroups(
         if (local.storeId == null) openStore(homeId, local.groupId)
         if (me.role == AdminRole) {
             val roster = rosters.members(homeId)
-            adjustRoles(local.groupId, self, members, roster, hubs = rosters.hubs(homeId))
-            removeDeparted(homeId, local.groupId, self, members, roster)
+            val departed = departedDevices(roster)
+            // A hub that is the device of a member who left goes with them (docs/plans/ADR-020-several-hubs-plan.md, decision 2):
+            // no longer a hub, so it is not kept an admin, and it is removed from the group below like their other devices.
+            val hubs = rosters.hubs(homeId)
+            hubs.filter { it in departed }.forEach { rosters.removeHub(homeId, it) }
+            adjustRoles(local.groupId, self, members, roster, hubs = hubs - departed)
+            removeDeparted(homeId, local.groupId, self, members, departed)
         }
     }
 
@@ -204,15 +209,18 @@ internal class HomeGroups(
         }
     }
 
-    /** Removes the devices of members who left or were removed; the group's creator can only go by replacing the group. */
+    /** The devices of members who left or were removed, unless another member now claims them. */
+    private fun departedDevices(roster: List<RosterMember>): Set<String> =
+        roster.filter { it.removed }.flatMap { it.devices }.toSet() - activeDevices(roster)
+
+    /** Removes the [departed] devices; the group's creator can only go by replacing the group. */
     private suspend fun removeDeparted(
         homeId: String,
         groupId: String,
         self: String,
         members: List<X0xGroupMember>,
-        roster: List<RosterMember>,
+        departed: Set<String>,
     ) {
-        val departed = roster.filter { it.removed }.flatMap { it.devices }.toSet() - activeDevices(roster)
         val toRemove = members.filter { it.agentId in departed && it.agentId != self }
         if (toRemove.isEmpty()) return
         val creator = runCatching { client.getGroupCreator(groupId) }.getOrNull()

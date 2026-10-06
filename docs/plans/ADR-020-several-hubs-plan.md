@@ -95,7 +95,7 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   not a candidate, another admin's device accepted and a plain member's refused). **Pulled forward from slice 3:** `HomeGroups.adjustRoles`
   now takes the set of hubs, so every hub is kept an x0x admin.
 
-### Slice 3: `HomeGroups` roles and departures — needs slice 1 — **`adjustRoles` over the hub set done in slice 2; the departed-member cleanup and tests remain**
+### Slice 3: `HomeGroups` roles and departures — needs slice 1 — **done 2026-10-06**
 
 - `adjustRoles(..., hubs: Set<String>)`: admins = admin members' devices + every hub. A hub that is also a plain member's
   device is not demoted (`plain` already subtracts `admins`; add a test).
@@ -105,6 +105,12 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   is not otherwise an admin (the existing `plain`/`admins` diff already does this once the flag is gone).
 - **Tests (`HomeGroupsTest`):** several hubs promoted, hub-and-device not demoted, a departed member's hub-device removed and
   unflagged, creator rule unchanged (a removed creator that is a hub still replaces the group).
+
+- **As built:** `reconcile` (on an x0x admin device) clears the hub flag of any hub that is a departed member's device before it adjusts roles,
+  so a departed hub is not re-promoted, and `removeDeparted` then takes the device out of the group as before; the creator rule still
+  replaces the group. A shared `departedDevices` helper. Five new `HomeGroupsTest` cases (several hubs admin, a hub that is a plain member's
+  device not demoted, an admin's device still admin after it stops being a hub, a departed member's hub device removed and unflagged, a removed
+  creator that is also a hub). The slice 2 tests cover removing a hub that is a device (it stays in the group).
 
 ### Slice 4: pairing and unpairing guard — needs slices 1 and 3
 

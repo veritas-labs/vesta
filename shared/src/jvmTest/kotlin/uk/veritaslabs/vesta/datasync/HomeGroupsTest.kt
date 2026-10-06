@@ -296,4 +296,110 @@ class HomeGroupsTest {
         // Assert
         assertTrue("agent-joe" in membersOf(home.mark.groupId()!!).keys)
     }
+
+    @Test
+    fun everyHubIsKeptAnX0xAdmin() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        home.mark.groups.reconcile()
+        val groupId = home.mark.groupId()!!
+        listOf("agent-hub-1", "agent-hub-2").forEach { network.node(it).joinGroup(home.mark.node.createGroupInvite(groupId)) }
+        home.mark.rosters.addHub(homeId, "agent-hub-1")
+        home.mark.rosters.addHub(homeId, "agent-hub-2")
+
+        // Act
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertEquals("admin", membersOf(groupId).getValue("agent-hub-1").role)
+        assertEquals("admin", membersOf(groupId).getValue("agent-hub-2").role)
+    }
+
+    @Test
+    fun aHubThatIsAlsoAPlainMembersDeviceIsNotDemoted() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        home.mark.groups.reconcile()
+        sync(home.mark, home.sam)
+        home.sam.groups.reconcile()
+        eventually { home.sam.row()?.storeId != null }
+        home.mark.rosters.addHub(homeId, "agent-sam")
+
+        // Act
+        home.mark.groups.reconcile()
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertEquals("admin", membersOf(home.mark.groupId()!!).getValue("agent-sam").role)
+    }
+
+    @Test
+    fun anAdminsDeviceStaysAnAdminWhenItStopsBeingAHub() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val ann = Device("agent-ann")
+        enrol(home.mark, ann, "Ann", "admin")
+        home.mark.groups.reconcile()
+        sync(home.mark, ann)
+        ann.groups.reconcile()
+        eventually { ann.row()?.storeId != null }
+        home.mark.rosters.addHub(homeId, "agent-ann")
+        home.mark.groups.reconcile()
+
+        // Act
+        home.mark.rosters.removeHub(homeId, "agent-ann")
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertEquals("admin", membersOf(home.mark.groupId()!!).getValue("agent-ann").role)
+    }
+
+    @Test
+    fun aHubThatIsARemovedMembersDeviceLeavesTheGroupAndStopsBeingAHub() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        home.mark.groups.reconcile()
+        sync(home.mark, home.sam)
+        home.sam.groups.reconcile()
+        eventually { home.sam.row()?.storeId != null }
+        home.mark.rosters.addHub(homeId, "agent-sam")
+        home.mark.groups.reconcile()
+
+        // Act
+        home.mark.rosters.remove(homeId, home.sam.memberId())
+        home.mark.groups.reconcile()
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertEquals(setOf("agent-mark"), membersOf(home.mark.groupId()!!).keys)
+        assertTrue(home.mark.rosters.hubs(homeId).isEmpty())
+    }
+
+    @Test
+    fun removingACreatorThatIsAlsoAHubReplacesTheGroupAndClearsItsHubFlag() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val ann = Device("agent-ann")
+        enrol(home.mark, ann, "Ann", "admin")
+        home.mark.groups.reconcile()
+        sync(home.mark, home.sam)
+        sync(home.mark, ann)
+        home.sam.groups.reconcile()
+        ann.groups.reconcile()
+        eventually { home.sam.row()?.storeId != null && ann.row()?.storeId != null }
+        home.mark.rosters.addHub(homeId, "agent-mark")
+        home.mark.groups.reconcile() // promotes Ann
+        sync(home.mark, ann)
+        val oldGroup = home.mark.groupId()!!
+
+        // Act
+        ann.rosters.remove(homeId, home.mark.memberId())
+        ann.groups.reconcile()
+
+        // Assert
+        val newGroup = ann.groupId()!!
+        assertNotEquals(oldGroup, newGroup)
+        assertTrue("agent-mark" !in membersOf(newGroup).keys)
+        assertTrue(ann.rosters.hubs(homeId).isEmpty())
+    }
 }
