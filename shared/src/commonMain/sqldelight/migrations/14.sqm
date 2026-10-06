@@ -1,0 +1,17 @@
+-- Version 14 -> 15: adds MailboxWrite, MailboxSequence and MailboxRead (see uk/veritaslabs/vesta/db/Mailbox.sq).
+CREATE TABLE IF NOT EXISTS MailboxWrite (
+    homeId TEXT NOT NULL,
+    documentId TEXT NOT NULL,
+    heads BLOB NOT NULL,
+    PRIMARY KEY (homeId, documentId)
+);
+CREATE TABLE IF NOT EXISTS MailboxSequence (
+    homeId TEXT NOT NULL PRIMARY KEY,
+    nextSequence INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS MailboxRead (
+    homeId TEXT NOT NULL,
+    writerAgentId TEXT NOT NULL,
+    lastSequence INTEGER NOT NULL,
+    PRIMARY KEY (homeId, writerAgentId)
+);

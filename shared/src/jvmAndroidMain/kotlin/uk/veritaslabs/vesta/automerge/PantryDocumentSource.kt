@@ -9,6 +9,8 @@ import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.mailbox.changesSince
+import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesSource
 import uk.veritaslabs.vesta.ui.screens.PantryCategoryGroup
 import uk.veritaslabs.vesta.ui.screens.PantryContents
@@ -75,10 +77,21 @@ class PantryDocumentSource(
     }
 
     /** Applies a sync message from a peer, then republishes and persists the document if it changed. */
-    suspend fun receiveSync(state: SyncState, message: ByteArray) {
+    suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
+
+    /** The document's current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
+    suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
+
+    /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
+    suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
+
+    /** Applies changes from [changesSince], as [receiveSync] does a sync message. Applying one again changes nothing. */
+    suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
+
+    private suspend fun applyIncoming(apply: Document.() -> Unit) {
         val ready = lock.withLock {
             val before = document.heads
-            document.receiveSyncMessage(state, message)
+            document.apply()
             if (!document.heads.contentEquals(before)) publishAndPersist()
             // The creator's document may just have arrived: the edits made before it can now be applied on top of it.
             if (pending.isNotEmpty() && document.isPantrySeeded()) pending.toList().also { pending.clear() } else emptyList()

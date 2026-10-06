@@ -30,6 +30,8 @@ import uk.veritaslabs.vesta.automerge.retireRosterMember
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.setRosterRole
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.mailbox.changesSince
+import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.MemberRole
 
@@ -210,6 +212,25 @@ internal class HomeRosters(
         doc.receiveSyncMessage(state, message)
         if (!doc.heads.contentEquals(before)) persist(homeId, doc)
         true
+    }
+
+    /** [homeId]'s roster heads, saved as `encodeHeads` writes them (for the mailbox, ADR-020); null when this device has no such Home. */
+    suspend fun heads(homeId: String): ByteArray? = lock.withLock { open(homeId)?.let { encodeHeads(it.heads) } }
+
+    /** The roster changes since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
+    suspend fun changesSince(homeId: String, saved: ByteArray): ByteArray? = lock.withLock { open(homeId)?.changesSince(saved) }
+
+    /** Applies changes from [changesSince] to [homeId]'s roster and projects them, as [receive] does a sync message. */
+    suspend fun applyChanges(homeId: String, changes: ByteArray): Boolean {
+        val applied = lock.withLock {
+            val doc = open(homeId) ?: return false
+            val before = doc.heads
+            doc.applyEncodedChanges(changes)
+            if (!doc.heads.contentEquals(before)) persist(homeId, doc)
+            true
+        }
+        project(homeId)
+        return applied
     }
 
     /** Brings [homeId]'s `HomeMember` rows in line with its roster: adds and updates members, and drops the removed. */

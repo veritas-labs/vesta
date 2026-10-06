@@ -306,7 +306,7 @@ group, and the mailbox needs one.
 2. **Done.** Document what overlap is required today: [docs/product/SYNC-AND-JOINING.md](../product/SYNC-AND-JOINING.md) (the app has no help screen yet).
 3. **Spike done by hand 2026-10-05** against real daemons, written up in "Spike findings". Still to do: an opt-in automated
    test like [[ADR-012]]'s, and a decision on member-hub versus per-member blind stores.
-4. Mailbox client in the app: entry format, writing and reading `mailbox`, garbage collection, with tests on the in-memory mesh.
+4. Mailbox client in the app: entry format, writing and reading `mailbox`, garbage collection, with tests on the in-memory mesh. **Format, writer and reader done 2026-10-06** (`mailbox/`, fake mesh only, not yet called by the sync service); garbage collection still to do. Entries carry a per-deposit number and readers go through a writer's entries without gaps.
 5. **Prerequisite, done 2026-10-06 for Android:** the embedded x0x in `ffi/x0x-ffi` is now 0.46.3 and the store check passes on
    the emulator. Still to do: rebuild the arm ABIs and check the iOS build.
 6. Hub: the enrolment block (`x0x group join` + `x0x group store create`, shown by the app, Spike 5), hub entry in the device roster, invite links

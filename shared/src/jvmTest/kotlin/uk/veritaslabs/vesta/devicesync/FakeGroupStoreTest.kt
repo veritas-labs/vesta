@@ -102,8 +102,10 @@ class FakeGroupStoreTest {
         phoneA.removeGroupMember(groupId, "phone-b")
 
         // Assert
-        assertFailsWith<X0xApiException> { phoneB.getValue(storeId, "phone-a/0001") }
-        assertFailsWith<X0xApiException> { phoneB.putValue(storeId, "phone-b/0001", byteArrayOf(2)) }
+        val read = assertFailsWith<X0xApiException> { phoneB.getValue(storeId, "phone-a/0001") }
+        val write = assertFailsWith<X0xApiException> { phoneB.putValue(storeId, "phone-b/0001", byteArrayOf(2)) }
+        assertEquals(404, read.status)
+        assertEquals(404, write.status)
     }
 
     @Test
@@ -133,7 +135,8 @@ class FakeGroupStoreTest {
         // Assert
         assertEquals(first, second)
         assertContentEquals(byteArrayOf(1), phoneA.getValue(second, "k"))
-        assertFailsWith<X0xApiException> { phoneB.openGroupStore(groupId, "mailbox") }
+        val refused = assertFailsWith<X0xApiException> { phoneB.openGroupStore(groupId, "mailbox") }
+        assertEquals(404, refused.status)
     }
 
     @Test

@@ -102,7 +102,7 @@ Each slice is independently committable and leaves the suite green. Order matter
   member joins; creator offline and an admin admits a joiner.
 - **Done when:** two fake devices of two members are in one group with the store open, and removal rekeys.
 
-### Slice 3 — mailbox entries (format, writer, reader) — needs slices 1 and 2c
+### Slice 3 — mailbox entries (format, writer, reader) — needs slices 1 and 2c — **done 2026-10-06 on the fake mesh (`mailbox/`); not yet called by anything, slice 4 wires it**
 - **Format** (`mailbox/MailboxEntry.kt`, commonMain or jvmAndroidMain next to Automerge): `version byte (=1)`, `documentId`
   (the existing `"$homeId:$feature"` ids), `payload` = `Document.encodeChangesSince(heads)`. Entry key
   `<writerAgentId>/<zero-padded sequence>`. Split a payload over 48 KB (value limit 64 KiB) into consecutive entries with
@@ -114,7 +114,8 @@ Each slice is independently committable and leaves the suite green. Order matter
   (a high-water mark per writer avoids refetching), get entries after it in order, reassemble parts,
   `applyEncodedChanges` through the document's own source (`receiveSync`-style entry point that takes a lock and
   republishes/persists, as `PantryDocumentSource.receiveSync` does), advance the mark only after a successful apply.
-- **Verify early (small spike inside this slice):** what `applyEncodedChanges` does with changes whose dependencies have not
+- **Verified (`EncodedChangesTest`):** `applyEncodedChanges` queues changes whose dependencies have not arrived and never throws for it, so ordering across writers doesn't matter. Saved heads are rebuilt with a `ChangeHash` subclass (the constructor is protected). **Built differently from the text above:** entries carry a random per-deposit number, the reader reads each writer's entries *without gaps* (a replica can deliver entry 5 before 4), and a failed deposit reuses its numbers. Entries a writer has deleted need slice 5's snapshots.
+- (Original note:) what `applyEncodedChanges` does with changes whose dependencies have not
   arrived (queue or throw). If it throws, the reader must hold back later entries from that writer until earlier ones
   apply, and fall back to the next DM sync.
 - Tests: round trip of a Pantry document through the fake store; idempotent re-application; an oversized change split and
