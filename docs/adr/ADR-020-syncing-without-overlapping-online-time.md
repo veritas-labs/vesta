@@ -288,6 +288,30 @@ The app embeds x0x **0.45.0** (`ffi/x0x-ffi/Cargo.toml`); all earlier spikes ran
 - The emulator test was restored afterwards: groups left, owner key and the files it caused removed, `named_groups.json`
   reset to `{}`. The agent id is unchanged. Two files under `files/x0x/treekem` may be left from the test and are harmless.
 
+## Spike 8: several hubs, a restarted member, a promoted member (2026-10-06, x0xd 0.46.0)
+
+Run by hand with `curl` and the `x0x` CLI against four throwaway daemons (`--name s8-a/b/h1/h2`, since deleted): A the creator, B a
+plain member, H1 and H2 two hubs (joined by invite, promoted to admin by A). All four opened the `mailbox` store with the
+idempotent call. It answers the "To check" list in the amendment, except how an older device reads the new roster.
+
+**0a. A restarted member daemon keeps its mailbox: confirmed.** B was stopped, A wrote two entries, B was started with **no** reopen
+call. Its store was listed again at once, it held the entries written while it was down, and a live write by A arrived. So a
+member's own always-on daemon (one that joined through Vesta's invite and opened the store) keeps replicating with Vesta closed,
+which is what Spike 5 showed for a hub. Nothing needs Vesta running.
+
+**0b. Removing one of two hubs: confirmed safe for the rest.** With B stopped, A removed H1 (epoch 3 to 4) and wrote an entry.
+H2 still listed and read the entries from before the rekey and the one after. B, started afterwards, caught up the same set,
+old and new. H1 was refused reads (`current TreeKEM group read policy denies access`) and writes. So a second hub is real
+redundancy, and removing one costs the others nothing except the rekey.
+
+**0c. Promote and demote a member: confirmed.** `setGroupMemberRole` took B to admin and back to member; B wrote to the store
+in both roles and the other replicas saw it. The store stays open across a role change.
+
+**Operational note.** A daemon started a few seconds after the previous one of the same name was stopped exited with
+`shutdown socket release timeout ... weak_socket_owner_still_live` and left no `api.port`; starting again after about 20 s worked.
+This is a different failure from the wedged daemon seen earlier today (alive, holding the instance lock, never listening), but it is
+in the same area, and the hub guide should say to wait before restarting a daemon.
+
 ## Manual end-to-end run (2026-10-06)
 
 Run by hand on two phones (A, B) and a host hub (x0xd 0.46.0):
@@ -363,9 +387,9 @@ Two questions came up after the manual run. Neither is built; this records the a
 
 ### To check before building
 
-- That a daemon restart keeps the `mailbox` store open without Vesta (case 2), on a real daemon.
-- That removing a hub among several, and its rekey, leaves entries readable for the others (Spike 4 covers one rekey).
-- How an older device treats a roster with several hubs or a hub that is also a device.
+- **Done, see Spike 8:** a daemon restart keeps the `mailbox` store open without Vesta (case 2); removing one of several hubs and
+  its rekey leaves entries readable for the others and for a member who was offline; promoting and demoting a member keeps its store.
+- Still open: how an older device treats a roster with several hubs or a hub that is also a device.
 
 ## Open points
 

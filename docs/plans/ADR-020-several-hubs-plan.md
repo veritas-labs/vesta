@@ -43,7 +43,7 @@ Written 2026-10-06 so a fresh session can build the "Amendment (2026-10-06)" in
 
 ## Slices
 
-### Slice 0: spike on real daemons (before any code) — do first, it can change the design
+### Slice 0: spike on real daemons (before any code) — **done 2026-10-06, all three confirmed, see ADR-020 Spike 8; the design does not change**
 
 Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
 
@@ -54,7 +54,7 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   and by a member who was offline across it? (Spike 4 covers one rekey with one extra member.)
 - **0c.** A device that is a member, then promoted to admin, then demoted: does `setGroupMemberRole` accept it, and does the
   promoted agent keep its store?
-- **Output:** a "Spike 8" section in the ADR. If 0a fails, a member's own always-on desktop needs the same `store create` call
+- **Output:** a "Spike 8" section in the ADR (written). If 0a had failed, a member's own always-on desktop needs the same `store create` call
   from Vesta (an "open the mailbox" action at startup, which `HomeGroups.openStore` already does while Vesta runs).
 
 ### Slice 1: roster document holds several hubs — no UI, no behaviour change yet
