@@ -37,7 +37,16 @@ class ShoppingListDocumentSource(
 
     override val items: Flow<List<ShoppingListItem>> = state
 
+    // Saves and removals made while this list is still an unseeded placeholder (see [isShoppingListSeeded]); run, in order,
+    // once the creator's list has arrived. In memory only, so one made before then is lost if the app is closed first.
+    private val pending = mutableListOf<suspend () -> Unit>()
+
+    private suspend fun queuedUntilSeeded(operation: suspend () -> Unit): Boolean = lock.withLock {
+        if (document.isShoppingListSeeded()) false else { pending += operation; true }
+    }
+
     override suspend fun save(item: ShoppingItemDetails) {
+        if (queuedUntilSeeded { save(item) }) return
         val key = lock.withLock {
             val key = if (item.key == null) {
                 addShoppingItem(
@@ -56,7 +65,7 @@ class ShoppingListDocumentSource(
         if (key == null) return
         // The Pantry is written after the list: a crash in between leaves an item the Pantry doesn't know yet, which
         // the next add or edit of it repairs, rather than a Pantry entry for something never listed.
-        pantry.mutate { doc ->
+        pantry.edit { doc ->
             ensurePantryCategories(doc, item.primaryCategory, item.secondaryCategory)
             ensurePantryItem(
                 doc, item.primaryCategory, item.secondaryCategory, item.title, item.packageSize, item.barcode,
@@ -67,6 +76,7 @@ class ShoppingListDocumentSource(
     }
 
     override suspend fun remove(key: String) {
+        if (queuedUntilSeeded { remove(key) }) return
         lock.withLock {
             removeShoppingItem(document, key)
             publishAndPersist()
@@ -80,10 +90,15 @@ class ShoppingListDocumentSource(
     }
 
     /** Applies a sync message from a peer, then republishes and persists the list if it changed. */
-    suspend fun receiveSync(state: SyncState, message: ByteArray) = lock.withLock {
-        val before = document.heads
-        document.receiveSyncMessage(state, message)
-        if (!document.heads.contentEquals(before)) publishAndPersist()
+    suspend fun receiveSync(state: SyncState, message: ByteArray) {
+        val ready = lock.withLock {
+            val before = document.heads
+            document.receiveSyncMessage(state, message)
+            if (!document.heads.contentEquals(before)) publishAndPersist()
+            // The creator's list may just have arrived: what was saved or removed before it can now be done on top of it.
+            if (pending.isNotEmpty() && document.isShoppingListSeeded()) pending.toList().also { pending.clear() } else emptyList()
+        }
+        ready.forEach { it() }
     }
 
     /** Republishes and persists after [document] changed outside [save]/[remove], e.g. by applying a sync message. */

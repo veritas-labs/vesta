@@ -51,6 +51,19 @@ class PantryDocumentSource(
 
     override val categories: Flow<List<PantryCategoryGroup>> = categoryState
 
+    // Edits made while this is still an unseeded placeholder (see [isPantrySeeded]); applied, in order, once the creator's
+    // document has arrived. Kept in memory only, so an edit made before the seed arrives is lost if the app is closed first.
+    private val pending = mutableListOf<(Document) -> Unit>()
+
+    /**
+     * Runs [block] as an edit: now when the document is seeded, otherwise once it is. Unlike [mutate] it never writes to
+     * an unseeded placeholder, where it would create root maps that compete with the creator's and lose items on merge.
+     */
+    suspend fun edit(block: (Document) -> Unit) {
+        val queued = lock.withLock { if (document.isPantrySeeded()) false else { pending += block; true } }
+        if (!queued) mutate(block)
+    }
+
     /** Runs [block] against the document (e.g. `upsertPantryItem(it, …)`), then republishes and persists it. */
     suspend fun <T> mutate(block: (Document) -> T): T = lock.withLock {
         block(document).also { publishAndPersist() }
@@ -62,14 +75,19 @@ class PantryDocumentSource(
     }
 
     /** Applies a sync message from a peer, then republishes and persists the document if it changed. */
-    suspend fun receiveSync(state: SyncState, message: ByteArray) = lock.withLock {
-        val before = document.heads
-        document.receiveSyncMessage(state, message)
-        if (!document.heads.contentEquals(before)) publishAndPersist()
+    suspend fun receiveSync(state: SyncState, message: ByteArray) {
+        val ready = lock.withLock {
+            val before = document.heads
+            document.receiveSyncMessage(state, message)
+            if (!document.heads.contentEquals(before)) publishAndPersist()
+            // The creator's document may just have arrived: the edits made before it can now be applied on top of it.
+            if (pending.isNotEmpty() && document.isPantrySeeded()) pending.toList().also { pending.clear() } else emptyList()
+        }
+        ready.forEach { mutate(it) }
     }
 
     override suspend fun save(item: PantryItemDetails) {
-        mutate { doc ->
+        edit { doc ->
             ensurePantryCategories(doc, item.primaryCategory, item.secondaryCategory)
             val key = upsertPantryItem(
                 doc,
@@ -86,18 +104,18 @@ class PantryDocumentSource(
     }
 
     override suspend fun delete(key: String) {
-        mutate { deletePantryItem(it, key) }
+        edit { deletePantryItem(it, key) }
     }
 
-    override suspend fun addPrimary(name: String) = mutate { addPrimaryCategory(it, name) }
+    override suspend fun addPrimary(name: String) = edit { addPrimaryCategory(it, name) }
 
     override suspend fun addSecondary(primary: String, name: String) =
-        mutate { addSecondaryCategory(it, primary, name) }
+        edit { addSecondaryCategory(it, primary, name) }
 
-    override suspend fun deletePrimary(name: String) = mutate { deletePrimaryCategory(it, name) }
+    override suspend fun deletePrimary(name: String) = edit { deletePrimaryCategory(it, name) }
 
     override suspend fun deleteSecondary(primary: String, name: String) =
-        mutate { deleteSecondaryCategory(it, primary, name) }
+        edit { deleteSecondaryCategory(it, primary, name) }
 
     /** Republishes and persists after [document] changed outside [mutate], e.g. by applying a sync message. */
     suspend fun refresh() = lock.withLock { publishAndPersist() }

@@ -178,6 +178,13 @@ fun deletePantryItem(doc: Document, key: String) {
     }
 }
 
+/**
+ * Whether this document holds a Pantry's root maps. A Home that came from another device starts with an empty
+ * placeholder (see `storeEmptyPantry`) that is not seeded until the creator's document arrives; an edit made on it would
+ * create root maps of its own that compete with the creator's, and one side's items would be lost on merge.
+ */
+fun Read.isPantrySeeded(): Boolean = itemsMapId() != null
+
 private fun Read.itemsMapId(): ObjectId? = (get(ObjectId.ROOT, ItemsKey).getOrNull() as? AmValue.Map)?.id
 
 private fun Read.readPantryItemAt(itemId: ObjectId): PantryItem = PantryItem(

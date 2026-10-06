@@ -165,6 +165,9 @@ private fun org.automerge.Transaction.writeItem(
     }
 }
 
+/** Whether this document holds a shopping list's root map; see [isPantrySeeded] for why an unseeded one must not be edited. */
+fun Read.isShoppingListSeeded(): Boolean = itemsMapId() != null
+
 private fun Read.itemsMapId(): ObjectId? = (get(ObjectId.ROOT, ItemsKey).getOrNull() as? AmValue.Map)?.id
 
 private fun Read.readShoppingItemAt(itemId: ObjectId): ShoppingItem = ShoppingItem(
