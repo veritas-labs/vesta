@@ -272,6 +272,7 @@ private fun HomeContent(
     onDeleteHome: suspend () -> Unit = {},
     joining: HomeJoining? = null,
     hubs: HomeHub? = null,
+    onOpened: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var leaveBlocked by remember { mutableStateOf(false) }
@@ -281,6 +282,8 @@ private fun HomeContent(
         .collectAsStateWithLifecycle(emptyList())
     val isAdmin = memberList.any { it.isYou && it.role == MemberRole.Admin }
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
+    // Opening a Home or its Pantry asks for a sync now (ADR-020), rather than showing what the next timer round brings.
+    LaunchedEffect(homeId, destination == HomeDestination.Pantry) { onOpened() }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
         viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
@@ -567,6 +570,7 @@ fun VestaApp(
                 onDeleteHome = { homeRepository.delete(homeId) },
                 joining = deviceDataSync?.joining,
                 hubs = deviceDataSync?.hubs,
+                onOpened = { deviceDataSync?.syncNow() },
             )
         },
     )

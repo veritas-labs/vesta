@@ -2,8 +2,9 @@
 
 **Status:** Accepted (2026-10-03, updated 2026-10-06). Decision steps 1 and 2 are implemented: presence- and foreground-triggered
 sync, and the mailbox in an x0x group store held by an app-agnostic hub ([[ADR-021]] gives each Home its group). Verified
-on the in-memory mesh and against real x0xd 0.46.0 daemons on a host (`HubDaemonIntegrationTest`). **Not yet verified on a
-device** (Android emulator or phone, and iOS): see "Still unverified" below. Steps 3 and 4 (sealed entries, a hosted relay) are
+on the in-memory mesh and against real x0xd 0.46.0 daemons on a host (`HubDaemonIntegrationTest`). **Run by hand on two
+phones against a host hub on 2026-10-06** (see "Manual end-to-end run"); iOS and the mobile-data case are not verified: see
+"Still unverified" below. Steps 3 and 4 (sealed entries, a hosted relay) are
 not built and not planned. Addresses the limit named in [[ADR-018]] (open point: "whether x0x stores could serve as a mailbox")
 and the wording fixed in [[ADR-019]]. Builds on [[ADR-005]], [[ADR-013]], [[ADR-014]] and [[ADR-017]]. User-facing:
 [Syncing and joining](../product/SYNC-AND-JOINING.md), [Run an always-on hub](../product/RUN-A-HUB.md).
@@ -287,13 +288,26 @@ The app embeds x0x **0.45.0** (`ffi/x0x-ffi/Cargo.toml`); all earlier spikes ran
 - The emulator test was restored afterwards: groups left, owner key and the files it caused removed, `named_groups.json`
   reset to `{}`. The agent id is unchanged. Two files under `files/x0x/treekem` may be left from the test and are harmless.
 
+## Manual end-to-end run (2026-10-06)
+
+Run by hand on two phones (A, B) and a host hub (x0xd 0.46.0):
+
+- Steps 1-3 (make a Home, choose the hub, join the second phone) succeeded; step 2 needs UX tweaks (not yet written down).
+- Step 4, sync in both directions with everyone online, succeeded. Synced data took about 30 s to appear after opening the
+  Pantry, because the sync service only ran a full round every 30 s. Opening a Home or its Pantry now calls `syncNow()`.
+- Step 5, catch-up through the hub: with the hub daemon stopped, one item was added on each phone and, as expected, nothing synced.
+  Both phones were then closed and the hub started. Phone A opened first did not sync (phone B had deposited nothing yet, as
+  expected). Phone B opened with A closed did sync, which can only have come from the mailbox. A opened with B still open then synced,
+  but that could have been a direct message from B, so it does not isolate the mailbox. To isolate it: add an item on B, close B, open A.
+- The host daemon once wedged (held the instance lock but never bound port 12700, so `x0x start` could not start another); killing it
+  and starting again fixed it. Cause unknown.
+
 ## Still unverified (2026-10-06)
 
-- **On a device.** The emulator's QEMU crashed on start-up on the development machine (SIGSEGV in `qemu-system-x86_64-headless`,
-  with software rendering and with no GPU), so nothing here has run on Android. To do, on an emulator or phone against a host
-  hub: make a Home on the phone, run the printed hub commands on the host, choose the hub, write on the phone, close the app,
-  and read the Home from a second device (or profile) later; confirm the daemon stopping on mobile data just makes the mailbox
-  wait. Spike 7 showed the embedded x0x 0.46.3 opens the store and interoperates with a 0.46.0 host, so the risk is in the app
+- **Mobile data.** Confirm the daemon stopping on mobile data just makes the mailbox wait.
+
+- **Emulator.** The emulator's QEMU crashed on start-up on the development machine (SIGSEGV in `qemu-system-x86_64-headless`,
+  with software rendering and with no GPU), so the emulator has not been used; the phone run above replaced it. Spike 7 showed the embedded x0x 0.46.3 opens the store and interoperates with a 0.46.0 host, so the risk is in the app
   wiring and lifecycle, not x0x.
 - **iOS.** The iOS FFI build against 0.46.3 was not checked (no Apple toolchain on the development machine). The arm64 and
   armv7 Android libraries were rebuilt against 0.46.3 and the debug APK assembles.
