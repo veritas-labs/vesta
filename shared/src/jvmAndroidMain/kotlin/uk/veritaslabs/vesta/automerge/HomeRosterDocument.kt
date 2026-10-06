@@ -16,6 +16,7 @@ private const val JoinedAtField = "joinedAt"
 private const val RemovedField = "removed"
 private const val GroupKey = "group"
 private const val HubKey = "hub"
+private const val HubPrefix = "hub:"
 private const val InvitePrefix = "invite:"
 private const val CreatedByField = "createdBy"
 private const val ExpiresAtField = "expiresAt"
@@ -51,8 +52,10 @@ data class RosterMember(
  * same value merge to exactly that value. So any device may write its own person's keys, and a device writes only its
  * own `device:` key.
  *
- * The Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) is one more scalar, `group = <groupId>`, and its always-on hub
- * (docs/adr/ADR-020, an agent that is in the group but acts for no member) another, `hub = <agentId>`.
+ * The Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) is one more scalar, `group = <groupId>`. Its always-on hubs
+ * (docs/adr/ADR-020, agents in the group that replicate the mailbox; a hub may also be a member's device) are one key each,
+ * `hub:<agentId> = true`, so two admins adding different hubs at once merge to both. Before several hubs were allowed the
+ * roster held one scalar, `hub = <agentId>`: it is still read as a hub, and removing that agent deletes it.
  *
  * Invites (docs/adr/ADR-018-invite-links.md) live in the same document, as flat keys too:
  *
@@ -282,29 +285,42 @@ fun setRosterGroup(doc: Document, groupId: String): Boolean {
     return true
 }
 
-/** The agent recorded as the Home's always-on hub, or null. */
-fun Read.readRosterHub(): String? = (get(ObjectId.ROOT, HubKey).getOrNull() as? AmValue.Str)?.value?.takeIf { it.isNotEmpty() }
+/** The agents recorded as the Home's always-on hubs: every `hub:<agentId>` key, and the older single `hub` value. */
+fun Read.readRosterHubs(): Set<String> {
+    val hubs = mutableSetOf<String>()
+    (get(ObjectId.ROOT, HubKey).getOrNull() as? AmValue.Str)?.value?.takeIf { it.isNotEmpty() }?.let { hubs += it }
+    for (entry in mapEntries(ObjectId.ROOT).getOrNull().orEmpty()) {
+        if (entry.key.startsWith(HubPrefix) && (entry.value as? AmValue.Bool)?.value == true) hubs += entry.key.removePrefix(HubPrefix)
+    }
+    return hubs
+}
 
-/** Records [agentId] as the Home's hub, replacing any other. Returns whether anything changed. */
-fun setRosterHub(doc: Document, agentId: String): Boolean {
+/** Records [agentId] as one of the Home's hubs, beside any others. Returns whether anything changed. */
+fun addRosterHub(doc: Document, agentId: String): Boolean {
     val tx = doc.startTransaction()
-    if ((tx.get(ObjectId.ROOT, HubKey).getOrNull() as? AmValue.Str)?.value == agentId) {
+    val key = "$HubPrefix$agentId"
+    if ((tx.get(ObjectId.ROOT, key).getOrNull() as? AmValue.Bool)?.value == true) {
         tx.rollback()
         return false
     }
-    tx.set(ObjectId.ROOT, HubKey, agentId)
+    tx.set(ObjectId.ROOT, key, true)
     tx.commit()
     return true
 }
 
-/** Forgets the Home's hub, if one is recorded. Returns whether anything changed. */
-fun clearRosterHub(doc: Document): Boolean {
+/** Forgets [agentId] as a hub, whichever way it was recorded, leaving the others. Returns whether anything changed. */
+fun removeRosterHub(doc: Document, agentId: String): Boolean {
     val tx = doc.startTransaction()
-    if (!tx.get(ObjectId.ROOT, HubKey).isPresent) {
-        tx.rollback()
-        return false
+    var changed = false
+    val key = "$HubPrefix$agentId"
+    if (tx.get(ObjectId.ROOT, key).isPresent) {
+        tx.delete(ObjectId.ROOT, key)
+        changed = true
     }
-    tx.delete(ObjectId.ROOT, HubKey)
-    tx.commit()
-    return true
+    if ((tx.get(ObjectId.ROOT, HubKey).getOrNull() as? AmValue.Str)?.value == agentId) {
+        tx.delete(ObjectId.ROOT, HubKey)
+        changed = true
+    }
+    if (changed) tx.commit() else tx.rollback()
+    return changed
 }

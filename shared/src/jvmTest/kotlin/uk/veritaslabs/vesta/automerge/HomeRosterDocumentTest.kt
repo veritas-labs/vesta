@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.automerge.Document
+import org.automerge.ObjectId
 
 class HomeRosterDocumentTest {
 
@@ -288,5 +289,114 @@ class HomeRosterDocumentTest {
         assertEquals(64, hash.length)
         assertTrue(secret !in hash)
         assertTrue(newInviteSecret() != secret)
+    }
+
+    @Test
+    fun severalHubsAreRecordedBesideEachOther() {
+        // Arrange
+        val doc = Document()
+
+        // Act
+        val first = addRosterHub(doc, "hub-1")
+        val second = addRosterHub(doc, "hub-2")
+
+        // Assert
+        assertTrue(first)
+        assertTrue(second)
+        assertEquals(setOf("hub-1", "hub-2"), doc.readRosterHubs())
+    }
+
+    @Test
+    fun addingAHubAgainChangesNothing() {
+        // Arrange
+        val doc = Document()
+        addRosterHub(doc, "hub-1")
+
+        // Act
+        val changed = addRosterHub(doc, "hub-1")
+
+        // Assert
+        assertFalse(changed)
+        assertEquals(setOf("hub-1"), doc.readRosterHubs())
+    }
+
+    @Test
+    fun removingAHubLeavesTheOthers() {
+        // Arrange
+        val doc = Document()
+        addRosterHub(doc, "hub-1")
+        addRosterHub(doc, "hub-2")
+
+        // Act
+        val changed = removeRosterHub(doc, "hub-1")
+        val again = removeRosterHub(doc, "hub-1")
+
+        // Assert
+        assertTrue(changed)
+        assertFalse(again)
+        assertEquals(setOf("hub-2"), doc.readRosterHubs())
+    }
+
+    @Test
+    fun aRosterWithNoHubsReadsNone() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+
+        // Act
+        val hubs = doc.readRosterHubs()
+
+        // Assert
+        assertTrue(hubs.isEmpty())
+    }
+
+    @Test
+    fun theOlderSingleHubValueIsReadAndRemoved() {
+        // Arrange
+        val doc = Document()
+        doc.startTransaction().also {
+            it.set(ObjectId.ROOT, "hub", "old-hub")
+            it.commit()
+        }
+        addRosterHub(doc, "hub-2")
+
+        // Act
+        val before = doc.readRosterHubs()
+        removeRosterHub(doc, "old-hub")
+
+        // Assert
+        assertEquals(setOf("old-hub", "hub-2"), before)
+        assertEquals(setOf("hub-2"), doc.readRosterHubs())
+    }
+
+    @Test
+    fun hubsAddedOnTwoDevicesAtOnceMergeToBoth() {
+        // Arrange
+        val first = Document()
+        addRosterHub(first, "hub-0")
+        val second = first.fork()
+
+        // Act
+        addRosterHub(first, "hub-1")
+        addRosterHub(second, "hub-2")
+        first.merge(second)
+
+        // Assert
+        assertEquals(setOf("hub-0", "hub-1", "hub-2"), first.readRosterHubs())
+    }
+
+    @Test
+    fun aHubMayAlsoBeAMembersDevice() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(doc, "agent-a", "m1")
+
+        // Act
+        addRosterHub(doc, "agent-a")
+
+        // Assert
+        assertEquals(setOf("agent-a"), doc.readRosterHubs())
+        assertEquals(setOf("agent-a"), doc.readRoster().single().devices)
     }
 }

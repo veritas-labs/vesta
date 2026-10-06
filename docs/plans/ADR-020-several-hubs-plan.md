@@ -57,7 +57,7 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
 - **Output:** a "Spike 8" section in the ADR (written). If 0a had failed, a member's own always-on desktop needs the same `store create` call
   from Vesta (an "open the mailbox" action at startup, which `HomeGroups.openStore` already does while Vesta runs).
 
-### Slice 1: roster document holds several hubs — no UI, no behaviour change yet
+### Slice 1: roster document holds several hubs — no UI, no behaviour change yet — **done 2026-10-06**
 
 - `HomeRosterDocument.kt`: `readRosterHubs(): Set<String>` (union of `hubs` keys and legacy `hub`), `addRosterHub`,
   `removeRosterHub` (also clears the legacy key if it equals the agent). Keep `readRosterHub`/`setRosterHub` only if something
@@ -67,6 +67,11 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   two replicas add different hubs concurrently and merge to both; an old document (only `hub`) migrates on first write.
 - **Done when:** the document tests pass and `HomeHubs`/`HomeGroups` still compile against the old single-hub calls (adapted
   with `hubs().firstOrNull()` as a temporary shim, removed in slice 2).
+- **As built:** one key per hub, `hub:<agentId> = true` (the roster's flat-key idiom, so concurrent adds merge to both), read as a
+  union with the legacy `hub` scalar; `readRosterHubs`, `addRosterHub`, `removeRosterHub` in `HomeRosterDocument.kt`; `HomeRosters.hubs`,
+  `addHub`, `removeHub`. `HomeRosters.hub`/`setHub`/`clearHub` remain as marked single-hub shims (`setHub` makes the agent the only
+  hub) for `HomeHubs` and `HomeGroups`; slices 2 and 3 remove them, and `useAsHub` must then call `addHub`. Seven new document tests.
+  Still open: how an older device reads a roster with `hub:` keys (it should ignore them).
 
 ### Slice 2: the hub API and `HomeHubs` — needs slice 1, decisions 1 and 2
 

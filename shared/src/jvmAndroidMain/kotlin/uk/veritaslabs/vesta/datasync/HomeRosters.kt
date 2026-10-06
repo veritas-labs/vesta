@@ -12,6 +12,7 @@ import org.automerge.Document
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.InviteStatus
 import uk.veritaslabs.vesta.automerge.RosterInvite
+import uk.veritaslabs.vesta.automerge.addRosterHub
 import uk.veritaslabs.vesta.automerge.claimRosterDevice
 import uk.veritaslabs.vesta.automerge.inviteSecretHash
 import uk.veritaslabs.vesta.automerge.newInviteSecret
@@ -22,10 +23,9 @@ import uk.veritaslabs.vesta.automerge.useRosterInvite
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.automerge.RosterMember
 import uk.veritaslabs.vesta.automerge.putRosterMember
-import uk.veritaslabs.vesta.automerge.clearRosterHub
 import uk.veritaslabs.vesta.automerge.readRosterGroup
-import uk.veritaslabs.vesta.automerge.readRosterHub
-import uk.veritaslabs.vesta.automerge.setRosterHub
+import uk.veritaslabs.vesta.automerge.readRosterHubs
+import uk.veritaslabs.vesta.automerge.removeRosterHub
 import uk.veritaslabs.vesta.automerge.setRosterGroup
 import uk.veritaslabs.vesta.automerge.readRoster
 import uk.veritaslabs.vesta.automerge.releaseRosterDevice
@@ -271,26 +271,40 @@ internal class HomeRosters(
         if (changed) _changes.tryEmit(homeId)
     }
 
-    /** The agent [homeId]'s roster records as its always-on hub (docs/adr/ADR-020), or null. */
-    suspend fun hub(homeId: String): String? = lock.withLock { open(homeId)?.readRosterHub() }
+    /** The agents [homeId]'s roster records as its always-on hubs (docs/adr/ADR-020). */
+    suspend fun hubs(homeId: String): Set<String> = lock.withLock { open(homeId)?.readRosterHubs().orEmpty() }
 
-    /** Records [agentId] as [homeId]'s hub for every device of the Home to learn. */
+    /** Records [agentId] as one of [homeId]'s hubs, for every device of the Home to learn. */
+    suspend fun addHub(homeId: String, agentId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            addRosterHub(doc, agentId).also { if (it) persist(homeId, doc) }
+        }
+        if (changed) _changes.tryEmit(homeId)
+    }
+
+    /** Forgets [agentId] as one of [homeId]'s hubs. */
+    suspend fun removeHub(homeId: String, agentId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            removeRosterHub(doc, agentId).also { if (it) persist(homeId, doc) }
+        }
+        if (changed) _changes.tryEmit(homeId)
+    }
+
+    // Single-hub shims for HomeHubs and HomeGroups until the several-hubs plan's slices 2 and 3 replace them.
+
+    /** The one hub, the first by agent id when there are several. */
+    suspend fun hub(homeId: String): String? = hubs(homeId).minOrNull()
+
+    /** Makes [agentId] the only hub. */
     suspend fun setHub(homeId: String, agentId: String) {
-        val changed = lock.withLock {
-            val doc = open(homeId) ?: return
-            setRosterHub(doc, agentId).also { if (it) persist(homeId, doc) }
-        }
-        if (changed) _changes.tryEmit(homeId)
+        hubs(homeId).filter { it != agentId }.forEach { removeHub(homeId, it) }
+        addHub(homeId, agentId)
     }
 
-    /** Forgets [homeId]'s hub. */
-    suspend fun clearHub(homeId: String) {
-        val changed = lock.withLock {
-            val doc = open(homeId) ?: return
-            clearRosterHub(doc).also { if (it) persist(homeId, doc) }
-        }
-        if (changed) _changes.tryEmit(homeId)
-    }
+    /** Forgets every hub. */
+    suspend fun clearHub(homeId: String) = hubs(homeId).forEach { removeHub(homeId, it) }
 
     private suspend fun open(homeId: String): Document? {
         if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) {
