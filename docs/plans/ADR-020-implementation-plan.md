@@ -122,12 +122,12 @@ Each slice is independently committable and leaves the suite green. Order matter
   reassembled; a gap or reordered entries; writer restart continues its sequence.
 - **Done when:** two fake devices converge through the store alone with no direct messages.
 
-### Slice 4 — wire it into `DeviceDataSyncService` — needs slice 3
+### Slice 4 — wire it into `DeviceDataSyncService` — needs slice 3 — **done 2026-10-06 on the fake mesh; deposits on local change, fetch each round, on presence and on foreground (`syncNow`)**
 - Deposit on local change (`localChanges` flows already exist for Pantry/shopping/roster) and on `syncNow()`.
 - Fetch on app start/foreground, on a timer while open, and on presence events; keep DM sync exactly as is (the mailbox is
   the catch-up path, ADR-020 "Phones").
 - Respect the network policy (`X0xNetworkPolicy`) and an absent daemon (no group yet → no-op, never an error).
-- Make sure DM and mailbox application cannot double-apply or fight (both end in idempotent Automerge merges; one lock).
+- Make sure DM and mailbox application cannot double-apply or fight (both end in idempotent Automerge merges). Built: the mailbox runs *outside* the service lock (store calls can be slow; the sources and the mailbox keep their own locks). Known cost: changes applied from others are included in this device's next deposit (a deposit is everything since its last heads), so each change is stored about once per writer; it is bounded by garbage collection (slice 5).
 - Tests (`DeviceDataSyncServiceTest` style, fake mesh): A edits, goes offline, B comes online later → B has it; both
   directions; DM path still works when both are online; a device with no group is unaffected.
 - **Done when:** the "never online together" scenario passes on the fake mesh, and the existing suite is green.

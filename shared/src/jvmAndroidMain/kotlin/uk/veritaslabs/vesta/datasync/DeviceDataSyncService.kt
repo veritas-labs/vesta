@@ -26,6 +26,9 @@ import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
+import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
+import uk.veritaslabs.vesta.mailbox.MailboxReader
+import uk.veritaslabs.vesta.mailbox.MailboxWriter
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.profile.ProfileChangeListener
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -46,6 +49,12 @@ private const val MaxBufferedPerHome = 64
  *
  * Every device syncs with every other one, so no device needs to relay for another. Each periodic round (see
  * [syncEverything]) restarts the sync with every peer, which is how a device that was offline catches up.
+ *
+ * A Home's documents also go through its mailbox (docs/adr/ADR-020-syncing-without-overlapping-online-time.md): an x0x group
+ * store every member and the always-on hub replicate. Each local change is deposited there, and each round, presence event
+ * and foreground fetches what other devices left, so two devices that are never online together still converge. The direct
+ * messages stay as they are; the mailbox is the catch-up path, and both end in idempotent Automerge merges. A Home that has
+ * no open store yet, or a daemon that is down, makes the mailbox do nothing.
  */
 class DeviceDataSyncService(
     private val client: X0xClient,
@@ -62,6 +71,9 @@ class DeviceDataSyncService(
     private val rosters = HomeRosters(database, profiles)
     private val join = HomeJoinService(client, database, rosters, registry, profiles)
     private val groups = HomeGroups(client, database, rosters, profiles)
+    private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, rosters)
+    private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
+    private val mailboxReader = MailboxReader(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
 
     override val homeChanges: HomeChangeListener get() = registry
 
@@ -101,21 +113,59 @@ class DeviceDataSyncService(
                 attempt { syncDocument(rosterDocumentId(homeId)) }
                 attempt { syncDocument(pantryDocumentId(homeId)) }
                 attempt { syncDocument(shoppingListDocumentId(homeId)) }
+                attempt { mailboxWriter.deposit(homeId, rosterDocumentId(homeId)) }
             }
         }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
-        launch { pantrySources.localChanges.collect { homeId -> attempt { syncDocument(pantryDocumentId(homeId)) } } }
-        launch { shoppingSources.localChanges.collect { homeId -> attempt { syncDocument(shoppingListDocumentId(homeId)) } } }
+        launch {
+            pantrySources.localChanges.collect { homeId ->
+                attempt { syncDocument(pantryDocumentId(homeId)) }
+                attempt { mailboxWriter.deposit(homeId, pantryDocumentId(homeId)) }
+            }
+        }
+        launch {
+            shoppingSources.localChanges.collect { homeId ->
+                attempt { syncDocument(shoppingListDocumentId(homeId)) }
+                attempt { mailboxWriter.deposit(homeId, shoppingListDocumentId(homeId)) }
+            }
+        }
         // A newly paired device, or one that has gone, changes who there is to sync with.
         launch { devices.devices.collect { attempt { syncEverything() } } }
         // A peer coming online is the moment a message to it can get through (ADR-020): sync with it now rather than
         // at the next round. The timer stays as the fallback, as presence events can be late or missed.
-        launch { X0xEventHub(client).presence.collect { event -> if (event.isOnline) attempt { syncWith(event.agentId) } } }
-        launch { syncRequests.consumeEach { attempt { syncEverything() } } }
+        launch {
+            X0xEventHub(client).presence.collect { event ->
+                if (event.isOnline) {
+                    attempt { syncWith(event.agentId) }
+                    attempt { syncMailboxes() }
+                }
+            }
+        }
+        launch { syncRequests.consumeEach { attempt { round() } } }
         while (true) {
-            attempt { syncEverything() }
+            attempt { round() }
             delay(interval)
         }
+    }
+
+    /** One full round: the direct-message sync, then the mailboxes (whose stores the direct-message round may just have opened). */
+    private suspend fun round() {
+        attempt { syncEverything() }
+        attempt { syncMailboxes() }
+    }
+
+    /**
+     * Deposits what this device changed and fetches what others left, in every Home's mailbox. It runs outside [lock]: store
+     * calls can be slow, and the documents and the mailbox keep their own locks. A Home whose roster, Pantry or list changed
+     * through a deposit is published and synced again, as one that arrived by direct message is.
+     */
+    private suspend fun syncMailboxes() {
+        var applied = 0
+        database.homeQueries.selectAll().awaitAsList().forEach { home ->
+            attempt { mailboxWriter.deposit(home.id) }
+            attempt { applied += mailboxReader.fetch(home.id) }
+        }
+        if (applied > 0) attempt { publishRosters() }
     }
 
     /** The agents that act for each member of [homeId], by member id, as its roster says. */

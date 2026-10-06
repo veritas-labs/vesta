@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -33,6 +34,9 @@ import uk.veritaslabs.vesta.home.RemoveMemberResult
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
+import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
+import uk.veritaslabs.vesta.automerge.pantryDocumentId
+import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
@@ -739,6 +743,91 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         eventually { y.database.homeMemberQueries.selectByHome(homeId).awaitAsList().first { it.memberId == xMember }.name == "Xavier" }
+        scope.cancel()
+    }
+
+    // --- The mailbox (ADR-020) ---
+
+    /** Waits until both devices of [homeId] are in the Home's group with its mailbox store open, then adds an always-on hub to it. */
+    private suspend fun withHub(x: Device, y: Device, homeId: String): String {
+        eventually { x.mailboxStore(homeId) != null && y.mailboxStore(homeId) != null }
+        val groupId = x.database.homeGroupQueries.selectByHome(homeId).awaitAsOneOrNull()!!.groupId
+        val hub = network.node("agent-hub")
+        hub.joinGroup(x.node.createGroupInvite(groupId))
+        hub.openGroupStore(groupId, "mailbox")
+        return groupId
+    }
+
+    private suspend fun Device.mailboxStore(homeId: String) = database.homeGroupQueries.selectByHome(homeId).awaitAsOneOrNull()?.storeId
+
+    /** Whether everything this device has in [homeId]'s Pantry is already in the mailbox. */
+    private suspend fun Device.pantryDeposited(homeId: String): Boolean {
+        val heads = pantries.forHome(homeId)!!.heads()
+        return database.mailboxQueries.selectHeads(homeId, pantryDocumentId(homeId)).awaitAsOneOrNull()?.contentEquals(heads) == true
+    }
+
+    /** Whether everything this device has in [homeId]'s shopping list is already in the mailbox. */
+    private suspend fun Device.shoppingDeposited(homeId: String): Boolean {
+        val heads = shopping.forHome(homeId)!!.heads()
+        return database.mailboxQueries.selectHeads(homeId, shoppingListDocumentId(homeId)).awaitAsOneOrNull()?.contentEquals(heads) == true
+    }
+
+    @Test
+    fun twoMembersWhoAreNeverOnlineTogetherStillSyncThroughTheHub() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        withHub(x, y, homeId)
+        network.offline += y.agentId
+
+        // Act: X edits while Y is away, and is itself gone by the time Y is back, so no direct message can carry it
+        x.shopping.forHome(homeId)!!.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Whole Milk"))
+        eventually { x.shoppingDeposited(homeId) }
+        network.offline += x.agentId
+        network.comeOnline(y.agentId)
+
+        // Assert
+        eventually { y.shoppingTitles(homeId) == listOf("Whole Milk") }
+        scope.cancel()
+    }
+
+    @Test
+    fun aChangeMadeWhileTheOtherMemberIsAwayReachesThemWhenTheirAppIsOpenedAgain() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        withHub(x, y, homeId)
+        network.offline += x.agentId
+
+        // Act
+        y.pantries.forHome(homeId)!!.save(PantryItemDetails(primaryCategory = "Meat", title = "Beef Mince", packageSize = "500g"))
+        eventually { y.pantryDeposited(homeId) && y.pantryTitles(homeId) == listOf("Beef Mince") }
+        network.offline += y.agentId
+        network.comeOnline(x.agentId)
+        x.sync.syncNow()
+
+        // Assert
+        eventually { x.pantryTitles(homeId) == listOf("Beef Mince") }
+        scope.cancel()
+    }
+
+    @Test
+    fun aMemberWithNoGroupYetIsUnaffectedAndStillSyncsByDirectMessage() = runBlocking {
+        // Arrange: the creator is not running, so nobody can invite Y into a group
+        val (x, y, homeId) = twoPeopleInOneHome()
+        y.start()
+        x.start()
+        network.offline += x.agentId
+
+        // Act
+        y.pantries.forHome(homeId)!!.save(PantryItemDetails(primaryCategory = "Meat", title = "Beef Mince", packageSize = "500g"))
+        delay(300.milliseconds)
+        network.comeOnline(x.agentId)
+
+        // Assert: the direct-message path still delivers it
+        eventually { x.pantryTitles(homeId) == listOf("Beef Mince") }
         scope.cancel()
     }
 }
