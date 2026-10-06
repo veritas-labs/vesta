@@ -181,8 +181,8 @@ class HubDaemonIntegrationTest {
 
                     // Act: the hub is removed, which changes the group's keys, and enrolled again.
                     a.open()
-                    until("A to be in the group again") { a.sync.hubs.state(homeId).agentId == hubId }
-                    assertEquals(HubResult.Done, a.sync.hubs.removeHub(homeId))
+                    until("A to be in the group again") { a.sync.hubs.hubs(homeId).any { it.agentId == hubId } }
+                    assertEquals(HubResult.Done, a.sync.hubs.removeHub(homeId, hubId))
                     assertTrue(a.daemon.client.getGroupMembers(groupId).none { it.agentId == hubId && it.state == "active" })
                     enrolHub(a, hub, homeId, hubId)
 

@@ -3,7 +3,6 @@ package uk.veritaslabs.vesta.datasync
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
@@ -144,13 +143,13 @@ class HomeHubsTest {
         // Assert
         assertEquals(HubResult.Done, result)
         assertEquals("admin", network.groups.getValue(home.mark.groupId()!!).members.getValue("agent-hub").role)
-        assertEquals(HubState("agent-hub", inGroup = true), home.mark.hubs.state(homeId))
-        assertEquals(HubState("agent-hub", inGroup = true), home.sam.hubs.state(homeId))
+        assertEquals(listOf(HubState("agent-hub", inGroup = true)), home.mark.hubs.hubs(homeId))
+        assertEquals(listOf(HubState("agent-hub", inGroup = true)), home.sam.hubs.hubs(homeId))
         assertEquals(emptyList(), home.mark.hubs.candidates(homeId))
     }
 
     @Test
-    fun anAgentThatActsForAMemberOrIsNotInTheGroupCannotBeTheHub() = runBlocking {
+    fun aDeviceOfAPlainMemberOrAnAgentNotInTheGroupCannotBeTheHub() = runBlocking {
         // Arrange
         val home = Household().arrange()
 
@@ -160,10 +159,10 @@ class HomeHubsTest {
         val byMember = home.sam.hubs.useAsHub(homeId, "agent-hub")
 
         // Assert
-        assertEquals(HubResult.ActsForAMember, member)
+        assertEquals(HubResult.NotAnAdminDevice, member)
         assertEquals(HubResult.NotInGroup, outsider)
         assertEquals(HubResult.NotAnAdmin, byMember)
-        assertNull(home.mark.rosters.hub(homeId))
+        assertTrue(home.mark.rosters.hubs(homeId).isEmpty())
     }
 
     @Test
@@ -210,12 +209,12 @@ class HomeHubsTest {
         val storeId = home.hub.openGroupStore(home.mark.groupId()!!, "mailbox")
 
         // Act
-        val result = home.mark.hubs.removeHub(homeId)
+        val result = home.mark.hubs.removeHub(homeId, "agent-hub")
 
         // Assert
         assertEquals(HubResult.Done, result)
-        assertNull(home.mark.rosters.hub(homeId))
-        assertEquals(HubState(null, inGroup = false), home.mark.hubs.state(homeId))
+        assertTrue(home.mark.rosters.hubs(homeId).isEmpty())
+        assertEquals(emptyList(), home.mark.hubs.hubs(homeId))
         assertTrue("agent-hub" !in network.groups.getValue(home.mark.groupId()!!).members)
         val cutOff = runCatching { home.hub.getValue(storeId, "any") }.exceptionOrNull()
         assertEquals(404, (cutOff as X0xApiException).status)
@@ -235,11 +234,118 @@ class HomeHubsTest {
         sync(home.mark, ann)
 
         // Act
-        val result = ann.hubs.removeHub(homeId)
+        val result = ann.hubs.removeHub(homeId, "agent-hub")
 
         // Assert
         assertEquals(HubResult.Failed, result)
-        assertNotNull(ann.rosters.hub(homeId))
+        assertTrue("agent-hub" in ann.rosters.hubs(homeId))
         assertTrue("agent-hub" in network.groups.getValue(home.mark.groupId()!!).members)
+    }
+
+    @Test
+    fun severalHubsAreRecordedAndEachIsMadeAnAdmin() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        home.enrolHub()
+        val second = network.node("agent-hub-2")
+        val enrolment = home.mark.hubs.enrolment(homeId)!!
+        second.joinGroup(enrolment.commands.lines().first().removePrefix("x0x group join "))
+        second.openGroupStore(enrolment.groupId, "mailbox")
+
+        // Act
+        val first = home.mark.hubs.useAsHub(homeId, "agent-hub")
+        val other = home.mark.hubs.useAsHub(homeId, "agent-hub-2")
+        sync(home.mark, home.sam)
+
+        // Assert
+        assertEquals(HubResult.Done, first)
+        assertEquals(HubResult.Done, other)
+        val members = network.groups.getValue(home.mark.groupId()!!).members
+        assertEquals("admin", members.getValue("agent-hub").role)
+        assertEquals("admin", members.getValue("agent-hub-2").role)
+        assertEquals(
+            listOf(HubState("agent-hub", inGroup = true), HubState("agent-hub-2", inGroup = true)),
+            home.sam.hubs.hubs(homeId),
+        )
+    }
+
+    @Test
+    fun removingOneOfTwoHubsLeavesTheOtherServingTheMailbox() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        home.enrolHub()
+        val second = network.node("agent-hub-2")
+        val enrolment = home.mark.hubs.enrolment(homeId)!!
+        second.joinGroup(enrolment.commands.lines().first().removePrefix("x0x group join "))
+        val storeId = second.openGroupStore(enrolment.groupId, "mailbox")
+        home.mark.hubs.useAsHub(homeId, "agent-hub")
+        home.mark.hubs.useAsHub(homeId, "agent-hub-2")
+        home.mark.node.putValue(storeId, "entry", byteArrayOf(1, 2, 3))
+
+        // Act
+        val result = home.mark.hubs.removeHub(homeId, "agent-hub")
+
+        // Assert
+        assertEquals(HubResult.Done, result)
+        assertEquals(setOf("agent-hub-2"), home.mark.rosters.hubs(homeId))
+        assertTrue("agent-hub-2" in network.groups.getValue(home.mark.groupId()!!).members)
+        assertTrue(byteArrayOf(1, 2, 3).contentEquals(second.getValue(storeId, "entry")))
+    }
+
+    @Test
+    fun anAdminsOwnDeviceCanBeAHubAndStaysAMemberWhenItStopsBeingOne() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val before = home.mark.hubs.ownDeviceCandidates(homeId)
+
+        // Act
+        val chosen = home.mark.hubs.useAsHub(homeId, "agent-mark")
+        val whileAHub = home.mark.hubs.hubs(homeId)
+        val offered = home.mark.hubs.ownDeviceCandidates(homeId)
+        val removed = home.mark.hubs.removeHub(homeId, "agent-mark")
+
+        // Assert
+        assertEquals(listOf("agent-mark"), before)
+        assertEquals(HubResult.Done, chosen)
+        assertEquals(listOf(HubState("agent-mark", inGroup = true, isDevice = true)), whileAHub)
+        assertEquals(emptyList(), offered)
+        assertEquals(HubResult.Done, removed)
+        assertTrue(home.mark.rosters.hubs(homeId).isEmpty())
+        assertTrue("agent-mark" in network.groups.getValue(home.mark.groupId()!!).members)
+    }
+
+    @Test
+    fun aDeviceThatIsAHubIsNotOfferedAsAnEnrolledMachine() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        home.mark.hubs.useAsHub(homeId, "agent-mark")
+
+        // Act
+        val candidates = home.mark.hubs.candidates(homeId)
+
+        // Assert
+        assertEquals(emptyList(), candidates)
+    }
+
+    @Test
+    fun anAdminCanAlsoUseAnotherAdminsDeviceButNotAPlainMembersAsAHub() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val ann = Device("agent-ann")
+        home.mark.rosters.admit(homeId, ann.memberId(), "Ann", "admin", ann.agentId)
+        sync(home.mark, ann)
+        ann.groups.reconcile()
+        eventually { ann.groupId() != null }
+        home.mark.groups.reconcile()
+        eventually { network.groups.getValue(home.mark.groupId()!!).members.containsKey("agent-ann") }
+
+        // Act
+        val admins = home.mark.hubs.useAsHub(homeId, "agent-ann")
+        val plain = home.mark.hubs.useAsHub(homeId, "agent-sam")
+
+        // Assert
+        assertEquals(HubResult.Done, admins)
+        assertEquals(HubResult.NotAnAdminDevice, plain)
+        assertEquals(setOf("agent-ann"), home.mark.rosters.hubs(homeId))
     }
 }

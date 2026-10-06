@@ -22,9 +22,9 @@ private const val MailboxStore = "mailbox"
 private const val KeyPackagePending = "member_key_package_pending"
 
 /**
- * [HomeHub] over the Home's x0x group ([HomeGroups]) and its roster (docs/adr/ADR-020, slice 6). The hub is recorded in the
- * roster, so every member's device learns it, and [HomeGroups] keeps it an x0x admin. It is never one of the roster's device
- * claims: it is an agent in the group that acts for nobody.
+ * [HomeHub] over the Home's x0x group ([HomeGroups]) and its roster (docs/adr/ADR-020, slice 6, and its several-hubs amendment).
+ * The hubs are recorded in the roster, so every member's device learns them, and [HomeGroups] keeps them x0x admins. A hub is
+ * usually an agent in the group that acts for nobody; it may also be a device of an admin member.
  */
 internal class HomeHubs(
     private val client: X0xClient,
@@ -42,54 +42,72 @@ internal class HomeHubs(
         return HubEnrolment(group, "x0x group join $invite\nx0x group store create $group $MailboxStore")
     }
 
-    override suspend fun state(homeId: String): HubState {
-        val hub = rosters.hub(homeId) ?: return HubState(null, inGroup = false)
-        val inGroup = localGroup(homeId)?.let { group ->
-            runCatching { client.getGroupMembers(group) }.getOrNull()?.any { it.agentId == hub && it.state == ActiveState } == true
-        } == true
-        return HubState(hub, inGroup)
+    override suspend fun hubs(homeId: String): List<HubState> {
+        val hubs = rosters.hubs(homeId).sorted()
+        if (hubs.isEmpty()) return emptyList()
+        val active = localGroup(homeId)?.let { group ->
+            runCatching { client.getGroupMembers(group) }.getOrNull()?.filter { it.state == ActiveState }?.map { it.agentId }?.toSet()
+        }.orEmpty()
+        val devices = deviceAgents(homeId)
+        return hubs.map { HubState(it, inGroup = it in active, isDevice = it in devices) }
     }
 
     override suspend fun candidates(homeId: String): List<String> {
         val group = localGroup(homeId) ?: return emptyList()
         val members = runCatching { client.getGroupMembers(group) }.getOrNull() ?: return emptyList()
-        val known = rosters.members(homeId).flatMap { it.devices }.toSet() + setOfNotNull(rosters.hub(homeId), selfId())
+        val known = deviceAgents(homeId) + rosters.hubs(homeId) + setOfNotNull(selfId())
         return members.filter { it.state == ActiveState && it.agentId !in known }.map { it.agentId }
+    }
+
+    override suspend fun ownDeviceCandidates(homeId: String): List<String> {
+        val group = localGroup(homeId) ?: return emptyList()
+        val members = runCatching { client.getGroupMembers(group) }.getOrNull() ?: return emptyList()
+        val me = profiles.current().id
+        val own = rosters.members(homeId).firstOrNull { it.memberId == me && !it.removed }?.devices.orEmpty()
+        val hubs = rosters.hubs(homeId)
+        return members.filter { it.state == ActiveState && it.agentId in own && it.agentId !in hubs }.map { it.agentId }.sorted()
     }
 
     override suspend fun useAsHub(homeId: String, agentId: String): HubResult {
         val group = localGroup(homeId) ?: return HubResult.Failed
         if (!isAdminOfHome(homeId)) return HubResult.NotAnAdmin
-        if (rosters.members(homeId).any { agentId in it.devices }) return HubResult.ActsForAMember
+        // Being a hub makes the agent an x0x admin, so a device of a member who is not an admin of the Home can't be one.
+        val owner = rosters.members(homeId).firstOrNull { agentId in it.devices }
+        if (owner != null && (owner.removed || owner.role != MemberRole.Admin.storageValue)) return HubResult.NotAnAdminDevice
         val active = try {
             client.getGroupMembers(group).any { it.agentId == agentId && it.state == ActiveState }
         } catch (e: X0xApiException) {
             return HubResult.Failed
         }
         if (!active) return HubResult.NotInGroup
-        rosters.setHub(homeId, agentId)
-        // Any x0x admin keeps the hub an admin each round; doing it now just saves the wait.
+        rosters.addHub(homeId, agentId)
+        // Any x0x admin keeps the hubs admins each round; doing it now just saves the wait.
         attempt { client.setGroupMemberRole(group, agentId, AdminRole) }
         return HubResult.Done
     }
 
-    override suspend fun removeHub(homeId: String): HubResult {
-        val hub = rosters.hub(homeId) ?: return HubResult.Done
+    override suspend fun removeHub(homeId: String, agentId: String): HubResult {
+        if (agentId !in rosters.hubs(homeId)) return HubResult.Done
         if (!isAdminOfHome(homeId)) return HubResult.NotAnAdmin
         val group = localGroup(homeId)
-        if (group != null) {
+        // A device of a member stays in the group, which is still its member's; only a machine that is nobody's is taken out.
+        if (group != null && agentId !in deviceAgents(homeId)) {
             val members = try {
                 client.getGroupMembers(group)
             } catch (e: X0xApiException) {
                 return HubResult.Failed
             }
-            if (members.any { it.agentId == hub && it.state == ActiveState }) {
-                if (!removeFromGroup(group, hub)) return HubResult.Failed
+            if (members.any { it.agentId == agentId && it.state == ActiveState }) {
+                if (!removeFromGroup(group, agentId)) return HubResult.Failed
             }
         }
-        rosters.clearHub(homeId)
+        rosters.removeHub(homeId, agentId)
         return HubResult.Done
     }
+
+    /** The agents that act for a member of the Home who is still in it. */
+    private suspend fun deviceAgents(homeId: String): Set<String> =
+        rosters.members(homeId).filterNot { it.removed }.flatMap { it.devices }.toSet()
 
     /** Removes [agentId], retrying while x0x is still fetching its key package; false when it could not be removed. */
     private suspend fun removeFromGroup(group: String, agentId: String): Boolean {

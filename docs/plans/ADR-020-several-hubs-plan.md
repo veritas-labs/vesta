@@ -73,7 +73,7 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   hub) for `HomeHubs` and `HomeGroups`; slices 2 and 3 remove them, and `useAsHub` must then call `addHub`. Seven new document tests.
   Still open: how an older device reads a roster with `hub:` keys (it should ignore them).
 
-### Slice 2: the hub API and `HomeHubs` — needs slice 1, decisions 1 and 2
+### Slice 2: the hub API and `HomeHubs` — needs slice 1, decisions 1 and 2 — **done 2026-10-06 (decisions 1-4 confirmed at their defaults)**
 
 - `HubState` becomes a list: `HubsState(hubs: List<HubState>)`, each with `agentId`, `inGroup`, and `isDevice` (is it also a
   roster device, and whose). `HomeHub.state(homeId): List<HubState>`.
@@ -88,7 +88,14 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   rekey leaves the member able to read; choose an own desktop device as hub; refuse a plain member's device; remove a hub that
   is also a device and the device stays in the group; candidates list shape.
 
-### Slice 3: `HomeGroups` roles and departures — needs slice 1
+- **As built:** `HomeHub.hubs` (was `state`) returns `List<HubState>` with `isDevice`; `ownDeviceCandidates` added; `removeHub` takes an agent id;
+  `HubResult.ActsForAMember` replaced by `NotAnAdminDevice` (a device of a removed member or of a member who is not an admin). `useAsHub` calls
+  `addHub`; `removeHub` leaves the group only for an agent that is nobody's device. The `HomeRosters.setHub`/`clearHub` shims are gone.
+  `HubViewModel` still shows the first hub only (slice 5). Five new `HomeHubsTest` cases (two hubs, remove one, own device as hub, hub-device
+  not a candidate, another admin's device accepted and a plain member's refused). **Pulled forward from slice 3:** `HomeGroups.adjustRoles`
+  now takes the set of hubs, so every hub is kept an x0x admin.
+
+### Slice 3: `HomeGroups` roles and departures — needs slice 1 — **`adjustRoles` over the hub set done in slice 2; the departed-member cleanup and tests remain**
 
 - `adjustRoles(..., hubs: Set<String>)`: admins = admin members' devices + every hub. A hub that is also a plain member's
   device is not demoted (`plain` already subtracts `admins`; add a test).

@@ -69,7 +69,8 @@ class HubViewModel(
     /** Removes the hub from the Home's group and the roster. */
     fun onRemove() {
         viewModelScope.launch {
-            val result = hubs?.let { runCatchingNotCancelled { it.removeHub(homeId) } }
+            val hub = _uiState.value.hub ?: return@launch
+            val result = hubs?.let { runCatchingNotCancelled { it.removeHub(homeId, hub.agentId) } }
             _uiState.update { it.copy(failed = result != HubResult.Done) }
             refresh()
         }
@@ -81,10 +82,11 @@ class HubViewModel(
 
     private suspend fun refresh() {
         val service = hubs ?: return _uiState.update { it.copy(loading = false, unavailable = true) }
-        val state = runCatchingNotCancelled { service.state(homeId) } ?: return _uiState.update { it.copy(loading = false) }
-        val hub = state.agentId
+        val recorded = runCatchingNotCancelled { service.hubs(homeId) } ?: return _uiState.update { it.copy(loading = false) }
+        // The screen shows one hub until it is made to list several (docs/plans/ADR-020-several-hubs-plan.md, slice 5).
+        val hub = recorded.firstOrNull()
         if (hub != null) {
-            _uiState.update { it.copy(loading = false, unavailable = false, hub = HubItem(hub, state.inGroup), commands = null, candidates = emptyList()) }
+            _uiState.update { it.copy(loading = false, unavailable = false, hub = HubItem(hub.agentId, hub.inGroup), commands = null, candidates = emptyList()) }
             return
         }
         val commands = _uiState.value.commands ?: runCatchingNotCancelled { service.enrolment(homeId) }?.commands

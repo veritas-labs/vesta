@@ -19,12 +19,14 @@ class FakeHomeHub : HomeHub {
         return enrolment
     }
 
-    override suspend fun state(homeId: String): HubState {
+    override suspend fun hubs(homeId: String): List<HubState> {
         if (failing) error("x0x is down")
-        return HubState(hub, inGroup)
+        return listOfNotNull(hub?.let { HubState(it, inGroup) })
     }
 
     override suspend fun candidates(homeId: String): List<String> = candidates
+
+    override suspend fun ownDeviceCandidates(homeId: String): List<String> = emptyList()
 
     override suspend fun useAsHub(homeId: String, agentId: String): HubResult {
         used += agentId
@@ -36,7 +38,7 @@ class FakeHomeHub : HomeHub {
         return useResult
     }
 
-    override suspend fun removeHub(homeId: String): HubResult {
+    override suspend fun removeHub(homeId: String, agentId: String): HubResult {
         removeCalls++
         if (removeResult == HubResult.Done) {
             hub = null

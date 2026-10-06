@@ -33,7 +33,7 @@ private const val ActiveState = "active"
  * - **Join.** Any other device that has the Home but no group asks the admins' devices for an invite every round
  *   ([reconcile]); an admin device that is an x0x admin answers ([handle]); the asker joins and opens the store.
  * - **Roles and removal.** An x0x admin makes the devices of Vesta admins x0x admins, demotes those of members who stopped
- *   being admins (the hub the roster names is an x0x admin too), and removes the devices of members who left or were removed. Removing the group's creator replaces
+ *   being admins (the hubs the roster names are x0x admins too), and removes the devices of members who left or were removed. Removing the group's creator replaces
  *   the group, which x0x needs because it won't let another admin remove it.
  * - **Leave.** A Home this device no longer has is left.
  *
@@ -113,7 +113,7 @@ internal class HomeGroups(
         if (local.storeId == null) openStore(homeId, local.groupId)
         if (me.role == AdminRole) {
             val roster = rosters.members(homeId)
-            adjustRoles(local.groupId, self, members, roster, hub = rosters.hub(homeId))
+            adjustRoles(local.groupId, self, members, roster, hubs = rosters.hubs(homeId))
             removeDeparted(homeId, local.groupId, self, members, roster)
         }
     }
@@ -188,10 +188,10 @@ internal class HomeGroups(
         self: String,
         members: List<X0xGroupMember>,
         roster: List<RosterMember>,
-        hub: String?,
+        hubs: Set<String>,
     ) {
-        // The hub (docs/adr/ADR-020) acts for no member, but it is an admin so it can admit joiners while the phones are away.
-        val admins = roster.filter { !it.removed && it.role == MemberRole.Admin.storageValue }.flatMap { it.devices }.toSet() + setOfNotNull(hub)
+        // The hubs (docs/adr/ADR-020) are admins so they can admit joiners while the phones are away; a hub may also be a member's device.
+        val admins = roster.filter { !it.removed && it.role == MemberRole.Admin.storageValue }.flatMap { it.devices }.toSet() + hubs
         val plain = roster.filter { !it.removed && it.role != MemberRole.Admin.storageValue }.flatMap { it.devices }.toSet() - admins
         val creator = runCatching { client.getGroupCreator(groupId) }.getOrNull()
         members.filter { it.state == ActiveState }.forEach { member ->

@@ -292,20 +292,6 @@ internal class HomeRosters(
         if (changed) _changes.tryEmit(homeId)
     }
 
-    // Single-hub shims for HomeHubs and HomeGroups until the several-hubs plan's slices 2 and 3 replace them.
-
-    /** The one hub, the first by agent id when there are several. */
-    suspend fun hub(homeId: String): String? = hubs(homeId).minOrNull()
-
-    /** Makes [agentId] the only hub. */
-    suspend fun setHub(homeId: String, agentId: String) {
-        hubs(homeId).filter { it != agentId }.forEach { removeHub(homeId, it) }
-        addHub(homeId, agentId)
-    }
-
-    /** Forgets every hub. */
-    suspend fun clearHub(homeId: String) = hubs(homeId).forEach { removeHub(homeId, it) }
-
     private suspend fun open(homeId: String): Document? {
         if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) {
             documents.remove(homeId)
