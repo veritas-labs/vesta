@@ -65,7 +65,7 @@ Write the answers into a new `ADR-021: Home x0x group` (slice 2a) so they are no
 
 Each slice is independently committable and leaves the suite green. Order matters where noted.
 
-### Slice 0 — housekeeping (any time, small)
+### Slice 0 — housekeeping (any time, small) — **done 2026-10-06 except the emulator `named_groups.json` check and the iOS build**
 - Rebuild the arm64 and armv7 FFI libraries against 0.46.3 (`scripts/build-android-ffi.sh`, normal `preBuild`), and check
   the iOS build (`ffi/x0x-ffi` staticlib) compiles with 0.46.3.
 - Check the emulator's `files/x0x/named_groups.json` for a leftover test-group entry (reset to `{}` if it holds only test
@@ -73,7 +73,7 @@ Each slice is independently committable and leaves the suite green. Order matter
 - ADR-020 old slice 2: document in the user-facing help what overlap is required today.
 - **Done when:** `./gradlew :androidApp:installDebug` works with all ABIs and the app starts; help text merged.
 
-### Slice 1 — group stores in `X0xClient` and the fake mesh
+### Slice 1 — group stores in `X0xClient` and the fake mesh — **done 2026-10-06**
 - `X0xClient`: add `openGroupStore(groupId: String, name: String): String` (returns the store `id`), and reuse the
   existing `listStoreKeys/getValue/putValue/deleteValue` with ids and keys **percent-encoded** (fix in
   `AbstractX0xClient`; add a unit test with a `/`-containing id).
@@ -84,7 +84,7 @@ Each slice is independently committable and leaves the suite green. Order matter
   can no longer read; value over 64 KiB is rejected.
 - **Done when:** a fake three-node mesh reproduces ADR-020 Spikes 1/4/6 in tests.
 
-### Slice 2 — a Home x0x group (the large one)
+### Slice 2 — a Home x0x group (the large one) — **done 2026-10-06 on the fake mesh, see [ADR-021](../adr/ADR-021-home-x0x-group.md)**
 2a. **ADR-021** with the decisions above, plus lifecycle rules (below). Fold the answers back into ADR-020.
 2b. **Model:** `HomeGroup` table (`homeId` PK, `groupId`, `storeId` nullable) + `13.sqm`; `HomeGroupRepository`. The group id
     also goes into the Home's roster document so other members' devices learn it.

@@ -1,0 +1,6 @@
+-- Version 13 -> 14: adds HomeGroup (see uk/veritaslabs/vesta/db/HomeGroup.sq).
+CREATE TABLE IF NOT EXISTS HomeGroup (
+    homeId TEXT NOT NULL PRIMARY KEY,
+    groupId TEXT NOT NULL,
+    storeId TEXT
+);

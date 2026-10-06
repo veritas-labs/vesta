@@ -20,7 +20,10 @@ import uk.veritaslabs.vesta.automerge.readInvites
 import uk.veritaslabs.vesta.automerge.revokeRosterInvite
 import uk.veritaslabs.vesta.automerge.useRosterInvite
 import uk.veritaslabs.vesta.homejoin.InviteLink
+import uk.veritaslabs.vesta.automerge.RosterMember
 import uk.veritaslabs.vesta.automerge.putRosterMember
+import uk.veritaslabs.vesta.automerge.readRosterGroup
+import uk.veritaslabs.vesta.automerge.setRosterGroup
 import uk.veritaslabs.vesta.automerge.readRoster
 import uk.veritaslabs.vesta.automerge.releaseRosterDevice
 import uk.veritaslabs.vesta.automerge.retireRosterMember
@@ -227,6 +230,21 @@ internal class HomeRosters(
     /** The agents that act for each member of [homeId], by member id. */
     suspend fun devices(homeId: String): Map<String, Set<String>> = lock.withLock {
         open(homeId)?.readRoster()?.filterNot { it.removed }?.associate { it.memberId to it.devices }.orEmpty()
+    }
+
+    /** Every member of [homeId]'s roster, those marked removed included. */
+    suspend fun members(homeId: String): List<RosterMember> = lock.withLock { open(homeId)?.readRoster().orEmpty() }
+
+    /** The id of [homeId]'s x0x group as its roster names it (docs/adr/ADR-021-home-x0x-group.md), or null. */
+    suspend fun groupId(homeId: String): String? = lock.withLock { open(homeId)?.readRosterGroup() }
+
+    /** Names [groupId] as [homeId]'s x0x group, for every device of the Home to learn. */
+    suspend fun setGroup(homeId: String, groupId: String) {
+        val changed = lock.withLock {
+            val doc = open(homeId) ?: return
+            setRosterGroup(doc, groupId).also { if (it) persist(homeId, doc) }
+        }
+        if (changed) _changes.tryEmit(homeId)
     }
 
     private suspend fun open(homeId: String): Document? {

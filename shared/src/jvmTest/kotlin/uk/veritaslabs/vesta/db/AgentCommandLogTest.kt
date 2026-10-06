@@ -73,7 +73,7 @@ class AgentCommandLogTest {
         log.record("agent-1", "c1", "reply")
 
         // Assert
-        assertEquals(13L, VestaDatabase.Schema.version)
+        assertEquals(14L, VestaDatabase.Schema.version)
         assertEquals("reply", log.reply("agent-1", "c1"))
     }
 }

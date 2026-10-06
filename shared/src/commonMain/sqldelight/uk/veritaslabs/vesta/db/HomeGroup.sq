@@ -1,0 +1,24 @@
+-- The x0x group this device holds for a Home, and that group's `mailbox` store once opened
+-- (docs/adr/ADR-021-home-x0x-group.md). At most one row per Home. Local and unsynced: the roster document names the
+-- group for everyone, this records that this device is in it.
+-- Keep in sync with migrations/13.sqm, which creates this table for databases that predate it.
+CREATE TABLE IF NOT EXISTS HomeGroup (
+    homeId TEXT NOT NULL PRIMARY KEY,
+    groupId TEXT NOT NULL,
+    storeId TEXT
+);
+
+selectAll:
+SELECT * FROM HomeGroup;
+
+selectByHome:
+SELECT * FROM HomeGroup WHERE homeId = ?;
+
+upsert:
+INSERT OR REPLACE INTO HomeGroup(homeId, groupId, storeId) VALUES (?, ?, ?);
+
+setStore:
+UPDATE HomeGroup SET storeId = ? WHERE homeId = ?;
+
+delete:
+DELETE FROM HomeGroup WHERE homeId = ?;

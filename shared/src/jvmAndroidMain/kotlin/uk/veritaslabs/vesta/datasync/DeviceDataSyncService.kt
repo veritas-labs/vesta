@@ -61,6 +61,7 @@ class DeviceDataSyncService(
     private val profile = ProfileRegistry(database, profiles)
     private val rosters = HomeRosters(database, profiles)
     private val join = HomeJoinService(client, database, rosters, registry, profiles)
+    private val groups = HomeGroups(client, database, rosters, profiles)
 
     override val homeChanges: HomeChangeListener get() = registry
 
@@ -137,6 +138,7 @@ class DeviceDataSyncService(
      */
     suspend fun handle(message: X0xDirectMessage) {
         if (join.handle(message)) return // a Home-join message, not a sync message
+        if (groups.handle(message)) return // a Home-group message (ADR-021)
         syncFrom(message)
     }
 
@@ -180,6 +182,7 @@ class DeviceDataSyncService(
     suspend fun syncEverything() = lock.withLock {
         attempt { join.resendPending() }
         attempt { publishRosters() }
+        attempt { groups.reconcile() }
         states.clear()
         connected.clear()
         documentIds().forEach { id -> peersFor(id).forEach { peer -> pump(id, peer) } }

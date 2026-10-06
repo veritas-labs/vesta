@@ -296,7 +296,7 @@ The app embeds x0x **0.45.0** (`ffi/x0x-ffi/Cargo.toml`); all earlier spikes ran
 ## Implementation slices
 
 The detailed plan, with the dependency order and risks, is [docs/plans/ADR-020-implementation-plan.md](../plans/ADR-020-implementation-plan.md). It adds
-slices this list lacks, notably a Home x0x group: Vesta has no group per Home today, only the per-person `DeviceSync`
+slices this list lacks, notably a Home x0x group ([[ADR-021]], built on the fake mesh): Vesta has no group per Home today, only the per-person `DeviceSync`
 group, and the mailbox needs one.
 
 1. **Done.** Presence-triggered and foreground-triggered sync rounds in `DeviceDataSyncService`, with tests on the in-memory mesh.

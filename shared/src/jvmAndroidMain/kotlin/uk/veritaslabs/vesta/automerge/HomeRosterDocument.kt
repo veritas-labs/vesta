@@ -14,6 +14,7 @@ private const val AvatarField = "avatar"
 private const val RoleField = "role"
 private const val JoinedAtField = "joinedAt"
 private const val RemovedField = "removed"
+private const val GroupKey = "group"
 private const val InvitePrefix = "invite:"
 private const val CreatedByField = "createdBy"
 private const val ExpiresAtField = "expiresAt"
@@ -48,6 +49,8 @@ data class RosterMember(
  * `member:<id>` map created by both would conflict on merge and lose one device's entries; scalars written with the
  * same value merge to exactly that value. So any device may write its own person's keys, and a device writes only its
  * own `device:` key.
+ *
+ * The Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) is one more scalar, `group = <groupId>`.
  *
  * Invites (docs/adr/ADR-018-invite-links.md) live in the same document, as flat keys too:
  *
@@ -258,6 +261,21 @@ fun useRosterInvite(doc: Document, secretHash: String, memberId: String): Boolea
         return false
     }
     tx.set(ObjectId.ROOT, usedKey, true)
+    tx.commit()
+    return true
+}
+
+/** The id of the Home's x0x group, or null while the roster has none. */
+fun Read.readRosterGroup(): String? = (get(ObjectId.ROOT, GroupKey).getOrNull() as? AmValue.Str)?.value
+
+/** Names [groupId] as the Home's x0x group, replacing any other. Returns whether anything changed. */
+fun setRosterGroup(doc: Document, groupId: String): Boolean {
+    val tx = doc.startTransaction()
+    if ((tx.get(ObjectId.ROOT, GroupKey).getOrNull() as? AmValue.Str)?.value == groupId) {
+        tx.rollback()
+        return false
+    }
+    tx.set(ObjectId.ROOT, GroupKey, groupId)
     tx.commit()
     return true
 }
