@@ -1,9 +1,12 @@
 # ADR-020: Syncing and joining without overlapping online time
 
-**Status:** Proposed (2026-10-03). Decision step 1 (option 1) implemented 2026-10-05; the mailbox design in step 2 was spiked
-2026-10-05/06 and is not built. Addresses the limit named in [[ADR-018]] (open point: "whether x0x
-stores could serve as a mailbox") and the wording fixed in [[ADR-019]]. Builds on [[ADR-005]], [[ADR-013]], [[ADR-014]] and
-[[ADR-017]].
+**Status:** Accepted (2026-10-03, updated 2026-10-06). Decision steps 1 and 2 are implemented: presence- and foreground-triggered
+sync, and the mailbox in an x0x group store held by an app-agnostic hub ([[ADR-021]] gives each Home its group). Verified
+on the in-memory mesh and against real x0xd 0.46.0 daemons on a host (`HubDaemonIntegrationTest`). **Not yet verified on a
+device** (Android emulator or phone, and iOS): see "Still unverified" below. Steps 3 and 4 (sealed entries, a hosted relay) are
+not built and not planned. Addresses the limit named in [[ADR-018]] (open point: "whether x0x stores could serve as a mailbox")
+and the wording fixed in [[ADR-019]]. Builds on [[ADR-005]], [[ADR-013]], [[ADR-014]] and [[ADR-017]]. User-facing:
+[Syncing and joining](../product/SYNC-AND-JOINING.md), [Run an always-on hub](../product/RUN-A-HUB.md).
 
 ## Context
 
@@ -283,6 +286,19 @@ The app embeds x0x **0.45.0** (`ffi/x0x-ffi/Cargo.toml`); all earlier spikes ran
   allowed). A phone reads and writes the mailbox only while the app is open, which the hub design already assumes.
 - The emulator test was restored afterwards: groups left, owner key and the files it caused removed, `named_groups.json`
   reset to `{}`. The agent id is unchanged. Two files under `files/x0x/treekem` may be left from the test and are harmless.
+
+## Still unverified (2026-10-06)
+
+- **On a device.** The emulator's QEMU crashed on start-up on the development machine (SIGSEGV in `qemu-system-x86_64-headless`,
+  with software rendering and with no GPU), so nothing here has run on Android. To do, on an emulator or phone against a host
+  hub: make a Home on the phone, run the printed hub commands on the host, choose the hub, write on the phone, close the app,
+  and read the Home from a second device (or profile) later; confirm the daemon stopping on mobile data just makes the mailbox
+  wait. Spike 7 showed the embedded x0x 0.46.3 opens the store and interoperates with a 0.46.0 host, so the risk is in the app
+  wiring and lifecycle, not x0x.
+- **iOS.** The iOS FFI build against 0.46.3 was not checked (no Apple toolchain on the development machine). The arm64 and
+  armv7 Android libraries were rebuilt against 0.46.3 and the debug APK assembles.
+- **Leftover on the emulator** from Spike 7: `files/x0x/named_groups.json` may hold a test group (reset it to `{}`).
+- **Wake-up.** A closed or suspended phone does not read or write the mailbox: unchanged, see below.
 
 ## Open points
 

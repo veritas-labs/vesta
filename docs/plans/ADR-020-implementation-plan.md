@@ -165,12 +165,13 @@ Each slice is independently committable and leaves the suite green. Order matter
   directory; never `pkill -f` with a pattern in your own command line; wait for a daemon to exit before restarting it.
 - **Done when:** the test passes locally against three real `x0xd` instances.
 
-### Slice 8 — on-device verification and docs — needs slices 4–6
+### Slice 8 — on-device verification and docs — needs slices 4–6 — **docs done 2026-10-06; on-device verification NOT done (the emulator's QEMU segfaults on the development machine), iOS build not checked**
 - Android emulator or a real phone against a host `x0xd` hub: create a Home on the phone, join the hub with the printed
   block, write on the phone, kill the app, read the same Home from a second profile/device later. Check the daemon stops
   on mobile data as before and the mailbox simply waits.
 - iOS: confirm it compiles with 0.46.3; on-device test only if an iOS build is available.
-- Docs: a "Run an always-on hub" guide (requirements, the copy-paste block, how to remove it, what the hub can read);
+- **Done:** `docs/product/RUN-A-HUB.md`, `docs/product/SYNC-AND-JOINING.md` rewritten for the hub, REQUIREMENTS NFR-3 and the product README updated, ADR-020 status updated with a "Still unverified" section. CORE-EXPERIENCE only mentions sync to say it is an architecture concern, so it is unchanged.
+- (Original item:) Docs: a "Run an always-on hub" guide (requirements, the copy-paste block, how to remove it, what the hub can read);
   update ADR-020 status to Accepted/Implemented, mark the implementation slices, and update CORE-EXPERIENCE/REQUIREMENTS
   where they mention sync limits.
 

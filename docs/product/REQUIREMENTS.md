@@ -100,7 +100,7 @@ can do via Skills / MCP servers.
 |-------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | NFR-1 | Core screens (dashboard, task list) load quickly — <2 seconds on a standard connection, effectively instant on local data                                  |
 | NFR-2 | App remains responsive with up to 50 members in a home                                                                                                     |
-| NFR-3 | Offline-first: the app is fully usable offline as the primary mode (local-first). Synchronisation is handled by the P2P transport when peers are reachable |
+| NFR-3 | Offline-first: the app is fully usable offline as the primary mode (local-first). Synchronisation is handled by the P2P transport when peers are reachable; an optional always-on hub (a plain x0x daemon) lets members sync without being online together ([docs/product/SYNC-AND-JOINING.md](SYNC-AND-JOINING.md)) |
 
 ### Security & Privacy
 

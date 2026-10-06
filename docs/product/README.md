@@ -30,7 +30,7 @@ fall apart at scale.
 
 ### Sync limits
 
-Devices sync directly, so they must be online together. See [Syncing and joining](SYNC-AND-JOINING.md).
+Devices sync directly, so without more they must be online together; an always-on hub removes that limit. See [Syncing and joining](SYNC-AND-JOINING.md) and [Run an always-on hub](RUN-A-HUB.md).
 
 ### Status
 
