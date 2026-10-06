@@ -4,7 +4,7 @@
 sync, and the mailbox in an x0x group store held by an app-agnostic hub ([[ADR-021]] gives each Home its group). Verified
 on the in-memory mesh and against real x0xd 0.46.0 daemons on a host (`HubDaemonIntegrationTest`). **Run by hand on two
 phones against a host hub on 2026-10-06** (see "Manual end-to-end run"); iOS and the mobile-data case are not verified: see
-"Still unverified" below. Steps 3 and 4 (sealed entries, a hosted relay) are
+"Still unverified" below. See the "Amendment (2026-10-06)" for several hubs and a hub that is also a member's device. Steps 3 and 4 (sealed entries, a hosted relay) are
 not built and not planned. Addresses the limit named in [[ADR-018]] (open point: "whether x0x stores could serve as a mailbox")
 and the wording fixed in [[ADR-019]]. Builds on [[ADR-005]], [[ADR-013]], [[ADR-014]] and [[ADR-017]]. User-facing:
 [Syncing and joining](../product/SYNC-AND-JOINING.md), [Run an always-on hub](../product/RUN-A-HUB.md).
@@ -313,6 +313,59 @@ Run by hand on two phones (A, B) and a host hub (x0xd 0.46.0):
   armv7 Android libraries were rebuilt against 0.46.3 and the debug APK assembles.
 - **Leftover on the emulator** from Spike 7: `files/x0x/named_groups.json` may hold a test group (reset it to `{}`).
 - **Wake-up.** A closed or suspended phone does not read or write the mailbox: unchanged, see below.
+
+## Amendment (2026-10-06, Proposed, not implemented): several hubs, and a hub that is also a member's device
+
+Two questions came up after the manual run. Neither is built; this records the analysis and the direction.
+
+### What the code assumes today
+
+- The mailbox is an ordinary group store that every member replicates, and entries are keyed `<writer agent id>/<sequence>`
+  with idempotent Automerge merges. So **several always-on daemons already work at the x0x level**: a second machine runs the
+  same two enrolment commands and becomes another replica. Nothing in the mailbox format changes.
+- Vesta's model is **one hub per Home, and a hub acts for nobody**: the roster stores a single hub (`rosters.hub`, `setHub`,
+  `clearHub`), `HomeHub`/`HubState`/`HubScreen` are singular, `candidates` excludes the recorded hub, auto-promotion to group
+  admin covers only that agent, and `useAsHub` returns `ActsForAMember` for an agent that is in any member's `devices`.
+- The desktop app does not embed x0x: `StandaloneX0xClient` uses the machine's one `x0xd` (via `api.port` and the token). A
+  desktop that runs Vesta and a hub is therefore **one daemon with one agent id**.
+
+### The cases and what happens now (from reading the code, not run)
+
+1. **Several hubs.** Replication works; Vesta can record, show, promote and remove only one. Hubs from different household
+   members are full-trust members each: a hub is an admin holding the group key and reads everything. Sealed entries
+   (decision step 3) remain the answer for a machine the household does not trust, and are not part of this amendment.
+2. **A member's own always-on desktop, already running Vesta, as a hub.** It cannot be chosen (`ActsForAMember`) and is not a
+   candidate. It likely replicates the mailbox anyway while its daemon is up, if the store stays open across daemon restarts
+   (unchecked). It is not promoted to admin, so it cannot admit joiners while phones are away, and nothing in the UI shows it.
+3. **A headless hub first, Vesta installed and paired on that machine later.** The same agent id becomes both hub and a
+   member's device; the `ActsForAMember` check runs only when a hub is chosen, not when a device is paired. `removeHub` would
+   then remove the agent from the group and rekey, **dropping the member's own desktop from the Home's group with no
+   explanation**. Unpairing the device could in turn remove the hub. The sync and mailbox services would otherwise coexist on
+   the one daemon, as their merges are idempotent.
+4. Two Vesta users on one machine share one x0x agent and so look like one device. Not examined.
+
+### Direction
+
+- **Hub becomes a flag on an agent id, not a separate kind of agent.** The roster holds a set of hub agent ids (a schema
+  change to an Automerge document, so old devices must tolerate the new field and read the old single value). The agent may
+  also appear as a member's device.
+- **Drop the `ActsForAMember` refusal for a member's own devices.** It guarded against choosing a machine that acts for a
+  person as if it were neutral; for an agent already on the roster the hub adds no new reader, since the owner is a member.
+  Keep refusing an agent that is not in the group.
+- **Admin promotion and the status display cover every flagged agent**, including one that is also a device.
+- **Removal is role-aware.** "Remove hub" clears the flag and removes the agent from the group (with the rekey) only if it is
+  not also a member's device. Unpairing a device that is also a hub clears the device and leaves the group membership alone.
+- **Pairing guard.** Pairing an agent that is already a hub is allowed and merges the roles; it must not remove either.
+- `candidates` lists group members that are neither devices nor hubs, plus the owner's own devices as a separate "use this
+  device as a hub" choice.
+- **Hubs owned by different users** need no extra mechanism beyond the above: any admin can enrol one by invite. The trust
+  note under "What the hub can do" in [Run an always-on hub](../product/RUN-A-HUB.md) should say that every hub reads everything.
+
+### To check before building
+
+- That a daemon restart keeps the `mailbox` store open without Vesta (case 2), on a real daemon.
+- That removing a hub among several, and its rekey, leaves entries readable for the others (Spike 4 covers one rekey).
+- How an older device treats a roster with several hubs or a hub that is also a device.
 
 ## Open points
 
