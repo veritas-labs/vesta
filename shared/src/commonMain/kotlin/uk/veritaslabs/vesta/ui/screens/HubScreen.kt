@@ -292,7 +292,7 @@ private fun CandidateRow(agentId: String, onUse: () -> Unit, tag: String = HubTe
 
 /** One recorded hub, whether it is in the group, and Remove, which asks first. */
 @Composable
-private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
+internal fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
     var confirming by remember { mutableStateOf(false) }
     Surface(
         shape = MaterialTheme.shapes.small,

@@ -47,7 +47,9 @@ import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
+import uk.veritaslabs.vesta.ui.screens.HubManagerScreen
 import uk.veritaslabs.vesta.ui.screens.HubScreen
+import uk.veritaslabs.vesta.ui.screens.HubTutorialScreen
 import uk.veritaslabs.vesta.ui.screens.NetworkDiagnosticsScreen
 import uk.veritaslabs.vesta.ui.screens.NetworkPeersScreen
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
@@ -332,7 +334,7 @@ private fun HomeContent(
             isAdmin = isAdmin,
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
             onEditHome = onEditHome,
-            onHubClick = { destination = HomeDestination.Hub },
+            onHubClick = { destination = HomeDestination.HubManager },
             onDeleteHome = { scope.launch { onDeleteHome() } },
             onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
             leaveBlocked = leaveBlocked,
@@ -377,9 +379,22 @@ private fun HomeContent(
             val linksViewModel = viewModel(key = "invite-links-$homeId") { InviteLinksViewModel(homeId, joining) }
             InviteLinksScreen(linksViewModel, onBack = { destination = HomeDestination.Members })
         }
+        HomeDestination.HubManager -> {
+            val hubViewModel = viewModel(key = "hub-$homeId") { HubViewModel(homeId, hubs, offerOwnDevice = ownDeviceCanBeHub) }
+            HubManagerScreen(
+                viewModel = hubViewModel,
+                onHowHubsWork = { destination = HomeDestination.HubTutorial },
+                onSetUpHub = { destination = HomeDestination.Hub },
+                onBack = { destination = HomeDestination.Dashboard },
+            )
+        }
+        HomeDestination.HubTutorial -> HubTutorialScreen(
+            onFinish = { destination = HomeDestination.Hub },
+            onBack = { destination = HomeDestination.HubManager },
+        )
         HomeDestination.Hub -> {
             val hubViewModel = viewModel(key = "hub-$homeId") { HubViewModel(homeId, hubs, offerOwnDevice = ownDeviceCanBeHub) }
-            HubScreen(hubViewModel, onBack = { destination = HomeDestination.Dashboard })
+            HubScreen(hubViewModel, onBack = { destination = HomeDestination.HubManager })
         }
         HomeDestination.Pantry -> {
             val onBack = { destination = HomeDestination.Dashboard }
@@ -535,7 +550,7 @@ class DeviceSyncHost(
 )
 
 private enum class HomeDestination {
-    Dashboard, Members, MemberDetail, InviteLinks, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
+    Dashboard, Members, MemberDetail, InviteLinks, HubManager, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
     ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage,
 }
 

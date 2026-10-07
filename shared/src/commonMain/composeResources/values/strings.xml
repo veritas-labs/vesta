@@ -281,7 +281,7 @@
     <string name="invite_links_revoke">Revoke</string>
     <string name="invite_links_created_title">Invite someone</string>
     <string name="invite_links_created_body">Show this to the person joining, or send them the link. When they open it you will be asked to approve them.</string>
-    <string name="hub_menu_item">Always-on hub</string>
+    <string name="hub_menu_item">Manage hubs</string>
     <string name="hub_title">Always-on hub</string>
     <string name="hub_body">A computer that is nearly always on keeps this home in sync when nobody has the app open at the same time. It runs the plain x0x program, not Vesta.</string>
     <string name="hub_unavailable">An admin can set up a hub once this home's group is ready on this device. Try again in a moment.</string>
@@ -322,4 +322,55 @@
     <string name="pending_join_denied_declined">An admin declined your request.</string>
     <string name="pending_join_cancel">Cancel</string>
     <string name="pending_join_dismiss">Dismiss</string>
+
+    <!-- Hub manager -->
+    <string name="hub_manager_title">Manage hubs</string>
+    <string name="hub_manager_how_title">How do hubs work?</string>
+    <string name="hub_manager_setup_title">Set up a hub</string>
+    <string name="hub_manager_empty_title">No hubs yet</string>
+    <string name="hub_manager_empty_body">A hub keeps this home in sync when nobody has the app open at the same time. Set one up on a computer that is nearly always on.</string>
+
+    <!-- Hub tutorial -->
+    <string name="hub_tutorial_skip">Skip</string>
+    <string name="hub_tutorial_next">Next</string>
+    <string name="hub_tutorial_previous">Previous</string>
+    <string name="hub_tutorial_finish">Set up a hub</string>
+    <string name="hub_tutorial_page_of">Page %1$d of %2$d</string>
+    <string name="hub_tutorial_what_title">What is a hub?</string>
+    <string name="hub_tutorial_what_body">A hub is a computer that stays on and keeps a copy of this home's shared data, so there is always something there to hand changes over.</string>
+    <string name="hub_tutorial_what_point_1">It runs a plain x0x daemon.</string>
+    <string name="hub_tutorial_what_point_2">It needs no app, no account and no settings of its own.</string>
+    <string name="hub_tutorial_why_title">Why is it useful?</string>
+    <string name="hub_tutorial_why_body">Without a hub, two people only get each other's changes when both have Vesta open at the same time. With one, nobody has to be online together.</string>
+    <string name="hub_tutorial_why_point_1">Add milk at the shops and everyone sees it later.</string>
+    <string name="hub_tutorial_why_point_2">Changes wait at the hub until someone collects them.</string>
+    <string name="hub_tutorial_how_title">How does it work?</string>
+    <string name="hub_tutorial_how_body">The hub is an ordinary member of this home's private group. Other devices leave their changes with it and pick up other people's from it.</string>
+    <string name="hub_tutorial_how_point_1">Your device passes changes to the hub whenever it is online.</string>
+    <string name="hub_tutorial_how_point_2">Everyone else collects them the next time they open Vesta.</string>
+    <string name="hub_tutorial_how_point_3">Vesta must still be open on each device: a closed or sleeping device does not sync.</string>
+    <string name="hub_tutorial_good_title">What makes a good hub?</string>
+    <string name="hub_tutorial_good_body">Anything that is on most of the time and stays connected to the internet.</string>
+    <string name="hub_tutorial_good_point_1">A desktop or laptop that is rarely switched off.</string>
+    <string name="hub_tutorial_good_point_2">A Raspberry Pi.</string>
+    <string name="hub_tutorial_good_point_3">A home server or a small always-on mini PC.</string>
+    <string name="hub_tutorial_poor_title">What makes a poor hub?</string>
+    <string name="hub_tutorial_poor_body">A hub only helps while it is on and online, so avoid anything that comes and goes.</string>
+    <string name="hub_tutorial_poor_point_1">A phone: its x0x program stops when the app is closed.</string>
+    <string name="hub_tutorial_poor_point_2">A laptop that sleeps or travels with you.</string>
+    <string name="hub_tutorial_poor_point_3">A computer on weak Wi-Fi, or one that is often off.</string>
+    <string name="hub_tutorial_trust_title">Can I trust it?</string>
+    <string name="hub_tutorial_trust_body">A hub can read everything in this home, like any member. Choose a computer you trust and look after it as you would a phone that has this home on it.</string>
+    <string name="hub_tutorial_trust_point_1">It cannot approve anyone: that still needs an admin's phone.</string>
+    <string name="hub_tutorial_trust_point_2">It cannot run Vesta code.</string>
+    <string name="hub_tutorial_trust_point_3">Remove it at any time and it cannot read anything new.</string>
+    <string name="hub_tutorial_more_title">More than one hub</string>
+    <string name="hub_tutorial_more_body">A second hub keeps a second copy, so syncing carries on if one is switched off or broken.</string>
+    <string name="hub_tutorial_more_point_1">Add as many as you like from the Manage hubs screen.</string>
+    <string name="hub_tutorial_more_point_2">A desktop that runs Vesta can be a hub itself, with no commands to run.</string>
+    <string name="hub_tutorial_ready_title">Ready to set one up?</string>
+    <string name="hub_tutorial_ready_body">You will need an admin's phone with Vesta open, and the computer to hand.</string>
+    <string name="hub_tutorial_ready_point_1">Install x0x version 0.46.3 or newer on the computer.</string>
+    <string name="hub_tutorial_ready_point_2">Run the two commands this app shows you.</string>
+    <string name="hub_tutorial_ready_point_3">Tap Use as hub when the computer appears.</string>
 </resources>

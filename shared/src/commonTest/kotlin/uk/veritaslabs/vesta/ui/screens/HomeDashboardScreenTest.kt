@@ -134,7 +134,7 @@ class HomeDashboardScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun alwaysOnHubInTheMenuInvokesOnHubClick() = runComposeUiTest {
+    fun manageHubsInTheMenuInvokesOnHubClick() = runComposeUiTest {
         // Arrange
         var opens = 0
         setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = true, onHubClick = { opens++ }) } }

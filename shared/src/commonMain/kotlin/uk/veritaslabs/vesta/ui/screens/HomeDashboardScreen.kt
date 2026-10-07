@@ -101,7 +101,7 @@ private data class DashboardTile(
  * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Members
  * ([onMembersClick]), with a badge of [membersBadge] people waiting to join, for an admin.
  *
- * The app bar's overflow menu has Edit home ([onEditHome]), Always-on hub ([onHubClick]) and Delete home ([onDeleteHome]), all only for an
+ * The app bar's overflow menu has Manage hubs ([onHubClick]), Edit home ([onEditHome]) and Delete home ([onDeleteHome]), all only for an
  * [isAdmin], and Leave home, which asks for confirmation before calling [onLeaveHome]. [leaveBlocked] shows why
  * the user can't leave (they are the only admin) until [onLeaveBlockedDismiss].
  */
@@ -168,20 +168,20 @@ fun HomeDashboardScreen(
                         }
                         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                             if (isAdmin) DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.onboarding_edit_home)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onEditHome()
-                                },
-                                modifier = Modifier.testTag(HomeDashboardTestTags.EditMenuItem),
-                            )
-                            if (isAdmin) DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.hub_menu_item)) },
                                 onClick = {
                                     menuExpanded = false
                                     onHubClick()
                                 },
                                 modifier = Modifier.testTag(HomeDashboardTestTags.HubMenuItem),
+                            )
+                            if (isAdmin) DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.onboarding_edit_home)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onEditHome()
+                                },
+                                modifier = Modifier.testTag(HomeDashboardTestTags.EditMenuItem),
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.members_leave)) },

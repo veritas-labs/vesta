@@ -14,7 +14,7 @@ computer of yours that runs Vesta can be one too (see below).
 
 ## Set it up
 
-1. On the phone, open the Home, tap the **⋮** menu and choose **Always-on hub**. If it says the group is not ready, wait a
+1. On the phone, open the Home, tap the **⋮** menu and choose **Manage hubs**, then **Set up a hub**. If it says the group is not ready, wait a
    moment: the Home's group is made the first time the Home's founder opens the app.
 2. On the hub computer, start x0x if it is not running (`x0x start`), then run the two commands the phone shows. Use
    **Copy commands** to send them to the computer. They look like this:
@@ -40,7 +40,7 @@ could not release its network sockets; starting it again a little later works.
 A second hub, on another computer or run by another admin, keeps a second copy of the mailbox. While either is on, members
 still get each other's changes, so one being off or broken no longer stops syncing.
 
-1. Open **Always-on hub**. Each hub is listed with whether it is connected, and its own **Remove hub**.
+1. Open **Manage hubs**, then **Set up a hub**. Each hub is listed with whether it is connected, and its own **Remove hub**.
 2. Tap **Add another hub** and follow the same steps as above on the other computer. The commands carry a new invite.
 
 Every hub is an admin of the Home's group and **can read everything in the Home**, so each one must be a computer you trust.
@@ -50,7 +50,7 @@ Every hub is an admin of the Home's group and **can read everything in the Home*
 On the desktop app, a computer that runs Vesta can be a hub itself. Its x0x program keeps running when Vesta is closed, and
 keeps a copy of the mailbox the whole time.
 
-1. Open **Always-on hub**. Under **Your devices**, the computer you are using is offered if you are an admin of the Home.
+1. Open **Manage hubs**, then **Set up a hub**. Under **Your devices**, the computer you are using is offered if you are an admin of the Home.
 2. Tap **Use as hub**. There are no commands to run.
 
 This is for your own devices. A phone can't be a hub, because its x0x program stops when the app is closed. A device of a
@@ -67,7 +67,7 @@ device: only a computer that belongs to nobody is taken out of the group.
 
 ## Take it away
 
-Open **Always-on hub** again and tap **Remove hub** next to the one to remove. It leaves the Home's group and the group's
+Open **Manage hubs** and then **Set up a hub** again and tap **Remove hub** next to the one to remove. It leaves the Home's group and the group's
 keys change, so it cannot read anything new; the other hubs keep working. What it already holds stays on that computer: delete
 the x0x data there if that matters (`x0x stop`, then remove its data directory).
 
