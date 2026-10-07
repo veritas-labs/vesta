@@ -165,6 +165,20 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun tappingPeersInvokesOnPeersClick() = runComposeUiTest {
+        // Arrange
+        var clicks = 0
+        setContent { VestaTheme { SettingsScreen(x0xConnectivity = X0xConnectivity.Connected(peers = 23), onPeersClick = { clicks++ }) } }
+
+        // Act
+        onNodeWithTag(SettingsTestTags.NetworkPeersRow).performClick()
+
+        // Assert
+        assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun tappingBackInvokesOnBack() = runComposeUiTest {
         // Arrange
         var backs = 0

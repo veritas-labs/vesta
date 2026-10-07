@@ -51,6 +51,7 @@ import vesta.shared.generated.resources.settings_network_connected
 import vesta.shared.generated.resources.settings_network_connecting
 import vesta.shared.generated.resources.settings_network_offline
 import vesta.shared.generated.resources.settings_network_peers
+import vesta.shared.generated.resources.settings_network_peers_open
 import vesta.shared.generated.resources.settings_network_status
 import vesta.shared.generated.resources.settings_network_mobile_data
 import vesta.shared.generated.resources.settings_section_application
@@ -83,7 +84,7 @@ internal object SettingsTestTags {
  * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
  * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default.
- * The Synced devices row calls [onSyncedDevicesClick]; with a [profileName], a Profile section shows it and its row calls
+ * The Synced devices row calls [onSyncedDevicesClick], and the Peers row [onPeersClick] to show them as a graph; with a [profileName], a Profile section shows it and its row calls
  * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +99,7 @@ fun SettingsScreen(
     useMobileData: Boolean = true,
     onUseMobileDataChange: (Boolean) -> Unit = {},
     onSyncedDevicesClick: () -> Unit = {},
+    onPeersClick: () -> Unit = {},
     profileName: String? = null,
     onProfileNameClick: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -203,11 +205,22 @@ fun SettingsScreen(
                             Modifier.testTag(SettingsTestTags.NetworkStatusRow),
                         )
                         (x0xConnectivity as? X0xConnectivity.Connected)?.let { connected ->
-                            InfoRow(
-                                stringResource(Res.string.settings_network_peers),
-                                connected.peers.toString(),
-                                Modifier.testTag(SettingsTestTags.NetworkPeersRow),
-                            )
+                            SettingsRow(
+                                label = stringResource(Res.string.settings_network_peers),
+                                modifier = Modifier.testTag(SettingsTestTags.NetworkPeersRow),
+                                onClick = onPeersClick,
+                            ) {
+                                Text(
+                                    connected.peers.toString(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_chevron_right),
+                                    contentDescription = stringResource(Res.string.settings_network_peers_open),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                         SettingsRow(
                             label = stringResource(Res.string.settings_network_mobile_data),

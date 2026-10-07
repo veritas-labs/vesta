@@ -77,6 +77,24 @@ abstract class AbstractX0xClient : X0xClient {
 
     override suspend fun listDirectConnections(): JsonObject = get("/direct/connections")
 
+    // --- Network peers ---
+
+    override suspend fun listPeers(): List<String> {
+        val peers = get("/peers")["peers"]?.jsonArray ?: return emptyList()
+        return peers.mapNotNull { it.jsonObject["id"]?.jsonPrimitive?.content }
+    }
+
+    override suspend fun probePeer(peerId: String, timeoutMs: Long): Long? {
+        val result = runCatching { post("/peers/${encodePathSegment(peerId)}/probe?timeout_ms=$timeoutMs") }.getOrNull() ?: return null
+        return result["rtt_ms"]?.jsonPrimitive?.content?.toLongOrNull()
+    }
+
+    override suspend fun getPeerHealth(peerId: String): X0xPeerHealth? {
+        val snapshot = call("GET", "/peers/${encodePathSegment(peerId)}/health", allowNotFound = true)?.get("snapshot")?.jsonObject
+            ?: return null
+        return json.decodeFromJsonElement(X0xPeerHealth.serializer(), snapshot)
+    }
+
     override suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream =
         events("/direct/events", onClose) { event ->
             onMessage(json.decodeFromString(X0xDirectMessage.serializer(), event))

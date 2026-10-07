@@ -62,7 +62,25 @@ class FakeX0xClient : X0xClient {
     override suspend fun publish(topic: String, payload: ByteArray): JsonObject = TODO()
     override suspend fun gossipEvents(onMessage: (X0xGossipMessage) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream = TODO()
     override suspend fun connectAgent(agentId: String): JsonObject = TODO()
-    override suspend fun listDirectConnections(): JsonObject = TODO()
+    override suspend fun listDirectConnections(): JsonObject = directConnections
+
+    /** What [listDirectConnections] answers: `{ "connections": [ { "agent_id", "machine_id" } ] }`. */
+    var directConnections: JsonObject = JsonObject(emptyMap())
+
+    var peers: List<String> = emptyList()
+
+    /** Per-peer answer of [getPeerHealth]; a peer left out answers null, one in [peerHealthFailures] throws. */
+    val peerHealth = mutableMapOf<String, X0xPeerHealth>()
+    val peerHealthFailures = mutableSetOf<String>()
+
+    override suspend fun probePeer(peerId: String, timeoutMs: Long): Long? = null
+
+    override suspend fun listPeers(): List<String> = peers
+
+    override suspend fun getPeerHealth(peerId: String): X0xPeerHealth? {
+        if (peerId in peerHealthFailures) throw X0xApiException(500, "boom")
+        return peerHealth[peerId]
+    }
     override suspend fun createStore(name: String, topic: String, policy: String): String = TODO()
     override suspend fun listStores(): JsonObject = TODO()
     override suspend fun listStoreKeys(storeId: String): List<X0xStoreKey> = TODO()

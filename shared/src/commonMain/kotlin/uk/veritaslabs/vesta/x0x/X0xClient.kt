@@ -55,6 +55,17 @@ interface X0xClient {
 
     suspend fun listDirectConnections(): JsonObject
 
+    // --- Network peers ---
+
+    /** `GET /peers`: the ids of the peers this daemon is connected to in the gossip mesh. */
+    suspend fun listPeers(): List<String>
+
+    /** `GET /peers/:id/health`: how that connection is doing now; null when the daemon has no such connection (404). */
+    suspend fun getPeerHealth(peerId: String): X0xPeerHealth?
+
+    /** `POST /peers/:id/probe`: an active liveness probe, answered with the measured round-trip time in ms; null when the peer doesn't answer in [timeoutMs]. */
+    suspend fun probePeer(peerId: String, timeoutMs: Long = 2_000): Long?
+
     /**
      * Opens the direct-message SSE stream (`GET /direct/events`). Events are
      * flat (no `data` envelope), unlike [gossipEvents]. [onClose] behaves as for [gossipEvents].
