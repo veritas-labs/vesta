@@ -150,13 +150,24 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   strings. Five new view-model tests, three new screen tests; four new previews (two hubs on phone, adding another on tablet, light and dark).
   **Not done:** the previews have not been looked at and the screen has not been run; Android and iOS compile not checked.
 
-### Slice 6: real-daemon test — needs slices 2-4, opt-in like `HubDaemonIntegrationTest`
+### Slice 6: real-daemon test — needs slices 2-4, opt-in like `HubDaemonIntegrationTest` — **done 2026-10-06 (`SeveralHubsDaemonIntegrationTest`, passed once against four real x0xd 0.46.0, ~7 min)**
 
 - Two plain x0xd hubs plus two phones: a phone reads what the other left through either hub alone; remove one hub and the
   rest still works.
 - A desktop-style member agent flagged as hub: stop and start its daemon with no Vesta, and a phone still reads through it
   (slice 0a, as a regression).
 - ~5-10 min, three or four daemons; reuse the existing harness and temp dirs.
+
+- **As built:** the daemon and phone helpers moved out of `HubDaemonIntegrationTest` into `DaemonHarness.kt` (`Daemon`, `Phone`, `until`, `enrolHub`,
+  `leaveOneItemAndComeBack`), with `Daemon.restart()` (waits 20 s for the sockets) and `Phone.closeApp()` (stops the sync, leaves the daemon up).
+  `SeveralHubsDaemonIntegrationTest` (`VESTA_X0X_HUBS_NAMES=a,b,h1,h2`): two hubs enrolled and chosen; B reads A's change from the hubs alone; hub 1
+  removed (rekey), then B reads a second change through hub 2 alone; then A's own agent is made a hub (`ownDeviceCandidates`, `isDevice`), A's Vesta is
+  closed with its daemon up, B writes, and after A's daemon is restarted with nothing reopening the store it still holds B's entries.
+- **Found while re-running the original test (`HubDaemonIntegrationTest`, which re-enrols the removed hub):** plain x0x refuses a removed daemon's
+  new `x0x group join` with `join_already_pending` (HTTP 409), or accepts it without the admin ever seeing the daemon, until the daemon has dropped the
+  group (its `GET /groups/{id}/members` answers 404); in a hand test that took about two minutes. A leave then join worked once the group was gone.
+  The original test failed on this twice and now waits for the 404 before re-enrolling, and passes. This is x0x behaviour, not Vesta's, but a user
+  re-enrolling a removed hub straight away can hit it: slice 7's hub guide must say so.
 
 ### Slice 7: docs and verification — needs slices 2-6
 
