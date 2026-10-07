@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.devicesync
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -31,6 +32,10 @@ class DeviceSyncServiceTest {
         val node = network.node(agentId)
         val database: VestaDatabase = openInMemoryDatabase()
         val devices = SyncedDeviceRepository(database) { clock++ }
+
+        /** What this device reported to its listener (docs/plans/unpaired-device-gap-plan.md, slice 3). */
+        val unpaired = CopyOnWriteArrayList<String>()
+        val paired = CopyOnWriteArrayList<String>()
         val service = DeviceSyncService(
             client = node,
             database = database,
@@ -42,6 +47,8 @@ class DeviceSyncServiceTest {
             ownViewTimeout = 20.milliseconds,
             resendInterval = 5.milliseconds,
             removeRetryDelay = 1.milliseconds,
+            onDeviceUnpaired = { unpaired += it },
+            onDevicePaired = { paired += it },
         )
 
         init {
@@ -299,5 +306,108 @@ class DeviceSyncServiceTest {
         assertTrue(result.isSuccess)
         assertEquals(emptyList(), laptop.list())
         assertEquals(setOf("agent-b"), network.groups.getValue(laptop.group()!!).members.keys)
+    }
+
+    @Test
+    fun removingADeviceReportsItUnpaired() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+        val tablet = Device("agent-c", "Tablet")
+        pair(owner, phone)
+        pair(owner, tablet)
+
+        // Act
+        owner.service.removeDevice("agent-b")
+
+        // Assert
+        assertEquals(listOf("agent-b"), owner.unpaired.toList())
+        assertEquals(emptyList(), tablet.unpaired.toList())
+    }
+
+    @Test
+    fun removingADeviceThisOneHasNoGroupForIsStillReportedUnpaired() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        owner.devices.add("Phone", "agent-b")
+
+        // Act
+        val result = owner.service.removeDevice("agent-b")
+
+        // Assert
+        assertTrue(result.isSuccess)
+        assertEquals(listOf("agent-b"), owner.unpaired.toList())
+    }
+
+    @Test
+    fun pairingADeviceReportsItPairedOnBothSides() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+
+        // Act
+        pair(owner, phone)
+        while (phone.paired.isEmpty()) kotlinx.coroutines.delay(1)
+
+        // Assert
+        assertEquals(listOf("agent-b"), owner.paired.toList())
+        assertEquals(listOf("agent-a"), phone.paired.toList())
+    }
+
+    @Test
+    fun aDeviceOnlySeenInTheGroupIsNotReportedPaired() = test {
+        // Arrange: the owner pairs the phone and then the tablet, so the phone has not met the tablet
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+        val tablet = Device("agent-c", "Tablet")
+        pair(owner, phone)
+        pair(owner, tablet)
+        while (phone.paired.isEmpty()) kotlinx.coroutines.delay(1)
+        val before = phone.paired.toList()
+
+        // Act: the phone finds the tablet by looking at the group, which is not the user pairing it
+        phone.service.reconcile()
+
+        // Assert
+        assertTrue("agent-c" in phone.list().map { it.agentId })
+        assertEquals(before, phone.paired.toList())
+    }
+
+    @Test
+    fun aListenerThatFailsDoesNotFailThePairing() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+        val failing = DeviceSyncService(
+            client = owner.node, database = owner.database, devices = owner.devices, deviceName = { "Laptop" }, nowMillis = { clock },
+            pollInterval = 1.milliseconds, joinTimeout = 500.milliseconds, ownViewTimeout = 20.milliseconds, resendInterval = 5.milliseconds,
+            onDevicePaired = { error("the listener broke") },
+        )
+
+        // Act
+        val result = failing.pairWith(phone.showPairingLink())
+
+        // Assert
+        assertTrue(result.isSuccess)
+        assertEquals(listOf("agent-b"), owner.list().map { it.agentId })
+    }
+
+    @Test
+    fun aGreetingFromADeviceThatWasNotKnownIsReportedPairedButARepeatIsNot() = test {
+        // Arrange: the phone and the tablet are each paired with the owner but have not met
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+        val tablet = Device("agent-c", "Tablet")
+        pair(owner, phone)
+        pair(owner, tablet)
+
+        // Act: the phone finds the tablet in the group and greets it, twice
+        phone.service.reconcile()
+        while (tablet.paired.none { it == "agent-b" }) kotlinx.coroutines.delay(1)
+        phone.service.reconcile()
+        kotlinx.coroutines.delay(50)
+
+        // Assert
+        assertEquals(1, tablet.paired.count { it == "agent-b" })
     }
 }

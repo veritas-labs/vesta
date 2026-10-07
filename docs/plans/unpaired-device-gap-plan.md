@@ -119,7 +119,7 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
   while the admin sets up the machine; an hour is plenty). Keep the 7 days only if a flow really needs it. Tests: the invite carries the expiry; a hub
   enrolled after the expiry needs fresh commands (the screen already makes them on demand).
 
-### Slice 3: wire it to the user's action — needs slices 1 and 2
+### Slice 3: wire it to the user's action — needs slices 1 and 2 — **done 2026-10-07 on the fake mesh**
 
 - `DeviceDataSync` (commonMain) gains `suspend fun deviceUnpaired(agentId)` and `devicePaired(agentId)`; `DeviceDataSyncService` implements them with
   `rosters.markGone` / `rosters.clearGone` and asks for a sync round.
@@ -128,6 +128,13 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
 - `App.kt` passes `deviceDataSync` through when it builds `DeviceSyncService`.
 - **Tests:** `DeviceSyncServiceTest` for the callbacks (called on explicit removal and new pairing; not on a derived removal or an already-known device);
   an end-to-end test on the fake mesh from `removeDevice` to the device leaving the Home's group.
+- **As built:** `DeviceSyncService` takes `onDeviceUnpaired` and `onDevicePaired` (default no-op; a listener that throws never fails the pairing). The first is
+  called after `removeDevice` succeeds, including when this device has no group. The second after `pairWith`, `acceptInvite` and a `Hello` from a device not already
+  in the list, and not for `reconcile`'s or `replaceGroupWithout`'s derived adds, nor `acceptRotate`. `DeviceDataSync` gained `deviceUnpaired` and `devicePaired`
+  (`DeviceDataSyncService` calls `rosters.markGone` / `clearGone`), and `App.kt` passes them. Tests: seven in `DeviceSyncServiceTest` for the callbacks, two in
+  `DeviceDataSyncServiceTest`, one of them end to end (two devices paired for real, a shared Home and group, `removeDevice`, the device leaves the group); making
+  `deviceUnpaired` a no-op fails both. A device removed from the DeviceSync group cannot clear its own mark with a greeting: `acceptHello` ignores a sender that is
+  not an active member of that group.
 
 ### Slice 4: real-daemon test — needs slices 1-3, opt-in like the others
 

@@ -272,6 +272,10 @@ class DeviceDataSyncService(
 
     private val syncRequests = Channel<Unit>(Channel.CONFLATED)
 
+    override suspend fun deviceUnpaired(agentId: String) = rosters.markGone(agentId)
+
+    override suspend fun devicePaired(agentId: String) = rosters.clearGone(agentId)
+
     override fun syncNow() {
         syncRequests.trySend(Unit)
     }

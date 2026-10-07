@@ -55,6 +55,10 @@ class DeviceSyncService(
     private val reconcileInterval: Duration = 30.seconds,
     private val removeRetryDelay: Duration = 3.seconds,
     private val removeAttempts: Int = 5,
+    /** Called once [removeDevice] has taken a device out: the user unpaired it (docs/plans/unpaired-device-gap-plan.md). */
+    private val onDeviceUnpaired: suspend (agentId: String) -> Unit = {},
+    /** Called when the user pairs a device this one did not list: [pairWith], accepting an invite, or a greeting from a device it had not met. Not for devices merely seen in the group. */
+    private val onDevicePaired: suspend (agentId: String) -> Unit = {},
 ) {
     // Pairing, message handling, reconciling and removal all read-modify-write the same group, so run one at a time.
     private val lock = Mutex()
@@ -123,6 +127,7 @@ class DeviceSyncService(
 
                 begin(PairingStep.SaveDevice)
                 devices.add(link.deviceName ?: shortName(link.agentId), link.agentId)
+                tell(onDevicePaired, link.agentId)
                 finish(PairingStep.SaveDevice)
             } catch (e: CancellationException) {
                 throw e
@@ -171,7 +176,7 @@ class DeviceSyncService(
 
     /** Removes the device with [agentId] from the group and the list; see the class comment for the creator case. */
     suspend fun removeDevice(agentId: String): Result<Unit> = lock.withLock {
-        attempt {
+        val result = attempt {
             val groupId = currentGroup()
             if (groupId == null) {
                 devices.remove(agentId)
@@ -183,6 +188,18 @@ class DeviceSyncService(
                 removeMember(groupId, agentId)
             }
             devices.remove(agentId)
+        }
+        if (result.isSuccess) tell(onDeviceUnpaired, agentId)
+        result
+    }
+
+    /** Reports a pairing or unpairing to whoever listens; what they do with it is theirs, so a failure here never fails the pairing. */
+    private suspend fun tell(listener: suspend (String) -> Unit, agentId: String) {
+        try {
+            listener(agentId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
         }
     }
 
@@ -200,6 +217,7 @@ class DeviceSyncService(
         database.devicePairingLinkQueries.selectActive(nowMillis()).awaitAsOneOrNull()
             ?.let { database.devicePairingLinkQueries.markConsumed(it.id) }
         devices.add(message.name, sender)
+        tell(onDevicePaired, sender)
         attempt { send(sender, DeviceSyncMessage.encode(DeviceSyncMessage.Hello(deviceName()))) }
         _joined.tryEmit(message.name)
     }
@@ -209,6 +227,7 @@ class DeviceSyncService(
         if (members(groupId).none { it.agentId == sender && it.state == "active" }) return
         val isNew = sender !in devices.agentIds()
         devices.add(message.name, sender)
+        if (isNew) tell(onDevicePaired, sender)
         // Whoever greets a device we hadn't met should hear our name back; greeting a known device stops the exchange.
         if (isNew) attempt { send(sender, DeviceSyncMessage.encode(DeviceSyncMessage.Hello(deviceName()))) }
     }

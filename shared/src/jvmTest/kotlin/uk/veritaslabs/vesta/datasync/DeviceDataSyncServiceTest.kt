@@ -24,6 +24,8 @@ import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.vesta.devicepairing.PairingLink
+import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
@@ -58,11 +60,26 @@ class DeviceDataSyncServiceTest {
         val sync = DeviceDataSyncService(
             node, database, devices, pantries, shopping, interval = interval,
         )
+        /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
+        val deviceSync: DeviceSyncService by lazy {
+            DeviceSyncService(
+                client = node, database = database, devices = devices, deviceName = { agentId },
+                pollInterval = 1.milliseconds, joinTimeout = 5.seconds, ownViewTimeout = 20.milliseconds,
+                resendInterval = 5.milliseconds, removeRetryDelay = 1.milliseconds,
+                onDeviceUnpaired = sync::deviceUnpaired, onDevicePaired = sync::devicePaired,
+            )
+        }
+        var routeDeviceSyncMessages = false
         val homes = HomeRepository(database, sync.homeChanges)
         val profiles = ProfileRepository(database, changes = sync.profileChanges)
 
         init {
-            node.onDirect = { message: X0xDirectMessage -> scope.launch { sync.handle(message) } }
+            node.onDirect = { message: X0xDirectMessage ->
+                scope.launch {
+                    if (routeDeviceSyncMessages) deviceSync.handle(message)
+                    sync.handle(message)
+                }
+            }
         }
 
         fun start() {
@@ -914,6 +931,59 @@ class DeviceDataSyncServiceTest {
 
         // Assert: Y reads it from the hub well before a send to X could have timed out
         assertTrue(within(1500.milliseconds) { y.pantryTitles(homeId) == listOf("Beef Mince") })
+        scope.cancel()
+    }
+
+    // --- Unpairing a device (docs/plans/unpaired-device-gap-plan.md, slice 3) ---
+
+    @Test
+    fun unpairingADeviceLeavesItOutOfTheRosterOfEveryHomeAndPairingItAgainBringsItBack() = runBlocking {
+        // Arrange: X's Home lists a second device of X's
+        val x = Device("agent-x")
+        val homeId = x.homes.create("Maple Street", HomeShape.Family)
+        x.sync.admit(homeId, x.profiles.current().id, "X", "admin", "agent-x")
+        x.sync.admit(homeId, x.profiles.current().id, "X", "admin", "agent-x-tablet")
+        val before = x.sync.rosterDevices(homeId).values.single()
+
+        // Act
+        x.sync.deviceUnpaired("agent-x-tablet")
+        val whileUnpaired = x.sync.rosterDevices(homeId).values.single()
+        x.sync.devicePaired("agent-x-tablet")
+        val afterPairing = x.sync.rosterDevices(homeId).values.single()
+
+        // Assert
+        assertEquals(setOf("agent-x", "agent-x-tablet"), before)
+        assertEquals(setOf("agent-x"), whileUnpaired)
+        assertEquals(setOf("agent-x", "agent-x-tablet"), afterPairing)
+        scope.cancel()
+    }
+
+    @Test
+    fun unpairingADeviceFromThePairingScreenTakesItOutOfTheHomesGroup() = runBlocking {
+        // Arrange: two devices of one user, paired for real, sharing a Home whose group both are in
+        val first = Device("agent-1")
+        val second = Device("agent-2")
+        first.routeDeviceSyncMessages = true
+        second.routeDeviceSyncMessages = true
+        val link = PairingLink(agentId = second.agentId, expiresAt = System.currentTimeMillis() + 60_000, deviceName = "Second")
+        second.database.devicePairingLinkQueries.insert(link.agentId, link.agentId, System.currentTimeMillis(), link.expiresAt)
+        assertTrue(first.deviceSync.pairWith(link).isSuccess)
+        eventually { second.devices.agentIds().contains(first.agentId) }
+        first.start()
+        second.start()
+        val homeId = first.homes.create("Maple Street", HomeShape.Family)
+        eventually { second.homeNames() == listOf("Maple Street") && first.profiles.current().id == second.profiles.current().id }
+        eventually { first.mailboxStore(homeId) != null && second.mailboxStore(homeId) != null }
+        val groupId = first.database.homeGroupQueries.selectByHome(homeId).awaitAsOneOrNull()!!.groupId
+        assertTrue("agent-2" in network.groups.getValue(groupId).members.keys)
+
+        // Act: the user removes the second device on the first
+        val result = first.deviceSync.removeDevice("agent-2")
+
+        // Assert: the Home's group lets it go, not only the pairing list
+        assertTrue(result.isSuccess)
+        eventually { "agent-2" !in network.groups.getValue(groupId).members.keys }
+        assertTrue("agent-1" in network.groups.getValue(groupId).members.keys)
         scope.cancel()
     }
 }

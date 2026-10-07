@@ -26,6 +26,15 @@ interface DeviceDataSync {
     /** A Home's always-on hub: enrolling one, and removing it (docs/adr/ADR-020-syncing-without-overlapping-online-time.md). */
     val hubs: HomeHub
 
+    /**
+     * The user unpaired [agentId]: every Home that lists it as theirs marks it, and an admin device then takes it out of the Home's group
+     * (docs/plans/unpaired-device-gap-plan.md).
+     */
+    suspend fun deviceUnpaired(agentId: String)
+
+    /** The user paired [agentId] (again): it is no longer marked unpaired in any Home, so it can join their groups. */
+    suspend fun devicePaired(agentId: String)
+
     /** Asks for a sync round now, e.g. because the app came to the foreground. Returns at once; does nothing until [run] is running. */
     fun syncNow()
 

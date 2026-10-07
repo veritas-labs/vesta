@@ -543,7 +543,11 @@ fun VestaApp(
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val agentAccess = remember { AgentAccessRepository(database) }
     val deviceSync = remember {
-        val service = DeviceSyncService(client, database, devices)
+        val service = DeviceSyncService(
+            client, database, devices,
+            onDeviceUnpaired = { agentId -> deviceDataSync?.deviceUnpaired(agentId) },
+            onDevicePaired = { agentId -> deviceDataSync?.devicePaired(agentId) },
+        )
         DeviceSyncHost(devices, service) {
             DevicePairingViewModel(
                 database,
