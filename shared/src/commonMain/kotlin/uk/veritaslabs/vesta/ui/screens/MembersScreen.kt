@@ -19,9 +19,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,10 +29,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,19 +46,11 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_user_plus
 import vesta.shared.generated.resources.members_invite
-import vesta.shared.generated.resources.members_leave_cancel
-import vesta.shared.generated.resources.members_remove
-import vesta.shared.generated.resources.members_remove_confirm_body
-import vesta.shared.generated.resources.members_remove_confirm_title
-import vesta.shared.generated.resources.members_manage_make_admin
 import vesta.shared.generated.resources.members_request_approve
 import vesta.shared.generated.resources.members_request_approved
 import vesta.shared.generated.resources.members_request_decline
 import vesta.shared.generated.resources.members_request_wants_to_join
 import vesta.shared.generated.resources.members_requests_title
-import vesta.shared.generated.resources.members_manage_make_admin_body
-import vesta.shared.generated.resources.members_manage_remove_admin
-import vesta.shared.generated.resources.members_manage_remove_admin_body
 import vesta.shared.generated.resources.members_role_admin
 import vesta.shared.generated.resources.members_role_member
 import vesta.shared.generated.resources.members_title
@@ -76,9 +62,6 @@ private val MembersTabletBreakpoint = 600.dp
 internal object MembersTestTags {
     const val InviteButton = "members_invite_button"
     const val Row = "members_row"
-    const val ConfirmRole = "members_confirm_role"
-    const val RemoveMember = "members_remove_member"
-    const val ConfirmRemove = "members_confirm_remove"
     const val RequestRow = "members_request_row"
 
     /** The Approve button of the request from [memberId], independent of displayed copy. */
@@ -109,9 +92,8 @@ data class MemberListItem(
 
 /**
  * The Members tab of a Home: the [members] (name and role badge, the current user marked "You") followed by an
- * Invite row ([onInviteClick]) shaped like a member's, for bringing someone into the Home, and a dialog on each
- * other member's row, for an admin, to make them an admin or an ordinary member ([onSetRole]) or remove them from
- * the Home ([onRemoveMember], after confirming). Leaving the Home is in the dashboard's overflow menu. The bottom
+ * Invite row ([onInviteClick]) shaped like a member's, for bringing someone into the Home. Tapping a member
+ * ([onMemberClick]) opens their [MemberDetailScreen]. Leaving the Home is in the dashboard's overflow menu. The bottom
  * nav bar has Home ([onHomeClick]) and Members (selected).
  *
  * For an admin, [joinRequests] (people who opened one of the Home's invite links, docs/adr/ADR-018-invite-links.md) come
@@ -123,15 +105,12 @@ fun MembersScreen(
     modifier: Modifier = Modifier,
     members: List<MemberListItem> = emptyList(),
     onInviteClick: () -> Unit = {},
-    onSetRole: (MemberListItem, MemberRole) -> Unit = { _, _ -> },
-    onRemoveMember: (MemberListItem) -> Unit = {},
+    onMemberClick: (MemberListItem) -> Unit = {},
     onHomeClick: () -> Unit = {},
     joinRequests: List<JoinRequest> = emptyList(),
     onApprove: (JoinRequest) -> Unit = {},
     onDecline: (JoinRequest) -> Unit = {},
 ) {
-    var managing by remember { mutableStateOf<MemberListItem?>(null) }
-    var removing by remember { mutableStateOf<MemberListItem?>(null) }
     val canManage = members.any { it.isYou && it.role == MemberRole.Admin }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= MembersTabletBreakpoint) 24.dp else 16.dp
@@ -163,7 +142,7 @@ fun MembersScreen(
                         }
                     }
                     items(members, key = { it.memberId }) { member ->
-                        MemberRow(member, onClick = if (canManage && !member.isYou) ({ managing = member }) else null)
+                        MemberRow(member, onClick = { onMemberClick(member) })
                     }
                     item(key = "invite") { InviteRow(onClick = onInviteClick) }
                 }
@@ -174,68 +153,6 @@ fun MembersScreen(
                 membersBadge = if (canManage) joinRequests.count { !it.approved } else 0,
             )
         }
-    }
-
-    managing?.let { member ->
-        val newRole = if (member.role == MemberRole.Admin) MemberRole.Member else MemberRole.Admin
-        AlertDialog(
-            onDismissRequest = { managing = null },
-            title = { Text(member.name) },
-            text = {
-                Text(
-                    stringResource(
-                        if (newRole == MemberRole.Admin) Res.string.members_manage_make_admin_body else Res.string.members_manage_remove_admin_body,
-                        member.name,
-                    ),
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        managing = null
-                        onSetRole(member, newRole)
-                    },
-                    modifier = Modifier.testTag(MembersTestTags.ConfirmRole),
-                ) {
-                    Text(
-                        stringResource(
-                            if (newRole == MemberRole.Admin) Res.string.members_manage_make_admin else Res.string.members_manage_remove_admin,
-                        ),
-                    )
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(
-                        onClick = {
-                            managing = null
-                            removing = member
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier.testTag(MembersTestTags.RemoveMember),
-                    ) { Text(stringResource(Res.string.members_remove)) }
-                    TextButton(onClick = { managing = null }) { Text(stringResource(Res.string.members_leave_cancel)) }
-                }
-            },
-        )
-    }
-    removing?.let { member ->
-        AlertDialog(
-            onDismissRequest = { removing = null },
-            title = { Text(stringResource(Res.string.members_remove_confirm_title, member.name)) },
-            text = { Text(stringResource(Res.string.members_remove_confirm_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        removing = null
-                        onRemoveMember(member)
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    modifier = Modifier.testTag(MembersTestTags.ConfirmRemove),
-                ) { Text(stringResource(Res.string.members_remove)) }
-            },
-            dismissButton = { TextButton(onClick = { removing = null }) { Text(stringResource(Res.string.members_leave_cancel)) } },
-        )
     }
 }
 
@@ -304,14 +221,13 @@ private fun InviteRow(onClick: () -> Unit) {
 }
 
 @Composable
-private fun MemberRow(member: MemberListItem, onClick: (() -> Unit)?) {
-    val rowModifier = Modifier.fillMaxWidth().testTag(MembersTestTags.Row)
+private fun MemberRow(member: MemberListItem, onClick: () -> Unit) {
     // Styled like the Home picker's AvatarButton: a bordered, rounded card with no fill.
     Surface(
         shape = MaterialTheme.shapes.small,
         color = Color.Transparent,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = if (onClick != null) rowModifier.clickable(onClick = onClick) else rowModifier,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).testTag(MembersTestTags.Row),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),

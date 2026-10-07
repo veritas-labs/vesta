@@ -80,6 +80,7 @@ import uk.veritaslabs.vesta.ui.screens.MemberListItem
 import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.ui.screens.ProfileNameMode
 import uk.veritaslabs.vesta.ui.screens.ProfileNameScreen
+import uk.veritaslabs.vesta.ui.screens.MemberDetailScreen
 import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
@@ -286,6 +287,7 @@ private fun HomeContent(
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
     onRemoveMember: suspend (memberId: String) -> Unit = {},
+    memberAgents: suspend (memberId: String) -> List<String> = { emptyList() },
     onEditHome: () -> Unit = {},
     onDeleteHome: suspend () -> Unit = {},
     joining: HomeJoining? = null,
@@ -301,6 +303,7 @@ private fun HomeContent(
         .collectAsStateWithLifecycle(emptyList())
     val isAdmin = memberList.any { it.isYou && it.role == MemberRole.Admin }
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
+    var viewingMemberId by remember { mutableStateOf<String?>(null) }
     // Opening a Home or its Pantry asks for a sync now (ADR-020), rather than showing what the next timer round brings.
     LaunchedEffect(homeId, destination == HomeDestination.Pantry) { onOpened() }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
@@ -340,12 +343,35 @@ private fun HomeContent(
                 members = memberList,
                 onHomeClick = { destination = HomeDestination.Dashboard },
                 onInviteClick = { destination = HomeDestination.InviteLinks },
-                onSetRole = { member, role -> scope.launch { onSetRole(member.memberId, role) } },
-                onRemoveMember = { member -> scope.launch { onRemoveMember(member.memberId) } },
+                onMemberClick = { member ->
+                    viewingMemberId = member.memberId
+                    destination = HomeDestination.MemberDetail
+                },
                 joinRequests = joinRequests,
                 onApprove = { request -> scope.launch { joining?.approve(request.homeId, request.memberId) } },
                 onDecline = { request -> scope.launch { joining?.decline(request.homeId, request.memberId) } },
             )
+        }
+        HomeDestination.MemberDetail -> {
+            val member = memberList.firstOrNull { it.memberId == viewingMemberId }
+            if (member == null) {
+                // Gone (removed, or never there): back to the list.
+                LaunchedEffect(Unit) { destination = HomeDestination.Members }
+            } else {
+                // Reads the roster each time the member's list changes, so a device they just added shows up.
+                val agents by produceState(emptyList<String>(), member.memberId, memberList) { value = memberAgents(member.memberId) }
+                MemberDetailScreen(
+                    member = member,
+                    agents = agents,
+                    canManage = isAdmin,
+                    onBack = { destination = HomeDestination.Members },
+                    onSetRole = { m, role -> scope.launch { onSetRole(m.memberId, role) } },
+                    onRemoveMember = { m ->
+                        destination = HomeDestination.Members
+                        scope.launch { onRemoveMember(m.memberId) }
+                    },
+                )
+            }
         }
         HomeDestination.InviteLinks -> {
             val linksViewModel = viewModel(key = "invite-links-$homeId") { InviteLinksViewModel(homeId, joining) }
@@ -509,7 +535,7 @@ class DeviceSyncHost(
 )
 
 private enum class HomeDestination {
-    Dashboard, Members, InviteLinks, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
+    Dashboard, Members, MemberDetail, InviteLinks, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
     ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage,
 }
 
@@ -592,6 +618,7 @@ fun VestaApp(
                 onLeave = { homeRepository.leave(homeId) },
                 onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
                 onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },
+                memberAgents = { memberId -> deviceDataSync?.memberAgents(homeId, memberId).orEmpty() },
                 onEditHome = onEditHome,
                 onDeleteHome = { homeRepository.delete(homeId) },
                 joining = deviceDataSync?.joining,

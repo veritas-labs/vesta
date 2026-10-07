@@ -35,6 +35,9 @@ interface DeviceDataSync {
     /** The user paired [agentId] (again): it is no longer marked unpaired in any Home, so it can join their groups. */
     suspend fun devicePaired(agentId: String)
 
+    /** The x0x agent ids that act for [memberId] in [homeId], as the Home's roster lists them: one per device they have, sorted. */
+    suspend fun memberAgents(homeId: String, memberId: String): List<String>
+
     /** Asks for a sync round now, e.g. because the app came to the foreground. Returns at once; does nothing until [run] is running. */
     fun syncNow()
 

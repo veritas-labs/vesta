@@ -113,100 +113,18 @@ class MembersScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun anAdminCanMakeAnotherMemberAnAdmin() = runComposeUiTest {
-        // Arrange
-        var change: Pair<String, MemberRole>? = null
-        setContent {
-            VestaTheme { MembersScreen(members = listOf(admin, sam), onSetRole = { m, r -> change = m.memberId to r }) }
-        }
-
-        // Act
-        onNodeWithText("Sam").performClick()
-        onNodeWithTag(MembersTestTags.ConfirmRole).performClick()
-
-        // Assert
-        assertEquals("2" to MemberRole.Admin, change)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun anAdminCanTakeAdminAwayFromAnotherAdmin() = runComposeUiTest {
-        // Arrange
-        var change: Pair<String, MemberRole>? = null
-        val otherAdmin = sam.copy(role = MemberRole.Admin)
-        setContent {
-            VestaTheme { MembersScreen(members = listOf(admin, otherAdmin), onSetRole = { m, r -> change = m.memberId to r }) }
-        }
-
-        // Act
-        onNodeWithText("Sam").performClick()
-        onNodeWithTag(MembersTestTags.ConfirmRole).performClick()
-
-        // Assert
-        assertEquals("2" to MemberRole.Member, change)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun anOrdinaryMemberCannotOpenTheRoleDialog() = runComposeUiTest {
+    fun tappingAnyMemberPassesThemOn() = runComposeUiTest {
         // Arrange
         val me = MemberListItem("1", "Mark", MemberRole.Member, isYou = true)
-        val boss = MemberListItem("2", "Sam", MemberRole.Admin)
-        setContent { VestaTheme { MembersScreen(members = listOf(me, boss)) } }
+        val clicked = mutableListOf<String>()
+        setContent { VestaTheme { MembersScreen(members = listOf(me, sam), onMemberClick = { clicked += it.memberId }) } }
 
         // Act
         onNodeWithText("Sam").performClick()
-
-        // Assert
-        onNodeWithTag(MembersTestTags.ConfirmRole).assertDoesNotExist()
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun anAdminCannotOpenTheRoleDialogOnTheirOwnRow() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam)) } }
-
-        // Act
         onNodeWithText("Mark (You)").performClick()
 
         // Assert
-        onNodeWithTag(MembersTestTags.ConfirmRole).assertDoesNotExist()
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun anAdminCanRemoveAMemberAfterConfirming() = runComposeUiTest {
-        // Arrange
-        var removed: String? = null
-        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam), onRemoveMember = { removed = it.memberId }) } }
-
-        // Act
-        onNodeWithText("Sam").performClick()
-        onNodeWithTag(MembersTestTags.RemoveMember).performClick()
-        val beforeConfirm = removed
-        onNodeWithTag(MembersTestTags.ConfirmRemove).performClick()
-
-        // Assert
-        assertEquals(null, beforeConfirm)
-        assertEquals("2", removed)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun cancellingTheRemovalDoesNotRemoveAnyone() = runComposeUiTest {
-        // Arrange
-        var removed: String? = null
-        setContent { VestaTheme { MembersScreen(members = listOf(admin, sam), onRemoveMember = { removed = it.memberId }) } }
-        onNodeWithText("Sam").performClick()
-        onNodeWithTag(MembersTestTags.RemoveMember).performClick()
-
-        // Act
-        onNodeWithText("Cancel").performClick()
-
-        // Assert
-        assertEquals(null, removed)
-        onNodeWithTag(MembersTestTags.ConfirmRemove).assertDoesNotExist()
+        assertEquals(listOf("2", "1"), clicked)
     }
 
     private val pendingRequest = JoinRequest("home-1", "alex", "Alex", createdAt = 1L, approved = false)

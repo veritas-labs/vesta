@@ -94,6 +94,9 @@ class DeviceDataSyncService(
 
     override val hubs: HomeHub = HomeHubs(client, database, rosters, profiles)
 
+    override suspend fun memberAgents(homeId: String, memberId: String): List<String> =
+        rosters.devices(homeId)[memberId].orEmpty().sorted()
+
     override val profileChanges: ProfileChangeListener = object : ProfileChangeListener {
         override suspend fun changed() {
             profile.publish()

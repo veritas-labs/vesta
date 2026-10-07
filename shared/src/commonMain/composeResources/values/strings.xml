@@ -65,6 +65,10 @@
     <string name="members_manage_make_admin_body">%1$s will be able to invite people and change roles.</string>
     <string name="members_manage_remove_admin">Remove admin</string>
     <string name="members_manage_remove_admin_body">%1$s will become an ordinary member.</string>
+    <string name="member_detail_back">Back</string>
+    <string name="member_detail_manage">Manage member</string>
+    <string name="member_detail_agents_title">x0x agents</string>
+    <string name="member_detail_agents_empty">No agents known for this member yet.</string>
     <string name="members_leave">Leave Home</string>
     <string name="members_leave_confirm_title">Leave this Home?</string>
     <string name="members_leave_confirm_body">You will lose access to this Home on all your devices.</string>
