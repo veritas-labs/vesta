@@ -119,7 +119,10 @@ internal class HomeGroups(
             val hubs = rosters.hubs(homeId)
             hubs.filter { it in departed }.forEach { rosters.removeHub(homeId, it) }
             adjustRoles(local.groupId, self, members, roster, hubs = hubs - departed)
-            removeDeparted(homeId, local.groupId, self, members, departed)
+            // A device the user unpaired is taken out too, every round, so one that gets back in with an unused invite goes again
+            // (docs/plans/unpaired-device-gap-plan.md). A hub stays: the flag, not the claim, is why it is in the group.
+            val unpaired = rosters.goneDevices(homeId) - hubs
+            removeDeparted(homeId, local.groupId, self, members, departed + unpaired)
         }
     }
 
@@ -213,7 +216,7 @@ internal class HomeGroups(
     private fun departedDevices(roster: List<RosterMember>): Set<String> =
         roster.filter { it.removed }.flatMap { it.devices }.toSet() - activeDevices(roster)
 
-    /** Removes the [departed] devices; the group's creator can only go by replacing the group. */
+    /** Removes the [departed] devices (those of members who left, and devices the user unpaired); the group's creator can only go by replacing the group. */
     private suspend fun removeDeparted(
         homeId: String,
         groupId: String,

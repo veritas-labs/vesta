@@ -25,6 +25,7 @@ import uk.veritaslabs.vesta.automerge.useRosterInvite
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.automerge.RosterMember
 import uk.veritaslabs.vesta.automerge.putRosterMember
+import uk.veritaslabs.vesta.automerge.readRosterGoneDevices
 import uk.veritaslabs.vesta.automerge.readRosterGroup
 import uk.veritaslabs.vesta.automerge.readRosterHubs
 import uk.veritaslabs.vesta.automerge.removeRosterHub
@@ -287,6 +288,9 @@ internal class HomeRosters(
 
     /** Every member of [homeId]'s roster, those marked removed included. */
     suspend fun members(homeId: String): List<RosterMember> = lock.withLock { open(homeId)?.readRoster().orEmpty() }
+
+    /** The devices [homeId]'s roster marks as unpaired by the member they were claimed for (docs/plans/unpaired-device-gap-plan.md). */
+    suspend fun goneDevices(homeId: String): Set<String> = lock.withLock { open(homeId)?.readRosterGoneDevices().orEmpty() }
 
     /** The id of [homeId]'s x0x group as its roster names it (docs/adr/ADR-021-home-x0x-group.md), or null. */
     suspend fun groupId(homeId: String): String? = lock.withLock { open(homeId)?.readRosterGroup() }

@@ -402,4 +402,161 @@ class HomeGroupsTest {
         assertTrue("agent-mark" !in membersOf(newGroup).keys)
         assertTrue(ann.rosters.hubs(homeId).isEmpty())
     }
+
+    // --- A device the user unpaired (docs/plans/unpaired-device-gap-plan.md, slice 2) ---
+
+    /** Sam's tablet, in the Home's group with the mailbox open, and the roster in step on all three devices. Returns the tablet and its store. */
+    private suspend fun Household.withTabletInTheGroup(): Pair<Device, String> {
+        mark.groups.reconcile()
+        sync(mark, sam)
+        sam.groups.reconcile()
+        eventually { sam.row()?.storeId != null }
+        val tablet = Device("agent-sam-tablet")
+        sam.rosters.admit(homeId, sam.memberId(), "Sam", "member", "agent-sam-tablet")
+        sync(sam, mark)
+        sync(mark, tablet)
+        tablet.groups.reconcile()
+        eventually { tablet.row()?.storeId != null }
+        return tablet to tablet.row()!!.storeId!!
+    }
+
+    /** Sam unpairs the tablet on his phone, and the admin's device hears of it. */
+    private suspend fun Household.unpairTablet(tablet: Device) {
+        sam.rosters.markGone(tablet.agentId)
+        sync(sam, mark)
+        sync(mark, tablet)
+    }
+
+    @Test
+    fun anUnpairedDeviceIsTakenOutOfTheGroupAndLosesTheStore() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val (tablet, storeId) = home.withTabletInTheGroup()
+
+        // Act
+        home.unpairTablet(tablet)
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertTrue("agent-sam-tablet" !in membersOf(home.mark.groupId()!!).keys)
+        assertTrue("agent-sam" in membersOf(home.mark.groupId()!!).keys)
+        val denied = assertFailsWith<X0xApiException> { tablet.node.getValue(storeId, "any") }
+        assertEquals(404, denied.status)
+    }
+
+    @Test
+    fun aDeviceThatIsInTheGroupButWasNeverMarkedIsNotRemovedEvenIfTheRosterDoesNotListIt() = runBlocking {
+        // Arrange: a device that joined a moment ago, whose claim has not reached this admin device yet
+        val home = Household().arrange()
+        home.mark.groups.reconcile()
+        val groupId = home.mark.groupId()!!
+        network.node("agent-joining").joinGroup(home.mark.node.createGroupInvite(groupId))
+
+        // Act
+        home.mark.groups.reconcile()
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertTrue("agent-joining" in membersOf(groupId).keys)
+    }
+
+    @Test
+    fun anUnpairedDeviceThatIsAHubStaysInTheGroup() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val (tablet, _) = home.withTabletInTheGroup()
+        home.mark.rosters.addHub(homeId, tablet.agentId)
+
+        // Act
+        home.unpairTablet(tablet)
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertTrue("agent-sam-tablet" in membersOf(home.mark.groupId()!!).keys)
+    }
+
+    @Test
+    fun anUnpairedDeviceThatGetsBackInWithAnInviteIsRemovedAgain() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val (tablet, _) = home.withTabletInTheGroup()
+        home.unpairTablet(tablet)
+        home.mark.groups.reconcile()
+        val groupId = home.mark.groupId()!!
+
+        // Act: it joins again with an unused invite (ADR-020 Spike 9), and the next round finds it
+        tablet.node.joinGroup(home.mark.node.createGroupInvite(groupId))
+        val listedAgain = "agent-sam-tablet" in membersOf(groupId).keys
+        home.mark.groups.reconcile()
+
+        // Assert
+        assertTrue(listedAgain)
+        assertTrue("agent-sam-tablet" !in membersOf(groupId).keys)
+    }
+
+    @Test
+    fun anUnpairedDeviceIsNotInvitedBackWhenItAsks() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val (tablet, _) = home.withTabletInTheGroup()
+        home.unpairTablet(tablet)
+        home.mark.groups.reconcile()
+
+        // Act: it notices it is out, and asks an admin device for an invite
+        repeat(3) { tablet.groups.reconcile() }
+        delay(300.milliseconds)
+
+        // Assert
+        assertNull(tablet.row())
+        assertTrue("agent-sam-tablet" !in membersOf(home.mark.groupId()!!).keys)
+    }
+
+    @Test
+    fun pairingTheDeviceAgainLetsItJoinTheGroupAgain() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val (tablet, _) = home.withTabletInTheGroup()
+        home.unpairTablet(tablet)
+        home.mark.groups.reconcile()
+        repeat(2) { tablet.groups.reconcile() }
+
+        // Act: Sam pairs it again, which clears the mark
+        home.sam.rosters.clearGone(tablet.agentId)
+        sync(home.sam, home.mark)
+        sync(home.mark, tablet)
+        tablet.groups.reconcile()
+        eventually { tablet.row()?.storeId != null }
+
+        // Assert
+        assertTrue("agent-sam-tablet" in membersOf(home.mark.groupId()!!).keys)
+    }
+
+    @Test
+    fun anUnpairedDeviceThatCreatedTheGroupReplacesIt() = runBlocking {
+        // Arrange: Mark's device made the group and Ann, another admin, is in it; Mark unpairs his own first device
+        val home = Household().arrange()
+        val ann = Device("agent-ann")
+        enrol(home.mark, ann, "Ann", "admin")
+        home.mark.groups.reconcile()
+        sync(home.mark, home.sam)
+        sync(home.mark, ann)
+        home.sam.groups.reconcile()
+        ann.groups.reconcile()
+        eventually { home.sam.row()?.storeId != null && ann.row()?.storeId != null }
+        home.mark.groups.reconcile() // promotes Ann
+        val oldGroup = home.mark.groupId()!!
+
+        // Act
+        home.mark.rosters.markGone(home.mark.agentId)
+        sync(home.mark, ann)
+        ann.groups.reconcile()
+        sync(ann, home.sam)
+        home.sam.groups.reconcile()
+        eventually { home.sam.row()?.groupId != null && home.sam.row()?.groupId != oldGroup && home.sam.row()?.storeId != null }
+
+        // Assert
+        val newGroup = ann.groupId()!!
+        assertNotEquals(oldGroup, newGroup)
+        assertEquals(setOf("agent-ann", "agent-sam"), membersOf(newGroup).keys)
+    }
 }

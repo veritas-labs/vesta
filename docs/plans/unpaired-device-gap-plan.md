@@ -97,13 +97,20 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
   `HomeRosters.markGone(agentId)` and `clearGone(agentId)` act on every Home and emit a change for each one that changed. Seven document tests (including the
   case where the device claims itself again) and four `HomeRostersGoneTest` tests. Nothing calls them yet: slice 2 acts on the tombstone and slice 3 writes it.
 
-### Slice 2: removal in `HomeGroups` — needs slice 1
+### Slice 2: removal in `HomeGroups` — needs slice 1 — **done 2026-10-07 on the fake mesh**
 
 - `reconcile` (admin branch): compute the tombstoned agents (claim matches, not hubs, not self) and remove them like `removeDeparted` (retry each round;
   creator → `replaceGroup`); clear nothing here.
 - **Tests (fake mesh, `HomeGroupsTest`):** an unpaired device is removed and loses the store; unpaired creator replaces the group and the others follow;
   an unpaired device that is a hub stays; a device never tombstoned is never removed, even when absent from this admin's roster (a joining device, a
   stale roster); the tombstoned device cannot get a new invite; re-pairing clears it and it can join again; a failed removal is retried.
+
+- **As built:** `readRosterGoneDevices()` (tombstones whose claim still names the marking member) and `HomeRosters.goneDevices(homeId)`; in
+  `HomeGroups.reconcile` the admin branch passes `departed + (goneDevices - hubs)` to `removeDeparted`, so removal is every round, retried, and a creator among
+  them replaces the group. `answerRequest` needed no change: the tombstoned device is already out of `activeDevices`. Seven new `HomeGroupsTest` cases (removal and
+  lost store; a never-marked device is not removed even when absent from the roster; an unpaired hub stays; one that rejoins with an invite is removed again; not
+  invited back when it asks; re-pairing lets it join; an unpaired creator replaces the group). Disabling the removal makes four of them fail; the other three
+  are guards.
 
 ### Slice 2b: short-lived invites — needs a look at `X0xClient.createGroupInvite`, then small
 

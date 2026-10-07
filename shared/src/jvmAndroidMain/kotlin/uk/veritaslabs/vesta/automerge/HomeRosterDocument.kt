@@ -155,6 +155,10 @@ fun Read.readRosterGone(): Map<String, String> =
         .mapNotNull { entry -> (entry.value as? AmValue.Str)?.value?.let { entry.key.removePrefix(GonePrefix) to it } }
         .toMap()
 
+/** The agents to take out of the Home's group: those marked gone whose claim still names the member who marked them (a tombstone for anyone else's device is ignored). */
+fun Read.readRosterGoneDevices(): Set<String> =
+    readRosterGone().filter { (agent, member) -> (get(ObjectId.ROOT, "$DevicePrefix$agent").getOrNull() as? AmValue.Str)?.value == member }.keys
+
 /**
  * Marks [agentId], a device [memberId] has claimed, as unpaired by them. Does nothing unless the roster has that claim, so a member
  * can only mark their own devices. Returns whether anything changed.
