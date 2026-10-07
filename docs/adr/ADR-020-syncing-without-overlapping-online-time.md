@@ -312,6 +312,21 @@ in both roles and the other replicas saw it. The store stays open across a role 
 This is a different failure from the wedged daemon seen earlier today (alive, holding the instance lock, never listening), but it is
 in the same area, and the hub guide should say to wait before restarting a daemon.
 
+## Spike 9: removing a member whose daemon is off (2026-10-07, x0xd 0.46.0)
+
+Run by hand with the `x0x` CLI and `curl` against three throwaway daemons (`s10-a` admin, `s10-b` and `s10-c` members; deleted afterwards), for
+[the unpaired-device plan](../plans/unpaired-device-gap-plan.md), slice 0b. A made a group and a `mailbox` store, wrote an entry both members read, then
+stopped C's daemon and removed C.
+
+- **Removing an offline member works at once** (`DELETE /groups/{id}/members/{agent}` returned the new epoch the first time, no key-package wait).
+- **The removed daemon, started again, has nothing:** `GET /groups` is empty, and listing the store, reading the entry it held before removal, reading an
+  entry written after, and writing all fail with `current TreeKEM group read/writer policy denies ...`. It keeps nothing readable.
+- **But it can be listed as a member again with any unused valid invite.** An invite minted before the removal (7-day default expiry, no use limit and
+  no option to set one) let C `join` straight to `join_state: active`, and the admin listed it as an active member again. Over the next three minutes C
+  still could not read or write, and its own `GET /groups` stayed empty, so I do not know whether it would eventually get keys. Do not rely on that.
+- **So removal has to be continuous, not one-shot:** an admin that removes a tombstoned agent each round removes it again. And invites should be short-lived:
+  Vesta mints one for every hub enrolment and device invite and they stay valid for a week.
+
 ## Manual end-to-end run (2026-10-06)
 
 Run by hand on two phones (A, B) and a host hub (x0xd 0.46.0):

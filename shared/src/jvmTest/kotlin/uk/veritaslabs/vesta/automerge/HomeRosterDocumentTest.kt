@@ -399,4 +399,59 @@ class HomeRosterDocumentTest {
         assertEquals(setOf("agent-a"), doc.readRosterHubs())
         assertEquals(setOf("agent-a"), doc.readRoster().single().devices)
     }
+
+    @Test
+    fun aDeviceThatClaimsItselfAgainAfterSeeingItsReleaseIsBackOnEveryReplica() {
+        // Arrange: A releases the device; the device, which has merged that release, claims itself again
+        val a = Document()
+        putRosterMember(a, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(a, "agent-lost", "m1")
+        releaseRosterDevice(a, "agent-lost", "m1")
+        val device = a.fork()
+
+        // Act
+        claimRosterDevice(device, "agent-lost", "m1")
+        a.merge(device)
+
+        // Assert: a release alone does not keep a device out (docs/plans/unpaired-device-gap-plan.md, slice 0a)
+        assertEquals(setOf("agent-lost"), a.readRoster().single().devices)
+    }
+
+    @Test
+    fun aSameValuePutThatIsConcurrentWithAReleaseDoesNotKeepTheDevice() {
+        // Arrange: both forks start with the claim; one deletes it while the other writes the same value again
+        val a = Document()
+        putRosterMember(a, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(a, "agent-lost", "m1")
+        val device = a.fork()
+
+        // Act
+        releaseRosterDevice(a, "agent-lost", "m1")
+        device.startTransaction().also {
+            it.set(ObjectId.ROOT, "device:agent-lost", "m1")
+            it.commit()
+        }
+        a.merge(device)
+
+        // Assert: the delete wins over a put of the value that was already there; only a put made after seeing the release brings it back
+        assertEquals(emptySet(), a.readRoster().single().devices)
+    }
+
+    @Test
+    fun aClaimThatTheDeviceDidNotNeedToWriteAgainStaysReleased() {
+        // Arrange: the device still has its claim and so writes nothing
+        val a = Document()
+        putRosterMember(a, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(a, "agent-lost", "m1")
+        val device = a.fork()
+
+        // Act
+        releaseRosterDevice(a, "agent-lost", "m1")
+        val wrote = claimRosterDevice(device, "agent-lost", "m1")
+        a.merge(device)
+
+        // Assert
+        assertFalse(wrote)
+        assertEquals(emptySet(), a.readRoster().single().devices)
+    }
 }

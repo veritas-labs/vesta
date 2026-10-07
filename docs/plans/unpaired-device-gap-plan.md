@@ -46,8 +46,10 @@ An explicit **tombstone** in the roster, written when the user unpairs, honoured
 1. **Roster key** `gone:<agentId> = <memberId>` (flat, like `device:`), written by the device where the user pressed remove. The claim `device:<agentId>`
    is left in place: an admin honours the tombstone only when the agent's claim names the **same member** as the tombstone, so one member's device
    cannot tombstone another member's. (Members are trusted not to forge claims, as today; see ADR-014. This is not a defence against a malicious member.)
-2. **Reads:** `readRoster()` leaves a tombstoned agent out of its member's `devices`. This matters because the unpaired device can keep re-claiming
-   itself in its own copy, and in Automerge a concurrent `set` beats a `delete`: it would otherwise reappear as a peer, and be invited again.
+2. **Reads:** `readRoster()` leaves a tombstoned agent out of its member's `devices`. This matters because a released device that has merged the
+   release (it can, through the mailbox, until it is removed from the group) writes its claim again, and that later write survives the merge: it would
+   reappear as a peer and be invited again. (Slice 0a found that a put of the *same* value concurrent with the release does not survive: the delete wins.
+   Only a put made after seeing the release does.)
 3. **Removal:** in `HomeGroups.reconcile`, next to `removeDeparted`, an x0x admin device removes every active group member that is tombstoned, is not a
    hub, and is not itself; a creator among them replaces the group, exactly as for a departed member. A failed removal is retried next round.
 4. **Explicit re-pair clears it:** `gone:<agentId>` is deleted only when a device is newly added to the pairing list for that agent (not on every
@@ -73,11 +75,13 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
 
 ### Slice 0: confirm two assumptions before building — small
 
-- **0a.** A document test: two forks of a roster, one releases a device claim and the other re-claims it, merge: the claim survives. (This is what
-  justifies filtering by tombstone on read.)
-- **0b.** A real x0xd 0.46.x check, like Spike 8: an admin removes an **offline** member from a group (the device was unpaired while off), a rekey follows,
-  and the removed daemon on coming back cannot read new store entries nor re-join with an old invite. `member_key_package_pending` may need retries (the
-  hub guide already says so). Output: a short "Spike 9" in ADR-020, or a note in ADR-021.
+- **0a. Done 2026-10-07**, in `HomeRosterDocumentTest`: a device that claims itself again after merging its release is back on every replica (so a
+  release alone does not keep it out, which is what justifies the tombstone filter on read); a same-value put concurrent with the release does **not**
+  survive (the delete wins, which my first guess, that a concurrent set beats a delete, had wrong); a device that still holds its claim writes nothing.
+- **0b. Done 2026-10-07**, written up as ADR-020 Spike 9. An admin removes a member whose daemon is off at once, and on return that daemon has no group and can
+  neither read (old or new entries) nor write. But it can be listed as an active member again with any unused valid invite (7-day expiry, no use limit),
+  though it still could not read within three minutes. So: removal of a tombstoned agent must run **every round** (the design already does), and the
+  invites Vesta mints should be short-lived (new slice 2b below).
 
 ### Slice 1: roster tombstones — needs 0a
 
@@ -95,6 +99,13 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
 - **Tests (fake mesh, `HomeGroupsTest`):** an unpaired device is removed and loses the store; unpaired creator replaces the group and the others follow;
   an unpaired device that is a hub stays; a device never tombstoned is never removed, even when absent from this admin's roster (a joining device, a
   stale roster); the tombstoned device cannot get a new invite; re-pairing clears it and it can join again; a failed removal is retried.
+
+### Slice 2b: short-lived invites — needs a look at `X0xClient.createGroupInvite`, then small
+
+- Spike 9 found that a removed device can re-register with any unused invite, and Vesta's invites live a week. Pass a short expiry (`--expiry` on the CLI;
+  check the REST body) for the invites Vesta mints: a device invite (`answerRequest`, answered at once), and the hub enrolment invite (shown on screen
+  while the admin sets up the machine; an hour is plenty). Keep the 7 days only if a flow really needs it. Tests: the invite carries the expiry; a hub
+  enrolled after the expiry needs fresh commands (the screen already makes them on demand).
 
 ### Slice 3: wire it to the user's action — needs slices 1 and 2
 
@@ -128,7 +139,7 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
 
 ## Dependency order
 
-`0` first (0a and 0b are independent). `1` needs `0a`; `2` needs `1`; `3` needs `1` and `2`; `4` needs `1`-`3`; `5` needs `4`; `6` needs `1`-`3`;
+`0` is done. `1` needs `0a` (done); `2` needs `1`; `2b` is independent of `1`-`3` and can go any time after 0b; `3` needs `1` and `2`; `4` needs `1`-`3`; `5` needs `4`; `6` needs `1`-`3`;
 `7` needs `2`. A usable first milestone is `0 → 1 → 2` (the rule works on the fake mesh), then `3` makes it happen from the app.
 
 ## Not in this plan
