@@ -48,6 +48,7 @@ import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
 import uk.veritaslabs.vesta.ui.screens.HubScreen
+import uk.veritaslabs.vesta.ui.screens.NetworkDiagnosticsScreen
 import uk.veritaslabs.vesta.ui.screens.NetworkPeersScreen
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteScreen
@@ -86,6 +87,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.isReachingNetwork
 import uk.veritaslabs.vesta.x0x.rememberX0xConnectivity
+import uk.veritaslabs.vesta.x0x.rememberX0xNetworkDiagnostics
 import uk.veritaslabs.vesta.x0x.rememberX0xPeers
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
@@ -103,7 +105,7 @@ val LocalDarkThemeSetting = compositionLocalOf<DarkThemeSetting> { error("No Dar
 private data class HomeEditTarget(val homeId: String?, val session: Int)
 
 /** The app-wide settings screens, reached from the Home picker. */
-private enum class SettingsDestination { Settings, SyncedDevices, ProfileName, Peers }
+private enum class SettingsDestination { Settings, SyncedDevices, ProfileName, Peers, NetworkDiagnostics }
 
 /**
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name, and an
@@ -217,10 +219,16 @@ fun App(
                             useMobileData = useMobileData,
                             onUseMobileDataChange = { useMobileData = it },
                             onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },
+                            onNetworkStatusClick = { settingsDestination = SettingsDestination.NetworkDiagnostics },
                             onPeersClick = { settingsDestination = SettingsDestination.Peers },
                             profileName = profile?.displayName,
                             onProfileNameClick = { settingsDestination = SettingsDestination.ProfileName },
                             onBack = { settingsDestination = null },
+                        )
+                    } else if (settingsDestination == SettingsDestination.NetworkDiagnostics) {
+                        NetworkDiagnosticsScreen(
+                            diagnostics = rememberX0xNetworkDiagnostics(),
+                            onBack = { settingsDestination = SettingsDestination.Settings },
                         )
                     } else if (settingsDestination == SettingsDestination.Peers) {
                         val probeClient = remember { createX0xClient() }

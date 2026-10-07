@@ -84,6 +84,8 @@ abstract class AbstractX0xClient : X0xClient {
         return peers.mapNotNull { it.jsonObject["id"]?.jsonPrimitive?.content }
     }
 
+    override suspend fun getTransportSnapshot(): X0xTransportSnapshot = X0xTransportSnapshot.parse(get("/diagnostics/connectivity"))
+
     override suspend fun probePeer(peerId: String, timeoutMs: Long): Long? {
         val result = runCatching { post("/peers/${encodePathSegment(peerId)}/probe?timeout_ms=$timeoutMs") }.getOrNull() ?: return null
         return result["rtt_ms"]?.jsonPrimitive?.content?.toLongOrNull()

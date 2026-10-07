@@ -67,6 +67,21 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun x0xStatusRowOpensNetworkDiagnostics() = runComposeUiTest {
+        // Arrange
+        var opened = 0
+        setContent { VestaTheme { SettingsScreen(onNetworkStatusClick = { opened++ }) } }
+        onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.NetworkStatusRow))
+
+        // Act
+        onNodeWithTag(SettingsTestTags.NetworkStatusRow).performClick()
+
+        // Assert
+        assertEquals(1, opened)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun showsPeerCountWhenConnected() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { SettingsScreen(x0xConnectivity = X0xConnectivity.Connected(peers = 23)) } }

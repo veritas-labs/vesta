@@ -53,6 +53,7 @@ import vesta.shared.generated.resources.settings_network_offline
 import vesta.shared.generated.resources.settings_network_peers
 import vesta.shared.generated.resources.settings_network_peers_open
 import vesta.shared.generated.resources.settings_network_status
+import vesta.shared.generated.resources.settings_network_status_open
 import vesta.shared.generated.resources.settings_network_mobile_data
 import vesta.shared.generated.resources.settings_section_application
 import vesta.shared.generated.resources.settings_section_device
@@ -84,7 +85,7 @@ internal object SettingsTestTags {
  * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
  * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default.
- * The Synced devices row calls [onSyncedDevicesClick], and the Peers row [onPeersClick] to show them as a graph; with a [profileName], a Profile section shows it and its row calls
+ * The Synced devices row calls [onSyncedDevicesClick], the x0x status row [onNetworkStatusClick] to show network diagnostics, and the Peers row [onPeersClick] to show them as a graph; with a [profileName], a Profile section shows it and its row calls
  * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +100,7 @@ fun SettingsScreen(
     useMobileData: Boolean = true,
     onUseMobileDataChange: (Boolean) -> Unit = {},
     onSyncedDevicesClick: () -> Unit = {},
+    onNetworkStatusClick: () -> Unit = {},
     onPeersClick: () -> Unit = {},
     profileName: String? = null,
     onProfileNameClick: () -> Unit = {},
@@ -193,17 +195,28 @@ fun SettingsScreen(
                 }
                 item {
                     SettingsSection(stringResource(Res.string.settings_section_network)) {
-                        InfoRow(
-                            stringResource(Res.string.settings_network_status),
-                            stringResource(
-                                when (x0xConnectivity) {
-                                    is X0xConnectivity.Connected -> Res.string.settings_network_connected
-                                    X0xConnectivity.Connecting -> Res.string.settings_network_connecting
-                                    X0xConnectivity.Offline -> Res.string.settings_network_offline
-                                },
-                            ),
-                            Modifier.testTag(SettingsTestTags.NetworkStatusRow),
-                        )
+                        SettingsRow(
+                            label = stringResource(Res.string.settings_network_status),
+                            modifier = Modifier.testTag(SettingsTestTags.NetworkStatusRow),
+                            onClick = onNetworkStatusClick,
+                        ) {
+                            Text(
+                                stringResource(
+                                    when (x0xConnectivity) {
+                                        is X0xConnectivity.Connected -> Res.string.settings_network_connected
+                                        X0xConnectivity.Connecting -> Res.string.settings_network_connecting
+                                        X0xConnectivity.Offline -> Res.string.settings_network_offline
+                                    },
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_chevron_right),
+                                contentDescription = stringResource(Res.string.settings_network_status_open),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         (x0xConnectivity as? X0xConnectivity.Connected)?.let { connected ->
                             SettingsRow(
                                 label = stringResource(Res.string.settings_network_peers),
