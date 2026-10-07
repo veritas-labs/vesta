@@ -410,4 +410,38 @@ class DeviceSyncServiceTest {
         // Assert
         assertEquals(1, tablet.paired.count { it == "agent-b" })
     }
+
+    @Test
+    fun aPairingInviteIsMadeForTheNewDeviceAndLapsesInFifteenMinutes() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+
+        // Act
+        pair(owner, phone)
+
+        // Assert
+        val invite = network.minted.single { it.mintedBy == "agent-a" }
+        assertEquals("agent-b", invite.intendedJoiner)
+        assertEquals(900L, invite.expirySecs)
+    }
+
+    @Test
+    fun movingTheDevicesToANewGroupMakesOneInviteForEachOfThem() = test {
+        // Arrange
+        val owner = Device("agent-a", "Laptop")
+        val phone = Device("agent-b", "Phone")
+        val tablet = Device("agent-c", "Tablet")
+        pair(owner, phone)
+        pair(owner, tablet)
+        val before = network.minted.size
+
+        // Act: the phone and the tablet are moved when the group's creator is removed by a device that is not the creator
+        phone.service.removeDevice("agent-a")
+
+        // Assert
+        val rotation = network.minted.drop(before).filter { it.mintedBy == "agent-b" }
+        assertEquals(setOf("agent-c"), rotation.mapNotNull { it.intendedJoiner }.toSet())
+        assertTrue(rotation.all { it.expirySecs == 900L })
+    }
 }

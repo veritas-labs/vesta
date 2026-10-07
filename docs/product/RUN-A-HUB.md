@@ -29,6 +29,9 @@ computer of yours that runs Vesta can be one too (see below).
 
 The two commands are needed once per Home. After that x0x restores the store on its own whenever it restarts.
 
+The first command carries an invite that **lapses after an hour**, so run the commands soon after you copy them. If x0x says the invite has expired, open
+**Always-on hub** again: the phone makes fresh commands whenever the ones it shows are half an hour old.
+
 If you stop x0x on the hub (`x0x stop`), wait about twenty seconds before `x0x start`. Started sooner it can exit saying it
 could not release its network sockets; starting it again a little later works.
 

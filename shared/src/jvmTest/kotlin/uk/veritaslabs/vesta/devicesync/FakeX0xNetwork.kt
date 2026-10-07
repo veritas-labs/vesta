@@ -48,6 +48,9 @@ class FakeX0xNetwork {
     val groups = mutableMapOf<String, Group>()
     private val nodes = mutableMapOf<String, Node>()
     private var nextGroup = 0
+    private companion object {
+        const val JoinerMarker = "|for="
+    }
 
     /** Agents whose direct messages are silently dropped, as if offline. */
     val offline = mutableSetOf<String>()
@@ -58,6 +61,12 @@ class FakeX0xNetwork {
      */
     val hanging = mutableSetOf<String>()
     var hangFor: Duration = 3.seconds
+
+    /** An invite made through a node: for which group, with what lifetime and joiner, and by whom. */
+    data class MintedInvite(val groupId: String, val expirySecs: Long?, val intendedJoiner: String?, val mintedBy: String)
+
+    /** Every invite made so far, in order. */
+    val minted = mutableListOf<MintedInvite>()
 
     /** Agents that don't yet see themselves in a group's roster, as while their admission is being committed. */
     val lagging = mutableSetOf<String>()
@@ -125,13 +134,17 @@ class FakeX0xNetwork {
             return id
         }
 
-        override suspend fun createGroupInvite(groupId: String): String {
+        override suspend fun createGroupInvite(groupId: String, expirySecs: Long?, intendedJoiner: String?): String {
             requireAdmin(groupId)
-            return "invite:$groupId"
+            minted += MintedInvite(groupId, expirySecs, intendedJoiner, mintedBy = agentId)
+            return "invite:$groupId" + (intendedJoiner?.let { "$JoinerMarker$it" }.orEmpty())
         }
 
         override suspend fun joinGroup(invite: String): String {
-            val id = invite.removePrefix("invite:")
+            val id = invite.removePrefix("invite:").substringBefore(JoinerMarker)
+            // As x0x does: an invite made for one agent is refused to every other
+            invite.substringAfter(JoinerMarker, missingDelimiterValue = "").takeIf { it.isNotEmpty() && it != agentId }
+                ?.let { throw X0xApiException(409, "invite_not_addressed_to_me") }
             val group = groups[id] ?: throw X0xApiException(404, "group not found")
             group.members[agentId] = X0xGroupMember(agentId, role = "member", state = "active")
             return id

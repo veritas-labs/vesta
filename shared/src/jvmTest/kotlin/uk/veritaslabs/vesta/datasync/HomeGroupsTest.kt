@@ -559,4 +559,36 @@ class HomeGroupsTest {
         assertNotEquals(oldGroup, newGroup)
         assertEquals(setOf("agent-ann", "agent-sam"), membersOf(newGroup).keys)
     }
+
+    // --- Invites are short-lived and made for one device (docs/plans/unpaired-device-gap-plan.md, slice 2b) ---
+
+    @Test
+    fun aDeviceIsInvitedWithAnInviteMadeForItAloneThatLapsesInAnHour() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+
+        // Act
+        val (tablet, _) = home.withTabletInTheGroup()
+
+        // Assert: every invite the group's admin made went to one named device, and none lives a week
+        val mine = network.minted.filter { it.mintedBy == "agent-mark" }
+        assertTrue(mine.isNotEmpty())
+        assertTrue(mine.all { it.expirySecs == 3600L && it.intendedJoiner != null })
+        assertTrue(mine.any { it.intendedJoiner == tablet.agentId })
+    }
+
+    @Test
+    fun anInviteMadeForTheTabletIsUselessToAnotherDevice() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+        val (tablet, _) = home.withTabletInTheGroup()
+        val invite = home.mark.node.createGroupInvite(home.mark.groupId()!!, expirySecs = 3600, intendedJoiner = tablet.agentId)
+
+        // Act
+        val refused = assertFailsWith<X0xApiException> { network.node("agent-other").joinGroup(invite) }
+
+        // Assert
+        assertEquals(409, refused.status)
+        assertTrue("agent-other" !in membersOf(home.mark.groupId()!!).keys)
+    }
 }

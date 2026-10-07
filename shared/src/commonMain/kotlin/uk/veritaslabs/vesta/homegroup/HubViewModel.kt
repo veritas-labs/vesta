@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.homegroup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.x0x.InviteLifetime
 
 /**
  * One of the Home's hubs as the screen shows it: its agent id, whether it is in the Home's group right now, and whether it is
@@ -48,7 +50,10 @@ class HubViewModel(
     private val hubs: HomeHub?,
     private val pollInterval: Duration = 3.seconds,
     private val offerOwnDevice: Boolean = false,
+    private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : ViewModel() {
+
+    private var commandsMadeAt = 0L
 
     private val _uiState = MutableStateFlow(HubUiState())
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
@@ -99,7 +104,9 @@ class HubViewModel(
         val items = recorded.map { HubItem(it.agentId, it.inGroup, it.isDevice) }
         // Enrolment is shown with no hub yet, or when the admin asked to add another: only then is an invite made.
         val enrolling = items.isEmpty() || _uiState.value.adding
-        val commands = if (!enrolling) null else _uiState.value.commands ?: runCatchingNotCancelled { service.enrolment(homeId) }?.commands
+        // The commands carry an invite that lapses (InviteLifetime), so ones made a while ago are made again.
+        val cached = _uiState.value.commands?.takeIf { nowMillis() - commandsMadeAt < InviteLifetime.HubCommandsRefresh.inWholeMilliseconds }
+        val commands = if (!enrolling) null else cached ?: runCatchingNotCancelled { service.enrolment(homeId) }?.commands?.also { commandsMadeAt = nowMillis() }
         val candidates = if (commands == null) emptyList() else runCatchingNotCancelled { service.candidates(homeId) }.orEmpty()
         val ownDevices = if (!enrolling || !offerOwnDevice) emptyList() else runCatchingNotCancelled { service.ownDeviceCandidates(homeId) }.orEmpty()
         _uiState.update {

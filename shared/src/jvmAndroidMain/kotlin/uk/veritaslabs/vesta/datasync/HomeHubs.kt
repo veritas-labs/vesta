@@ -12,6 +12,7 @@ import uk.veritaslabs.vesta.homegroup.HubResult
 import uk.veritaslabs.vesta.homegroup.HubState
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.x0x.InviteLifetime
 import uk.veritaslabs.vesta.x0x.X0xApiException
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
@@ -38,7 +39,7 @@ internal class HomeHubs(
     override suspend fun enrolment(homeId: String): HubEnrolment? {
         val group = readyGroup(homeId) ?: return null
         if (!isAdminOfHome(homeId) || !isAdminOfGroup(group)) return null
-        val invite = client.createGroupInvite(group)
+        val invite = client.createGroupInvite(group, InviteLifetime.HubEnrolment.inWholeSeconds)
         return HubEnrolment(group, "x0x group join $invite\nx0x group store create $group $MailboxStore")
     }
 

@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -320,5 +321,23 @@ class HubViewModelTest {
         val state = viewModel.uiState.value
         assertEquals(listOf(HubItem("agent-desktop", true, isDevice = true)), state.hubs)
         assertEquals(emptyList(), state.ownDevices)
+    }
+
+    @Test
+    fun enrolmentCommandsOlderThanHalfAnHourAreMadeAgainBecauseTheirInviteWillLapse() = runTest {
+        // Arrange
+        useMainDispatcher(testScheduler)
+        val hubs = FakeHomeHub()
+        val viewModel = HubViewModel("home-1", hubs, pollInterval = 3.seconds, nowMillis = { testScheduler.currentTime })
+        backgroundScope.launch { viewModel.poll() }
+
+        // Act
+        advanceTimeBy(29.minutes)
+        val soon = hubs.enrolmentCalls
+        advanceTimeBy(3.minutes)
+
+        // Assert
+        assertEquals(1, soon)
+        assertEquals(2, hubs.enrolmentCalls)
     }
 }

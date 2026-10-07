@@ -14,6 +14,7 @@ import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.MemberRole
 import uk.veritaslabs.vesta.x0x.X0xApiException
+import uk.veritaslabs.vesta.x0x.InviteLifetime
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
@@ -162,7 +163,7 @@ internal class HomeGroups(
         if (sender !in activeDevices(rosters.members(homeId))) return
         val members = client.getGroupMembers(local.groupId)
         if (members.firstOrNull { it.agentId == selfId() }?.role != AdminRole) return
-        val invite = client.createGroupInvite(local.groupId)
+        val invite = client.createGroupInvite(local.groupId, InviteLifetime.HomeJoin.inWholeSeconds, intendedJoiner = sender)
         sendQuietly(sender, HomeGroupMessage.encode(HomeGroupMessage.Invite(homeId, local.groupId, invite)))
     }
 

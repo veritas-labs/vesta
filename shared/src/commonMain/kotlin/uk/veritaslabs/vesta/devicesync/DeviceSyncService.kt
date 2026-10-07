@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.x0x.X0xApiException
+import uk.veritaslabs.vesta.x0x.InviteLifetime
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
@@ -104,7 +105,7 @@ class DeviceSyncService(
                 finish(PairingStep.PrepareGroup)
 
                 begin(PairingStep.CreateInvite)
-                val invite = client.createGroupInvite(groupId)
+                val invite = client.createGroupInvite(groupId, InviteLifetime.Pairing.inWholeSeconds, intendedJoiner = link.agentId)
                 val message = DeviceSyncMessage.encode(DeviceSyncMessage.Invite(invite, deviceName()))
                 finish(PairingStep.CreateInvite)
 
@@ -268,10 +269,13 @@ class DeviceSyncService(
         val self = selfId()
         val remaining = members(oldGroup).filter { it.state == "active" && it.agentId != removed && it.agentId != self }
         val newGroup = client.createGroup(GroupName)
-        val invite = client.createGroupInvite(newGroup)
-        val message = DeviceSyncMessage.encode(DeviceSyncMessage.Rotate(invite, oldGroup, deviceName()))
         val moved = remaining.filter { member ->
-            runCatching { awaitActive(newGroup, member.agentId) { send(member.agentId, message) } }.isSuccess
+            runCatching {
+                // One invite for each device, made for it alone.
+                val invite = client.createGroupInvite(newGroup, InviteLifetime.Pairing.inWholeSeconds, intendedJoiner = member.agentId)
+                val message = DeviceSyncMessage.encode(DeviceSyncMessage.Rotate(invite, oldGroup, deviceName()))
+                awaitActive(newGroup, member.agentId) { send(member.agentId, message) }
+            }.isSuccess
         }
         moved.forEach { attempt { client.setGroupMemberRole(newGroup, it.agentId, "admin") } }
         setGroup(newGroup)

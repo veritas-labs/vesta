@@ -112,12 +112,19 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
   invited back when it asks; re-pairing lets it join; an unpaired creator replaces the group). Disabling the removal makes four of them fail; the other three
   are guards.
 
-### Slice 2b: short-lived invites — needs a look at `X0xClient.createGroupInvite`, then small
+### Slice 2b: short-lived invites — **done 2026-10-07**
 
 - Spike 9 found that a removed device can re-register with any unused invite, and Vesta's invites live a week. Pass a short expiry (`--expiry` on the CLI;
   check the REST body) for the invites Vesta mints: a device invite (`answerRequest`, answered at once), and the hub enrolment invite (shown on screen
   while the admin sets up the machine; an hour is plenty). Keep the 7 days only if a flow really needs it. Tests: the invite carries the expiry; a hub
   enrolled after the expiry needs fresh commands (the screen already makes them on demand).
+- **As built:** x0x's invite call takes `expiry_secs` and `intended_joiner` (checked on x0xd 0.46.0: a lapsed invite is refused with "invite has expired", another agent's with
+  `invite_not_addressed_to_me`). `X0xClient.createGroupInvite(groupId, expirySecs, intendedJoiner)`; `InviteLifetime` holds the lifetimes. Pairing: 15 min, made for the
+  new device (`pairWith`), and one per remaining device, each for that device, when the pairing group is replaced. A device asking to join a Home's group
+  (`answerRequest`): 1 h, made for the asker. Hub enrolment: 1 h, for nobody in particular (the machine is not known), and `HubViewModel` makes the commands again once
+  they are 30 min old. Seven tests on the fake mesh, which now records what was minted and refuses another agent an addressed invite; removing the joiner from the Home-join
+  invite fails one. `UnpairDaemonIntegrationTest` and `HubDaemonIntegrationTest` pass against real daemons with the new invites. The invite Vesta puts in a pairing link is
+  unchanged (it is the device's own agent id, not an invite).
 
 ### Slice 3: wire it to the user's action — needs slices 1 and 2 — **done 2026-10-07 on the fake mesh**
 

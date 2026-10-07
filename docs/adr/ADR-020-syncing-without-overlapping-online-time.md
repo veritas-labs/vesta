@@ -326,6 +326,9 @@ stopped C's daemon and removed C.
   still could not read or write, and its own `GET /groups` stayed empty, so I do not know whether it would eventually get keys. Do not rely on that.
 - **So removal has to be continuous, not one-shot:** an admin that removes a tombstoned agent each round removes it again. And invites should be short-lived:
   Vesta mints one for every hub enrolment and device invite and they stay valid for a week.
+- **Followed up the same day** (slice 2b of the unpaired-device plan): x0x's invite call takes `expiry_secs` and `intended_joiner`, both confirmed on 0.46.0 (a
+  lapsed invite is refused, and so is any other agent's for an addressed one). Vesta now makes pairing and device invites for the one device that will redeem them,
+  living 15 minutes (pairing) or an hour (joining a Home's group), and hub enrolment invites live an hour.
 
 ## Manual end-to-end run (2026-10-06)
 

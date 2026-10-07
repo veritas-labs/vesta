@@ -146,8 +146,14 @@ abstract class AbstractX0xClient : X0xClient {
         return groups.map { json.decodeFromJsonElement(X0xGroupSummary.serializer(), it) }
     }
 
-    override suspend fun createGroupInvite(groupId: String): String =
-        post("/groups/$groupId/invite")["invite_link"]!!.jsonPrimitive.content
+    override suspend fun createGroupInvite(groupId: String, expirySecs: Long?, intendedJoiner: String?): String =
+        post(
+            "/groups/$groupId/invite",
+            buildJsonObject {
+                expirySecs?.let { put("expiry_secs", it) }
+                intendedJoiner?.let { put("intended_joiner", it) }
+            },
+        )["invite_link"]!!.jsonPrimitive.content
 
     override suspend fun joinGroup(invite: String): String =
         post("/groups/join", buildJsonObject { put("invite", invite) })["group_id"]!!.jsonPrimitive.content

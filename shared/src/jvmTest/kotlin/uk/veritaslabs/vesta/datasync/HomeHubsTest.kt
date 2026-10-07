@@ -402,4 +402,18 @@ class HomeHubsTest {
         assertTrue("agent-mark-2" !in network.groups.getValue(home.mark.groupId()!!).members)
         assertTrue(home.mark.rosters.hubs(homeId).isEmpty())
     }
+
+    @Test
+    fun theEnrolmentInviteLapsesAfterAnHourAndIsNotTiedToAnAgent() = runBlocking {
+        // Arrange
+        val home = Household().arrange()
+
+        // Act
+        home.mark.hubs.enrolment(homeId)
+
+        // Assert: the machine that will join is not known yet, so only the lifetime is set
+        val minted = network.minted.last { it.mintedBy == "agent-mark" }
+        assertEquals(3600L, minted.expirySecs)
+        assertNull(minted.intendedJoiner)
+    }
 }

@@ -73,7 +73,7 @@ class FakeX0xClient : X0xClient {
     override suspend fun openGroupStore(groupId: String, name: String): String = TODO()
     override suspend fun createGroup(name: String, description: String, preset: String?): String = TODO()
     override suspend fun listGroups(): List<X0xGroupSummary> = TODO()
-    override suspend fun createGroupInvite(groupId: String): String = TODO()
+    override suspend fun createGroupInvite(groupId: String, expirySecs: Long?, intendedJoiner: String?): String = TODO()
     override suspend fun joinGroup(invite: String): String = TODO()
     override suspend fun getGroupMembers(groupId: String): List<X0xGroupMember> = TODO()
     override suspend fun getGroupCreator(groupId: String): String? = TODO()
