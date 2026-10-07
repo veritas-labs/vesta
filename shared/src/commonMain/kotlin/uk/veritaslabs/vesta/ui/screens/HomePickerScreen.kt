@@ -60,7 +60,7 @@ import vesta.shared.generated.resources.ic_link
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_settings
 import vesta.shared.generated.resources.home_picker_settings
-import vesta.shared.generated.resources.img_armchair
+import vesta.shared.generated.resources.img_vesta
 import vesta.shared.generated.resources.onboarding_create_home
 import vesta.shared.generated.resources.pending_join_cancel
 import vesta.shared.generated.resources.pending_join_denied_declined
@@ -225,9 +225,9 @@ fun HomePickerScreen(
             if (homes.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Image(
-                        painter = painterResource(Res.drawable.img_armchair),
+                        painter = painterResource(Res.drawable.img_vesta),
                         contentDescription = null,
-                        modifier = Modifier.width(if (isTablet) 320.dp else 280.dp),
+                        modifier = if (isTablet) Modifier.width(480.dp) else Modifier.fillMaxWidth(),
                     )
                 }
             } else {
