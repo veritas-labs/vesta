@@ -136,10 +136,15 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
   `deviceUnpaired` a no-op fails both. A device removed from the DeviceSync group cannot clear its own mark with a greeting: `acceptHello` ignores a sender that is
   not an active member of that group.
 
-### Slice 4: real-daemon test — needs slices 1-3, opt-in like the others
+### Slice 4: real-daemon test — needs slices 1-3, opt-in like the others — **done 2026-10-07 (`UnpairDaemonIntegrationTest`, passed once against three real x0xd 0.46.0, ~4 min)**
 
 - Two phones, a hub, and a third device of one phone's user: unpair it; it is removed from the group (real rekey), cannot read an entry written after,
   and a new invite request from it is refused. Reuse `DaemonHarness.kt` (new env var for four names).
+- **As built:** `Phone` in `DaemonHarness.kt` can run the pairing service too (`withPairing`), wired to the Home sync as `App` does. The test
+  (`VESTA_X0X_UNPAIR_NAMES=a,tablet,b`): the tablet is paired with A for real, A makes the Home and admits B, all three reach the group and open the mailbox;
+  A calls `removeDevice` on the tablet; the tablet leaves the group (real rekey) while B stays; B writes an item; the tablet's daemon refuses the store; after
+  another minute its Pantry still lacks the item, it is still not a member (so its repeated invite requests are refused), and A no longer lists it. Not run with
+  the wiring disabled (that would wait out a 6-minute timeout); the same wiring on the fake mesh fails both of its tests without it.
 
 ### Slice 5: by hand on the emulators — needs slice 4
 

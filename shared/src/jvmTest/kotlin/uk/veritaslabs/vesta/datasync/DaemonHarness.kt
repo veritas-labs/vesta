@@ -18,6 +18,7 @@ import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.homegroup.HubResult
@@ -83,7 +84,7 @@ internal class Daemon(val name: String) {
 }
 
 /** A phone: the real data sync over a daemon, with its own database. */
-internal class Phone(val daemon: Daemon, private val scope: CoroutineScope) {
+internal class Phone(val daemon: Daemon, private val scope: CoroutineScope, private val withPairing: Boolean = false) {
     val database = openInMemoryDatabase()
     val devices = SyncedDeviceRepository(database)
     val pantries = PantrySources(database)
@@ -92,21 +93,35 @@ internal class Phone(val daemon: Daemon, private val scope: CoroutineScope) {
     val homes = HomeRepository(database, sync.homeChanges)
     val profiles = ProfileRepository(database, changes = sync.profileChanges)
     private var running: Job? = null
+    private var pairing: Job? = null
+
+    /** The pairing service, wired to the Home sync as `App` does; it runs beside the sync when the phone is made [withPairing]. */
+    val deviceSync: DeviceSyncService by lazy {
+        DeviceSyncService(
+            daemon.client, database, devices, deviceName = { daemon.name },
+            onDeviceUnpaired = sync::deviceUnpaired, onDevicePaired = sync::devicePaired,
+        )
+    }
 
     /** Starts the daemon and the sync, as opening the app does. */
     suspend fun open() {
         daemon.start()
         running = scope.launch { sync.run() }
+        if (withPairing) pairing = scope.launch { deviceSync.run() }
     }
 
     /** Stops only the sync, as closing Vesta does on a desktop whose x0xd keeps running. */
     fun closeApp() {
         running?.cancel()
         running = null
+        pairing?.cancel()
+        pairing = null
     }
 
     /** Stops the sync and the daemon, as closing the app does. */
     suspend fun close() {
+        pairing?.cancel()
+        pairing = null
         running?.cancel()
         running = null
         daemon.stop()
