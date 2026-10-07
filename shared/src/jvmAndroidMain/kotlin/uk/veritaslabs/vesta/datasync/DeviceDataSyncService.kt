@@ -3,7 +3,9 @@ package uk.veritaslabs.vesta.datasync
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
@@ -64,6 +66,8 @@ class DeviceDataSyncService(
     private val pantrySources: PantrySources,
     private val shoppingSources: ShoppingListSources = ShoppingListSources(database, pantrySources),
     private val interval: Duration = 30.seconds,
+    private val peerBackoff: Duration = 2.minutes,
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, pantrySources)
@@ -75,6 +79,14 @@ class DeviceDataSyncService(
     private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, rosters)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
     private val mailboxReader = MailboxReader(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
+
+    /**
+     * Peers a direct message recently failed to reach, by agent id and the time until which they are left alone. x0xd waits about
+     * 24 s before it gives up on a peer that is not there, and every document was sent in turn, so one absent device held the sync
+     * (and, behind it, the mailbox) for minutes. A peer is tried once, then not again until it has been quiet for [peerBackoff], it
+     * is seen coming online ([syncWith]) or it sends something ([handle]).
+     */
+    private val peerDownUntil = ConcurrentHashMap<String, Long>()
 
     override val homeChanges: HomeChangeListener get() = registry
 
@@ -113,23 +125,23 @@ class DeviceDataSyncService(
         launch {
             // A roster change can add a device to a Home's peers, which then needs everything the Home has.
             rosters.changes.collect { homeId ->
+                launch { attempt { mailboxWriter.deposit(homeId, rosterDocumentId(homeId)) } } // not behind sends to absent peers
                 attempt { syncDocument(rosterDocumentId(homeId)) }
                 attempt { syncDocument(pantryDocumentId(homeId)) }
                 attempt { syncDocument(shoppingListDocumentId(homeId)) }
-                attempt { mailboxWriter.deposit(homeId, rosterDocumentId(homeId)) }
             }
         }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
         launch {
             pantrySources.localChanges.collect { homeId ->
+                launch { attempt { mailboxWriter.deposit(homeId, pantryDocumentId(homeId)) } }
                 attempt { syncDocument(pantryDocumentId(homeId)) }
-                attempt { mailboxWriter.deposit(homeId, pantryDocumentId(homeId)) }
             }
         }
         launch {
             shoppingSources.localChanges.collect { homeId ->
+                launch { attempt { mailboxWriter.deposit(homeId, shoppingListDocumentId(homeId)) } }
                 attempt { syncDocument(shoppingListDocumentId(homeId)) }
-                attempt { mailboxWriter.deposit(homeId, shoppingListDocumentId(homeId)) }
             }
         }
         // A newly paired device, or one that has gone, changes who there is to sync with.
@@ -139,8 +151,8 @@ class DeviceDataSyncService(
         launch {
             X0xEventHub(client).presence.collect { event ->
                 if (event.isOnline) {
+                    launch { attempt { syncMailboxes() } }
                     attempt { syncWith(event.agentId) }
-                    attempt { syncMailboxes() }
                 }
             }
         }
@@ -151,8 +163,12 @@ class DeviceDataSyncService(
         }
     }
 
-    /** One full round: the direct-message sync, then the mailboxes (whose stores the direct-message round may just have opened). */
-    private suspend fun round() {
+    /**
+     * One full round: the direct-message sync, and with it the mailboxes. The mailboxes start at once, not after the direct-message
+     * sync, which can spend a long time on peers that do not answer; they run again when it is done, for stores it just opened.
+     */
+    private suspend fun round() = coroutineScope {
+        launch { attempt { syncMailboxes() } }
         attempt { syncEverything() }
         attempt { syncMailboxes() }
     }
@@ -191,6 +207,7 @@ class DeviceDataSyncService(
      * ([peersFor]); anything else is ignored.
      */
     suspend fun handle(message: X0xDirectMessage) {
+        if (message.verified == true) message.sender?.let { peerDownUntil.remove(it) } // it is evidently there
         if (join.handle(message)) return // a Home-join message, not a sync message
         if (groups.handle(message)) return // a Home-group message (ADR-021)
         syncFrom(message)
@@ -244,6 +261,7 @@ class DeviceDataSyncService(
 
     /** Starts the sync over with [peer] alone, and resends anything queued, if it is a peer of any document; otherwise does nothing. */
     suspend fun syncWith(peer: String) = lock.withLock {
+        peerDownUntil.remove(peer)
         val shared = documentIds().filter { peer in peersFor(it) }
         if (shared.isEmpty()) return@withLock
         attempt { join.resendPending() }
@@ -324,6 +342,7 @@ class DeviceDataSyncService(
 
     /** Sends [peer] whatever it is missing of [documentId]. A failed send drops that peer's sync state, so the next round starts afresh. */
     private suspend fun pump(documentId: String, peer: String) {
+        if ((peerDownUntil[peer] ?: 0L) > nowMillis()) return
         val state = stateFor(documentId, peer)
         try {
             if (connected.add(peer)) attempt { client.connectAgent(peer) }
@@ -344,6 +363,7 @@ class DeviceDataSyncService(
         } catch (e: Exception) {
             states.keys.removeAll { it.second == peer }
             connected.remove(peer)
+            peerDownUntil[peer] = nowMillis() + peerBackoff.inWholeMilliseconds
         }
     }
 

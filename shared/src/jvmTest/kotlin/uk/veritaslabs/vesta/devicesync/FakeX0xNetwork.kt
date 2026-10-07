@@ -1,6 +1,9 @@
 package uk.veritaslabs.vesta.devicesync
 
 import kotlin.io.encoding.Base64
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
 import uk.veritaslabs.vesta.x0x.FakeX0xClient
 import uk.veritaslabs.vesta.x0x.X0xAgent
@@ -49,6 +52,13 @@ class FakeX0xNetwork {
     /** Agents whose direct messages are silently dropped, as if offline. */
     val offline = mutableSetOf<String>()
 
+    /**
+     * Agents that never answer, as a daemon whose path to them has gone stale: a direct message to one waits [hangFor] and then fails,
+     * as x0xd's does after about 24 s.
+     */
+    val hanging = mutableSetOf<String>()
+    var hangFor: Duration = 3.seconds
+
     /** Agents that don't yet see themselves in a group's roster, as while their admission is being committed. */
     val lagging = mutableSetOf<String>()
 
@@ -96,6 +106,10 @@ class FakeX0xNetwork {
 
         override suspend fun sendDirect(agentId: String, payload: ByteArray): JsonObject {
             sentTo += agentId
+            if (agentId in hanging) {
+                delay(hangFor)
+                error("timed out sending to $agentId")
+            }
             val target = nodes[agentId]
             if (target != null && agentId !in offline) {
                 target.onDirect(

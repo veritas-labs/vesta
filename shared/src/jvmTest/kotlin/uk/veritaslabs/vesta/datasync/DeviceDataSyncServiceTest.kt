@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.datasync
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration
@@ -828,6 +829,91 @@ class DeviceDataSyncServiceTest {
 
         // Assert: the direct-message path still delivers it
         eventually { x.pantryTitles(homeId) == listOf("Beef Mince") }
+        scope.cancel()
+    }
+
+    // --- Peers that do not answer (ADR-020 by-hand run: an offline peer delayed the mailbox by minutes) ---
+
+    /** Waits until [check] holds, but for no longer than [within]; false if it never did. */
+    private suspend fun within(within: Duration, check: suspend () -> Boolean): Boolean =
+        withTimeoutOrNull(within) { while (!check()) delay(20.milliseconds); true } ?: false
+
+    @Test
+    fun aChangeIsDepositedWithoutWaitingForAPeerThatDoesNotAnswer() = runBlocking {
+        // Arrange: Y's path has gone stale, so every direct message to it waits before failing
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        withHub(x, y, homeId)
+        network.hangFor = 3.seconds
+        network.hanging += y.agentId
+
+        // Act
+        x.pantries.forHome(homeId)!!.save(PantryItemDetails(primaryCategory = "Meat", title = "Beef Mince", packageSize = "500g"))
+
+        // Assert: the mailbox has it long before one send to Y has timed out
+        assertTrue(within(1500.milliseconds) { x.pantryDeposited(homeId) })
+        scope.cancel()
+    }
+
+    @Test
+    fun aPeerThatDidNotAnswerIsTriedOnceNotOncePerDocument() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        network.hangFor = 100.milliseconds
+        network.hanging += y.agentId
+
+        // Act: one full round, which has the Home's Pantry, shopping list and roster to send
+        x.sync.syncEverything()
+        val first = x.node.sentTo.count { it == y.agentId }
+        x.sync.syncEverything()
+
+        // Assert: one failed send is enough to leave Y alone for a while, in this round and the next
+        assertEquals(1, first)
+        assertEquals(1, x.node.sentTo.count { it == y.agentId })
+        scope.cancel()
+    }
+
+    @Test
+    fun aPeerThatCameBackIsSyncedAtOnceEvenAfterItWasGivenUpOn() = runBlocking {
+        // Arrange: X gives up on Y after a failed send, and then edits
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        network.hangFor = 100.milliseconds
+        network.hanging += y.agentId
+        x.sync.syncEverything()
+        x.pantries.forHome(homeId)!!.save(PantryItemDetails(primaryCategory = "Meat", title = "Beef Mince", packageSize = "500g"))
+
+        // Act: Y comes back; X sees it come online
+        network.hanging -= y.agentId
+        network.comeOnline(y.agentId)
+
+        // Assert
+        assertTrue(within(5.seconds) { y.pantryTitles(homeId) == listOf("Beef Mince") })
+        scope.cancel()
+    }
+
+    @Test
+    fun aDeviceThatIsOpenedReadsTheMailboxWithoutWaitingForPeersThatDoNotAnswer() = runBlocking {
+        // Arrange: X leaves a change in the mailbox and is gone; Y is then opened, with X's path stale
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        withHub(x, y, homeId)
+        network.offline += y.agentId
+        x.pantries.forHome(homeId)!!.save(PantryItemDetails(primaryCategory = "Meat", title = "Beef Mince", packageSize = "500g"))
+        eventually { x.pantryDeposited(homeId) }
+        network.hangFor = 3.seconds
+        network.hanging += x.agentId
+        network.offline += x.agentId
+        y.sync.syncNow()
+
+        // Act
+        network.comeOnline(y.agentId)
+
+        // Assert: Y reads it from the hub well before a send to X could have timed out
+        assertTrue(within(1500.milliseconds) { y.pantryTitles(homeId) == listOf("Beef Mince") })
         scope.cancel()
     }
 }

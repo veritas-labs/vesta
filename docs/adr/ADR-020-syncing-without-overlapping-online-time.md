@@ -326,6 +326,28 @@ Run by hand on two phones (A, B) and a host hub (x0xd 0.46.0):
 - The host daemon once wedged (held the instance lock but never bound port 12700, so `x0x start` could not start another); killing it
   and starting again fixed it. Cause unknown.
 
+## Emulator run and sync latency (2026-10-07)
+
+Run on two Android emulators (x86_64, API 37.1, debug APK) with plain x0xd 0.46.0 hubs on the host, driving the real screens through `adb`
+and `uiautomator`: create a Home, invite link, join, approve, enrol hubs from the Always-on hub screen, edit, close, read from the other phone.
+
+- **It works on a device build.** Two hubs enrolled and chosen from the screen; with phone A closed, phone B opened cold got A's change from
+  the hubs (round one, both hubs up) and from hub 2 alone with hub 1 stopped (round two); removing the dead hub from the screen took it out of the
+  group. The Android screen offers no "Your devices" section, as intended. Not run: the desktop own-device hub.
+- **But it was slow.** B read A's change about 113 s after it was opened cold, and A's change reached the hubs 65 to 163 s after it was saved
+  (10 s once). Cause: the direct-message sync sent every document to every peer in turn under one lock, and x0xd waits about 24 s (measured:
+  one retry, 24.0 s) before it gives up on a peer whose path has gone stale, so one absent phone cost 24 s per document per round; the mailbox
+  deposit and read were queued behind that (after it in `round()`, behind `syncDocument` in the change handlers, behind `syncWith` on presence).
+  The real-daemon tests missed it because a stopped local daemon refuses at once.
+- **Fix (`DeviceDataSyncService`):** a peer a send failed to reach is left alone for `peerBackoff` (2 min), is tried again the moment it is seen
+  coming online or sends anything, and the mailbox deposit and read now start at once, beside the direct-message sync, in a round, on a local change
+  and on a presence event. Four tests on the fake mesh (`FakeX0xNetwork.hanging`): deposit while a peer hangs, one send per round, a peer that
+  came back, a cold read.
+- **Re-measured the same way on the emulators:** deposit 4 s after the change with the other phone offline (was 65 to 163 s); B cold-opened with A
+  closed had the change after 19 s (was 113 s).
+- **Still true:** a cold app needs a short while to bring its daemon up before it can touch the mailbox, and a peer that is down is still tried once
+  per backoff window, which holds the direct-message lock for about 24 s each time.
+
 ## Still unverified (2026-10-06)
 
 - **Mobile data.** Confirm the daemon stopping on mobile data just makes the mailbox wait.
