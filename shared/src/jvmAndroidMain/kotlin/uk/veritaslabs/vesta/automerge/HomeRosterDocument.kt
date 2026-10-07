@@ -17,6 +17,7 @@ private const val RemovedField = "removed"
 private const val GroupKey = "group"
 private const val HubKey = "hub"
 private const val HubPrefix = "hub:"
+private const val GonePrefix = "gone:"
 private const val InvitePrefix = "invite:"
 private const val CreatedByField = "createdBy"
 private const val ExpiresAtField = "expiresAt"
@@ -57,6 +58,11 @@ data class RosterMember(
  * `hub:<agentId> = true`, so two admins adding different hubs at once merge to both. Before several hubs were allowed the
  * roster held one scalar, `hub = <agentId>`: it is still read as a hub, and removing that agent deletes it.
  *
+ * A device the user unpaired (docs/plans/unpaired-device-gap-plan.md) gets one more key, `gone:<agentId> = <memberId>`, beside its unchanged
+ * `device:` claim. A device a `gone:` key names is left out of its member's `devices` when the claim names the same member, so one
+ * member cannot make another's device disappear. The claim is kept because the unpaired device can write it again after it has merged a
+ * release, and that later write survives; the tombstone is what stays. Only an explicit re-pairing deletes it.
+ *
  * Invites (docs/adr/ADR-018-invite-links.md) live in the same document, as flat keys too:
  *
  *   invite:<secretHash>:createdBy | expiresAt | maxUses | revoked   one invite link
@@ -70,7 +76,8 @@ data class RosterMember(
 fun Read.readRoster(): List<RosterMember> {
     val entries = mapEntries(ObjectId.ROOT).getOrNull().orEmpty()
     val fields = mutableMapOf<String, MutableMap<String, AmValue>>()
-    val devices = mutableMapOf<String, MutableSet<String>>()
+    val claims = mutableListOf<Pair<String, String>>() // agent to member
+    val gone = mutableMapOf<String, String>() // agent to the member who unpaired it
     for (entry in entries) {
         when {
             entry.key.startsWith(MemberPrefix) -> {
@@ -80,9 +87,18 @@ fun Read.readRoster(): List<RosterMember> {
             }
             entry.key.startsWith(DevicePrefix) -> {
                 val memberId = (entry.value as? AmValue.Str)?.value ?: continue
-                devices.getOrPut(memberId) { mutableSetOf() } += entry.key.removePrefix(DevicePrefix)
+                claims += entry.key.removePrefix(DevicePrefix) to memberId
+            }
+            entry.key.startsWith(GonePrefix) -> {
+                val memberId = (entry.value as? AmValue.Str)?.value ?: continue
+                gone[entry.key.removePrefix(GonePrefix)] = memberId
             }
         }
+    }
+    // A tombstone only counts against a claim that names the member who wrote it.
+    val devices = mutableMapOf<String, MutableSet<String>>()
+    for ((agent, member) in claims) {
+        if (gone[agent] != member) devices.getOrPut(member) { mutableSetOf() } += agent
     }
     return fields.map { (memberId, values) ->
         RosterMember(
@@ -128,6 +144,43 @@ fun claimRosterDevice(doc: Document, agentId: String, memberId: String): Boolean
         return false
     }
     tx.set(ObjectId.ROOT, key, memberId)
+    tx.commit()
+    return true
+}
+
+/** The devices the roster marks as unpaired, by agent id, with the member who unpaired each: `gone:` keys, whether or not a claim still names them. */
+fun Read.readRosterGone(): Map<String, String> =
+    mapEntries(ObjectId.ROOT).getOrNull().orEmpty()
+        .filter { it.key.startsWith(GonePrefix) }
+        .mapNotNull { entry -> (entry.value as? AmValue.Str)?.value?.let { entry.key.removePrefix(GonePrefix) to it } }
+        .toMap()
+
+/**
+ * Marks [agentId], a device [memberId] has claimed, as unpaired by them. Does nothing unless the roster has that claim, so a member
+ * can only mark their own devices. Returns whether anything changed.
+ */
+fun markRosterGone(doc: Document, agentId: String, memberId: String): Boolean {
+    val tx = doc.startTransaction()
+    val claimedBy = (tx.get(ObjectId.ROOT, "$DevicePrefix$agentId").getOrNull() as? AmValue.Str)?.value
+    val key = "$GonePrefix$agentId"
+    if (claimedBy != memberId || (tx.get(ObjectId.ROOT, key).getOrNull() as? AmValue.Str)?.value == memberId) {
+        tx.rollback()
+        return false
+    }
+    tx.set(ObjectId.ROOT, key, memberId)
+    tx.commit()
+    return true
+}
+
+/** Forgets that [agentId] was unpaired, as pairing it again does. Returns whether anything changed. */
+fun clearRosterGone(doc: Document, agentId: String): Boolean {
+    val tx = doc.startTransaction()
+    val key = "$GonePrefix$agentId"
+    if (!tx.get(ObjectId.ROOT, key).isPresent) {
+        tx.rollback()
+        return false
+    }
+    tx.delete(ObjectId.ROOT, key)
     tx.commit()
     return true
 }

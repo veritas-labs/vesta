@@ -454,4 +454,134 @@ class HomeRosterDocumentTest {
         assertFalse(wrote)
         assertEquals(emptySet(), a.readRoster().single().devices)
     }
+
+    @Test
+    fun aDeviceMarkedGoneIsLeftOutOfItsMembersDevicesButKeepsItsClaim() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(doc, "agent-a", "m1")
+        claimRosterDevice(doc, "agent-lost", "m1")
+
+        // Act
+        val changed = markRosterGone(doc, "agent-lost", "m1")
+
+        // Assert
+        assertTrue(changed)
+        assertEquals(setOf("agent-a"), doc.readRoster().single().devices)
+        assertEquals(mapOf("agent-lost" to "m1"), doc.readRosterGone())
+        assertEquals(1, doc.readRoster().size)
+    }
+
+    @Test
+    fun aMemberCanOnlyMarkADeviceTheRosterSaysIsTheirs() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+        putRosterMember(doc, "m2", "Sam", null, "member", 101L)
+        claimRosterDevice(doc, "agent-sam", "m2")
+
+        // Act
+        val byAnother = markRosterGone(doc, "agent-sam", "m1")
+        val unknown = markRosterGone(doc, "agent-nobody", "m1")
+
+        // Assert
+        assertFalse(byAnother)
+        assertFalse(unknown)
+        assertEquals(emptyMap(), doc.readRosterGone())
+        assertEquals(setOf("agent-sam"), doc.readRoster().first { it.memberId == "m2" }.devices)
+    }
+
+    @Test
+    fun aTombstoneWrittenForAnotherMembersDeviceIsIgnoredWhenRead() {
+        // Arrange: written raw, as a device that skipped markRosterGone would
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+        putRosterMember(doc, "m2", "Sam", null, "member", 101L)
+        claimRosterDevice(doc, "agent-sam", "m2")
+
+        // Act
+        doc.startTransaction().also {
+            it.set(ObjectId.ROOT, "gone:agent-sam", "m1")
+            it.commit()
+        }
+
+        // Assert
+        assertEquals(setOf("agent-sam"), doc.readRoster().first { it.memberId == "m2" }.devices)
+    }
+
+    @Test
+    fun markingTheSameDeviceAgainChangesNothing() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(doc, "agent-lost", "m1")
+        markRosterGone(doc, "agent-lost", "m1")
+
+        // Act
+        val changed = markRosterGone(doc, "agent-lost", "m1")
+
+        // Assert
+        assertFalse(changed)
+    }
+
+    @Test
+    fun aMarkedDeviceThatClaimsItselfAgainStaysOut() {
+        // Arrange: the lost device merges the document and writes its claim, which is the same value
+        val a = Document()
+        putRosterMember(a, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(a, "agent-lost", "m1")
+        markRosterGone(a, "agent-lost", "m1")
+        val device = a.fork()
+        device.startTransaction().also {
+            it.delete(ObjectId.ROOT, "device:agent-lost")
+            it.commit()
+        }
+        claimRosterDevice(device, "agent-lost", "m1")
+
+        // Act
+        a.merge(device)
+
+        // Assert: its claim is back, and the tombstone keeps it out
+        assertEquals(emptySet(), a.readRoster().single().devices)
+        assertEquals(setOf("agent-lost"), a.readRosterGone().keys)
+    }
+
+    @Test
+    fun clearingTheMarkBringsTheDeviceBack() {
+        // Arrange
+        val doc = Document()
+        putRosterMember(doc, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(doc, "agent-lost", "m1")
+        markRosterGone(doc, "agent-lost", "m1")
+
+        // Act
+        val changed = clearRosterGone(doc, "agent-lost")
+        val again = clearRosterGone(doc, "agent-lost")
+
+        // Assert
+        assertTrue(changed)
+        assertFalse(again)
+        assertEquals(setOf("agent-lost"), doc.readRoster().single().devices)
+    }
+
+    @Test
+    fun devicesMarkedOnTwoReplicasAtOnceAreBothOut() {
+        // Arrange
+        val first = Document()
+        putRosterMember(first, "m1", "Mark", null, "admin", 100L)
+        claimRosterDevice(first, "agent-a", "m1")
+        claimRosterDevice(first, "agent-b", "m1")
+        claimRosterDevice(first, "agent-c", "m1")
+        val second = first.fork()
+
+        // Act
+        markRosterGone(first, "agent-a", "m1")
+        markRosterGone(second, "agent-b", "m1")
+        first.merge(second)
+
+        // Assert
+        assertEquals(setOf("agent-c"), first.readRoster().single().devices)
+        assertEquals(setOf("agent-a", "agent-b"), first.readRosterGone().keys)
+    }
 }

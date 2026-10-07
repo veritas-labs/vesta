@@ -83,7 +83,7 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
   though it still could not read within three minutes. So: removal of a tombstoned agent must run **every round** (the design already does), and the
   invites Vesta mints should be short-lived (new slice 2b below).
 
-### Slice 1: roster tombstones — needs 0a
+### Slice 1: roster tombstones — needs 0a — **done 2026-10-07**
 
 - `HomeRosterDocument.kt`: `markRosterGone(doc, agentId, memberId)`, `clearRosterGone(doc, agentId)`, `readRosterGone(): Map<agentId, memberId>`;
   `readRoster` filters a tombstoned agent whose claim names the tombstone's member out of `devices`.
@@ -91,6 +91,11 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
 - Header comment of the document updated (the key list).
 - **Tests (AAA):** write and read; a tombstone for another member's device is ignored; the concurrent re-claim case (0a) still leaves the device out;
   clearing; `devices()` and `activeDevices` no longer list it; two replicas tombstoning at once merge.
+
+- **As built:** `gone:<agentId> = <memberId>` in `HomeRosterDocument.kt` (`markRosterGone`, which does nothing unless the roster has a claim for that agent
+  naming that member; `clearRosterGone`; `readRosterGone`), and `readRoster` leaves a device out of `devices` when a tombstone names the same member as its claim.
+  `HomeRosters.markGone(agentId)` and `clearGone(agentId)` act on every Home and emit a change for each one that changed. Seven document tests (including the
+  case where the device claims itself again) and four `HomeRostersGoneTest` tests. Nothing calls them yet: slice 2 acts on the tombstone and slice 3 writes it.
 
 ### Slice 2: removal in `HomeGroups` — needs slice 1
 

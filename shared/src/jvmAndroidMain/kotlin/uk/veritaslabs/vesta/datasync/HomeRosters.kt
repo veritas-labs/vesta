@@ -14,6 +14,8 @@ import uk.veritaslabs.vesta.automerge.InviteStatus
 import uk.veritaslabs.vesta.automerge.RosterInvite
 import uk.veritaslabs.vesta.automerge.addRosterHub
 import uk.veritaslabs.vesta.automerge.claimRosterDevice
+import uk.veritaslabs.vesta.automerge.clearRosterGone
+import uk.veritaslabs.vesta.automerge.markRosterGone
 import uk.veritaslabs.vesta.automerge.inviteSecretHash
 import uk.veritaslabs.vesta.automerge.newInviteSecret
 import uk.veritaslabs.vesta.automerge.putRosterInvite
@@ -122,6 +124,33 @@ internal class HomeRosters(
             database.homeQueries.selectAll().awaitAsList().mapNotNull { home ->
                 val doc = open(home.id) ?: return@mapNotNull null
                 home.id.takeIf { retireRosterMember(doc, memberId).also { changed -> if (changed) persist(home.id, doc) } }
+            }
+        }
+        changed.forEach { _changes.tryEmit(it) }
+    }
+
+    /**
+     * Marks [agentId], one of this user's devices, as unpaired in every Home whose roster lists it as theirs
+     * (docs/plans/unpaired-device-gap-plan.md): it stops being a peer, and an admin device takes it out of the Home's group. Called when
+     * the user unpairs it, not when a pairing list merely lacks it. A Home that does not list it as this user's is left as it is.
+     */
+    suspend fun markGone(agentId: String) {
+        val me = profiles.current().id
+        val changed = lock.withLock {
+            database.homeQueries.selectAll().awaitAsList().mapNotNull { home ->
+                val doc = open(home.id) ?: return@mapNotNull null
+                home.id.takeIf { markRosterGone(doc, agentId, me).also { changed -> if (changed) persist(home.id, doc) } }
+            }
+        }
+        changed.forEach { _changes.tryEmit(it) }
+    }
+
+    /** Forgets that [agentId] was unpaired, in every Home that says so: the user paired it again. */
+    suspend fun clearGone(agentId: String) {
+        val changed = lock.withLock {
+            database.homeQueries.selectAll().awaitAsList().mapNotNull { home ->
+                val doc = open(home.id) ?: return@mapNotNull null
+                home.id.takeIf { clearRosterGone(doc, agentId).also { changed -> if (changed) persist(home.id, doc) } }
             }
         }
         changed.forEach { _changes.tryEmit(it) }
