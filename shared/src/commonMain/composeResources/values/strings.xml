@@ -30,11 +30,11 @@
     <string name="device_pairing_paste_field_label">Pairing link</string>
     <string name="device_pairing_paste_field_placeholder">Paste the link here</string>
     <string name="device_pairing_paste_submit">Pair device</string>
-    <string name="device_pairing_paste_error_invalid">That doesn\'t look like a pairing link.</string>
+    <string name="device_pairing_paste_error_invalid">That doesn't look like a pairing link.</string>
     <string name="device_pairing_paste_error_expired">This pairing link has expired.</string>
     <string name="device_pairing_back">Back</string>
     <string name="device_pairing_progress_title">Pairing device</string>
-    <string name="device_pairing_progress_failed_title">Pairing didn\'t finish</string>
+    <string name="device_pairing_progress_failed_title">Pairing didn't finish</string>
     <string name="device_pairing_progress_retry">Try again</string>
     <string name="device_pairing_step_prepare_group">Prepare to pair your devices</string>
     <string name="device_pairing_step_create_invite">Create an invitation</string>
@@ -42,7 +42,7 @@
     <string name="device_pairing_step_await_join">Wait for the new device to join</string>
     <string name="device_pairing_step_grant_admin">Give it the same access as this device</string>
     <string name="device_pairing_step_save_device">Save it to your paired devices</string>
-    <string name="device_pairing_paste_error_failed">Couldn\'t reach that device. Check it is open and online, then try again.</string>
+    <string name="device_pairing_paste_error_failed">Couldn't reach that device. Check it is open and online, then try again.</string>
 
     <string name="device_pairing_redeemed_title">Devices paired</string>
     <string name="device_pairing_redeemed_body">Your devices are now paired and will keep your Homes up to date.</string>
@@ -165,7 +165,7 @@
     <string name="home_edit_create_title">Create a home</string>
     <string name="home_edit_edit_title">Edit home</string>
     <string name="home_edit_name_label">Home name</string>
-    <string name="home_edit_name_helper">e.g. The Johnsons, Flat 4B, Mum\'s Place</string>
+    <string name="home_edit_name_helper">e.g. The Johnsons, Flat 4B, Mum's Place</string>
     <string name="home_edit_name_error">Name must be 2–50 characters</string>
     <string name="home_edit_shape_label">Home shape</string>
     <string name="home_edit_shape_family">Family</string>
@@ -227,7 +227,7 @@
     <string name="hub_menu_item">Always-on hub</string>
     <string name="hub_title">Always-on hub</string>
     <string name="hub_body">A computer that is nearly always on keeps this home in sync when nobody has the app open at the same time. It runs the plain x0x program, not Vesta.</string>
-    <string name="hub_unavailable">An admin can set up a hub once this home\'s group is ready on this device. Try again in a moment.</string>
+    <string name="hub_unavailable">An admin can set up a hub once this home's group is ready on this device. Try again in a moment.</string>
     <string name="hub_requirement">On that computer, install x0x version 0.46.3 or newer, then run these two commands:</string>
     <string name="hub_copy_commands">Copy commands</string>
     <string name="hub_trust_note">The hub can read everything in this home, like any member. Use a computer you trust.</string>
@@ -235,16 +235,16 @@
     <string name="hub_candidates_title">Joined the group</string>
     <string name="hub_candidates_body">Only choose a computer you have just set up.</string>
     <string name="hub_use_candidate">Use as hub</string>
-    <string name="hub_connected">Connected</string>
+    <string name="hub_connected">In this home's group</string>
     <string name="hub_not_connected">Not in the group right now</string>
     <string name="hub_remove">Remove hub</string>
-    <string name="hub_remove_confirm_title">Remove the hub?</string>
-    <string name="hub_remove_confirm_body">It leaves this home\'s group and cannot read anything new. What it already has stays on that computer.</string>
+    <string name="hub_remove_confirm_title">Remove hub %1$s?</string>
+    <string name="hub_remove_confirm_body">It leaves this home's group and cannot read anything new. What it already has stays on that computer.</string>
     <string name="hub_failed">That did not work. Try again.</string>
     <string name="hub_cancel">Cancel</string>
     <string name="hub_add_another">Add another hub</string>
     <string name="hub_device_note">This is one of your own devices. Removing it as a hub keeps it in this home.</string>
-    <string name="hub_remove_device_confirm_body">It stops being a hub but stays in this home\'s group as your device.</string>
+    <string name="hub_remove_device_confirm_body">It stops being a hub but stays in this home's group as your device.</string>
     <string name="hub_own_title">Your devices</string>
     <string name="hub_own_body">A computer of yours that runs Vesta can be a hub too, and keeps this home in sync while Vesta is closed.</string>
     <string name="redeem_invite_title">Join a home</string>

@@ -11,11 +11,16 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import uk.veritaslabs.vesta.homegroup.HubItem
 import uk.veritaslabs.vesta.homegroup.HubUiState
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
@@ -199,5 +204,48 @@ class HubScreenTest {
 
         // Assert
         assertEquals(listOf(agent2), chosen)
+    }
+
+    @Test
+    fun aVeryLongCommandLineIsCutToItsStartAndEndAndAShortOneIsLeftAlone() {
+        // Arrange
+        val invite = "x0x group join x0x://invite/" + "A".repeat(5000) + "END"
+        val short = "x0x group store create group-1 mailbox"
+
+        // Act
+        val shown = displayCommands("$invite\n$short").lines()
+
+        // Assert
+        assertEquals(2, shown.size)
+        assertTrue(shown[0].length < 80)
+        assertTrue(shown[0].startsWith("x0x group join x0x://invite/"))
+        assertTrue(shown[0].endsWith("AAAAAAAAAEND"))
+        assertEquals(short, shown[1])
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theCommandsAreShownShortenedButCopiedWhole() = runComposeUiTest {
+        // Arrange
+        val whole = "x0x group join x0x://invite/" + "A".repeat(5000) + "\nx0x group store create g mailbox"
+        val clipboard = object : ClipboardManager {
+            var copied: AnnotatedString? = null
+            override fun setText(annotatedString: AnnotatedString) {
+                copied = annotatedString
+            }
+            override fun getText(): AnnotatedString? = copied
+        }
+        setContent {
+            CompositionLocalProvider(LocalClipboardManager provides clipboard) {
+                VestaTheme { HubScreen(HubUiState(loading = false, commands = whole)) }
+            }
+        }
+
+        // Act
+        onNodeWithTag(HubTestTags.CopyButton).performClick()
+
+        // Assert
+        assertEquals(whole, clipboard.copied?.text)
+        onNodeWithTag(HubTestTags.CopyButton).assertIsDisplayed()
     }
 }

@@ -159,7 +159,11 @@ fun HubScreen(
                     if (state.adding) {
                         Enrolment(state, onUseAsHub)
                     } else {
-                        TextButton(onClick = onAddAnother, modifier = Modifier.fillMaxWidth().testTag(HubTestTags.AddAnother)) {
+                        TextButton(
+                            onClick = onAddAnother,
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
+                            modifier = Modifier.fillMaxWidth().testTag(HubTestTags.AddAnother),
+                        ) {
                             Text(stringResource(Res.string.hub_add_another))
                         }
                     }
@@ -210,7 +214,7 @@ private fun Enrolment(state: HubUiState, onUseAsHub: (String) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
-            text = commands,
+            text = displayCommands(commands),
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(12.dp).testTag(HubTestTags.Commands),
@@ -305,7 +309,7 @@ private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
             Text(
                 text = stringResource(if (hub.inGroup) Res.string.hub_connected else Res.string.hub_not_connected),
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (hub.inGroup) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (hub.inGroup) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(HubTestTags.Status),
             )
             if (hub.isDevice) {
@@ -316,17 +320,18 @@ private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
                     modifier = Modifier.testTag(HubTestTags.DeviceNote),
                 )
             }
+            // Inside the card, so it is plain which hub it removes.
+            TextButton(
+                onClick = { confirming = true },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.align(Alignment.End).testTag(HubTestTags.RemoveButton),
+            ) { Text(stringResource(Res.string.hub_remove)) }
         }
     }
-    TextButton(
-        onClick = { confirming = true },
-        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-        modifier = Modifier.fillMaxWidth().testTag(HubTestTags.RemoveButton),
-    ) { Text(stringResource(Res.string.hub_remove)) }
     if (confirming) {
         AlertDialog(
             onDismissRequest = { confirming = false },
-            title = { Text(stringResource(Res.string.hub_remove_confirm_title)) },
+            title = { Text(stringResource(Res.string.hub_remove_confirm_title, shortAgentId(hub.agentId))) },
             text = { Text(stringResource(if (hub.isDevice) Res.string.hub_remove_device_confirm_body else Res.string.hub_remove_confirm_body)) },
             confirmButton = {
                 TextButton(
@@ -342,6 +347,18 @@ private fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
         )
     }
 }
+
+/**
+ * The enrolment commands as shown: a line longer than a screen's worth (the group invite is several kilobytes of base64) is cut to its
+ * start and end, so the Copy button and the machines that join stay in view. Copying still copies the whole of [commands].
+ */
+internal fun displayCommands(commands: String): String = commands.lines().joinToString("\n") { line ->
+    if (line.length <= CommandLineLimit) line else line.take(CommandLineHead) + "…" + line.takeLast(CommandLineTail)
+}
+
+private const val CommandLineLimit = 72
+private const val CommandLineHead = 48
+private const val CommandLineTail = 12
 
 /** An agent id is 64 hex characters: enough of it to tell machines apart. */
 internal fun shortAgentId(agentId: String): String = if (agentId.length <= 16) agentId else agentId.take(8) + "…" + agentId.takeLast(8)
