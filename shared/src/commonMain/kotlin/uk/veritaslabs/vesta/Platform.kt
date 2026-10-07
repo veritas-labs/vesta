@@ -2,6 +2,9 @@ package uk.veritaslabs.vesta
 
 interface Platform {
     val name: String
+
+    /** Whether this device can be on a metered mobile connection, so a "Use mobile data" choice means something. */
+    val hasMobileData: Boolean get() = true
 }
 
 expect fun getPlatform(): Platform

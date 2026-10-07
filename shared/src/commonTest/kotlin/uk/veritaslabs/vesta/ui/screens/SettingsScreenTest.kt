@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -127,7 +128,7 @@ class SettingsScreenTest {
     fun togglingMobileDataReportsTheNewValue() = runComposeUiTest {
         // Arrange
         var requested: Boolean? = null
-        setContent { VestaTheme { SettingsScreen(useMobileData = true, onUseMobileDataChange = { requested = it }) } }
+        setContent { VestaTheme { SettingsScreen(useMobileData = true, onUseMobileDataChange = { requested = it }, mobileDataAvailable = true) } }
         onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.MobileDataRow))
 
         // Act
@@ -135,6 +136,24 @@ class SettingsScreenTest {
 
         // Assert
         assertEquals(false, requested)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun mobileDataSwitchIsDisabledWhenTheDeviceHasNoMobileData() = runComposeUiTest {
+        // Arrange
+        var requested: Boolean? = null
+        setContent {
+            VestaTheme { SettingsScreen(onUseMobileDataChange = { requested = it }, mobileDataAvailable = false) }
+        }
+        onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.MobileDataRow))
+
+        // Act
+        onNodeWithTag(SettingsTestTags.MobileDataRow).performClick()
+
+        // Assert
+        onNodeWithTag(SettingsTestTags.MobileDataRow).assertIsNotEnabled()
+        assertEquals(null, requested)
     }
 
     @OptIn(ExperimentalTestApi::class)

@@ -25,6 +25,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -65,6 +66,7 @@ import vesta.shared.generated.resources.settings_synced_devices
 import vesta.shared.generated.resources.settings_title
 
 private val SettingsTabletBreakpoint = 600.dp
+private const val DisabledRowAlpha = 0.38f
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object SettingsTestTags {
@@ -84,7 +86,8 @@ internal object SettingsTestTags {
 /**
  * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
- * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default.
+ * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default and disabled when
+ * the device has no mobile data ([mobileDataAvailable], false on desktop).
  * The Synced devices row calls [onSyncedDevicesClick], the x0x status row [onNetworkStatusClick] to show network diagnostics, and the Peers row [onPeersClick] to show them as a graph; with a [profileName], a Profile section shows it and its row calls
  * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
@@ -99,6 +102,7 @@ fun SettingsScreen(
     onDarkThemeChange: (Boolean) -> Unit = {},
     useMobileData: Boolean = true,
     onUseMobileDataChange: (Boolean) -> Unit = {},
+    mobileDataAvailable: Boolean = getPlatform().hasMobileData,
     onSyncedDevicesClick: () -> Unit = {},
     onNetworkStatusClick: () -> Unit = {},
     onPeersClick: () -> Unit = {},
@@ -237,11 +241,17 @@ fun SettingsScreen(
                         }
                         SettingsRow(
                             label = stringResource(Res.string.settings_network_mobile_data),
+                            enabled = mobileDataAvailable,
                             modifier = Modifier
-                                .toggleable(value = useMobileData, role = Role.Switch, onValueChange = onUseMobileDataChange)
+                                .toggleable(
+                                    value = useMobileData,
+                                    enabled = mobileDataAvailable,
+                                    role = Role.Switch,
+                                    onValueChange = onUseMobileDataChange,
+                                )
                                 .testTag(SettingsTestTags.MobileDataRow),
                         ) {
-                            Switch(checked = useMobileData, onCheckedChange = null)
+                            Switch(checked = useMobileData, onCheckedChange = null, enabled = mobileDataAvailable)
                         }
                     }
                 }
@@ -264,18 +274,20 @@ private fun SettingsSection(title: String, content: @Composable () -> Unit) {
     }
 }
 
-/** One settings row, in the same surface as a Pantry item row; [trailing] sits at the end. */
+/** One settings row, in the same surface as a Pantry item row; [trailing] sits at the end. A row that isn't [enabled] is greyed out as a whole. */
 @Composable
 private fun SettingsRow(
     label: String,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
     trailing: @Composable () -> Unit,
 ) {
     val shape = MaterialTheme.shapes.medium
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else DisabledRowAlpha)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), shape)
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }

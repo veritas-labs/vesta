@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta
 
 class JVMPlatform : Platform {
     override val name: String = "Java ${System.getProperty("java.version")}"
+    override val hasMobileData: Boolean = false
 }
 
 actual fun getPlatform(): Platform = JVMPlatform()
