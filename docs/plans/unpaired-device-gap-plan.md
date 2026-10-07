@@ -146,10 +146,17 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
   another minute its Pantry still lacks the item, it is still not a member (so its repeated invite requests are refused), and A no longer lists it. Not run with
   the wiring disabled (that would wait out a 6-minute timeout); the same wiring on the fake mesh fails both of its tests without it.
 
-### Slice 5: by hand on the emulators — needs slice 4
+### Slice 5: by hand on the emulators — needs slice 4 — **done 2026-10-07**
 
 - Pair two emulators as one user's devices, create a Home on one, unpair the other from Settings, check it can no longer read the mailbox. (Pairing UI
   exists; it has not been driven on emulators yet, so this may find its own problems.)
+- **Run:** two emulators (the user's AVDs, read-only, with the app's data cleared so none of their Homes or identities were involved), one user's two devices.
+  Paired from the real screens (B "This is the new device" shows `vesta://pair/...`, A pastes it); both showed "Devices paired". A created a Home; B had it within
+  seconds; both reached the Home's group with the mailbox open. A then removed B at Settings → Paired devices → Remove → confirm: **B was out of the Home's group 7 s
+  later** (A's daemon lists only A). A added an item; 90 s later B's Pantry was still empty, B's app had dropped its group row, and B's embedded daemon reported no groups
+  and "store not found". Four minutes on, B was still not a member (its invite requests are refused) and its own paired-devices list was empty.
+- **Worth knowing:** B keeps the Home and whatever it already held (as the docs must say). The first "Create a home" on a fresh install asks for a display name first.
+  The pairing screens worked on emulators without change; the Pair button moves up with the keyboard.
 
 ### Slice 6: docs — needs slices 1-3
 
