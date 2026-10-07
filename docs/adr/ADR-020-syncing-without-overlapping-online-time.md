@@ -338,9 +338,11 @@ Run by hand on two phones (A, B) and a host hub (x0xd 0.46.0):
 - **Leftover on the emulator** from Spike 7: `files/x0x/named_groups.json` may hold a test group (reset it to `{}`).
 - **Wake-up.** A closed or suspended phone does not read or write the mailbox: unchanged, see below.
 
-## Amendment (2026-10-06, Proposed, not implemented): several hubs, and a hub that is also a member's device
+## Amendment (2026-10-06, implemented 2026-10-06): several hubs, and a hub that is also a member's device
 
-Two questions came up after the manual run. Neither is built; this records the analysis and the direction.
+Two questions came up after the manual run. This records the analysis and the direction, which [the plan](../plans/ADR-020-several-hubs-plan.md)
+built (slices 0-6, tested on the fake mesh and against four real x0xd 0.46.0; the desktop screen has not been run by hand and nothing here
+has run on two phones). The sections below describe the state *before* the change.
 
 ### What the code assumes today
 
@@ -389,7 +391,12 @@ Two questions came up after the manual run. Neither is built; this records the a
 
 - **Done, see Spike 8:** a daemon restart keeps the `mailbox` store open without Vesta (case 2); removing one of several hubs and
   its rekey leaves entries readable for the others and for a member who was offline; promoting and demoting a member keeps its store.
-- Still open: how an older device treats a roster with several hubs or a hub that is also a device.
+- **Done, slice 6 (`SeveralHubsDaemonIntegrationTest`):** two hubs, remove one, the other serves a member who was away; an admin's own agent
+  made a hub, its Vesta closed, its daemon restarted, and it still holds a member's entries.
+- **Found in slice 6:** plain x0x refuses a removed daemon's new join (`join_already_pending`, HTTP 409) until that daemon has dropped the
+  group, which took about two minutes; see [Run an always-on hub](../product/RUN-A-HUB.md).
+- Still open: how an older device treats a roster with `hub:` keys (it should ignore them); the unpaired-device gap under slice 4 of the plan;
+  several hubs and the desktop screen by hand on real devices.
 
 ## Open points
 

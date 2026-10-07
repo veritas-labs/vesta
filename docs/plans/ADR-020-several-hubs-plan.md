@@ -169,12 +169,16 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   The original test failed on this twice and now waits for the 404 before re-enrolling, and passes. This is x0x behaviour, not Vesta's, but a user
   re-enrolling a removed hub straight away can hit it: slice 7's hub guide must say so.
 
-### Slice 7: docs and verification — needs slices 2-6
+### Slice 7: docs and verification — needs slices 2-6 — **docs and ADR done 2026-10-07; the by-hand run on two phones is not done**
 
 - [Run an always-on hub](../product/RUN-A-HUB.md): several hubs, "your own computer can be a hub", that every hub reads
   everything, and the removal behaviour. [Syncing and joining](../product/SYNC-AND-JOINING.md) where it says "the hub".
 - ADR-020: replace the amendment's "To check" list with the slice 0 and 6 results, update status.
 - **By hand, on two phones:** two hubs, stop one, sync still catches up; the desktop with Vesta as hub.
+- **As built (docs):** `RUN-A-HUB.md` gains "More than one hub", "Use your own computer as a hub", the wait before restarting x0x and before
+  setting a removed computer up again, and a troubleshooting line; `SYNC-AND-JOINING.md` mentions several hubs. ADR-020's amendment is marked
+  implemented, with the slice 0 and 6 results and what is still open.
+- **Still to do, by hand:** two hubs on two phones (stop one, sync still catches up) and the desktop with Vesta as a hub, via the real screen.
 
 ## Dependency order
 

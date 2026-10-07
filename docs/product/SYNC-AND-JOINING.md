@@ -13,7 +13,8 @@ and without one. See [ADR-020](../adr/ADR-020-syncing-without-overlapping-online
 - **With a hub**, a change is also left in a shared mailbox that every member's device and the hub keep a copy of. Two
   people who are never online together still get each other's changes: the second person's app picks them up from the
   hub, or from any member's device that has them, when it is opened. The hub has to be on while each person opens the
-  app, not at the same time as the other person.
+  app, not at the same time as the other person. A Home can have several hubs: any one that is on is enough, and a
+  computer of an admin's that runs the desktop app can be one.
 - **Without a hub**, two people who each have one device and are never online together do not see each other's changes. A
   third device that meets both (a tablet, a laptop, another member's phone) carries changes between them.
 - A phone that is asleep, or has Vesta closed, does not sync. It catches up the next time Vesta is opened.
@@ -35,6 +36,7 @@ and without one. See [ADR-020](../adr/ADR-020-syncing-without-overlapping-online
 
 ## What helps
 
-- With a hub: leave it on. A hub that is off for days works like having none.
+- With a hub: leave it on. A hub that is off for days works like having none; with a second hub, the Home keeps syncing
+  while either is on.
 - Without one: open Vesta on both devices in the evening, or whenever people are home and online, and keep one device
   (for example a tablet) that is usually on and has Vesta open.

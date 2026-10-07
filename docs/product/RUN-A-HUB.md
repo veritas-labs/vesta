@@ -1,8 +1,9 @@
 # Run an always-on hub
 
 A hub is a computer that is nearly always on and keeps a copy of a Home's mailbox, so members get each other's changes
-without being online at the same time ([Syncing and joining](SYNC-AND-JOINING.md)). It runs the plain **x0x** program
-and nothing from Vesta: no app, no account, no configuration of its own.
+without being online at the same time ([Syncing and joining](SYNC-AND-JOINING.md)). It usually runs the plain **x0x** program
+and nothing from Vesta: no app, no account, no configuration of its own. A Home can have **more than one** hub, and a
+computer of yours that runs Vesta can be one too (see below).
 
 ## What you need
 
@@ -28,6 +29,31 @@ and nothing from Vesta: no app, no account, no configuration of its own.
 
 The two commands are needed once per Home. After that x0x restores the store on its own whenever it restarts.
 
+If you stop x0x on the hub (`x0x stop`), wait about twenty seconds before `x0x start`. Started sooner it can exit saying it
+could not release its network sockets; starting it again a little later works.
+
+## More than one hub
+
+A second hub, on another computer or run by another admin, keeps a second copy of the mailbox. While either is on, members
+still get each other's changes, so one being off or broken no longer stops syncing.
+
+1. Open **Always-on hub**. Each hub is listed with whether it is connected, and its own **Remove hub**.
+2. Tap **Add another hub** and follow the same steps as above on the other computer. The commands carry a new invite.
+
+Every hub is an admin of the Home's group and **can read everything in the Home**, so each one must be a computer you trust.
+
+## Use your own computer as a hub
+
+On the desktop app, a computer that runs Vesta can be a hub itself. Its x0x program keeps running when Vesta is closed, and
+keeps a copy of the mailbox the whole time.
+
+1. Open **Always-on hub**. Under **Your devices**, the computer you are using is offered if you are an admin of the Home.
+2. Tap **Use as hub**. There are no commands to run.
+
+This is for your own devices. A phone can't be a hub, because its x0x program stops when the app is closed. A device of a
+member who is not an admin can't be one either. If you remove your computer as a hub, it **stays in the Home** as your
+device: only a computer that belongs to nobody is taken out of the group.
+
 ## What the hub can do
 
 - It keeps a copy of everything that is in the Home's mailbox, and so **it can read everything in the Home**, like any
@@ -38,18 +64,24 @@ The two commands are needed once per Home. After that x0x restores the store on 
 
 ## Take it away
 
-Open **Always-on hub** again and tap **Remove hub**. It leaves the Home's group and the group's keys change, so it cannot
-read anything new. What it already holds stays on that computer: delete the x0x data there if that matters
-(`x0x stop`, then remove its data directory).
+Open **Always-on hub** again and tap **Remove hub** next to the one to remove. It leaves the Home's group and the group's
+keys change, so it cannot read anything new; the other hubs keep working. What it already holds stays on that computer: delete
+the x0x data there if that matters (`x0x stop`, then remove its data directory).
 
 If the screen says the removal did not work, try again in a minute: x0x sometimes needs a moment to fetch the computer's
 key.
+
+**Setting the same computer up again straight away can fail.** x0x refuses a join from a computer that was just removed
+(`join_already_pending`), or accepts it and nothing appears under **Joined the group**, until that computer has dropped the
+group. This took about two minutes in testing. Wait a few minutes after removing it, then run the two commands again.
 
 ## If something is off
 
 - **The computer never appears under "Joined the group".** Check that x0x is running there and that `x0x group join`
   printed no error. The invite is for one group; run the commands exactly as shown. The phone must have Vesta open.
 - **It says "Not in the group right now".** The hub left the group (it was removed, or its x0x data was deleted). Remove
-  it and set it up again.
+  it and set it up again (after the wait described above).
+- **Your own computer is not offered under "Your devices".** Only an admin sees it, only on the desktop app, and only once
+  that computer is in the Home's group. It disappears from the list once it is a hub.
 - **Changes still do not arrive.** The hub only helps while it is on and online. Vesta must be open on each phone; a
   phone that is closed or asleep does not read or write the mailbox.
