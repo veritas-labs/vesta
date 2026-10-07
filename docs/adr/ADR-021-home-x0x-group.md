@@ -29,7 +29,9 @@ the per-person `DeviceSync` group ([[ADR-012]]). Homes sync over direct messages
    member's roster entry are left alone: promotion and demotion only touch agents the roster names. The hub ([[ADR-020]], slice 6)
    is one the roster names in its own `hub` key, and is kept an x0x admin; it is removed only by an admin choosing to.
 6. **Removal.** A member removed from the roster ([[ADR-014]]) or who left has their devices removed from the group by any
-   x0x admin, which rekeys. This is a diff each round (group members that are devices of removed members), so a removal
+   x0x admin, which rekeys. So does a device the user **unpaired** (2026-10-07; [plan](../plans/unpaired-device-gap-plan.md)): marked `gone:` in the roster by
+   the device where they pressed Remove ([[ADR-014]] §4) and removed by the same diff, each round, so one that gets back in with an unused invite goes
+   again. This is a diff each round (group members that are devices of removed members, or marked), so a removal
    that failed (the key package is pending, or the admin was offline) is retried. If the device to remove is the group's
    **creator**, x0x won't let another admin remove it, so the admin **replaces** the group as [[ADR-012]] does: a new
    group, written to the roster; every other device sees the id change, leaves the old group and asks for an invite.

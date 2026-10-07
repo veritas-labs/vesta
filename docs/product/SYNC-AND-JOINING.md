@@ -28,6 +28,17 @@ and without one. See [ADR-020](../adr/ADR-020-syncing-without-overlapping-online
 - After approval, the new person's device is added to the Home's group. With a hub, that needs only the hub, not an
   admin's phone, to be on.
 
+## Unpairing a device (a lost or retired phone)
+
+- In **Settings → Paired devices**, remove the device. It stops being one of your devices, and an admin's device then takes it out of **every Home's group**,
+  which changes the group's keys: it can no longer read what is written afterwards, and it is refused if it asks to come back in.
+- That takes a few seconds when an admin's device of the Home is online, and happens as soon as one next is if none is. A Home whose admins are all offline
+  keeps the device in until then.
+- **What stays on the device.** Everything it had already received is still there, in the app, and it keeps its own copy of your Homes. Unpairing cannot reach in
+  and wipe it: if you lost the phone, also lock or erase it with the phone's own tools.
+- A device unpaired by an **older version** of Vesta was never taken out of its Homes' groups, and there is not yet a screen to do that afterwards.
+- To bring a device back, pair it again. If you pair a device you have only just removed, it may take a couple of minutes before it is accepted back into a Home's group.
+
 ## What the mailbox keeps, and for how long
 
 - Each device writes what it changed to the Home's mailbox. Entries are deleted after 30 days, once a snapshot of the Home

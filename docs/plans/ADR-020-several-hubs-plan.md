@@ -131,7 +131,8 @@ Extend the spike style of ADR-020 (Spikes 1-7), x0xd 0.46.x:
   `removeDeparted` handles only whole removed members, and nothing removes a single unpaired device, so a lost or retired phone that is unpaired
   keeps its group key and can keep reading the mailbox. Confirmed with a throwaway test on the fake mesh (still a member after three reconcile
   rounds). A fix would remove group members that are neither on the roster nor hubs, after a grace window for a device that is joining; it needs
-  its own decision, tests and a real-daemon check. Open.
+  its own decision, tests and a real-daemon check. **Fixed 2026-10-07** by [the unpaired-device plan](unpaired-device-gap-plan.md), which marks the device
+  explicitly instead of guessing from the roster.
 
 ### Slice 5: UI — needs slice 2 — **done 2026-10-06; previews written but not rendered, UI not run in the real app**
 

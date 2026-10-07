@@ -158,10 +158,14 @@ Devices unpaired **before** this change have no tombstone and stay in their grou
 - **Worth knowing:** B keeps the Home and whatever it already held (as the docs must say). The first "Create a home" on a fresh install asks for a display name first.
   The pairing screens worked on emulators without change; the Pair button moves up with the keyboard.
 
-### Slice 6: docs — needs slices 1-3
+### Slice 6: docs — needs slices 1-3 — **done 2026-10-07**
 
 - `SYNC-AND-JOINING.md` (or a short new page): what unpairing does, what it cannot (data already on the device), and that an admin device must be online to
   finish it. ADR-014 §4 and ADR-021: the tombstone and the rule. Update the several-hubs plan's note under slice 4.
+- **As built:** a section "Unpairing a device (a lost or retired phone)" in `SYNC-AND-JOINING.md` (what it does, that an admin device must be online, that what the
+  device already holds stays, devices unpaired by older versions stay in, re-pairing a just-removed device may wait a couple of minutes); the rule recorded in
+  ADR-014 §4 and ADR-021's removal item; the several-hubs plan's "found, not fixed" note marked fixed. ADR-014's status line still says "Not yet implemented",
+  which was already out of date; left for its owner.
 
 ### Slice 7: legacy and strays, by hand — optional, needs slice 2
 

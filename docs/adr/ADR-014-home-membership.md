@@ -83,6 +83,15 @@ reconciled (§4), never merged into one source.
   removes the agent from the Home group (which rotates the keys). The member remains, with fewer devices. If it was the
   member's *last* device the member stays too: a person with no reachable device is still a member until they leave or
   an admin removes them.
+
+  *Built 2026-10-07, in a different shape* ([plan](../plans/unpaired-device-gap-plan.md)). The release of the `devices` claim was already derived from the
+  pairing list, but nothing took the agent out of the Home group, so an unpaired device kept its key. Removal must not follow from "in the group but not in
+  `devices`": a joining device is in the group before its claim reaches every admin device, and a device with a stale pairing list releases its siblings for
+  a moment. It follows an explicit mark instead. The device where the user presses Remove writes `gone:<agentId> = <memberId>` into each Home's roster, beside
+  the unchanged claim; `readRoster` leaves a marked device out of its member's `devices` when the claim names the same member (so one member cannot mark
+  another's device), and an x0x admin device removes every marked device from the Home's group each round, replacing the group if it is the creator (a hub is
+  kept: the hub flag, not the claim, is why it is there). Only pairing the device again clears the mark. Devices unpaired before this change are not marked and
+  stay in their groups. The removed device keeps what it already held.
 - **A member leaving or being removed.** `removed` is set and all of their agents are removed from the group. The last
   admin cannot leave without naming another (CORE-EXPERIENCE §5).
 
