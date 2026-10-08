@@ -92,6 +92,8 @@ import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
+import uk.veritaslabs.vesta.ui.theme.AppTheme
+import uk.veritaslabs.vesta.ui.theme.ThemeMode
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.isReachingNetwork
 import uk.veritaslabs.vesta.x0x.rememberX0xConnectivity
@@ -100,11 +102,6 @@ import uk.veritaslabs.vesta.x0x.rememberX0xPeers
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
 val LocalSelectedHome = compositionLocalOf<SelectedHome> { error("No SelectedHome provided; call within App()") }
-
-/** The user's dark theme choice and how to change it; provided by [App], which owns the theme. */
-class DarkThemeSetting(val enabled: Boolean, val onChange: (Boolean) -> Unit)
-
-val LocalDarkThemeSetting = compositionLocalOf<DarkThemeSetting> { error("No DarkThemeSetting provided; call within App()") }
 
 /**
  * Which Home the edit screen is open on: [homeId] is null when creating a new Home. [session] is unique
@@ -167,15 +164,14 @@ fun App(
     LaunchedEffect(homes, selectedHome) {
         homes.collect { list -> selectedHome.homeId.value?.let { id -> if (list.none { it.id == id }) selectedHome.clear() } }
     }
-    // Follows the system until the user flips the switch in Settings; not persisted yet.
-    val systemDark = isSystemInDarkTheme()
-    var darkOverride by remember { mutableStateOf<Boolean?>(null) }
-    val darkTheme = darkOverride ?: systemDark
+    // Follows the system until the user picks light or dark in Settings; not persisted yet.
+    var themeMode by remember { mutableStateOf(ThemeMode.System) }
+    var appTheme by remember { mutableStateOf(AppTheme.Vesta) }
+    val darkTheme = themeMode.isDark(isSystemInDarkTheme())
     // On until the user opts out; not persisted yet. Platforms that run x0x in-process stop it on mobile data unless this is on.
     var useMobileData by remember { mutableStateOf(X0xNetworkPolicy.useMobileData.value) }
     LaunchedEffect(useMobileData) { X0xNetworkPolicy.useMobileData.value = useMobileData }
-    val darkThemeSetting = remember(darkTheme) { DarkThemeSetting(darkTheme) { darkOverride = it } }
-    CompositionLocalProvider(LocalSelectedHome provides selectedHome, LocalDarkThemeSetting provides darkThemeSetting) {
+    CompositionLocalProvider(LocalSelectedHome provides selectedHome) {
         VestaTheme(darkTheme = darkTheme) {
             Box(modifier = Modifier.fillMaxSize()) {
                 val currentProfile = profile
@@ -222,8 +218,10 @@ fun App(
                     } else if (settingsDestination == SettingsDestination.Settings) {
                         SettingsScreen(
                             x0xConnectivity = rememberX0xConnectivity(),
-                            darkTheme = darkThemeSetting.enabled,
-                            onDarkThemeChange = darkThemeSetting.onChange,
+                            themeMode = themeMode,
+                            onThemeModeChange = { themeMode = it },
+                            appTheme = appTheme,
+                            onAppThemeChange = { appTheme = it },
                             useMobileData = useMobileData,
                             onUseMobileDataChange = { useMobileData = it },
                             onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },

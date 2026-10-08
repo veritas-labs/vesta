@@ -9,7 +9,11 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -17,6 +21,8 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.AppInfo
+import uk.veritaslabs.vesta.ui.theme.AppTheme
+import uk.veritaslabs.vesta.ui.theme.ThemeMode
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 
@@ -172,29 +178,46 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun darkThemeSwitchReflectsTheCurrentSetting() = runComposeUiTest {
+    fun themeModeRadioGroupReflectsTheCurrentMode() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { SettingsScreen(darkTheme = true) } }
+        setContent { VestaTheme { SettingsScreen(themeMode = ThemeMode.Dark) } }
 
         // Act
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithTag(SettingsTestTags.DarkThemeRow).assertIsOn()
+        onNodeWithTag(SettingsTestTags.ThemeModeDark).assertIsSelected()
+        onNodeWithTag(SettingsTestTags.ThemeModeLight).assertIsNotSelected()
+        onNodeWithTag(SettingsTestTags.ThemeModeSystem).assertIsNotSelected()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun togglingDarkThemeReportsTheNewValue() = runComposeUiTest {
+    fun choosingAThemeModeReportsIt() = runComposeUiTest {
         // Arrange
-        var requested: Boolean? = null
-        setContent { VestaTheme { SettingsScreen(darkTheme = false, onDarkThemeChange = { requested = it }) } }
+        var requested: ThemeMode? = null
+        setContent { VestaTheme { SettingsScreen(themeMode = ThemeMode.System, onThemeModeChange = { requested = it }) } }
 
         // Act
-        onNodeWithTag(SettingsTestTags.DarkThemeRow).performClick()
+        onNodeWithTag(SettingsTestTags.ThemeModeLight).performClick()
 
         // Assert
-        assertEquals(true, requested)
+        assertEquals(ThemeMode.Light, requested)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun themeDropdownShowsVestaAndReportsItWhenChosen() = runComposeUiTest {
+        // Arrange
+        var requested: AppTheme? = null
+        setContent { VestaTheme { SettingsScreen(onAppThemeChange = { requested = it }) } }
+
+        // Act
+        onNodeWithTag(SettingsTestTags.ThemeRow).performClick()
+        onAllNodesWithText("Vesta").onLast().performClick()
+
+        // Assert
+        assertEquals(AppTheme.Vesta, requested)
     }
 
     @OptIn(ExperimentalTestApi::class)

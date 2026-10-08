@@ -2,9 +2,9 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,16 +13,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -38,6 +47,8 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.AppInfo
 import uk.veritaslabs.vesta.getAppInfo
 import uk.veritaslabs.vesta.getPlatform
+import uk.veritaslabs.vesta.ui.theme.AppTheme
+import uk.veritaslabs.vesta.ui.theme.ThemeMode
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import vesta.shared.generated.resources.Res
@@ -46,7 +57,6 @@ import vesta.shared.generated.resources.ic_chevron_right
 import vesta.shared.generated.resources.settings_application_build
 import vesta.shared.generated.resources.settings_application_version
 import vesta.shared.generated.resources.settings_back
-import vesta.shared.generated.resources.settings_dark_theme
 import vesta.shared.generated.resources.settings_device_platform
 import vesta.shared.generated.resources.settings_network_connected
 import vesta.shared.generated.resources.settings_network_connecting
@@ -65,6 +75,11 @@ import vesta.shared.generated.resources.settings_section_profile
 import vesta.shared.generated.resources.settings_your_name
 import vesta.shared.generated.resources.settings_section_network
 import vesta.shared.generated.resources.settings_synced_devices
+import vesta.shared.generated.resources.settings_theme
+import vesta.shared.generated.resources.settings_theme_mode_dark
+import vesta.shared.generated.resources.settings_theme_mode_light
+import vesta.shared.generated.resources.settings_theme_mode_system
+import vesta.shared.generated.resources.settings_theme_vesta
 import vesta.shared.generated.resources.settings_title
 
 private val SettingsTabletBreakpoint = 600.dp
@@ -74,7 +89,10 @@ private const val DisabledRowAlpha = 0.38f
 internal object SettingsTestTags {
     const val BackButton = "settings_back_button"
     const val List = "settings_list"
-    const val DarkThemeRow = "settings_dark_theme_row"
+    const val ThemeRow = "settings_theme"
+    const val ThemeModeLight = "settings_theme_mode_light"
+    const val ThemeModeDark = "settings_theme_mode_dark"
+    const val ThemeModeSystem = "settings_theme_mode_system"
     const val VersionRow = "settings_application_version"
     const val BuildRow = "settings_application_build"
     const val SyncedDevicesRow = "settings_synced_devices"
@@ -87,7 +105,7 @@ internal object SettingsTestTags {
 }
 
 /**
- * The app's settings: an Appearance section with a dark theme switch ([darkTheme], [onDarkThemeChange]), then read-only Application
+ * The app's settings: an Appearance section with a Theme drop-down ([appTheme], [onAppThemeChange]) and a Light / Dark / System radio group ([themeMode], [onThemeModeChange]), then read-only Application
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
  * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default and disabled when
  * the device has no mobile data ([mobileDataAvailable], false on desktop).
@@ -102,8 +120,10 @@ fun SettingsScreen(
     platformName: String = getPlatform().name,
     appInfo: AppInfo = getAppInfo(),
     x0xConnectivity: X0xConnectivity = X0xConnectivity.Connecting,
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    onDarkThemeChange: (Boolean) -> Unit = {},
+    themeMode: ThemeMode = ThemeMode.System,
+    onThemeModeChange: (ThemeMode) -> Unit = {},
+    appTheme: AppTheme = AppTheme.Vesta,
+    onAppThemeChange: (AppTheme) -> Unit = {},
     useMobileData: Boolean = true,
     onUseMobileDataChange: (Boolean) -> Unit = {},
     mobileDataAvailable: Boolean = getPlatform().hasMobileData,
@@ -158,14 +178,8 @@ fun SettingsScreen(
                 }
                 item {
                     SettingsSection(stringResource(Res.string.settings_section_appearance)) {
-                        SettingsRow(
-                            label = stringResource(Res.string.settings_dark_theme),
-                            modifier = Modifier
-                                .toggleable(value = darkTheme, role = Role.Switch, onValueChange = onDarkThemeChange)
-                                .testTag(SettingsTestTags.DarkThemeRow),
-                        ) {
-                            Switch(checked = darkTheme, onCheckedChange = null)
-                        }
+                        ThemeDropdownRow(appTheme, onAppThemeChange)
+                        ThemeModeRadioRow(themeMode, onThemeModeChange)
                     }
                 }
                 item {
@@ -270,6 +284,89 @@ fun SettingsScreen(
                             Switch(checked = useMobileData, onCheckedChange = null, enabled = mobileDataAvailable)
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+private fun ThemeMode.labelRes() = when (this) {
+    ThemeMode.Light -> Res.string.settings_theme_mode_light
+    ThemeMode.Dark -> Res.string.settings_theme_mode_dark
+    ThemeMode.System -> Res.string.settings_theme_mode_system
+}
+
+private fun ThemeMode.testTag() = when (this) {
+    ThemeMode.Light -> SettingsTestTags.ThemeModeLight
+    ThemeMode.Dark -> SettingsTestTags.ThemeModeDark
+    ThemeMode.System -> SettingsTestTags.ThemeModeSystem
+}
+
+private fun AppTheme.labelRes() = when (this) {
+    AppTheme.Vesta -> Res.string.settings_theme_vesta
+}
+
+/** Light / Dark / System as a horizontal radio group, in the same surface as a settings row. */
+@Composable
+private fun ThemeModeRadioRow(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+    val shape = MaterialTheme.shapes.medium
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), shape)
+            .selectableGroup()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ThemeMode.entries.forEach { mode ->
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(shape)
+                    .selectable(selected = selected == mode, role = Role.RadioButton, onClick = { onSelect(mode) })
+                    .padding(vertical = 8.dp)
+                    .testTag(mode.testTag()),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = selected == mode, onClick = null)
+                Text(
+                    text = stringResource(mode.labelRes()),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+/** The Theme row: shows the current theme and opens a menu of every [AppTheme] to choose from. */
+@Composable
+private fun ThemeDropdownRow(selected: AppTheme, onSelect: (AppTheme) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    SettingsRow(
+        label = stringResource(Res.string.settings_theme),
+        modifier = Modifier.testTag(SettingsTestTags.ThemeRow),
+        onClick = { expanded = true },
+    ) {
+        Box {
+            Text(
+                stringResource(selected.labelRes()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                AppTheme.entries.forEach { theme ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(theme.labelRes())) },
+                        onClick = {
+                            expanded = false
+                            onSelect(theme)
+                        },
+                    )
                 }
             }
         }

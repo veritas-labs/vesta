@@ -86,7 +86,11 @@
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
     <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_dark_theme">Dark theme</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_vesta">Vesta</string>
+    <string name="settings_theme_mode_light">Light</string>
+    <string name="settings_theme_mode_dark">Dark</string>
+    <string name="settings_theme_mode_system">System</string>
     <string name="settings_section_device">Device</string>
     <string name="settings_device_platform">Platform</string>
     <string name="settings_section_application">Application</string>
