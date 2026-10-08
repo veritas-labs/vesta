@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val StopTimeoutMillis = 5_000L
@@ -20,6 +22,7 @@ data class ShoppingListItem(
     val quantity: Int,
     val packageSize: String,
     val barcode: String? = null,
+    val tags: List<String> = emptyList(),
 )
 
 /** The editable fields of a shopping-list item; [key] is null while adding one. */
@@ -31,6 +34,7 @@ data class ShoppingItemDetails(
     val quantity: Int = 1,
     val packageSize: String = "",
     val barcode: String? = null,
+    val tags: List<String> = emptyList(),
 )
 
 /**
@@ -46,15 +50,43 @@ interface ShoppingListSource {
     suspend fun remove(key: String)
 }
 
-/** [ShoppingListScreen]'s state; [isLoading] is true until the source has emitted for the first time. */
-data class ShoppingListUiState(val items: List<ShoppingListItem> = emptyList(), val isLoading: Boolean = true)
+/**
+ * [ShoppingListScreen]'s state; [isLoading] is true until the source has emitted for the first time. [selectedTags]
+ * are the lower-cased tags the list is filtered to (none: everything shows); see [shoppingTags].
+ */
+data class ShoppingListUiState(
+    val items: List<ShoppingListItem> = emptyList(),
+    val selectedTags: Set<String> = emptySet(),
+    val isLoading: Boolean = true,
+)
 
-/** Backs [ShoppingListScreen]: exposes the list from [source] as [uiState]. */
+/** The distinct tags used by [items] (ignoring case, first spelling wins), sorted for display. */
+fun shoppingTags(items: List<ShoppingListItem>): List<String> =
+    items.flatMap { it.tags }.distinctBy { it.lowercase() }.sortedBy { it.lowercase() }
+
+/**
+ * The [items] carrying any of the [selected] tags (lower-cased). Selected tags no item has any more are ignored, and
+ * with none left every item shows.
+ */
+fun filterByTags(items: List<ShoppingListItem>, selected: Set<String>): List<ShoppingListItem> {
+    val active = selected intersect shoppingTags(items).map { it.lowercase() }.toSet()
+    return if (active.isEmpty()) items else items.filter { item -> item.tags.any { it.lowercase() in active } }
+}
+
+/** Backs [ShoppingListScreen]: exposes the list from [source] as [uiState], with the tag filter the user has chosen. */
 class ShoppingListViewModel(private val source: ShoppingListSource) : ViewModel() {
 
-    val uiState: StateFlow<ShoppingListUiState> = source.items
-        .map { ShoppingListUiState(items = it, isLoading = false) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), ShoppingListUiState())
+    private val selectedTags = MutableStateFlow<Set<String>>(emptySet())
+
+    val uiState: StateFlow<ShoppingListUiState> = combine(source.items, selectedTags) { items, selected ->
+        ShoppingListUiState(items = items, selectedTags = selected, isLoading = false)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), ShoppingListUiState())
+
+    /** Adds [tag] to the filter, or takes it out if it is there. */
+    fun toggleTag(tag: String) {
+        val key = tag.lowercase()
+        selectedTags.update { if (key in it) it - key else it + key }
+    }
 
     fun save(item: ShoppingItemDetails) {
         viewModelScope.launch { source.save(item) }

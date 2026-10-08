@@ -2,7 +2,10 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,8 +30,10 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -39,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -79,6 +87,11 @@ import vesta.shared.generated.resources.shopping_edit_edit_title
 import vesta.shared.generated.resources.shopping_edit_quantity_label
 import vesta.shared.generated.resources.shopping_quantity_decrease
 import vesta.shared.generated.resources.shopping_quantity_increase
+import vesta.shared.generated.resources.shopping_tag_remove
+import vesta.shared.generated.resources.shopping_tags_add
+import vesta.shared.generated.resources.shopping_tags_hint
+import vesta.shared.generated.resources.shopping_tags_label
+import vesta.shared.generated.resources.ic_close
 
 private val PantryItemEditTabletBreakpoint = 600.dp
 
@@ -99,6 +112,14 @@ internal object PantryItemEditTestTags {
     const val BackButton = "pantry_item_edit_back_button"
     const val EditCategoriesMenuItem = "pantry_item_edit_edit_categories_menu_item"
     const val NoSecondaryOption = "pantry_item_edit_no_secondary_option"
+    const val TagField = "pantry_item_edit_tag_field"
+    const val TagAddButton = "pantry_item_edit_tag_add_button"
+
+    /** Tag for the chip of the item's tag [name] (tapping it removes the tag). */
+    fun tag(name: String) = "pantry_item_edit_tag_$name"
+
+    /** Tag for the chip offering the known tag [name] (tapping it adds the tag). */
+    fun tagSuggestion(name: String) = "pantry_item_edit_tag_suggestion_$name"
 
     /** Tag for the dropdown option with the given category [name], in whichever category dropdown is open. */
     fun categoryOption(name: String) = "pantry_item_edit_category_option_$name"
@@ -139,6 +160,7 @@ data class PantryItemDetails(
     val packageSize: String = "",
     val barcode: String? = null,
     val stockCount: Int = 0,
+    val tags: List<String> = emptyList(),
 )
 
 /**
@@ -197,6 +219,9 @@ val ShoppingItemFormLabels = ItemFormLabels(
  * contains what's typed (best matches first, at most [MaxSuggestions]); picking one fills in its name, categories,
  * package size and barcode.
  *
+ * When [knownTags] is given (the shopping-list form) the form also edits the item's tags, offering [knownTags] as
+ * one-tap additions.
+ *
  * Next to the barcode field a scan icon button (shown when [scanSupported]) opens a full-screen [BarcodeScannerScreen] over
  * the form, which keeps what's been typed; the scanned code fills the barcode field. [barcodeCamera] is the preview
  * the scanner shows, a parameter so tests can stand in for real hardware.
@@ -214,6 +239,7 @@ fun PantryItemEditScreen(
     onEditPackage: (PantryItemDetails) -> Unit = {},
     labels: ItemFormLabels = PantryItemFormLabels,
     suggestions: List<PantryListItem> = emptyList(),
+    knownTags: List<String>? = null,
     scanSupported: Boolean = isBarcodeScanningSupported,
     barcodeCamera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
         BarcodeCameraView(onBarcode, cameraModifier)
@@ -225,6 +251,7 @@ fun PantryItemEditScreen(
     var packageSize by remember(item) { mutableStateOf(item?.packageSize.orEmpty()) }
     var barcode by remember(item) { mutableStateOf(item?.barcode.orEmpty()) }
     var stockCount by remember(item) { mutableIntStateOf(item?.stockCount ?: labels.minCount) }
+    var tags by remember(item) { mutableStateOf(item?.tags.orEmpty()) }
     var scanning by remember { mutableStateOf(false) }
 
     val details = {
@@ -236,6 +263,7 @@ fun PantryItemEditScreen(
             packageSize = packageSize.trim(),
             barcode = barcode.trim().ifBlank { null },
             stockCount = stockCount,
+            tags = tags,
         )
     }
     val primaryOptions = (categories.map { it.name } + primaryCategory).filter { it.isNotBlank() }.distinct()
@@ -463,12 +491,96 @@ fun PantryItemEditScreen(
                     }
                 }
 
+                knownTags?.let {
+                    TagsEditor(
+                        tags = tags,
+                        knownTags = it,
+                        onTagsChange = { tags = it },
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                }
+
                 PrimaryButton(
                     label = stringResource(Res.string.pantry_edit_save),
                     enabled = isValid,
                     onClick = { onSave(details()) },
                     modifier = Modifier.padding(top = 24.dp).testTag(PantryItemEditTestTags.SaveButton),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Edits an item's [tags]: its current ones as chips (tap to remove), a field to type a new one, and the [knownTags]
+ * it doesn't have yet as chips (tap to add). Tags are compared ignoring case.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagsEditor(
+    tags: List<String>,
+    knownTags: List<String>,
+    onTagsChange: (List<String>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var typed by remember { mutableStateOf("") }
+    val add = { tag: String ->
+        val clean = tag.trim()
+        if (clean.isNotEmpty() && tags.none { it.equals(clean, ignoreCase = true) }) onTagsChange(tags + clean)
+        typed = ""
+    }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = typed,
+                onValueChange = { typed = it },
+                label = { Text(stringResource(Res.string.shopping_tags_label)) },
+                placeholder = { Text(stringResource(Res.string.shopping_tags_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { add(typed) }),
+                modifier = Modifier.weight(1f).testTag(PantryItemEditTestTags.TagField),
+            )
+            Spacer(Modifier.width(12.dp))
+            IconButton(
+                onClick = { add(typed) },
+                enabled = typed.isNotBlank(),
+                modifier = Modifier.padding(bottom = 6.dp).size(44.dp).testTag(PantryItemEditTestTags.TagAddButton),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_plus),
+                    contentDescription = stringResource(Res.string.shopping_tags_add),
+                )
+            }
+        }
+        val offered = knownTags.filter { known -> tags.none { it.equals(known, ignoreCase = true) } }
+        if (tags.isNotEmpty() || offered.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                tags.forEach { tag ->
+                    InputChip(
+                        selected = true,
+                        onClick = { onTagsChange(tags - tag) },
+                        label = { Text(tag) },
+                        trailingIcon = {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_close),
+                                contentDescription = stringResource(Res.string.shopping_tag_remove, tag),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                        modifier = Modifier.testTag(PantryItemEditTestTags.tag(tag)),
+                    )
+                }
+                offered.forEach { tag ->
+                    SuggestionChip(
+                        onClick = { add(tag) },
+                        label = { Text(tag) },
+                        modifier = Modifier.testTag(PantryItemEditTestTags.tagSuggestion(tag)),
+                    )
+                }
             }
         }
     }

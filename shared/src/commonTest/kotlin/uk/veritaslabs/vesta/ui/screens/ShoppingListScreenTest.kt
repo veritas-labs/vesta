@@ -72,6 +72,131 @@ class ShoppingListScreenTest {
         assertEquals(true, added)
     }
 
+    private val farmMilk = ShoppingListItem("whole milk", "Dairy", null, "Whole Milk", 1, "", tags = listOf("Farm shop"))
+    private val butcherMince = ShoppingListItem("mince", "Meat", null, "Beef Mince", 1, "", tags = listOf("Butcher"))
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsAFilterChipForEachTagInUse() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(farmMilk, butcherMince)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.filterChip("Farm shop")).assertIsDisplayed()
+        onNodeWithTag(ShoppingListTestTags.filterChip("Butcher")).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingAFilterChipReportsItsTag() = runComposeUiTest {
+        // Arrange
+        var toggled: String? = null
+        setContent {
+            VestaTheme { ShoppingListScreen(items = listOf(farmMilk, butcherMince), onToggleTag = { toggled = it }) }
+        }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.filterChip("Butcher")).performClick()
+
+        // Assert
+        assertEquals("Butcher", toggled)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aSelectedTagHidesItemsWithoutIt() = runComposeUiTest {
+        // Arrange
+        setContent {
+            VestaTheme { ShoppingListScreen(items = listOf(farmMilk, butcherMince), selectedTags = setOf("butcher")) }
+        }
+
+        // Act
+        // (no user interaction — checking the filtered state)
+
+        // Assert
+        onNodeWithText("Beef Mince").assertIsDisplayed()
+        onNodeWithText("Whole Milk").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsNoFilterChipsWhenNoItemHasATag() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.filterChip("Farm shop")).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theItemFormAddsATypedTagAndSavesIt() = runComposeUiTest {
+        // Arrange
+        var saved: PantryItemDetails? = null
+        setContent {
+            VestaTheme {
+                PantryItemEditScreen(
+                    item = PantryItemDetails(title = "Milk", primaryCategory = "Dairy", stockCount = 1),
+                    labels = ShoppingItemFormLabels,
+                    knownTags = emptyList(),
+                    onSave = { saved = it },
+                )
+            }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.TagField).performTextInput("Farm shop")
+        onNodeWithTag(PantryItemEditTestTags.TagAddButton).performClick()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performClick()
+
+        // Assert
+        assertEquals(listOf("Farm shop"), saved?.tags)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theItemFormOffersKnownTagsAndRemovesATappedOne() = runComposeUiTest {
+        // Arrange
+        var saved: PantryItemDetails? = null
+        setContent {
+            VestaTheme {
+                PantryItemEditScreen(
+                    item = PantryItemDetails(title = "Milk", primaryCategory = "Dairy", stockCount = 1, tags = listOf("Butcher")),
+                    labels = ShoppingItemFormLabels,
+                    knownTags = listOf("Butcher", "Farm shop"),
+                    onSave = { saved = it },
+                )
+            }
+        }
+
+        // Act
+        onNodeWithTag(PantryItemEditTestTags.tagSuggestion("Farm shop")).performClick()
+        onNodeWithTag(PantryItemEditTestTags.tag("Butcher")).performClick()
+        onNodeWithTag(PantryItemEditTestTags.SaveButton).performClick()
+
+        // Assert
+        assertEquals(listOf("Farm shop"), saved?.tags)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun thePantryFormHasNoTagsSection() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { PantryItemEditScreen() } }
+
+        // Act
+        // (no user interaction — checking the form's initial state)
+
+        // Assert
+        onNodeWithTag(PantryItemEditTestTags.TagField).assertDoesNotExist()
+    }
+
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun theItemFormUsesQuantityWordingAndStartsAtOne() = runComposeUiTest {

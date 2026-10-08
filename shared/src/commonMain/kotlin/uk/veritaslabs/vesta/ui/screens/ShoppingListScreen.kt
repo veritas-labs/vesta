@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
@@ -45,6 +50,7 @@ import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.shopping_add_item
 import vesta.shared.generated.resources.shopping_empty_subtitle
+import vesta.shared.generated.resources.shopping_filter_label
 import vesta.shared.generated.resources.shopping_empty_title
 import vesta.shared.generated.resources.shopping_quantity
 import vesta.shared.generated.resources.shopping_title
@@ -55,6 +61,9 @@ private val ShoppingListTabletBreakpoint = 600.dp
 internal object ShoppingListTestTags {
     const val BackButton = "shopping_back_button"
     const val AddItemButton = "shopping_add_item_button"
+
+    /** Tag for the filter chip of the tag [name]. */
+    fun filterChip(name: String) = "shopping_filter_chip_$name"
 
     /** Tag for the row of the item with the given [key] (its dedup key — see ADR-008). */
     fun item(key: String) = "shopping_item_$key"
@@ -76,7 +85,10 @@ fun ShoppingListScreen(
     if (state.isLoading) {
         Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
     } else {
-        ShoppingListScreen(state.items, modifier, onItemSelected, onBack, onAddItem)
+        ShoppingListScreen(
+            state.items, modifier, onItemSelected, onBack, onAddItem,
+            selectedTags = state.selectedTags, onToggleTag = viewModel::toggleTag,
+        )
     }
 }
 
@@ -84,6 +96,10 @@ fun ShoppingListScreen(
  * The shopping list: [items] grouped by primary category, then secondary category (an aisle-by-aisle view), each row
  * showing the product, its package size and the quantity to buy. A tap on a row calls [onItemSelected] (to edit
  * it); [onAddItem] is the floating action button; [onBack] the top-bar back arrow.
+ *
+ * When any item has tags, a row of filter chips (one per tag) sits under the top bar: [selectedTags] (lower-cased) are
+ * the chips switched on, [onToggleTag] is called with a chip's tag when it is tapped, and with any on, only the items
+ * carrying one of them are shown (see [filterByTags]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +109,10 @@ fun ShoppingListScreen(
     onItemSelected: (ShoppingListItem) -> Unit = {},
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
+    selectedTags: Set<String> = emptySet(),
+    onToggleTag: (String) -> Unit = {},
 ) {
+    val filterDescription = stringResource(Res.string.shopping_filter_label)
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= ShoppingListTabletBreakpoint) 24.dp else 16.dp
 
@@ -114,6 +133,24 @@ fun ShoppingListScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
+            val tags = shoppingTags(items)
+            if (tags.isNotEmpty()) {
+                val activeTags = selectedTags.filter { selected -> tags.any { it.lowercase() == selected } }.toSet()
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = contentPadding),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = filterDescription },
+                ) {
+                    items(tags, key = { it.lowercase() }) { tag ->
+                        FilterChip(
+                            selected = tag.lowercase() in activeTags,
+                            onClick = { onToggleTag(tag) },
+                            label = { Text(tag) },
+                            modifier = Modifier.testTag(ShoppingListTestTags.filterChip(tag)),
+                        )
+                    }
+                }
+            }
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding)) {
                 if (items.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -134,7 +171,7 @@ fun ShoppingListScreen(
                         }
                     }
                 } else {
-                    val grouped = items
+                    val grouped = filterByTags(items, selectedTags)
                         .sortedWith(compareBy({ it.primaryCategory }, { it.secondaryCategory }, { it.title }))
                         .groupBy { it.primaryCategory }
                     LazyColumn(
@@ -209,17 +246,26 @@ private fun ShoppingItemRow(item: ShoppingListItem, onClick: () -> Unit, modifie
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (item.packageSize.isNotBlank()) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = " · ${item.packageSize}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = item.title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (item.packageSize.isNotBlank()) {
+                    Text(
+                        text = " · ${item.packageSize}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (item.tags.isNotEmpty()) {
+                Text(
+                    text = item.tags.joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -233,11 +279,12 @@ private fun ShoppingItemRow(item: ShoppingListItem, onClick: () -> Unit, modifie
 }
 
 private val ShoppingPreviewItems = listOf(
-    ShoppingListItem("5000157024671", "Condiments", "Ketchup", "Heinz Ketchup", 2, "500ml", "5000157024671"),
-    ShoppingListItem("whole milk", "Dairy", "Milk", "Whole Milk", 3, "2 pint"),
-    ShoppingListItem("brie", "Dairy", "Cheese", "Brie", 1, "250g"),
-    ShoppingListItem("bananas", "Fruit & Vegetables", null, "Bananas", 1, "6 pack"),
-    ShoppingListItem("carrots", "Fruit & Vegetables", null, "Carrots", 2, "1kg"),
+    ShoppingListItem("5000157024671", "Condiments", "Ketchup", "Heinz Ketchup", 2, "500ml", "5000157024671", listOf("Supermarket")),
+    ShoppingListItem("whole milk", "Dairy", "Milk", "Whole Milk", 3, "2 pint", tags = listOf("Farm shop")),
+    ShoppingListItem("brie", "Dairy", "Cheese", "Brie", 1, "250g", tags = listOf("Supermarket")),
+    ShoppingListItem("bananas", "Fruit & Vegetables", null, "Bananas", 1, "6 pack", tags = listOf("Supermarket")),
+    ShoppingListItem("carrots", "Fruit & Vegetables", null, "Carrots", 2, "1kg", tags = listOf("Farm shop")),
+    ShoppingListItem("sausages", "Meat", null, "Sausages", 1, "8 pack", tags = listOf("Butcher")),
 )
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
@@ -286,4 +333,28 @@ private fun ShoppingListScreenEmptyTabletLightPreview() {
 @Composable
 private fun ShoppingListScreenEmptyTabletDarkPreview() {
     VestaTheme(darkTheme = true) { ShoppingListScreen(items = emptyList()) }
+}
+
+@Preview(name = "Filtered Light", group = "Phone", device = Devices.PHONE)
+@Composable
+private fun ShoppingListScreenFilteredPhoneLightPreview() {
+    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
+}
+
+@Preview(name = "Filtered Dark", group = "Phone", device = Devices.PHONE)
+@Composable
+private fun ShoppingListScreenFilteredPhoneDarkPreview() {
+    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
+}
+
+@Preview(name = "Filtered Light", group = "Tablet", device = Devices.TABLET)
+@Composable
+private fun ShoppingListScreenFilteredTabletLightPreview() {
+    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
+}
+
+@Preview(name = "Filtered Dark", group = "Tablet", device = Devices.TABLET)
+@Composable
+private fun ShoppingListScreenFilteredTabletDarkPreview() {
+    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
 }

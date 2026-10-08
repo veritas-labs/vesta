@@ -183,4 +183,83 @@ class ShoppingListDocumentTest {
         // Assert
         assertEquals(1, pantry.readPantryItem(key)?.useCount)
     }
+
+    @Test
+    fun tagsAreStoredTrimmedWithoutBlanksOrRepeatsIgnoringCase() {
+        // Arrange
+        val doc = newList()
+
+        // Act
+        val key = addShoppingItem(
+            doc, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null,
+            tags = listOf(" Farm shop ", "", "farm SHOP", "Butcher"),
+        )
+
+        // Assert
+        assertEquals(listOf("Farm shop", "Butcher"), doc.readShoppingItem(key)?.tags)
+    }
+
+    @Test
+    fun anItemWithoutTagsReadsBackWithNone() {
+        // Arrange
+        val doc = newList()
+
+        // Act
+        val key = doc.addMilk()
+
+        // Assert
+        assertEquals(emptyList(), doc.readShoppingItem(key)?.tags)
+    }
+
+    @Test
+    fun updatingAnItemReplacesItsTags() {
+        // Arrange
+        val doc = newList()
+        val key = addShoppingItem(doc, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null, tags = listOf("Supermarket"))
+
+        // Act
+        updateShoppingItem(doc, key, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null, tags = listOf("Farm shop"))
+
+        // Assert
+        assertEquals(listOf("Farm shop"), doc.readShoppingItem(key)?.tags)
+    }
+
+    @Test
+    fun updatingAnItemWithNoTagsClearsThem() {
+        // Arrange
+        val doc = newList()
+        val key = addShoppingItem(doc, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null, tags = listOf("Supermarket"))
+
+        // Act
+        updateShoppingItem(doc, key, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null)
+
+        // Assert
+        assertEquals(emptyList(), doc.readShoppingItem(key)?.tags)
+    }
+
+    @Test
+    fun addingTheSameProductAgainKeepsTheTagsOfBothAdds() {
+        // Arrange
+        val doc = newList()
+        addShoppingItem(doc, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null, tags = listOf("Farm shop"))
+
+        // Act
+        addShoppingItem(doc, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null, tags = listOf("farm shop", "Supermarket"))
+
+        // Assert
+        assertEquals(listOf("Farm shop", "Supermarket"), doc.readShoppingList().single().tags)
+    }
+
+    @Test
+    fun tagsSurviveSavingAndLoading() {
+        // Arrange
+        val doc = newList()
+        val key = addShoppingItem(doc, "Dairy", "Milk", "Whole Milk", 1, "2 pint", null, tags = listOf("Farm shop"))
+
+        // Act
+        val reloaded = Document.load(doc.save())
+
+        // Assert
+        assertEquals(listOf("Farm shop"), reloaded.readShoppingItem(key)?.tags)
+    }
 }

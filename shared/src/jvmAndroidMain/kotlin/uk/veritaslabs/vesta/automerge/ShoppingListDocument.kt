@@ -15,6 +15,7 @@ private const val TitleKey = "title"
 private const val QuantityKey = "quantity"
 private const val PackageSizeKey = "packageSize"
 private const val BarcodeKey = "barcode"
+private const val TagsKey = "tags"
 
 /**
  * One line of a Home's shopping list — see ADR-008 ("Fourth amendment"). [id] is the item's [pantryDedupKey], which
@@ -28,6 +29,7 @@ data class ShoppingItem(
     val quantity: Int,
     val packageSize: String,
     val barcode: String?,
+    val tags: List<String> = emptyList(),
 )
 
 /** Builds the initial (empty) bytes for a shopping-list document. */
@@ -72,6 +74,7 @@ fun addShoppingItem(
     quantity: Int,
     packageSize: String,
     barcode: String?,
+    tags: List<String> = emptyList(),
 ): String {
     val key = pantryDedupKey(barcode, title)
     val tx = doc.startTransaction()
@@ -80,8 +83,9 @@ fun addShoppingItem(
     if (existingId != null) {
         val current = (tx.get(existingId, QuantityKey).getOrNull() as? AmValue.Int)?.value?.toInt() ?: 0
         tx.set(existingId, QuantityKey, current + quantity)
+        tx.mergeTags(existingId, tags)
     } else {
-        tx.writeItem(tx.set(itemsId, key, ObjectType.MAP), key, primaryCategory, secondaryCategory, title, quantity, packageSize, barcode)
+        tx.writeItem(tx.set(itemsId, key, ObjectType.MAP), key, primaryCategory, secondaryCategory, title, quantity, packageSize, barcode, tags)
     }
     tx.commit()
     return key
@@ -101,6 +105,7 @@ fun updateShoppingItem(
     quantity: Int,
     packageSize: String,
     barcode: String?,
+    tags: List<String> = emptyList(),
 ): String? {
     val newKey = pantryDedupKey(barcode, title)
     val tx = doc.startTransaction()
@@ -111,15 +116,16 @@ fun updateShoppingItem(
         return null
     }
     if (newKey == key) {
-        tx.writeItem(itemId, key, primaryCategory, secondaryCategory, title, quantity, packageSize, barcode)
+        tx.writeItem(itemId, key, primaryCategory, secondaryCategory, title, quantity, packageSize, barcode, tags)
     } else {
         tx.delete(itemsId, key)
         val targetId = (tx.get(itemsId, newKey).getOrNull() as? AmValue.Map)?.id
         if (targetId != null) {
             val current = (tx.get(targetId, QuantityKey).getOrNull() as? AmValue.Int)?.value?.toInt() ?: 0
             tx.set(targetId, QuantityKey, current + quantity)
+            tx.mergeTags(targetId, tags)
         } else {
-            tx.writeItem(tx.set(itemsId, newKey, ObjectType.MAP), newKey, primaryCategory, secondaryCategory, title, quantity, packageSize, barcode)
+            tx.writeItem(tx.set(itemsId, newKey, ObjectType.MAP), newKey, primaryCategory, secondaryCategory, title, quantity, packageSize, barcode, tags)
         }
     }
     tx.commit()
@@ -147,6 +153,7 @@ private fun org.automerge.Transaction.writeItem(
     quantity: Int,
     packageSize: String,
     barcode: String?,
+    tags: List<String>,
 ) {
     set(itemId, IdKey, key)
     set(itemId, PrimaryCategoryKey, primaryCategory)
@@ -163,7 +170,28 @@ private fun org.automerge.Transaction.writeItem(
     } else if (get(itemId, BarcodeKey).isPresent) {
         delete(itemId, BarcodeKey)
     }
+    writeTags(itemId, normalizeTags(tags))
 }
+
+private fun org.automerge.Transaction.writeTags(itemId: ObjectId, tags: List<String>) {
+    if (tags.isEmpty()) {
+        if (get(itemId, TagsKey).isPresent) delete(itemId, TagsKey)
+        return
+    }
+    val listId = set(itemId, TagsKey, ObjectType.LIST)
+    tags.forEachIndexed { index, tag -> insert(listId, index.toLong(), tag) }
+}
+
+/** Adds [tags] the item doesn't already have (ignoring case) to its own, for a product added to the list twice. */
+private fun org.automerge.Transaction.mergeTags(itemId: ObjectId, tags: List<String>) {
+    val current = readTags(itemId)
+    val merged = normalizeTags(current + tags)
+    if (merged != current) writeTags(itemId, merged)
+}
+
+/** [tags] trimmed, without blanks, and without repeats (ignoring case; the first spelling wins). */
+fun normalizeTags(tags: List<String>): List<String> =
+    tags.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
 
 /** Whether this document holds a shopping list's root map; see [isPantrySeeded] for why an unseeded one must not be edited. */
 fun Read.isShoppingListSeeded(): Boolean = itemsMapId() != null
@@ -178,7 +206,13 @@ private fun Read.readShoppingItemAt(itemId: ObjectId): ShoppingItem = ShoppingIt
     quantity = (get(itemId, QuantityKey).getOrNull() as? AmValue.Int)?.value?.toInt() ?: 0,
     packageSize = strField(itemId, PackageSizeKey),
     barcode = (get(itemId, BarcodeKey).getOrNull() as? AmValue.Str)?.value,
+    tags = readTags(itemId),
 )
+
+private fun Read.readTags(itemId: ObjectId): List<String> {
+    val listId = (get(itemId, TagsKey).getOrNull() as? AmValue.List)?.id ?: return emptyList()
+    return listItems(listId).getOrNull()?.mapNotNull { (it as? AmValue.Str)?.value }.orEmpty()
+}
 
 private fun Read.strField(obj: ObjectId, key: String): String =
     (get(obj, key).getOrNull() as? AmValue.Str)?.value.orEmpty()

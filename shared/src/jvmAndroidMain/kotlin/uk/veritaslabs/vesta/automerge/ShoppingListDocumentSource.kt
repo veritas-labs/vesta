@@ -53,12 +53,12 @@ class ShoppingListDocumentSource(
             val key = if (item.key == null) {
                 addShoppingItem(
                     document, item.primaryCategory, item.secondaryCategory, item.title,
-                    item.quantity, item.packageSize, item.barcode,
+                    item.quantity, item.packageSize, item.barcode, item.tags,
                 )
             } else {
                 updateShoppingItem(
                     document, item.key, item.primaryCategory, item.secondaryCategory, item.title,
-                    item.quantity, item.packageSize, item.barcode,
+                    item.quantity, item.packageSize, item.barcode, item.tags,
                 )
             }
             publishAndPersist()
@@ -131,6 +131,7 @@ class ShoppingListDocumentSource(
             quantity = it.quantity,
             packageSize = it.packageSize,
             barcode = it.barcode,
+            tags = it.tags,
         )
     }
 }

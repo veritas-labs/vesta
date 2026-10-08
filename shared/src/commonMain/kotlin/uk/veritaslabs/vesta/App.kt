@@ -78,6 +78,7 @@ import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemFormLabels
 import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
+import uk.veritaslabs.vesta.ui.screens.shoppingTags
 import uk.veritaslabs.vesta.ui.screens.ShoppingListScreen
 import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
 import uk.veritaslabs.vesta.ui.screens.ShoppingListViewModel
@@ -332,6 +333,7 @@ private fun HomeContent(
     }
     val pantryState = pantryViewModel?.uiState?.collectAsStateWithLifecycle()
     val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
+    val shoppingState = shoppingViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
     when (destination) {
@@ -461,6 +463,7 @@ private fun HomeContent(
                 item = item?.toPantryDetails(),
                 categories = categoriesState?.value?.categories.orEmpty(),
                 labels = ShoppingItemFormLabels,
+                knownTags = shoppingTags(shoppingState?.value?.items.orEmpty()),
                 suggestions = pantryState?.value?.items.orEmpty(),
                 onEditCategories = { draft ->
                     editingShoppingItem = draft.toShoppingDetails()
@@ -565,20 +568,20 @@ private enum class HomeDestination {
     ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage,
 }
 
-private fun ShoppingListItem.toDetails() = ShoppingItemDetails(
+internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(
     key = key, primaryCategory = primaryCategory, secondaryCategory = secondaryCategory, title = title,
-    quantity = quantity, packageSize = packageSize, barcode = barcode,
+    quantity = quantity, packageSize = packageSize, barcode = barcode, tags = tags,
 )
 
 // The shopping-list form is the Pantry's item form, with the quantity carried in the stock-count field.
-private fun ShoppingItemDetails.toPantryDetails() = PantryItemDetails(
+internal fun ShoppingItemDetails.toPantryDetails() = PantryItemDetails(
     key = key, primaryCategory = primaryCategory, secondaryCategory = secondaryCategory, title = title,
-    packageSize = packageSize, barcode = barcode, stockCount = quantity,
+    packageSize = packageSize, barcode = barcode, stockCount = quantity, tags = tags,
 )
 
-private fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
+internal fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
     key = key, primaryCategory = primaryCategory, secondaryCategory = secondaryCategory, title = title,
-    quantity = stockCount, packageSize = packageSize, barcode = barcode,
+    quantity = stockCount, packageSize = packageSize, barcode = barcode, tags = tags,
 )
 
 /**

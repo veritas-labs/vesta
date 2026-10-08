@@ -200,6 +200,11 @@
     <string name="shopping_edit_quantity_label">Quantity</string>
     <string name="shopping_quantity_increase">Increase quantity</string>
     <string name="shopping_quantity_decrease">Decrease quantity</string>
+    <string name="shopping_filter_label">Filter by tag</string>
+    <string name="shopping_tags_label">Tags</string>
+    <string name="shopping_tags_hint">Add a tag, e.g. a shop</string>
+    <string name="shopping_tags_add">Add tag</string>
+    <string name="shopping_tag_remove">Remove tag %1$s</string>
 
     <string name="pantry_edit_no_subcategory">None</string>
     <string name="pantry_edit_edit_categories">Edit categories</string>
