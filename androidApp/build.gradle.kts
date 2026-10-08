@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -55,8 +56,29 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    // Release signing reads secrets/keystore.properties (git-ignored) with the keys
+    // storeFile (relative to secrets/), storePassword, keyAlias and keyPassword.
+    // Without that file the release build is left unsigned, so contributors and
+    // debug builds are unaffected.
+    val secretsDir = rootProject.projectDir.resolve("secrets")
+    val keystoreProperties = secretsDir.resolve("keystore.properties")
+        .takeIf { it.isFile }
+        ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
+    signingConfigs {
+        keystoreProperties?.let { props ->
+            fun required(key: String) = props.getProperty(key)
+                ?: error("secrets/keystore.properties is missing '$key'")
+            create("release") {
+                storeFile = secretsDir.resolve(required("storeFile"))
+                storePassword = required("storePassword")
+                keyAlias = required("keyAlias")
+                keyPassword = required("keyPassword")
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
