@@ -5,11 +5,13 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -35,7 +37,8 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 /**
  * Acceptance tests for crossing off shopping-list items: tap a row to cross it off (and again to undo), long-press it
  * to say the shop was out of it or that only some were got. Driven through the list screen and its bottom sheet over
- * the real Automerge-backed source, including a reload from the saved bytes.
+ * the real Automerge-backed source, including a reload from the saved bytes. The top bar counts the items still to
+ * do ("4 of 12 items remaining"); partial and out-of-stock check-offs count as checked off.
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class ShoppingListCrossOffAcceptanceTest {
@@ -123,5 +126,38 @@ class ShoppingListCrossOffAcceptanceTest {
         // Assert — Then the row reads "Out of stock", and a list reloaded from the saved bytes still has it so
         onNodeWithText("Out of stock").assertExists()
         assertEquals(true, runBlocking { newSource(saved).items.first().single().outOfStock })
+    }
+
+    @Test
+    fun theCounterFallsAsICheckItemsOffIncludingPartialAndOutOfStock() = runComposeUiTest {
+        // Arrange — Given a list of milk (4), eggs and bread
+        val source = newSource().also {
+            runBlocking {
+                it.save(milk)
+                it.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Eggs", quantity = 1))
+                it.save(ShoppingItemDetails(primaryCategory = "Bakery", title = "Bread", quantity = 1))
+            }
+        }
+        show(source)
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertTextEquals("3 of 3 items remaining")
+
+        // Act — When I get one of the milk, then mark the eggs out of stock, then tap the bread
+        openSheet()
+        onNodeWithTag(ShoppingListTestTags.GotIncrease).performClick()
+        onNodeWithTag(ShoppingListTestTags.GotCount).assertTextEquals("1 of 4")
+        waitUntil(timeoutMillis = 5_000) {
+            onAllNodesWithText("2 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
+        }
+        onNodeWithTag(ShoppingListTestTags.ItemSheet).performTouchInput { swipeDown() }
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(ShoppingListTestTags.ItemSheet).fetchSemanticsNodes().isEmpty() }
+        onNodeWithTag(ShoppingListTestTags.item("eggs")).performTouchInput { longClick() }
+        onNodeWithTag(ShoppingListTestTags.OutOfStockButton).performClick()
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(ShoppingListTestTags.ItemSheet).fetchSemanticsNodes().isEmpty() }
+        onNodeWithTag(ShoppingListTestTags.item("bread")).performClick()
+
+        // Assert — Then the counter reads 0 of 3 items remaining
+        waitUntil(timeoutMillis = 5_000) {
+            onAllNodesWithText("0 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
+        }
     }
 }

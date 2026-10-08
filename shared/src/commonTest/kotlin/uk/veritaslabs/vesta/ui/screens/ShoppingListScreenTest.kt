@@ -22,6 +22,38 @@ class ShoppingListScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun theTopBarCountsItemsRemainingTreatingPartialAndOutOfStockAsCheckedOff() = runComposeUiTest {
+        // Arrange
+        val items = listOf(
+            milk,
+            milk.copy(key = "a", got = 3),
+            milk.copy(key = "b", got = 1),
+            milk.copy(key = "c", outOfStock = true),
+        )
+        setContent { VestaTheme { ShoppingListScreen(items = items) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertTextEquals("1 of 4 items remaining")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theTopBarShowsNoCounterForAnEmptyList() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { ShoppingListScreen(items = emptyList()) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun showsEachItemUnderItsCategoryWithItsQuantity() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }

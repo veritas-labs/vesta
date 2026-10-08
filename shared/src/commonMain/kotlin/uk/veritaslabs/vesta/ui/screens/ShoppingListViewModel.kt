@@ -33,7 +33,13 @@ data class ShoppingListItem(
 
     /** Some, but not all, of what was wanted has been picked up. */
     val isPartlyGot: Boolean get() = !outOfStock && got in 1 until quantity
+
+    /** Checked off in any way: crossed off, partly got or out of stock. */
+    val isCheckedOff: Boolean get() = outOfStock || got > 0
 }
+
+/** How many of [items] are still to be dealt with: not crossed off, partly got or out of stock. */
+fun shoppingRemaining(items: List<ShoppingListItem>): Int = items.count { !it.isCheckedOff }
 
 /** The editable fields of a shopping-list item; [key] is null while adding one. */
 data class ShoppingItemDetails(

@@ -74,6 +74,7 @@ import vesta.shared.generated.resources.shopping_mark_in_stock
 import vesta.shared.generated.resources.shopping_mark_out_of_stock
 import vesta.shared.generated.resources.shopping_out_of_stock
 import vesta.shared.generated.resources.shopping_quantity
+import vesta.shared.generated.resources.shopping_remaining
 import vesta.shared.generated.resources.shopping_title
 
 private val ShoppingListTabletBreakpoint = 600.dp
@@ -82,6 +83,7 @@ private val ShoppingListTabletBreakpoint = 600.dp
 internal object ShoppingListTestTags {
     const val BackButton = "shopping_back_button"
     const val AddItemButton = "shopping_add_item_button"
+    const val RemainingCounter = "shopping_remaining_counter"
 
     /** Tag for the filter chip of the tag [name]. */
     fun filterChip(name: String) = "shopping_filter_chip_$name"
@@ -128,6 +130,9 @@ fun ShoppingListScreen(
  * out of stock), with a button that calls [onItemSelected] (to edit it). Crossed-off, partly got and out-of-stock
  * rows look different (see [ShoppingListItem.isCrossedOff]). [onAddItem] is the floating action button; [onBack] the top-bar back arrow.
  *
+ * The top bar's right side counts the items still to do ("4 of 12 items remaining"): crossed-off, partly got and
+ * out-of-stock items all count as checked off, and the filter does not change the count.
+ *
  * When any item has tags, a row of filter chips (one per tag) sits under the top bar: [selectedTags] (lower-cased) are
  * the chips switched on, [onToggleTag] is called with a chip's tag when it is tapped, and with any on, only the items
  * carrying one of them are shown (see [filterByTags]).
@@ -153,6 +158,16 @@ fun ShoppingListScreen(
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
                 title = { Text(stringResource(Res.string.shopping_title)) },
+                actions = {
+                    if (items.isNotEmpty()) {
+                        Text(
+                            text = stringResource(Res.string.shopping_remaining, shoppingRemaining(items), items.size),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = contentPadding).testTag(ShoppingListTestTags.RemainingCounter),
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(ShoppingListTestTags.BackButton)) {
                         Icon(

@@ -208,6 +208,7 @@
     <string name="shopping_got_increase">Got one more</string>
     <string name="shopping_got_decrease">Got one fewer</string>
     <string name="shopping_edit_item">Edit item</string>
+    <string name="shopping_remaining">%1$d of %2$d items remaining</string>
     <string name="shopping_filter_label">Filter by tag</string>
     <string name="shopping_tags_label">Tags</string>
     <string name="shopping_tags_hint">Add a tag, e.g. a shop</string>
