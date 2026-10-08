@@ -32,6 +32,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import uk.veritaslabs.vesta.blobs.BlobReference
+import uk.veritaslabs.vesta.blobs.Placeholder
+import uk.veritaslabs.vesta.ui.components.BlobImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -272,7 +277,21 @@ private fun MediaRow(media: List<RecipeMedia>) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         itemsIndexed(media) { index, item ->
             OutlinedCard(modifier = Modifier.width(160.dp).height(112.dp).testTag(RecipeDetailTestTags.media(index))) {
-                Column(
+                val blob = item.blob
+                if (blob != null) {
+                    Box(Modifier.fillMaxSize()) {
+                        BlobImage(blob, Modifier.fillMaxSize(), contentDescription = item.caption.ifBlank { stringResource(Res.string.recipe_media_photo) })
+                        if (item.caption.isNotBlank()) {
+                            Text(
+                                item.caption,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)).padding(horizontal = 6.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+                } else Column(
                     modifier = Modifier.fillMaxSize().padding(12.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -439,7 +458,15 @@ internal val RecipePreview = Recipe(
     restMinutes = 10,
     rating = 4,
     favourite = true,
-    media = listOf(RecipeMedia("file:///photos/pie.jpg", MediaKind.Photo, "Fresh from the oven"), RecipeMedia("https://example.com/pie.mp4", MediaKind.Video)),
+    media = listOf(
+        RecipeMedia(
+            "", MediaKind.Photo, "Fresh from the oven",
+            // Not on this device in a preview, so it shows the placeholder state.
+            BlobReference("a".repeat(64), 90_000, "image/webp", MediaKind.Photo, 4, 3, Placeholder.encode(IntArray(12) { if (it % 4 < 2) 0xFFE8A33D.toInt() else 0xFF8A4B1F.toInt() }, 4, 3)),
+        ),
+        RecipeMedia("file:///photos/pie.jpg", MediaKind.Photo, "Old link"),
+        RecipeMedia("https://example.com/pie.mp4", MediaKind.Video),
+    ),
     ingredients = listOf(
         RecipeIngredient("Lamb mince", 500.0, "g"),
         RecipeIngredient("Potatoes", 800.0, "g"),

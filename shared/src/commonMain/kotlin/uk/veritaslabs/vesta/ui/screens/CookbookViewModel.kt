@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.blobs.BlobReference
 
 private const val StopTimeoutMillis = 5_000L
 
@@ -19,8 +20,16 @@ enum class RecipeType { Breakfast, Lunch, Dinner, Starter, Side, Dessert, Baking
 
 enum class MediaKind { Photo, Video }
 
-/** A photo or video attached to a recipe: a reference ([uri]), not the bytes (ADR-022). */
-data class RecipeMedia(val uri: String, val kind: MediaKind = MediaKind.Photo, val caption: String = "")
+/**
+ * A photo or video attached to a recipe: a reference, not the bytes. A [blob] is a photo stored on the devices and moved between them (ADR-023),
+ * with [uri] empty; an entry with no blob is a link to somewhere else ([uri]), as ADR-022 first had them.
+ */
+data class RecipeMedia(
+    val uri: String,
+    val kind: MediaKind = MediaKind.Photo,
+    val caption: String = "",
+    val blob: BlobReference? = null,
+)
 
 /** One line of a recipe's ingredients; [quantity] null means "to taste" or similar and is shown without a number. */
 data class RecipeIngredient(

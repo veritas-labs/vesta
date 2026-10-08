@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.automerge.Document
+import uk.veritaslabs.vesta.blobs.BlobReference
 import uk.veritaslabs.vesta.ui.screens.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeIngredient
@@ -179,5 +180,82 @@ class CookbookDocumentTest {
 
         // Assert
         assertEquals("Shepherd's Pie", reloaded.readRecipe("r1")?.title)
+    }
+
+    private val hashA = "a".repeat(64)
+    private val hashB = "b".repeat(64)
+
+    private fun photo(hash: String, caption: String = "") =
+        RecipeMedia("", MediaKind.Photo, caption, BlobReference(hash, 91_234, "image/webp", MediaKind.Photo, 1200, 1600, "t:abcdEFGH"))
+
+    @Test
+    fun aBlobPhotoReadsBackWithItsReference() {
+        // Arrange
+        val doc = Document()
+        val recipe = pie.copy(media = listOf(photo(hashA, "Fresh"), RecipeMedia("https://x/pie.mp4", MediaKind.Video)))
+
+        // Act
+        addRecipe(doc, "r1", recipe)
+        val read = doc.readRecipe("r1")!!
+
+        // Assert
+        assertEquals(recipe.media, read.media)
+        assertEquals(hashA, read.media[0].blob?.hash)
+        assertNull(read.media[1].blob)
+    }
+
+    @Test
+    fun aLinkEntryWrittenBeforeBlobsStaysALink() {
+        // Arrange
+        val doc = Document()
+        addRecipe(doc, "r1", pie)
+
+        // Act
+        val media = doc.readRecipe("r1")!!.media
+
+        // Assert
+        assertTrue(media.all { it.blob == null })
+        assertEquals("file:///pie.jpg", media[0].uri)
+    }
+
+    @Test
+    fun anEntryWithAMalformedHashIsALinkNotABlob() {
+        // Arrange
+        val doc = Document()
+        val bad = RecipeMedia("", MediaKind.Photo, "x", BlobReference("../../etc/passwd", 1, "image/webp", MediaKind.Photo, 1, 1, "t:a"))
+
+        // Act
+        addRecipe(doc, "r1", pie.copy(media = listOf(bad)))
+
+        // Assert
+        assertNull(doc.readRecipe("r1")!!.media.single().blob)
+    }
+
+    @Test
+    fun savingARecipeWithTheBlobRemovedDropsTheReference() {
+        // Arrange
+        val doc = Document()
+        addRecipe(doc, "r1", pie.copy(media = listOf(photo(hashA))))
+
+        // Act
+        updateRecipe(doc, "r1", pie.copy(media = emptyList()))
+
+        // Assert
+        assertTrue(doc.readCookbookBlobReferences().isEmpty())
+    }
+
+    @Test
+    fun blobReferencesListsEachHashOnceAcrossRecipes() {
+        // Arrange
+        val doc = Document()
+        addRecipe(doc, "r1", pie.copy(media = listOf(photo(hashA), photo(hashB))))
+        addRecipe(doc, "r2", pie.copy(title = "Other", media = listOf(photo(hashA), RecipeMedia("https://x/y", MediaKind.Photo))))
+
+        // Act
+        val references = doc.readCookbookBlobReferences()
+
+        // Assert
+        assertEquals(setOf(hashA, hashB), references.map { it.hash }.toSet())
+        assertEquals(2, references.size)
     }
 }

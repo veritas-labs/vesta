@@ -27,6 +27,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clip
+import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.blobs.PhotoAddResult
+import uk.veritaslabs.vesta.blobs.PhotoRejection
+import uk.veritaslabs.vesta.ui.components.BlobImage
+import uk.veritaslabs.vesta.ui.components.rememberPhotoPickerForScreen
+import vesta.shared.generated.resources.recipe_edit_media_add_photo
+import vesta.shared.generated.resources.recipe_edit_media_add_video_link
+import vesta.shared.generated.resources.recipe_edit_media_photo_too_large
+import vesta.shared.generated.resources.recipe_edit_media_photo_unreadable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -110,6 +124,8 @@ internal object RecipeEditTestTags {
     const val MediaPhotoChip = "recipe_edit_media_photo"
     const val MediaVideoChip = "recipe_edit_media_video"
     const val AddMediaButton = "recipe_edit_media_add"
+    const val AddPhotoButton = "recipe_edit_media_add_photo"
+    const val PhotoError = "recipe_edit_media_photo_error"
     const val AddIngredientButton = "recipe_edit_ingredient_add"
     const val AddStepButton = "recipe_edit_step_add"
 
@@ -175,6 +191,24 @@ fun RecipeEditScreen(
     var mediaUri by remember(recipe) { mutableStateOf("") }
     var mediaCaption by remember(recipe) { mutableStateOf("") }
     var mediaKind by remember(recipe) { mutableStateOf(MediaKind.Photo) }
+    // With the blob machinery present (ADR-023) a photo is picked from the device; the typed link is then only for videos.
+    val blobs = LocalBlobs.current
+    val scope = rememberCoroutineScope()
+    var photoRejection by remember(recipe) { mutableStateOf<PhotoRejection?>(null) }
+    val photoPicker = rememberPhotoPickerForScreen { source ->
+        blobs?.let { blobs ->
+            scope.launch {
+                when (val result = blobs.addPhoto(source)) {
+                    is PhotoAddResult.Added -> {
+                        photoRejection = null
+                        media = media + RecipeMedia("", result.reference.kind, mediaCaption.trim(), result.reference)
+                        mediaCaption = ""
+                    }
+                    is PhotoAddResult.Rejected -> photoRejection = result.reason
+                }
+            }
+        }
+    }
     var ingredients by remember(recipe) { mutableStateOf(original.ingredientDrafts()) }
     var steps by remember(recipe) { mutableStateOf(original.stepDrafts()) }
     var nextStepNumber by remember(recipe) { mutableIntStateOf(1) }
@@ -287,7 +321,8 @@ fun RecipeEditScreen(
 
                     Heading(stringResource(Res.string.recipe_edit_media_heading))
                     media.forEachIndexed { index, item ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            item.blob?.let { BlobImage(it, Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))) }
                             Text(
                                 text = "${stringResource(if (item.kind == MediaKind.Video) Res.string.recipe_media_video else Res.string.recipe_media_photo)}: " +
                                     item.caption.ifBlank { item.uri },
@@ -299,42 +334,36 @@ fun RecipeEditScreen(
                             }
                         }
                     }
-                    OutlinedTextField(
-                        value = mediaUri,
-                        onValueChange = { mediaUri = it },
-                        label = { Text(stringResource(Res.string.recipe_edit_media_uri_label)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaUriField),
-                    )
-                    OutlinedTextField(
-                        value = mediaCaption,
-                        onValueChange = { mediaCaption = it },
-                        label = { Text(stringResource(Res.string.recipe_edit_media_caption_label)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaCaptionField),
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        FilterChip(
-                            selected = mediaKind == MediaKind.Photo,
-                            onClick = { mediaKind = MediaKind.Photo },
-                            label = { Text(stringResource(Res.string.recipe_media_photo)) },
-                            modifier = Modifier.testTag(RecipeEditTestTags.MediaPhotoChip),
+                    if (blobs == null) {
+                        MediaLinkFields(mediaUri, { mediaUri = it }, mediaCaption, { mediaCaption = it }, mediaKind, { mediaKind = it }, showKind = true, showCaption = true) {
+                            media = media + RecipeMedia(mediaUri.trim(), mediaKind, mediaCaption.trim())
+                            mediaUri = ""
+                            mediaCaption = ""
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = mediaCaption,
+                            onValueChange = { mediaCaption = it },
+                            label = { Text(stringResource(Res.string.recipe_edit_media_caption_label)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaCaptionField),
                         )
-                        FilterChip(
-                            selected = mediaKind == MediaKind.Video,
-                            onClick = { mediaKind = MediaKind.Video },
-                            label = { Text(stringResource(Res.string.recipe_media_video)) },
-                            modifier = Modifier.testTag(RecipeEditTestTags.MediaVideoChip),
-                        )
-                        OutlinedButton(
-                            enabled = mediaUri.isNotBlank(),
-                            onClick = {
-                                media = media + RecipeMedia(mediaUri.trim(), mediaKind, mediaCaption.trim())
-                                mediaUri = ""
-                                mediaCaption = ""
-                            },
-                            modifier = Modifier.testTag(RecipeEditTestTags.AddMediaButton),
-                        ) { Text(stringResource(Res.string.recipe_edit_media_add)) }
+                        OutlinedButton(onClick = { photoPicker.launch() }, modifier = Modifier.testTag(RecipeEditTestTags.AddPhotoButton)) {
+                            Text(stringResource(Res.string.recipe_edit_media_add_photo))
+                        }
+                        photoRejection?.let {
+                            Text(
+                                stringResource(if (it == PhotoRejection.TooLarge) Res.string.recipe_edit_media_photo_too_large else Res.string.recipe_edit_media_photo_unreadable),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.testTag(RecipeEditTestTags.PhotoError),
+                            )
+                        }
+                        MediaLinkFields(mediaUri, { mediaUri = it }, mediaCaption, { mediaCaption = it }, MediaKind.Video, {}, showKind = false, showCaption = false) {
+                            media = media + RecipeMedia(mediaUri.trim(), MediaKind.Video, mediaCaption.trim())
+                            mediaUri = ""
+                            mediaCaption = ""
+                        }
                     }
 
                     Heading(stringResource(Res.string.recipe_edit_ingredients_heading))
@@ -463,6 +492,58 @@ internal fun normalizeRecipeTags(tags: String): List<String> =
     tags.split(',').map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
 
 private fun <T> List<T>.update(index: Int, change: (T) -> T): List<T> = mapIndexed { i, item -> if (i == index) change(item) else item }
+
+/** The typed link to a photo or video (ADR-022): its address, a caption, and which kind it is; [onAdd] when the person adds it. */
+@Composable
+private fun MediaLinkFields(
+    uri: String,
+    onUriChange: (String) -> Unit,
+    caption: String,
+    onCaptionChange: (String) -> Unit,
+    kind: MediaKind,
+    onKindChange: (MediaKind) -> Unit,
+    showKind: Boolean,
+    showCaption: Boolean,
+    onAdd: () -> Unit,
+) {
+    OutlinedTextField(
+        value = uri,
+        onValueChange = onUriChange,
+        label = { Text(stringResource(Res.string.recipe_edit_media_uri_label)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaUriField),
+    )
+    if (showCaption) {
+        OutlinedTextField(
+            value = caption,
+            onValueChange = onCaptionChange,
+            label = { Text(stringResource(Res.string.recipe_edit_media_caption_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaCaptionField),
+        )
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (showKind) {
+            FilterChip(
+                selected = kind == MediaKind.Photo,
+                onClick = { onKindChange(MediaKind.Photo) },
+                label = { Text(stringResource(Res.string.recipe_media_photo)) },
+                modifier = Modifier.testTag(RecipeEditTestTags.MediaPhotoChip),
+            )
+            FilterChip(
+                selected = kind == MediaKind.Video,
+                onClick = { onKindChange(MediaKind.Video) },
+                label = { Text(stringResource(Res.string.recipe_media_video)) },
+                modifier = Modifier.testTag(RecipeEditTestTags.MediaVideoChip),
+            )
+        }
+        OutlinedButton(
+            enabled = uri.isNotBlank(),
+            onClick = onAdd,
+            modifier = Modifier.testTag(RecipeEditTestTags.AddMediaButton),
+        ) { Text(stringResource(if (showKind) Res.string.recipe_edit_media_add else Res.string.recipe_edit_media_add_video_link)) }
+    }
+}
 
 @Composable
 private fun Heading(text: String) {

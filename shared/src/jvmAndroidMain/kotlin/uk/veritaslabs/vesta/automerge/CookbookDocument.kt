@@ -8,6 +8,8 @@ import org.automerge.ObjectId
 import org.automerge.ObjectType
 import org.automerge.Read
 import org.automerge.Transaction
+import uk.veritaslabs.vesta.blobs.BlobReference
+import uk.veritaslabs.vesta.blobs.BlobStore
 import uk.veritaslabs.vesta.ui.screens.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeIngredient
@@ -32,6 +34,12 @@ private const val MediaKey = "media"
 private const val UriKey = "uri"
 private const val KindKey = "kind"
 private const val CaptionKey = "caption"
+private const val HashKey = "hash"
+private const val SizeKey = "size"
+private const val MimeKey = "mime"
+private const val WidthKey = "w"
+private const val HeightKey = "h"
+private const val BlurKey = "blur"
 private const val IngredientsKey = "ingredients"
 private const val NameKey = "name"
 private const val MilliKey = "milli"
@@ -52,6 +60,13 @@ fun Read.readCookbook(): List<Recipe> {
         ?.sortedBy { it.title.lowercase() }
         .orEmpty()
 }
+
+/** Every blob the cookbook's recipes refer to, one reference per distinct hash (the first seen wins). */
+fun Read.readCookbookBlobReferences(): Set<BlobReference> = readCookbook().blobReferences()
+
+/** The blobs these recipes refer to, one reference per distinct hash. */
+fun List<Recipe>.blobReferences(): Set<BlobReference> =
+    flatMap { recipe -> recipe.media.mapNotNull { it.blob } }.distinctBy { it.hash }.toSet()
 
 /** Reads the recipe with [key], or `null` if the cookbook has none. */
 fun Read.readRecipe(key: String): Recipe? {
@@ -136,6 +151,14 @@ private fun Transaction.writeRecipe(recipeId: ObjectId, key: String, recipe: Rec
         set(entry, UriKey, media.uri)
         set(entry, KindKey, media.kind.name)
         set(entry, CaptionKey, media.caption)
+        media.blob?.let { blob ->
+            set(entry, HashKey, blob.hash)
+            set(entry, SizeKey, blob.size.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+            set(entry, MimeKey, blob.mime)
+            set(entry, WidthKey, blob.w)
+            set(entry, HeightKey, blob.h)
+            set(entry, BlurKey, blob.blur)
+        }
     }
 
     val ingredientsId = set(recipeId, IngredientsKey, ObjectType.LIST)
@@ -169,13 +192,7 @@ private fun Read.readRecipeAt(recipeId: ObjectId): Recipe = Recipe(
     restMinutes = int(recipeId, RestKey) ?: 0,
     rating = (int(recipeId, RatingKey) ?: 0).coerceIn(0, 5),
     favourite = (get(recipeId, FavouriteKey).getOrNull() as? AmValue.Bool)?.value ?: false,
-    media = listMaps(recipeId, MediaKey).map {
-        RecipeMedia(
-            uri = str(it, UriKey),
-            kind = MediaKind.entries.firstOrNull { kind -> kind.name == str(it, KindKey) } ?: MediaKind.Photo,
-            caption = str(it, CaptionKey),
-        )
-    },
+    media = listMaps(recipeId, MediaKey).map { readMedia(it) },
     ingredients = listMaps(recipeId, IngredientsKey).map {
         RecipeIngredient(
             name = str(it, NameKey),
@@ -196,6 +213,24 @@ private fun Read.readRecipeAt(recipeId: ObjectId): Recipe = Recipe(
     source = str(recipeId, SourceKey),
     notes = str(recipeId, NotesKey),
 )
+
+private fun Read.readMedia(entry: ObjectId): RecipeMedia {
+    val kind = MediaKind.entries.firstOrNull { kind -> kind.name == str(entry, KindKey) } ?: MediaKind.Photo
+    // An entry is a blob only if it carries a well-formed hash; anything else (a legacy link, a damaged entry) stays a link.
+    val hash = str(entry, HashKey).takeIf(BlobStore::isHash)
+    val blob = hash?.let {
+        BlobReference(
+            hash = it,
+            size = int(entry, SizeKey)?.toLong() ?: 0L,
+            mime = str(entry, MimeKey),
+            kind = kind,
+            w = int(entry, WidthKey) ?: 0,
+            h = int(entry, HeightKey) ?: 0,
+            blur = str(entry, BlurKey),
+        )
+    }
+    return RecipeMedia(uri = str(entry, UriKey), kind = kind, caption = str(entry, CaptionKey), blob = blob)
+}
 
 private fun Read.str(obj: ObjectId, key: String): String = (get(obj, key).getOrNull() as? AmValue.Str)?.value.orEmpty()
 

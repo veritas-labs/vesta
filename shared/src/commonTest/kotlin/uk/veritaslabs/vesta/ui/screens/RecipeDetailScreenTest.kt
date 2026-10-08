@@ -135,4 +135,26 @@ class RecipeDetailScreenTest {
         // Assert
         assertEquals(listOf(false), changes)
     }
+
+    @Test
+    fun aBlobPhotoShowsItsPlaceholderUntilThePhotoArrivesAndALegacyLinkStaysATile() = runComposeUiTest {
+        // Arrange
+        val blobs = uk.veritaslabs.vesta.blobs.FakeBlobs()
+        val reference = uk.veritaslabs.vesta.blobs.testBlobReference()
+        val withPhoto = recipe.copy(media = listOf(RecipeMedia("", MediaKind.Photo, "Fresh", reference), RecipeMedia("file:///old.jpg", MediaKind.Photo, "Old link")))
+        setContent {
+            VestaTheme {
+                androidx.compose.runtime.CompositionLocalProvider(uk.veritaslabs.vesta.blobs.LocalBlobs provides blobs) { RecipeDetailScreen(withPhoto) }
+            }
+        }
+        waitUntil { runCatching { onNodeWithTag(uk.veritaslabs.vesta.ui.components.BlobImageTestTags.Waiting).assertIsDisplayed() }.isSuccess }
+
+        // Act
+        blobs.arrive(reference.hash)
+        waitUntil { runCatching { onNodeWithTag(uk.veritaslabs.vesta.ui.components.BlobImageTestTags.Photo).assertIsDisplayed() }.isSuccess }
+
+        // Assert
+        onNodeWithTag(uk.veritaslabs.vesta.ui.components.BlobImageTestTags.Photo).assertIsDisplayed()
+        onNodeWithText("Old link").assertIsDisplayed()
+    }
 }

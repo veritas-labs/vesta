@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
+import uk.veritaslabs.vesta.blobs.BlobReference
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.mailbox.changesSince
 import uk.veritaslabs.vesta.mailbox.encodeHeads
@@ -40,6 +41,9 @@ class CookbookDocumentSource(
     private val state = MutableStateFlow(document.readCookbook())
 
     override val recipes: Flow<List<Recipe>> = state
+
+    /** Every blob the cookbook currently refers to (ADR-023), so a device can tell which photos it still lacks. */
+    fun blobReferences(): Set<BlobReference> = state.value.blobReferences()
 
     override suspend fun save(recipe: Recipe): String {
         // A new recipe's key is chosen up front so a recipe saved before the cookbook has arrived keeps the key we return.
