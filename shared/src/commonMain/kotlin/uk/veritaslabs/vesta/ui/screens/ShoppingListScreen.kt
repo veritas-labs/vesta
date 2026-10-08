@@ -153,8 +153,9 @@ fun ShoppingListScreen(
  *
  * The top bar's overflow menu has one entry, "Uncheck all items", which calls [onUncheckAll].
  *
- * The top bar's right side counts the items still to do ("4 of 12 items remaining"): crossed-off, partly got and
- * out-of-stock items all count as checked off, and the filter does not change the count.
+ * Under the top bar (and under the filter chips, when shown) a line counts the items still to do ("4 of 12 items
+ * remaining"): crossed-off, partly got and out-of-stock items all count as checked off, and the filter does not change
+ * the count.
  *
  * When any item has tags, a row of filter chips (one per tag) sits under the top bar: [selectedTags] (lower-cased) are
  * the chips switched on, [onToggleTag] is called with a chip's tag when it is tapped, and with any on, only the items
@@ -185,14 +186,6 @@ fun ShoppingListScreen(
             TopAppBar(
                 title = { Text(stringResource(Res.string.shopping_title)) },
                 actions = {
-                    if (items.isNotEmpty()) {
-                        Text(
-                            text = stringResource(Res.string.shopping_remaining, shoppingRemaining(items), items.size),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(end = contentPadding).testTag(ShoppingListTestTags.RemainingCounter),
-                        )
-                    }
                     Box {
                         IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(ShoppingListTestTags.OverflowButton)) {
                             Icon(
@@ -253,6 +246,18 @@ fun ShoppingListScreen(
                         )
                     }
                 }
+            }
+            if (items.isNotEmpty()) {
+                Text(
+                    text = stringResource(Res.string.shopping_remaining, shoppingRemaining(items), items.size),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = contentPadding)
+                        .padding(top = 8.dp, bottom = 4.dp)
+                        .testTag(ShoppingListTestTags.RemainingCounter),
+                )
             }
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding)) {
                 if (items.isEmpty()) {
