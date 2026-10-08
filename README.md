@@ -164,3 +164,20 @@ are themselves `suspend` functions.
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+
+---
+
+## Licence
+
+The source code is released under the [Apache License 2.0](LICENSE); third-party
+attributions are in [NOTICE](NOTICE). The name **Vesta**, the logo and the other
+brand assets in [branding/](branding/) are not covered by that licence — see
+[TRADEMARK.md](TRADEMARK.md) for what forks may and may not do.
+
+The libraries Vesta ships with, and their licences, are listed in the app under
+**Settings → Open source licences**. That list is generated, so after changing a
+dependency (including the Rust crates in `ffi/x0x-ffi`) regenerate and commit it:
+
+```
+./gradlew generateLicenses
+```

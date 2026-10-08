@@ -32,6 +32,8 @@ import uk.veritaslabs.vesta.agent.AgentApprovalHost
 import uk.veritaslabs.vesta.db.DatabaseDriverFactory
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.createVestaDatabase
+import uk.veritaslabs.vesta.licenses.OpenSourceLicense
+import uk.veritaslabs.vesta.licenses.loadOpenSourceLicenses
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
@@ -52,6 +54,7 @@ import uk.veritaslabs.vesta.ui.screens.HubScreen
 import uk.veritaslabs.vesta.ui.screens.HubTutorialScreen
 import uk.veritaslabs.vesta.ui.screens.NetworkDiagnosticsScreen
 import uk.veritaslabs.vesta.ui.screens.NetworkPeersScreen
+import uk.veritaslabs.vesta.ui.screens.OpenSourceLicensesScreen
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteScreen
 import uk.veritaslabs.vesta.home.MemberRepository
@@ -108,7 +111,7 @@ val LocalDarkThemeSetting = compositionLocalOf<DarkThemeSetting> { error("No Dar
 private data class HomeEditTarget(val homeId: String?, val session: Int)
 
 /** The app-wide settings screens, reached from the Home picker. */
-private enum class SettingsDestination { Settings, SyncedDevices, ProfileName, Peers, NetworkDiagnostics }
+private enum class SettingsDestination { Settings, SyncedDevices, ProfileName, Peers, NetworkDiagnostics, OpenSourceLicenses }
 
 /**
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name, and an
@@ -224,6 +227,7 @@ fun App(
                             onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },
                             onNetworkStatusClick = { settingsDestination = SettingsDestination.NetworkDiagnostics },
                             onPeersClick = { settingsDestination = SettingsDestination.Peers },
+                            onOpenSourceLicensesClick = { settingsDestination = SettingsDestination.OpenSourceLicenses },
                             profileName = profile?.displayName,
                             onProfileNameClick = { settingsDestination = SettingsDestination.ProfileName },
                             onBack = { settingsDestination = null },
@@ -231,6 +235,12 @@ fun App(
                     } else if (settingsDestination == SettingsDestination.NetworkDiagnostics) {
                         NetworkDiagnosticsScreen(
                             diagnostics = rememberX0xNetworkDiagnostics(),
+                            onBack = { settingsDestination = SettingsDestination.Settings },
+                        )
+                    } else if (settingsDestination == SettingsDestination.OpenSourceLicenses) {
+                        val licenses by produceState(emptyList<OpenSourceLicense>()) { value = loadOpenSourceLicenses() }
+                        OpenSourceLicensesScreen(
+                            licenses = licenses,
                             onBack = { settingsDestination = SettingsDestination.Settings },
                         )
                     } else if (settingsDestination == SettingsDestination.Peers) {

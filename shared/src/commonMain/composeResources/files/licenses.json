@@ -1,0 +1,4807 @@
+[
+    {
+        "name": "androidx.activity:activity",
+        "version": "1.13.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/activity#1.13.0"
+    },
+    {
+        "name": "androidx.activity:activity-compose",
+        "version": "1.13.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/activity#1.13.0"
+    },
+    {
+        "name": "androidx.activity:activity-ktx",
+        "version": "1.13.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/activity#1.13.0"
+    },
+    {
+        "name": "androidx.annotation:annotation",
+        "version": "1.9.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/annotation#1.9.1"
+    },
+    {
+        "name": "androidx.annotation:annotation-experimental",
+        "version": "1.4.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/annotation#1.4.1"
+    },
+    {
+        "name": "androidx.appcompat:appcompat",
+        "version": "1.6.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/appcompat#1.6.1"
+    },
+    {
+        "name": "androidx.appcompat:appcompat-resources",
+        "version": "1.6.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/appcompat#1.6.1"
+    },
+    {
+        "name": "androidx.arch.core:core-common",
+        "version": "2.2.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/arch-core#2.2.0"
+    },
+    {
+        "name": "androidx.arch.core:core-runtime",
+        "version": "2.2.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/arch-core#2.2.0"
+    },
+    {
+        "name": "androidx.autofill:autofill",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx"
+    },
+    {
+        "name": "androidx.camera.featurecombinationquery:featurecombinationquery",
+        "version": "1.6.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera-featurecombinationquery#1.6.2"
+    },
+    {
+        "name": "androidx.camera.viewfinder:viewfinder-core",
+        "version": "1.5.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera-viewfinder#1.5.1"
+    },
+    {
+        "name": "androidx.camera:camera-camera2",
+        "version": "1.6.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera#1.6.2"
+    },
+    {
+        "name": "androidx.camera:camera-camera2-pipe",
+        "version": "1.6.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera#1.6.2"
+    },
+    {
+        "name": "androidx.camera:camera-core",
+        "version": "1.6.2",
+        "licenses": [
+            "Apache License, Version 2.0",
+            "The 3-Clause BSD License"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera#1.6.2"
+    },
+    {
+        "name": "androidx.camera:camera-lifecycle",
+        "version": "1.6.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera#1.6.2"
+    },
+    {
+        "name": "androidx.camera:camera-video",
+        "version": "1.6.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera#1.6.2"
+    },
+    {
+        "name": "androidx.camera:camera-view",
+        "version": "1.6.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/camera#1.6.2"
+    },
+    {
+        "name": "androidx.collection:collection",
+        "version": "1.6.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/collection#1.6.0"
+    },
+    {
+        "name": "androidx.collection:collection-ktx",
+        "version": "1.6.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/collection#1.6.0"
+    },
+    {
+        "name": "androidx.compose.animation:animation",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-animation#1.12.1"
+    },
+    {
+        "name": "androidx.compose.animation:animation-core",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-animation#1.12.1"
+    },
+    {
+        "name": "androidx.compose.foundation:foundation",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-foundation#1.12.1"
+    },
+    {
+        "name": "androidx.compose.foundation:foundation-layout",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-foundation#1.12.1"
+    },
+    {
+        "name": "androidx.compose.material3:material3",
+        "version": "1.5.0-alpha22",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-material3#1.5.0-alpha22"
+    },
+    {
+        "name": "androidx.compose.material:material-ripple",
+        "version": "1.12.0-beta01",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-material#1.12.0-beta01"
+    },
+    {
+        "name": "androidx.compose.runtime:runtime",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-runtime#1.12.1"
+    },
+    {
+        "name": "androidx.compose.runtime:runtime-annotation",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-runtime#1.12.1"
+    },
+    {
+        "name": "androidx.compose.runtime:runtime-retain",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-runtime#1.12.1"
+    },
+    {
+        "name": "androidx.compose.runtime:runtime-saveable",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-runtime#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-geometry",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-graphics",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-text",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-tooling",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-tooling-data",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-tooling-preview",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-unit",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.compose.ui:ui-util",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/compose-ui#1.12.1"
+    },
+    {
+        "name": "androidx.concurrent:concurrent-futures",
+        "version": "1.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/topic/libraries/architecture/index.html"
+    },
+    {
+        "name": "androidx.concurrent:concurrent-futures-ktx",
+        "version": "1.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/topic/libraries/architecture/index.html"
+    },
+    {
+        "name": "androidx.core:core",
+        "version": "1.18.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/core#1.18.0"
+    },
+    {
+        "name": "androidx.core:core-backported-fixes",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/core#1.0.0"
+    },
+    {
+        "name": "androidx.core:core-ktx",
+        "version": "1.18.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/core#1.18.0"
+    },
+    {
+        "name": "androidx.core:core-viewtree",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/core#1.0.0"
+    },
+    {
+        "name": "androidx.cursoradapter:cursoradapter",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://developer.android.com/tools/extras/support-library.html"
+    },
+    {
+        "name": "androidx.customview:customview",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://developer.android.com/tools/extras/support-library.html"
+    },
+    {
+        "name": "androidx.customview:customview-poolingcontainer",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/customview#1.0.0"
+    },
+    {
+        "name": "androidx.drawerlayout:drawerlayout",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://developer.android.com/tools/extras/support-library.html"
+    },
+    {
+        "name": "androidx.emoji2:emoji2",
+        "version": "1.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/emoji2#1.4.0"
+    },
+    {
+        "name": "androidx.emoji2:emoji2-views-helper",
+        "version": "1.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/emoji2#1.4.0"
+    },
+    {
+        "name": "androidx.exifinterface:exifinterface",
+        "version": "1.4.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/exifinterface#1.4.2"
+    },
+    {
+        "name": "androidx.fragment:fragment",
+        "version": "1.3.6",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/fragment#1.3.6"
+    },
+    {
+        "name": "androidx.graphics:graphics-path",
+        "version": "1.0.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/graphics#1.0.1"
+    },
+    {
+        "name": "androidx.graphics:graphics-shapes",
+        "version": "1.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/graphics#1.1.0"
+    },
+    {
+        "name": "androidx.interpolator:interpolator",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://developer.android.com/tools/extras/support-library.html"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-common",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-common-java8",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-livedata",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-livedata-core",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-livedata-core-ktx",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-process",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-runtime",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-runtime-compose",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-runtime-ktx",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-viewmodel",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-viewmodel-compose",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-viewmodel-ktx",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.lifecycle:lifecycle-viewmodel-savedstate",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0"
+    },
+    {
+        "name": "androidx.loader:loader",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://developer.android.com/tools/extras/support-library.html"
+    },
+    {
+        "name": "androidx.media3:media3-common",
+        "version": "1.9.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "androidx.media3:media3-container",
+        "version": "1.9.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "androidx.media3:media3-muxer",
+        "version": "1.9.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "androidx.navigationevent:navigationevent",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/navigationevent#1.0.0"
+    },
+    {
+        "name": "androidx.navigationevent:navigationevent",
+        "version": "1.1.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/navigationevent#1.1.1"
+    },
+    {
+        "name": "androidx.navigationevent:navigationevent-compose",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/navigationevent#1.0.0"
+    },
+    {
+        "name": "androidx.navigationevent:navigationevent-compose",
+        "version": "1.1.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/navigationevent#1.1.1"
+    },
+    {
+        "name": "androidx.profileinstaller:profileinstaller",
+        "version": "1.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/profileinstaller#1.4.0"
+    },
+    {
+        "name": "androidx.resourceinspection:resourceinspection-annotation",
+        "version": "1.0.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/resourceinspection#1.0.1"
+    },
+    {
+        "name": "androidx.savedstate:savedstate",
+        "version": "1.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/savedstate#1.4.0"
+    },
+    {
+        "name": "androidx.savedstate:savedstate-compose",
+        "version": "1.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/savedstate#1.4.0"
+    },
+    {
+        "name": "androidx.savedstate:savedstate-ktx",
+        "version": "1.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/savedstate#1.4.0"
+    },
+    {
+        "name": "androidx.sqlite:sqlite",
+        "version": "2.7.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/sqlite#2.7.1"
+    },
+    {
+        "name": "androidx.sqlite:sqlite-bundled",
+        "version": "2.7.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/sqlite#2.7.1"
+    },
+    {
+        "name": "androidx.startup:startup-runtime",
+        "version": "1.1.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/startup#1.1.1"
+    },
+    {
+        "name": "androidx.tracing:tracing",
+        "version": "1.3.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/tracing#1.3.0"
+    },
+    {
+        "name": "androidx.tracing:tracing-ktx",
+        "version": "1.3.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/tracing#1.3.0"
+    },
+    {
+        "name": "androidx.vectordrawable:vectordrawable",
+        "version": "1.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx"
+    },
+    {
+        "name": "androidx.vectordrawable:vectordrawable-animated",
+        "version": "1.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx"
+    },
+    {
+        "name": "androidx.versionedparcelable:versionedparcelable",
+        "version": "1.1.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://developer.android.com/tools/extras/support-library.html"
+    },
+    {
+        "name": "androidx.viewpager:viewpager",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://developer.android.com/tools/extras/support-library.html"
+    },
+    {
+        "name": "androidx.window:window",
+        "version": "1.5.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/window#1.5.0"
+    },
+    {
+        "name": "androidx.window:window-core",
+        "version": "1.5.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://developer.android.com/jetpack/androidx/releases/window#1.5.0"
+    },
+    {
+        "name": "app.cash.sqldelight:async-extensions",
+        "version": "2.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/sqldelight/sqldelight/"
+    },
+    {
+        "name": "app.cash.sqldelight:coroutines-extensions",
+        "version": "2.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/sqldelight/sqldelight/"
+    },
+    {
+        "name": "app.cash.sqldelight:runtime",
+        "version": "2.4.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/sqldelight/sqldelight/"
+    },
+    {
+        "name": "com.autonomi:ant-android",
+        "version": "0.0.8-rc.1",
+        "licenses": [
+            "Not declared"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.eygraber:sqldelight-androidx-driver",
+        "version": "0.2.2",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/eygraber/sqldelight-androidx-driver/"
+    },
+    {
+        "name": "com.github.sarxos:webcam-capture",
+        "version": "0.3.12",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/sarxos/webcam-capture/webcam-capture"
+    },
+    {
+        "name": "com.google.android.datatransport:transport-api",
+        "version": "2.2.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.android.datatransport:transport-backend-cct",
+        "version": "2.3.3",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.android.datatransport:transport-runtime",
+        "version": "2.2.6",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.android.gms:play-services-base",
+        "version": "18.5.0",
+        "licenses": [
+            "Android Software Development Kit License"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.android.gms:play-services-basement",
+        "version": "18.4.0",
+        "licenses": [
+            "Android Software Development Kit License"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.android.gms:play-services-mlkit-barcode-scanning",
+        "version": "18.3.1",
+        "licenses": [
+            "ML Kit Terms of Service"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.android.gms:play-services-tasks",
+        "version": "18.2.0",
+        "licenses": [
+            "Android Software Development Kit License"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.android.odml:image",
+        "version": "1.0.0-beta1",
+        "licenses": [
+            "Android Software Development Kit License"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.auto.value:auto-value-annotations",
+        "version": "1.6.3",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.code.findbugs:jsr305",
+        "version": "3.0.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://findbugs.sourceforge.net/"
+    },
+    {
+        "name": "com.google.dagger:dagger",
+        "version": "2.59",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/google/dagger"
+    },
+    {
+        "name": "com.google.errorprone:error_prone_annotations",
+        "version": "2.28.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://errorprone.info/error_prone_annotations"
+    },
+    {
+        "name": "com.google.firebase:firebase-annotations",
+        "version": "16.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.firebase:firebase-components",
+        "version": "16.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.firebase:firebase-encoders",
+        "version": "16.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.firebase:firebase-encoders-json",
+        "version": "17.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.guava:failureaccess",
+        "version": "1.0.2",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/google/guava/"
+    },
+    {
+        "name": "com.google.guava:guava",
+        "version": "33.3.1-android",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/google/guava"
+    },
+    {
+        "name": "com.google.guava:listenablefuture",
+        "version": "9999.0-empty-to-avoid-conflict-with-guava",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.j2objc:j2objc-annotations",
+        "version": "3.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/google/j2objc/"
+    },
+    {
+        "name": "com.google.mlkit:barcode-scanning",
+        "version": "17.3.0",
+        "licenses": [
+            "ML Kit Terms of Service"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.mlkit:barcode-scanning-common",
+        "version": "17.0.0",
+        "licenses": [
+            "ML Kit Terms of Service"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.mlkit:common",
+        "version": "18.11.0",
+        "licenses": [
+            "ML Kit Terms of Service"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.mlkit:vision-common",
+        "version": "17.3.0",
+        "licenses": [
+            "ML Kit Terms of Service"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.mlkit:vision-interfaces",
+        "version": "16.3.0",
+        "licenses": [
+            "ML Kit Terms of Service"
+        ],
+        "url": ""
+    },
+    {
+        "name": "com.google.zxing:core",
+        "version": "3.5.4",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/zxing/zxing/core"
+    },
+    {
+        "name": "com.nativelibs4java:bridj",
+        "version": "0.7.0",
+        "licenses": [
+            "New BSD License (GPL-compatible)"
+        ],
+        "url": "http://code.google.com/p/bridj/"
+    },
+    {
+        "name": "crates.io:adler2",
+        "version": "2.0.1",
+        "licenses": [
+            "0BSD OR MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/oyvindln/adler2"
+    },
+    {
+        "name": "crates.io:aead",
+        "version": "0.5.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/traits"
+    },
+    {
+        "name": "crates.io:aes",
+        "version": "0.8.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/block-ciphers"
+    },
+    {
+        "name": "crates.io:aes-gcm",
+        "version": "0.10.3",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/AEADs"
+    },
+    {
+        "name": "crates.io:ahash",
+        "version": "0.8.12",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/tkaitchuck/ahash"
+    },
+    {
+        "name": "crates.io:aho-corasick",
+        "version": "1.1.5",
+        "licenses": [
+            "Unlicense OR MIT"
+        ],
+        "url": "https://github.com/BurntSushi/aho-corasick"
+    },
+    {
+        "name": "crates.io:allocator-api2",
+        "version": "0.2.21",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/zakarumych/allocator-api2"
+    },
+    {
+        "name": "crates.io:android_system_properties",
+        "version": "0.1.6",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/nical/android_system_properties"
+    },
+    {
+        "name": "crates.io:anstream",
+        "version": "1.0.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-cli/anstyle.git"
+    },
+    {
+        "name": "crates.io:anstyle",
+        "version": "1.0.14",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-cli/anstyle.git"
+    },
+    {
+        "name": "crates.io:anstyle-parse",
+        "version": "1.0.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-cli/anstyle.git"
+    },
+    {
+        "name": "crates.io:anstyle-query",
+        "version": "1.1.5",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-cli/anstyle.git"
+    },
+    {
+        "name": "crates.io:ant-quic",
+        "version": "0.27.54",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/ant-quic"
+    },
+    {
+        "name": "crates.io:anyhow",
+        "version": "1.0.104",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/anyhow"
+    },
+    {
+        "name": "crates.io:arrayvec",
+        "version": "0.7.8",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/bluss/arrayvec"
+    },
+    {
+        "name": "crates.io:asn1-rs",
+        "version": "0.7.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rusticata/asn1-rs.git"
+    },
+    {
+        "name": "crates.io:asn1-rs-derive",
+        "version": "0.6.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rusticata/asn1-rs.git"
+    },
+    {
+        "name": "crates.io:asn1-rs-impl",
+        "version": "0.2.0",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/rusticata/asn1-rs.git"
+    },
+    {
+        "name": "crates.io:async-stream",
+        "version": "0.3.6",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/async-stream"
+    },
+    {
+        "name": "crates.io:async-stream-impl",
+        "version": "0.3.6",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/async-stream"
+    },
+    {
+        "name": "crates.io:async-trait",
+        "version": "0.1.92",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/async-trait"
+    },
+    {
+        "name": "crates.io:atomic-waker",
+        "version": "1.1.2",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/smol-rs/atomic-waker"
+    },
+    {
+        "name": "crates.io:attohttpc",
+        "version": "0.30.1",
+        "licenses": [
+            "MPL-2.0"
+        ],
+        "url": "https://github.com/sbstp/attohttpc"
+    },
+    {
+        "name": "crates.io:aws-lc-rs",
+        "version": "1.18.0",
+        "licenses": [
+            "ISC AND (Apache-2.0 OR ISC)"
+        ],
+        "url": "https://github.com/aws/aws-lc-rs"
+    },
+    {
+        "name": "crates.io:aws-lc-sys",
+        "version": "0.44.0",
+        "licenses": [
+            "ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0)"
+        ],
+        "url": "https://github.com/aws/aws-lc-rs"
+    },
+    {
+        "name": "crates.io:axum",
+        "version": "0.7.9",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/axum"
+    },
+    {
+        "name": "crates.io:axum-core",
+        "version": "0.4.5",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/axum"
+    },
+    {
+        "name": "crates.io:axum-extra",
+        "version": "0.9.6",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/axum"
+    },
+    {
+        "name": "crates.io:base16ct",
+        "version": "0.2.0",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/formats/tree/master/base16ct"
+    },
+    {
+        "name": "crates.io:base64",
+        "version": "0.22.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/marshallpierce/rust-base64"
+    },
+    {
+        "name": "crates.io:base64",
+        "version": "0.23.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/marshallpierce/rust-base64"
+    },
+    {
+        "name": "crates.io:base64ct",
+        "version": "1.8.3",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/formats"
+    },
+    {
+        "name": "crates.io:bincode",
+        "version": "1.3.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/servo/bincode"
+    },
+    {
+        "name": "crates.io:bit-vec",
+        "version": "0.9.1",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/contain-rs/bit-vec"
+    },
+    {
+        "name": "crates.io:bitflags",
+        "version": "2.13.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/bitflags/bitflags"
+    },
+    {
+        "name": "crates.io:bitvec",
+        "version": "1.1.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/bitvecto-rs/bitvec"
+    },
+    {
+        "name": "crates.io:blake3",
+        "version": "1.8.7",
+        "licenses": [
+            "CC0-1.0 OR Apache-2.0 OR Apache-2.0 WITH LLVM-exception"
+        ],
+        "url": "https://github.com/BLAKE3-team/BLAKE3"
+    },
+    {
+        "name": "crates.io:block-buffer",
+        "version": "0.10.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/utils"
+    },
+    {
+        "name": "crates.io:bs58",
+        "version": "0.5.1",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/Nullus157/bs58-rs"
+    },
+    {
+        "name": "crates.io:bumpalo",
+        "version": "3.20.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/fitzgen/bumpalo"
+    },
+    {
+        "name": "crates.io:bytemuck",
+        "version": "1.25.2",
+        "licenses": [
+            "Zlib OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/Lokathor/bytemuck"
+    },
+    {
+        "name": "crates.io:byteorder",
+        "version": "1.5.0",
+        "licenses": [
+            "Unlicense OR MIT"
+        ],
+        "url": "https://github.com/BurntSushi/byteorder"
+    },
+    {
+        "name": "crates.io:bytes",
+        "version": "1.12.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/bytes"
+    },
+    {
+        "name": "crates.io:bzip2",
+        "version": "0.5.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/trifectatechfoundation/bzip2-rs"
+    },
+    {
+        "name": "crates.io:bzip2-sys",
+        "version": "0.1.13+1.0.8",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/alexcrichton/bzip2-rs"
+    },
+    {
+        "name": "crates.io:cesu8",
+        "version": "1.1.0",
+        "licenses": [
+            "Apache-2.0/MIT"
+        ],
+        "url": "https://github.com/emk/cesu8-rs"
+    },
+    {
+        "name": "crates.io:cfg-if",
+        "version": "1.0.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/cfg-if"
+    },
+    {
+        "name": "crates.io:chacha20",
+        "version": "0.10.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/stream-ciphers"
+    },
+    {
+        "name": "crates.io:chacha20",
+        "version": "0.9.1",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/stream-ciphers"
+    },
+    {
+        "name": "crates.io:chacha20poly1305",
+        "version": "0.10.1",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305"
+    },
+    {
+        "name": "crates.io:chrono",
+        "version": "0.4.45",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/chronotope/chrono"
+    },
+    {
+        "name": "crates.io:ciborium",
+        "version": "0.2.2",
+        "licenses": [
+            "Apache-2.0"
+        ],
+        "url": "https://github.com/enarx/ciborium"
+    },
+    {
+        "name": "crates.io:ciborium-io",
+        "version": "0.2.2",
+        "licenses": [
+            "Apache-2.0"
+        ],
+        "url": "https://github.com/enarx/ciborium"
+    },
+    {
+        "name": "crates.io:ciborium-ll",
+        "version": "0.2.2",
+        "licenses": [
+            "Apache-2.0"
+        ],
+        "url": "https://github.com/enarx/ciborium"
+    },
+    {
+        "name": "crates.io:cipher",
+        "version": "0.4.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/traits"
+    },
+    {
+        "name": "crates.io:clap",
+        "version": "4.6.6",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/clap-rs/clap"
+    },
+    {
+        "name": "crates.io:clap_builder",
+        "version": "4.6.6",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/clap-rs/clap"
+    },
+    {
+        "name": "crates.io:clap_derive",
+        "version": "4.6.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/clap-rs/clap"
+    },
+    {
+        "name": "crates.io:clap_lex",
+        "version": "1.1.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/clap-rs/clap"
+    },
+    {
+        "name": "crates.io:cobs",
+        "version": "0.3.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jamesmunns/cobs.rs"
+    },
+    {
+        "name": "crates.io:colorchoice",
+        "version": "1.0.5",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-cli/anstyle.git"
+    },
+    {
+        "name": "crates.io:combine",
+        "version": "4.6.8",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Marwes/combine"
+    },
+    {
+        "name": "crates.io:const-oid",
+        "version": "0.9.6",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/formats/tree/master/const-oid"
+    },
+    {
+        "name": "crates.io:constant_time_eq",
+        "version": "0.3.1",
+        "licenses": [
+            "CC0-1.0 OR MIT-0 OR Apache-2.0"
+        ],
+        "url": "https://github.com/cesarb/constant_time_eq"
+    },
+    {
+        "name": "crates.io:constant_time_eq",
+        "version": "0.4.2",
+        "licenses": [
+            "CC0-1.0 OR MIT-0 OR Apache-2.0"
+        ],
+        "url": "https://github.com/cesarb/constant_time_eq"
+    },
+    {
+        "name": "crates.io:convert_case",
+        "version": "0.10.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/rutrum/convert-case"
+    },
+    {
+        "name": "crates.io:coolor",
+        "version": "1.1.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Canop/coolor"
+    },
+    {
+        "name": "crates.io:core-foundation",
+        "version": "0.10.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/servo/core-foundation-rs"
+    },
+    {
+        "name": "crates.io:core-foundation-sys",
+        "version": "0.8.7",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/servo/core-foundation-rs"
+    },
+    {
+        "name": "crates.io:cpufeatures",
+        "version": "0.2.17",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/utils"
+    },
+    {
+        "name": "crates.io:crc",
+        "version": "3.4.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/mrhooray/crc-rs.git"
+    },
+    {
+        "name": "crates.io:crc-catalog",
+        "version": "2.5.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/akhilles/crc-catalog.git"
+    },
+    {
+        "name": "crates.io:crc32fast",
+        "version": "1.5.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/srijs/rust-crc32fast"
+    },
+    {
+        "name": "crates.io:crokey",
+        "version": "1.5.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Canop/crokey"
+    },
+    {
+        "name": "crates.io:crokey-proc_macros",
+        "version": "1.5.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": ""
+    },
+    {
+        "name": "crates.io:crossbeam",
+        "version": "0.8.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/crossbeam-rs/crossbeam"
+    },
+    {
+        "name": "crates.io:crossbeam-channel",
+        "version": "0.5.16",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/crossbeam-rs/crossbeam"
+    },
+    {
+        "name": "crates.io:crossbeam-deque",
+        "version": "0.8.7",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/crossbeam-rs/crossbeam"
+    },
+    {
+        "name": "crates.io:crossbeam-epoch",
+        "version": "0.9.20",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/crossbeam-rs/crossbeam"
+    },
+    {
+        "name": "crates.io:crossbeam-queue",
+        "version": "0.3.13",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/crossbeam-rs/crossbeam"
+    },
+    {
+        "name": "crates.io:crossbeam-utils",
+        "version": "0.8.22",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/crossbeam-rs/crossbeam"
+    },
+    {
+        "name": "crates.io:crossterm",
+        "version": "0.28.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/crossterm-rs/crossterm"
+    },
+    {
+        "name": "crates.io:crossterm",
+        "version": "0.29.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/crossterm-rs/crossterm"
+    },
+    {
+        "name": "crates.io:crypto-bigint",
+        "version": "0.5.5",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/crypto-bigint"
+    },
+    {
+        "name": "crates.io:crypto-common",
+        "version": "0.1.7",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/traits"
+    },
+    {
+        "name": "crates.io:ctr",
+        "version": "0.9.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/block-modes"
+    },
+    {
+        "name": "crates.io:curve25519-dalek",
+        "version": "4.1.3",
+        "licenses": [
+            "BSD-3-Clause"
+        ],
+        "url": "https://github.com/dalek-cryptography/curve25519-dalek/tree/main/curve25519-dalek"
+    },
+    {
+        "name": "crates.io:dashmap",
+        "version": "6.2.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/xacrimon/dashmap"
+    },
+    {
+        "name": "crates.io:data-encoding",
+        "version": "2.11.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/ia0/data-encoding"
+    },
+    {
+        "name": "crates.io:deflate64",
+        "version": "0.1.12",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/anatawa12/deflate64-rs"
+    },
+    {
+        "name": "crates.io:der",
+        "version": "0.7.10",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/formats/tree/master/der"
+    },
+    {
+        "name": "crates.io:der-parser",
+        "version": "10.0.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rusticata/der-parser.git"
+    },
+    {
+        "name": "crates.io:deranged",
+        "version": "0.5.8",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jhpratt/deranged"
+    },
+    {
+        "name": "crates.io:derive_more",
+        "version": "2.1.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/JelteF/derive_more"
+    },
+    {
+        "name": "crates.io:derive_more-impl",
+        "version": "2.1.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/JelteF/derive_more"
+    },
+    {
+        "name": "crates.io:digest",
+        "version": "0.10.7",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/traits"
+    },
+    {
+        "name": "crates.io:dirs",
+        "version": "5.0.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/soc/dirs-rs"
+    },
+    {
+        "name": "crates.io:dirs-sys",
+        "version": "0.4.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dirs-dev/dirs-sys-rs"
+    },
+    {
+        "name": "crates.io:displaydoc",
+        "version": "0.2.7",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/yaahc/displaydoc"
+    },
+    {
+        "name": "crates.io:document-features",
+        "version": "0.2.12",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/slint-ui/document-features"
+    },
+    {
+        "name": "crates.io:either",
+        "version": "1.18.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rayon-rs/either"
+    },
+    {
+        "name": "crates.io:elliptic-curve",
+        "version": "0.13.8",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/traits/tree/master/elliptic-curve"
+    },
+    {
+        "name": "crates.io:embedded-io",
+        "version": "0.4.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/embassy-rs/embedded-io"
+    },
+    {
+        "name": "crates.io:embedded-io",
+        "version": "0.6.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-embedded/embedded-hal"
+    },
+    {
+        "name": "crates.io:encoding_rs",
+        "version": "0.8.35",
+        "licenses": [
+            "(Apache-2.0 OR MIT) AND BSD-3-Clause"
+        ],
+        "url": "https://github.com/hsivonen/encoding_rs"
+    },
+    {
+        "name": "crates.io:env_home",
+        "version": "0.1.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/notpeter/env-home"
+    },
+    {
+        "name": "crates.io:equivalent",
+        "version": "1.0.2",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/indexmap-rs/equivalent"
+    },
+    {
+        "name": "crates.io:errno",
+        "version": "0.3.14",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/lambda-fairy/rust-errno"
+    },
+    {
+        "name": "crates.io:fallible-iterator",
+        "version": "0.3.0",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/sfackler/rust-fallible-iterator"
+    },
+    {
+        "name": "crates.io:fallible-streaming-iterator",
+        "version": "0.1.9",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/sfackler/fallible-streaming-iterator"
+    },
+    {
+        "name": "crates.io:fastrand",
+        "version": "2.5.0",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/smol-rs/fastrand"
+    },
+    {
+        "name": "crates.io:ff",
+        "version": "0.13.1",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/zkcrypto/ff"
+    },
+    {
+        "name": "crates.io:filetime",
+        "version": "0.2.29",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/alexcrichton/filetime"
+    },
+    {
+        "name": "crates.io:fips203",
+        "version": "0.4.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/integritychain/fips203"
+    },
+    {
+        "name": "crates.io:fips204",
+        "version": "0.4.6",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/integritychain/fips204"
+    },
+    {
+        "name": "crates.io:fips205",
+        "version": "0.4.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/integritychain/fips205"
+    },
+    {
+        "name": "crates.io:flate2",
+        "version": "1.1.10",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/flate2-rs"
+    },
+    {
+        "name": "crates.io:flume",
+        "version": "0.11.1",
+        "licenses": [
+            "Apache-2.0/MIT"
+        ],
+        "url": "https://github.com/zesterer/flume"
+    },
+    {
+        "name": "crates.io:fnv",
+        "version": "1.0.7",
+        "licenses": [
+            "Apache-2.0 / MIT"
+        ],
+        "url": "https://github.com/servo/rust-fnv"
+    },
+    {
+        "name": "crates.io:foldhash",
+        "version": "0.2.0",
+        "licenses": [
+            "Zlib"
+        ],
+        "url": "https://github.com/orlp/foldhash"
+    },
+    {
+        "name": "crates.io:form_urlencoded",
+        "version": "1.2.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/servo/rust-url"
+    },
+    {
+        "name": "crates.io:four-word-networking",
+        "version": "2.7.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dirvine/four-word-networking"
+    },
+    {
+        "name": "crates.io:fs2",
+        "version": "0.4.3",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/danburkert/fs2-rs"
+    },
+    {
+        "name": "crates.io:funty",
+        "version": "2.0.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/myrrlyn/funty"
+    },
+    {
+        "name": "crates.io:futures",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-channel",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-core",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-executor",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-io",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-macro",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-sink",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-task",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:futures-util",
+        "version": "0.3.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/futures-rs"
+    },
+    {
+        "name": "crates.io:generic-array",
+        "version": "0.14.7",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/fizyk20/generic-array.git"
+    },
+    {
+        "name": "crates.io:getrandom",
+        "version": "0.2.17",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/getrandom"
+    },
+    {
+        "name": "crates.io:getrandom",
+        "version": "0.3.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/getrandom"
+    },
+    {
+        "name": "crates.io:getrandom",
+        "version": "0.4.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/getrandom"
+    },
+    {
+        "name": "crates.io:ghash",
+        "version": "0.5.1",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/universal-hashes"
+    },
+    {
+        "name": "crates.io:group",
+        "version": "0.13.0",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/zkcrypto/group"
+    },
+    {
+        "name": "crates.io:h2",
+        "version": "0.4.19",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/h2"
+    },
+    {
+        "name": "crates.io:half",
+        "version": "2.7.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/VoidStarKat/half-rs"
+    },
+    {
+        "name": "crates.io:hash32",
+        "version": "0.2.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/japaric/hash32"
+    },
+    {
+        "name": "crates.io:hashbrown",
+        "version": "0.14.5",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/hashbrown"
+    },
+    {
+        "name": "crates.io:hashbrown",
+        "version": "0.16.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/hashbrown"
+    },
+    {
+        "name": "crates.io:hashbrown",
+        "version": "0.17.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/hashbrown"
+    },
+    {
+        "name": "crates.io:hashlink",
+        "version": "0.9.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/kyren/hashlink"
+    },
+    {
+        "name": "crates.io:headers",
+        "version": "0.4.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/headers"
+    },
+    {
+        "name": "crates.io:headers-core",
+        "version": "0.3.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/headers"
+    },
+    {
+        "name": "crates.io:heapless",
+        "version": "0.7.17",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/japaric/heapless"
+    },
+    {
+        "name": "crates.io:heck",
+        "version": "0.5.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/withoutboats/heck"
+    },
+    {
+        "name": "crates.io:hex",
+        "version": "0.4.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/KokaKiwi/rust-hex"
+    },
+    {
+        "name": "crates.io:hkdf",
+        "version": "0.12.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/KDFs/"
+    },
+    {
+        "name": "crates.io:hmac",
+        "version": "0.12.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/MACs"
+    },
+    {
+        "name": "crates.io:hpke",
+        "version": "0.13.0",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/rozbb/rust-hpke"
+    },
+    {
+        "name": "crates.io:http",
+        "version": "0.2.12",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/hyperium/http"
+    },
+    {
+        "name": "crates.io:http",
+        "version": "1.5.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/hyperium/http"
+    },
+    {
+        "name": "crates.io:http-body",
+        "version": "0.4.6",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/http-body"
+    },
+    {
+        "name": "crates.io:http-body",
+        "version": "1.1.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/http-body"
+    },
+    {
+        "name": "crates.io:http-body-util",
+        "version": "0.1.5",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/http-body"
+    },
+    {
+        "name": "crates.io:httparse",
+        "version": "1.10.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/seanmonstar/httparse"
+    },
+    {
+        "name": "crates.io:httpdate",
+        "version": "1.0.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/pyfisch/httpdate"
+    },
+    {
+        "name": "crates.io:hyper",
+        "version": "0.14.32",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/hyper"
+    },
+    {
+        "name": "crates.io:hyper",
+        "version": "1.11.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/hyper"
+    },
+    {
+        "name": "crates.io:hyper-rustls",
+        "version": "0.27.9",
+        "licenses": [
+            "Apache-2.0 OR ISC OR MIT"
+        ],
+        "url": "https://github.com/rustls/hyper-rustls"
+    },
+    {
+        "name": "crates.io:hyper-util",
+        "version": "0.1.20",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hyperium/hyper-util"
+    },
+    {
+        "name": "crates.io:iana-time-zone",
+        "version": "0.1.65",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/strawlab/iana-time-zone"
+    },
+    {
+        "name": "crates.io:icu_collections",
+        "version": "2.3.0",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:icu_locale_core",
+        "version": "2.3.0",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:icu_normalizer",
+        "version": "2.3.0",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:icu_normalizer_data",
+        "version": "2.3.0",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:icu_properties",
+        "version": "2.3.0",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:icu_properties_data",
+        "version": "2.3.0",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:icu_provider",
+        "version": "2.3.1",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:idna",
+        "version": "1.1.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/servo/rust-url/"
+    },
+    {
+        "name": "crates.io:idna_adapter",
+        "version": "1.2.2",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/hsivonen/idna_adapter"
+    },
+    {
+        "name": "crates.io:if-addrs",
+        "version": "0.13.4",
+        "licenses": [
+            "MIT OR BSD-3-Clause"
+        ],
+        "url": "https://github.com/messense/if-addrs"
+    },
+    {
+        "name": "crates.io:if-addrs",
+        "version": "0.15.0",
+        "licenses": [
+            "MIT OR BSD-3-Clause"
+        ],
+        "url": "https://github.com/messense/if-addrs"
+    },
+    {
+        "name": "crates.io:igd-next",
+        "version": "0.17.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/dariusc93/rust-igd"
+    },
+    {
+        "name": "crates.io:indexmap",
+        "version": "2.14.1",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/indexmap-rs/indexmap"
+    },
+    {
+        "name": "crates.io:inout",
+        "version": "0.1.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/utils"
+    },
+    {
+        "name": "crates.io:ipnet",
+        "version": "2.12.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/krisprice/ipnet"
+    },
+    {
+        "name": "crates.io:is_terminal_polyfill",
+        "version": "1.70.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/polyfill-rs/is_terminal_polyfill"
+    },
+    {
+        "name": "crates.io:itoa",
+        "version": "1.0.18",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/itoa"
+    },
+    {
+        "name": "crates.io:jni",
+        "version": "0.21.1",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/jni-rs/jni-rs"
+    },
+    {
+        "name": "crates.io:jni-sys",
+        "version": "0.3.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jni-rs/jni-sys"
+    },
+    {
+        "name": "crates.io:jni-sys",
+        "version": "0.4.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jni-rs/jni-sys"
+    },
+    {
+        "name": "crates.io:jni-sys-macros",
+        "version": "0.4.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jni-rs/jni-sys"
+    },
+    {
+        "name": "crates.io:keccak",
+        "version": "0.1.6",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/sponges/tree/master/keccak"
+    },
+    {
+        "name": "crates.io:keyring",
+        "version": "3.6.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/hwchen/keyring-rs.git"
+    },
+    {
+        "name": "crates.io:lazy-regex",
+        "version": "3.6.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Canop/lazy-regex"
+    },
+    {
+        "name": "crates.io:lazy-regex-proc_macros",
+        "version": "3.6.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Canop/lazy-regex/tree/main/src/proc_macros"
+    },
+    {
+        "name": "crates.io:lazy_static",
+        "version": "1.5.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang-nursery/lazy-static.rs"
+    },
+    {
+        "name": "crates.io:libc",
+        "version": "0.2.189",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/libc"
+    },
+    {
+        "name": "crates.io:libsqlite3-sys",
+        "version": "0.30.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/rusqlite/rusqlite"
+    },
+    {
+        "name": "crates.io:linux-raw-sys",
+        "version": "0.12.1",
+        "licenses": [
+            "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/sunfishcode/linux-raw-sys"
+    },
+    {
+        "name": "crates.io:linux-raw-sys",
+        "version": "0.4.15",
+        "licenses": [
+            "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/sunfishcode/linux-raw-sys"
+    },
+    {
+        "name": "crates.io:litemap",
+        "version": "0.8.3",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:litrs",
+        "version": "1.0.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/LukasKalbertodt/litrs"
+    },
+    {
+        "name": "crates.io:lock_api",
+        "version": "0.4.14",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/Amanieu/parking_lot"
+    },
+    {
+        "name": "crates.io:log",
+        "version": "0.4.34",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/log"
+    },
+    {
+        "name": "crates.io:lru",
+        "version": "0.16.4",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/jeromefroe/lru-rs.git"
+    },
+    {
+        "name": "crates.io:lru-slab",
+        "version": "0.1.2",
+        "licenses": [
+            "MIT OR Apache-2.0 OR Zlib"
+        ],
+        "url": "https://github.com/Ralith/lru-slab"
+    },
+    {
+        "name": "crates.io:lzma-rs",
+        "version": "0.3.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/gendx/lzma-rs"
+    },
+    {
+        "name": "crates.io:lzma-sys",
+        "version": "0.1.20",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/alexcrichton/xz2-rs"
+    },
+    {
+        "name": "crates.io:matchers",
+        "version": "0.2.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hawkw/matchers"
+    },
+    {
+        "name": "crates.io:matchit",
+        "version": "0.7.3",
+        "licenses": [
+            "MIT AND BSD-3-Clause"
+        ],
+        "url": "https://github.com/ibraheemdev/matchit"
+    },
+    {
+        "name": "crates.io:mdns-sd",
+        "version": "0.19.2",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/keepsimple1/mdns-sd"
+    },
+    {
+        "name": "crates.io:memchr",
+        "version": "2.8.3",
+        "licenses": [
+            "Unlicense OR MIT"
+        ],
+        "url": "https://github.com/BurntSushi/memchr"
+    },
+    {
+        "name": "crates.io:memoffset",
+        "version": "0.9.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Gilnaa/memoffset"
+    },
+    {
+        "name": "crates.io:mime",
+        "version": "0.3.17",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/hyperium/mime"
+    },
+    {
+        "name": "crates.io:minimad",
+        "version": "0.13.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Canop/minimad"
+    },
+    {
+        "name": "crates.io:minimal-lexical",
+        "version": "0.2.1",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/Alexhuszagh/minimal-lexical"
+    },
+    {
+        "name": "crates.io:miniz_oxide",
+        "version": "0.9.1",
+        "licenses": [
+            "MIT OR Zlib OR Apache-2.0"
+        ],
+        "url": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide"
+    },
+    {
+        "name": "crates.io:mio",
+        "version": "1.2.2",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/mio"
+    },
+    {
+        "name": "crates.io:multer",
+        "version": "3.1.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/rwf2/multer"
+    },
+    {
+        "name": "crates.io:nix",
+        "version": "0.29.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/nix-rust/nix"
+    },
+    {
+        "name": "crates.io:nom",
+        "version": "7.1.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Geal/nom"
+    },
+    {
+        "name": "crates.io:nu-ansi-term",
+        "version": "0.50.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/nushell/nu-ansi-term"
+    },
+    {
+        "name": "crates.io:num-bigint",
+        "version": "0.4.8",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-num/num-bigint"
+    },
+    {
+        "name": "crates.io:num-conv",
+        "version": "0.2.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jhpratt/num-conv"
+    },
+    {
+        "name": "crates.io:num-integer",
+        "version": "0.1.47",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-num/num-integer"
+    },
+    {
+        "name": "crates.io:num-traits",
+        "version": "0.2.19",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-num/num-traits"
+    },
+    {
+        "name": "crates.io:num_threads",
+        "version": "0.1.7",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jhpratt/num_threads"
+    },
+    {
+        "name": "crates.io:oid-registry",
+        "version": "0.8.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rusticata/oid-registry.git"
+    },
+    {
+        "name": "crates.io:once_cell",
+        "version": "1.21.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/matklad/once_cell"
+    },
+    {
+        "name": "crates.io:opaque-debug",
+        "version": "0.3.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/utils"
+    },
+    {
+        "name": "crates.io:openssl-probe",
+        "version": "0.2.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rustls/openssl-probe"
+    },
+    {
+        "name": "crates.io:option-ext",
+        "version": "0.2.0",
+        "licenses": [
+            "MPL-2.0"
+        ],
+        "url": "https://github.com/soc/option-ext.git"
+    },
+    {
+        "name": "crates.io:p256",
+        "version": "0.13.2",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/elliptic-curves/tree/master/p256"
+    },
+    {
+        "name": "crates.io:parking_lot",
+        "version": "0.12.5",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/Amanieu/parking_lot"
+    },
+    {
+        "name": "crates.io:parking_lot_core",
+        "version": "0.9.12",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/Amanieu/parking_lot"
+    },
+    {
+        "name": "crates.io:password-hash",
+        "version": "0.5.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/traits/tree/master/password-hash"
+    },
+    {
+        "name": "crates.io:pbkdf2",
+        "version": "0.12.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/password-hashes/tree/master/pbkdf2"
+    },
+    {
+        "name": "crates.io:pem",
+        "version": "4.0.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/jcreekmore/pem-rs.git"
+    },
+    {
+        "name": "crates.io:percent-encoding",
+        "version": "2.3.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/servo/rust-url/"
+    },
+    {
+        "name": "crates.io:pin-project-lite",
+        "version": "0.2.17",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/taiki-e/pin-project-lite"
+    },
+    {
+        "name": "crates.io:poly1305",
+        "version": "0.8.0",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/universal-hashes"
+    },
+    {
+        "name": "crates.io:polyval",
+        "version": "0.6.2",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/universal-hashes"
+    },
+    {
+        "name": "crates.io:postcard",
+        "version": "1.1.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jamesmunns/postcard"
+    },
+    {
+        "name": "crates.io:potential_utf",
+        "version": "0.1.6",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:powerfmt",
+        "version": "0.2.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/jhpratt/powerfmt"
+    },
+    {
+        "name": "crates.io:ppv-lite86",
+        "version": "0.2.21",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/cryptocorrosion/cryptocorrosion"
+    },
+    {
+        "name": "crates.io:primeorder",
+        "version": "0.13.6",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/elliptic-curves/tree/master/primeorder"
+    },
+    {
+        "name": "crates.io:proc-macro2",
+        "version": "1.0.107",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/proc-macro2"
+    },
+    {
+        "name": "crates.io:quinn",
+        "version": "0.11.11",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/quinn-rs/quinn"
+    },
+    {
+        "name": "crates.io:quinn-proto",
+        "version": "0.11.17",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/quinn-rs/quinn"
+    },
+    {
+        "name": "crates.io:quinn-udp",
+        "version": "0.5.15",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/quinn-rs/quinn"
+    },
+    {
+        "name": "crates.io:quote",
+        "version": "1.0.47",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/quote"
+    },
+    {
+        "name": "crates.io:radium",
+        "version": "0.7.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/bitvecto-rs/radium"
+    },
+    {
+        "name": "crates.io:rand",
+        "version": "0.10.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/rand"
+    },
+    {
+        "name": "crates.io:rand",
+        "version": "0.8.8",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/rand"
+    },
+    {
+        "name": "crates.io:rand_chacha",
+        "version": "0.3.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/rand"
+    },
+    {
+        "name": "crates.io:rand_core",
+        "version": "0.10.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/rand_core"
+    },
+    {
+        "name": "crates.io:rand_core",
+        "version": "0.6.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/rand"
+    },
+    {
+        "name": "crates.io:rand_core",
+        "version": "0.9.5",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/rand"
+    },
+    {
+        "name": "crates.io:rand_pcg",
+        "version": "0.10.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-random/rngs"
+    },
+    {
+        "name": "crates.io:rayon",
+        "version": "1.12.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rayon-rs/rayon"
+    },
+    {
+        "name": "crates.io:rayon-core",
+        "version": "1.13.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rayon-rs/rayon"
+    },
+    {
+        "name": "crates.io:rcgen",
+        "version": "0.14.10",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rustls/rcgen"
+    },
+    {
+        "name": "crates.io:regex",
+        "version": "1.13.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/regex"
+    },
+    {
+        "name": "crates.io:regex-automata",
+        "version": "0.4.18",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/regex"
+    },
+    {
+        "name": "crates.io:regex-syntax",
+        "version": "0.8.11",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/regex"
+    },
+    {
+        "name": "crates.io:reqwest",
+        "version": "0.12.28",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/seanmonstar/reqwest"
+    },
+    {
+        "name": "crates.io:ring",
+        "version": "0.17.14",
+        "licenses": [
+            "Apache-2.0 AND ISC"
+        ],
+        "url": "https://github.com/briansmith/ring"
+    },
+    {
+        "name": "crates.io:rusqlite",
+        "version": "0.32.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/rusqlite/rusqlite"
+    },
+    {
+        "name": "crates.io:rustc-hash",
+        "version": "2.1.3",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/rust-lang/rustc-hash"
+    },
+    {
+        "name": "crates.io:rusticata-macros",
+        "version": "4.1.0",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/rusticata/rusticata-macros.git"
+    },
+    {
+        "name": "crates.io:rustix",
+        "version": "0.38.44",
+        "licenses": [
+            "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/bytecodealliance/rustix"
+    },
+    {
+        "name": "crates.io:rustix",
+        "version": "1.1.4",
+        "licenses": [
+            "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/bytecodealliance/rustix"
+    },
+    {
+        "name": "crates.io:rustls",
+        "version": "0.23.45",
+        "licenses": [
+            "Apache-2.0 OR ISC OR MIT"
+        ],
+        "url": "https://github.com/rustls/rustls"
+    },
+    {
+        "name": "crates.io:rustls-native-certs",
+        "version": "0.8.4",
+        "licenses": [
+            "Apache-2.0 OR ISC OR MIT"
+        ],
+        "url": "https://github.com/rustls/rustls-native-certs"
+    },
+    {
+        "name": "crates.io:rustls-pemfile",
+        "version": "2.2.0",
+        "licenses": [
+            "Apache-2.0 OR ISC OR MIT"
+        ],
+        "url": "https://github.com/rustls/pemfile"
+    },
+    {
+        "name": "crates.io:rustls-pki-types",
+        "version": "1.15.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rustls/pki-types"
+    },
+    {
+        "name": "crates.io:rustls-platform-verifier",
+        "version": "0.6.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rustls/rustls-platform-verifier"
+    },
+    {
+        "name": "crates.io:rustls-platform-verifier-android",
+        "version": "0.1.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rustls/rustls-platform-verifier"
+    },
+    {
+        "name": "crates.io:rustls-post-quantum",
+        "version": "0.2.4",
+        "licenses": [
+            "Apache-2.0 OR ISC OR MIT"
+        ],
+        "url": "https://github.com/rustls/rustls"
+    },
+    {
+        "name": "crates.io:rustls-webpki",
+        "version": "0.103.15",
+        "licenses": [
+            "ISC"
+        ],
+        "url": "https://github.com/rustls/webpki"
+    },
+    {
+        "name": "crates.io:rustversion",
+        "version": "1.0.23",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/rustversion"
+    },
+    {
+        "name": "crates.io:ryu",
+        "version": "1.0.23",
+        "licenses": [
+            "Apache-2.0 OR BSL-1.0"
+        ],
+        "url": "https://github.com/dtolnay/ryu"
+    },
+    {
+        "name": "crates.io:safe_arch",
+        "version": "0.7.4",
+        "licenses": [
+            "Zlib OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/Lokathor/safe_arch"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-coordinator",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-crdt-sync",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-groups",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-identity",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-membership",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-presence",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-pubsub",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-rendezvous",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-runtime",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-transport",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-gossip-types",
+        "version": "0.5.87",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-gossip"
+    },
+    {
+        "name": "crates.io:saorsa-mls",
+        "version": "0.3.8",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/saorsa-mls"
+    },
+    {
+        "name": "crates.io:saorsa-pqc",
+        "version": "0.5.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dirvine/saorsa-pqc"
+    },
+    {
+        "name": "crates.io:scopeguard",
+        "version": "1.2.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/bluss/scopeguard"
+    },
+    {
+        "name": "crates.io:sec1",
+        "version": "0.7.3",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/formats/tree/master/sec1"
+    },
+    {
+        "name": "crates.io:security-framework",
+        "version": "3.7.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/kornelski/rust-security-framework"
+    },
+    {
+        "name": "crates.io:security-framework-sys",
+        "version": "2.17.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/kornelski/rust-security-framework"
+    },
+    {
+        "name": "crates.io:semver",
+        "version": "1.0.28",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/semver"
+    },
+    {
+        "name": "crates.io:serde",
+        "version": "1.0.229",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/serde-rs/serde"
+    },
+    {
+        "name": "crates.io:serde_bytes",
+        "version": "0.11.19",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/serde-rs/bytes"
+    },
+    {
+        "name": "crates.io:serde_core",
+        "version": "1.0.229",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/serde-rs/serde"
+    },
+    {
+        "name": "crates.io:serde_derive",
+        "version": "1.0.229",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/serde-rs/serde"
+    },
+    {
+        "name": "crates.io:serde_ignored",
+        "version": "0.1.14",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/serde-ignored"
+    },
+    {
+        "name": "crates.io:serde_json",
+        "version": "1.0.151",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/serde-rs/json"
+    },
+    {
+        "name": "crates.io:serde_path_to_error",
+        "version": "0.1.20",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/path-to-error"
+    },
+    {
+        "name": "crates.io:serde_spanned",
+        "version": "0.6.9",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/toml-rs/toml"
+    },
+    {
+        "name": "crates.io:serde_urlencoded",
+        "version": "0.7.1",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/nox/serde_urlencoded"
+    },
+    {
+        "name": "crates.io:serde_yaml",
+        "version": "0.9.34+deprecated",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/serde-yaml"
+    },
+    {
+        "name": "crates.io:sha1",
+        "version": "0.10.7",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/hashes"
+    },
+    {
+        "name": "crates.io:sha2",
+        "version": "0.10.9",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/hashes"
+    },
+    {
+        "name": "crates.io:sha3",
+        "version": "0.10.9",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/hashes"
+    },
+    {
+        "name": "crates.io:sharded-slab",
+        "version": "0.1.7",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/hawkw/sharded-slab"
+    },
+    {
+        "name": "crates.io:signal-hook",
+        "version": "0.3.18",
+        "licenses": [
+            "Apache-2.0/MIT"
+        ],
+        "url": "https://github.com/vorner/signal-hook"
+    },
+    {
+        "name": "crates.io:signal-hook-mio",
+        "version": "0.2.5",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/vorner/signal-hook"
+    },
+    {
+        "name": "crates.io:signal-hook-registry",
+        "version": "1.4.8",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/vorner/signal-hook"
+    },
+    {
+        "name": "crates.io:simd-adler32",
+        "version": "0.3.10",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/mcountryman/simd-adler32"
+    },
+    {
+        "name": "crates.io:slab",
+        "version": "0.4.12",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/slab"
+    },
+    {
+        "name": "crates.io:smallvec",
+        "version": "1.16.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/servo/rust-smallvec"
+    },
+    {
+        "name": "crates.io:socket-pktinfo",
+        "version": "0.3.2",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/pixsper/socket-pktinfo"
+    },
+    {
+        "name": "crates.io:socket2",
+        "version": "0.5.10",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/socket2"
+    },
+    {
+        "name": "crates.io:socket2",
+        "version": "0.6.5",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rust-lang/socket2"
+    },
+    {
+        "name": "crates.io:spin",
+        "version": "0.9.9",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/mvdnes/spin-rs.git"
+    },
+    {
+        "name": "crates.io:stable_deref_trait",
+        "version": "1.2.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/storyyeller/stable_deref_trait"
+    },
+    {
+        "name": "crates.io:strict",
+        "version": "0.2.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Canop/strict"
+    },
+    {
+        "name": "crates.io:strsim",
+        "version": "0.11.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/rapidfuzz/strsim-rs"
+    },
+    {
+        "name": "crates.io:subtle",
+        "version": "2.6.1",
+        "licenses": [
+            "BSD-3-Clause"
+        ],
+        "url": "https://github.com/dalek-cryptography/subtle"
+    },
+    {
+        "name": "crates.io:symlink",
+        "version": "0.1.0",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://gitlab.com/chris-morgan/symlink"
+    },
+    {
+        "name": "crates.io:syn",
+        "version": "2.0.119",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/syn"
+    },
+    {
+        "name": "crates.io:syn",
+        "version": "3.0.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/syn"
+    },
+    {
+        "name": "crates.io:sync_wrapper",
+        "version": "1.0.2",
+        "licenses": [
+            "Apache-2.0"
+        ],
+        "url": "https://github.com/Actyx/sync_wrapper"
+    },
+    {
+        "name": "crates.io:synstructure",
+        "version": "0.13.2",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/mystor/synstructure"
+    },
+    {
+        "name": "crates.io:tap",
+        "version": "1.0.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/myrrlyn/tap"
+    },
+    {
+        "name": "crates.io:tar",
+        "version": "0.4.46",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/composefs/tar-rs"
+    },
+    {
+        "name": "crates.io:termimad",
+        "version": "0.30.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/Canop/termimad"
+    },
+    {
+        "name": "crates.io:terminal_size",
+        "version": "0.4.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/eminence/terminal-size"
+    },
+    {
+        "name": "crates.io:thiserror",
+        "version": "1.0.69",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/thiserror"
+    },
+    {
+        "name": "crates.io:thiserror",
+        "version": "2.0.20",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/thiserror"
+    },
+    {
+        "name": "crates.io:thiserror-impl",
+        "version": "1.0.69",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/thiserror"
+    },
+    {
+        "name": "crates.io:thiserror-impl",
+        "version": "2.0.20",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/dtolnay/thiserror"
+    },
+    {
+        "name": "crates.io:thread_local",
+        "version": "1.1.10",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/Amanieu/thread_local-rs"
+    },
+    {
+        "name": "crates.io:time",
+        "version": "0.3.55",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/time-rs/time"
+    },
+    {
+        "name": "crates.io:time-core",
+        "version": "0.1.9",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/time-rs/time"
+    },
+    {
+        "name": "crates.io:time-macros",
+        "version": "0.2.32",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/time-rs/time"
+    },
+    {
+        "name": "crates.io:tinystr",
+        "version": "0.8.4",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:tinyvec",
+        "version": "1.12.0",
+        "licenses": [
+            "Zlib OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/Lokathor/tinyvec"
+    },
+    {
+        "name": "crates.io:tinyvec_macros",
+        "version": "0.1.1",
+        "licenses": [
+            "MIT OR Apache-2.0 OR Zlib"
+        ],
+        "url": "https://github.com/Soveu/tinyvec_macros"
+    },
+    {
+        "name": "crates.io:tokio",
+        "version": "1.53.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tokio"
+    },
+    {
+        "name": "crates.io:tokio-macros",
+        "version": "2.7.2",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tokio"
+    },
+    {
+        "name": "crates.io:tokio-rustls",
+        "version": "0.26.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rustls/tokio-rustls"
+    },
+    {
+        "name": "crates.io:tokio-stream",
+        "version": "0.1.19",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tokio"
+    },
+    {
+        "name": "crates.io:tokio-tungstenite",
+        "version": "0.24.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/snapview/tokio-tungstenite"
+    },
+    {
+        "name": "crates.io:tokio-util",
+        "version": "0.7.19",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tokio"
+    },
+    {
+        "name": "crates.io:toml",
+        "version": "0.8.23",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/toml-rs/toml"
+    },
+    {
+        "name": "crates.io:toml_datetime",
+        "version": "0.6.11",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/toml-rs/toml"
+    },
+    {
+        "name": "crates.io:toml_edit",
+        "version": "0.22.27",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/toml-rs/toml"
+    },
+    {
+        "name": "crates.io:toml_write",
+        "version": "0.1.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/toml-rs/toml"
+    },
+    {
+        "name": "crates.io:tower",
+        "version": "0.5.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tower-rs/tower"
+    },
+    {
+        "name": "crates.io:tower-http",
+        "version": "0.6.11",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tower-rs/tower-http"
+    },
+    {
+        "name": "crates.io:tower-layer",
+        "version": "0.3.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tower-rs/tower"
+    },
+    {
+        "name": "crates.io:tower-service",
+        "version": "0.3.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tower-rs/tower"
+    },
+    {
+        "name": "crates.io:tracing",
+        "version": "0.1.44",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tracing"
+    },
+    {
+        "name": "crates.io:tracing-appender",
+        "version": "0.2.5",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tracing"
+    },
+    {
+        "name": "crates.io:tracing-attributes",
+        "version": "0.1.31",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tracing"
+    },
+    {
+        "name": "crates.io:tracing-core",
+        "version": "0.1.36",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tracing"
+    },
+    {
+        "name": "crates.io:tracing-log",
+        "version": "0.2.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tracing"
+    },
+    {
+        "name": "crates.io:tracing-serde",
+        "version": "0.2.0",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tracing"
+    },
+    {
+        "name": "crates.io:tracing-subscriber",
+        "version": "0.3.23",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/tokio-rs/tracing"
+    },
+    {
+        "name": "crates.io:try-lock",
+        "version": "0.2.5",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/seanmonstar/try-lock"
+    },
+    {
+        "name": "crates.io:tungstenite",
+        "version": "0.24.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/snapview/tungstenite-rs"
+    },
+    {
+        "name": "crates.io:typenum",
+        "version": "1.20.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/paholg/typenum"
+    },
+    {
+        "name": "crates.io:unicode-ident",
+        "version": "1.0.24",
+        "licenses": [
+            "(MIT OR Apache-2.0) AND Unicode-3.0"
+        ],
+        "url": "https://github.com/dtolnay/unicode-ident"
+    },
+    {
+        "name": "crates.io:unicode-segmentation",
+        "version": "1.13.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/unicode-rs/unicode-segmentation"
+    },
+    {
+        "name": "crates.io:unicode-width",
+        "version": "0.1.14",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/unicode-rs/unicode-width"
+    },
+    {
+        "name": "crates.io:unicode-width",
+        "version": "0.2.2",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/unicode-rs/unicode-width"
+    },
+    {
+        "name": "crates.io:universal-hash",
+        "version": "0.5.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/RustCrypto/traits"
+    },
+    {
+        "name": "crates.io:unsafe-libyaml",
+        "version": "0.2.11",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/dtolnay/unsafe-libyaml"
+    },
+    {
+        "name": "crates.io:untrusted",
+        "version": "0.9.0",
+        "licenses": [
+            "ISC"
+        ],
+        "url": "https://github.com/briansmith/untrusted"
+    },
+    {
+        "name": "crates.io:url",
+        "version": "2.5.8",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/servo/rust-url"
+    },
+    {
+        "name": "crates.io:utf-8",
+        "version": "0.7.6",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/SimonSapin/rust-utf8"
+    },
+    {
+        "name": "crates.io:utf8_iter",
+        "version": "1.0.4",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/hsivonen/utf8_iter"
+    },
+    {
+        "name": "crates.io:utf8parse",
+        "version": "0.2.2",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/alacritty/vte"
+    },
+    {
+        "name": "crates.io:uuid",
+        "version": "1.26.0",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/uuid-rs/uuid"
+    },
+    {
+        "name": "crates.io:want",
+        "version": "0.3.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/seanmonstar/want"
+    },
+    {
+        "name": "crates.io:webpki-roots",
+        "version": "1.0.9",
+        "licenses": [
+            "CDLA-Permissive-2.0"
+        ],
+        "url": "https://github.com/rustls/webpki-roots"
+    },
+    {
+        "name": "crates.io:which",
+        "version": "7.0.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/harryfei/which-rs.git"
+    },
+    {
+        "name": "crates.io:wide",
+        "version": "0.7.33",
+        "licenses": [
+            "Zlib OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/Lokathor/wide"
+    },
+    {
+        "name": "crates.io:winnow",
+        "version": "0.7.15",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/winnow-rs/winnow"
+    },
+    {
+        "name": "crates.io:writeable",
+        "version": "0.6.4",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:wyz",
+        "version": "0.5.1",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/myrrlyn/wyz"
+    },
+    {
+        "name": "crates.io:x0x",
+        "version": "0.46.3",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/saorsa-labs/x0x"
+    },
+    {
+        "name": "crates.io:x25519-dalek",
+        "version": "2.0.1",
+        "licenses": [
+            "BSD-3-Clause"
+        ],
+        "url": "https://github.com/dalek-cryptography/curve25519-dalek/tree/main/x25519-dalek"
+    },
+    {
+        "name": "crates.io:x509-parser",
+        "version": "0.18.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/rusticata/x509-parser.git"
+    },
+    {
+        "name": "crates.io:xattr",
+        "version": "1.6.1",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/Stebalien/xattr"
+    },
+    {
+        "name": "crates.io:xml-rs",
+        "version": "0.8.29",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/kornelski/xml-rs"
+    },
+    {
+        "name": "crates.io:xmltree",
+        "version": "0.10.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/eminence/xmltree-rs"
+    },
+    {
+        "name": "crates.io:xz2",
+        "version": "0.1.7",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/alexcrichton/xz2-rs"
+    },
+    {
+        "name": "crates.io:yasna",
+        "version": "0.6.0",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/qnighy/yasna.rs"
+    },
+    {
+        "name": "crates.io:yoke",
+        "version": "0.8.3",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:yoke-derive",
+        "version": "0.8.2",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:zerocopy",
+        "version": "0.8.56",
+        "licenses": [
+            "BSD-2-Clause OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/google/zerocopy"
+    },
+    {
+        "name": "crates.io:zerocopy-derive",
+        "version": "0.8.56",
+        "licenses": [
+            "BSD-2-Clause OR Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/google/zerocopy"
+    },
+    {
+        "name": "crates.io:zerofrom",
+        "version": "0.1.8",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:zerofrom-derive",
+        "version": "0.1.7",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:zeroize",
+        "version": "1.9.0",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/utils"
+    },
+    {
+        "name": "crates.io:zeroize_derive",
+        "version": "1.5.0",
+        "licenses": [
+            "Apache-2.0 OR MIT"
+        ],
+        "url": "https://github.com/RustCrypto/utils"
+    },
+    {
+        "name": "crates.io:zerotrie",
+        "version": "0.2.5",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:zerovec",
+        "version": "0.11.8",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:zerovec-derive",
+        "version": "0.11.6",
+        "licenses": [
+            "Unicode-3.0"
+        ],
+        "url": "https://github.com/unicode-org/icu4x"
+    },
+    {
+        "name": "crates.io:zip",
+        "version": "2.4.2",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/zip-rs/zip2.git"
+    },
+    {
+        "name": "crates.io:zlib-rs",
+        "version": "0.6.7",
+        "licenses": [
+            "Zlib"
+        ],
+        "url": "https://github.com/trifectatechfoundation/zlib-rs"
+    },
+    {
+        "name": "crates.io:zmij",
+        "version": "1.0.23",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/dtolnay/zmij"
+    },
+    {
+        "name": "crates.io:zopfli",
+        "version": "0.8.3",
+        "licenses": [
+            "Apache-2.0"
+        ],
+        "url": "https://github.com/zopfli-rs/zopfli"
+    },
+    {
+        "name": "crates.io:zstd",
+        "version": "0.13.3",
+        "licenses": [
+            "MIT"
+        ],
+        "url": "https://github.com/gyscos/zstd-rs"
+    },
+    {
+        "name": "crates.io:zstd-safe",
+        "version": "7.2.4",
+        "licenses": [
+            "MIT OR Apache-2.0"
+        ],
+        "url": "https://github.com/gyscos/zstd-rs"
+    },
+    {
+        "name": "crates.io:zstd-sys",
+        "version": "2.0.16+zstd.1.5.7",
+        "licenses": [
+            "MIT/Apache-2.0"
+        ],
+        "url": "https://github.com/gyscos/zstd-rs"
+    },
+    {
+        "name": "io.github.alexzhirkevich:qrose",
+        "version": "1.3.0",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/qrose"
+    },
+    {
+        "name": "io.github.alexzhirkevich:qrose-core",
+        "version": "1.3.0",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/qrose"
+    },
+    {
+        "name": "io.github.alexzhirkevich:qrose-encoder-core",
+        "version": "1.3.0",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/qrose"
+    },
+    {
+        "name": "io.github.alexzhirkevich:qrose-encoder-matrix",
+        "version": "1.3.0",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/qrose"
+    },
+    {
+        "name": "jakarta.inject:jakarta.inject-api",
+        "version": "2.0.1",
+        "licenses": [
+            "Apache License, Version 2.0",
+            "Eclipse Public License - v 2.0",
+            "GNU GENERAL PUBLIC LICENSE, Version 2",
+            "GNU GENERAL PUBLIC LICENSE, Version 2 + Classpath Exception"
+        ],
+        "url": "https://github.com/eclipse-ee4j/injection-api"
+    },
+    {
+        "name": "javax.inject:javax.inject",
+        "version": "1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://code.google.com/p/atinject/"
+    },
+    {
+        "name": "net.java.dev.jna:jna",
+        "version": "5.17.0",
+        "licenses": [
+            "Apache License, Version 2.0",
+            "GNU LESSER GENERAL PUBLIC LICENSE, Version 2.1"
+        ],
+        "url": "https://github.com/java-native-access/jna"
+    },
+    {
+        "name": "org.automerge:androidnative",
+        "version": "0.0.9",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://automerge.org"
+    },
+    {
+        "name": "org.automerge:automerge",
+        "version": "0.0.9",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://automerge.org"
+    },
+    {
+        "name": "org.checkerframework:checker-qual",
+        "version": "3.43.0",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://checkerframework.org/"
+    },
+    {
+        "name": "org.jetbrains.androidx.lifecycle:lifecycle-common",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.androidx.lifecycle:lifecycle-runtime",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate",
+        "version": "2.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.androidx.navigationevent:navigationevent-compose",
+        "version": "1.1.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.androidx.savedstate:savedstate",
+        "version": "1.3.6",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-jb"
+    },
+    {
+        "name": "org.jetbrains.androidx.savedstate:savedstate-compose",
+        "version": "1.3.6",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-jb"
+    },
+    {
+        "name": "org.jetbrains.compose.animation:animation",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.animation:animation-core",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.components:components-resources",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.desktop:desktop",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.desktop:desktop-jvm-linux-x64",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.foundation:foundation",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.foundation:foundation-layout",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.material3:material3",
+        "version": "1.12.0-alpha03",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.material:material",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.material:material-ripple",
+        "version": "1.12.0-beta01",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.material:material-ripple",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.runtime:runtime",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.runtime:runtime-saveable",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-backhandler",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-geometry",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-graphics",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-text",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-tooling",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-tooling-data",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-tooling-preview",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-unit",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.compose.ui:ui-util",
+        "version": "1.12.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/compose-multiplatform"
+    },
+    {
+        "name": "org.jetbrains.kotlin:kotlin-bom",
+        "version": "1.8.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://kotlinlang.org/"
+    },
+    {
+        "name": "org.jetbrains.kotlin:kotlin-stdlib",
+        "version": "2.4.20",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://kotlinlang.org/"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:atomicfu",
+        "version": "0.33.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.atomicfu"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-coroutines",
+        "version": "1.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.coroutines"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-coroutines-bom",
+        "version": "1.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.coroutines"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+        "version": "1.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.coroutines"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-coroutines-swing",
+        "version": "1.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.coroutines"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-datetime",
+        "version": "0.7.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx-datetime"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-serialization-bom",
+        "version": "1.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.serialization"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-serialization-core",
+        "version": "1.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.serialization"
+    },
+    {
+        "name": "org.jetbrains.kotlinx:kotlinx-serialization-json",
+        "version": "1.11.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/Kotlin/kotlinx.serialization"
+    },
+    {
+        "name": "org.jetbrains.runtime:jbr-api",
+        "version": "1.9.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/JetBrainsRuntimeApi"
+    },
+    {
+        "name": "org.jetbrains.skiko:skiko",
+        "version": "0.150.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://www.github.com/JetBrains/skiko"
+    },
+    {
+        "name": "org.jetbrains.skiko:skiko-awt-runtime-linux-x64",
+        "version": "0.150.1",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://www.github.com/JetBrains/skiko"
+    },
+    {
+        "name": "org.jetbrains:annotations",
+        "version": "23.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/JetBrains/java-annotations"
+    },
+    {
+        "name": "org.jspecify:jspecify",
+        "version": "1.0.0",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "http://jspecify.org/"
+    },
+    {
+        "name": "org.slf4j:slf4j-api",
+        "version": "2.0.9",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "http://www.slf4j.org"
+    }
+]

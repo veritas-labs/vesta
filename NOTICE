@@ -1,0 +1,26 @@
+Vesta
+Copyright 2026 Veritas Labs
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The licence covers the source code only. The name "Vesta", the Vesta logo,
+app icons and other brand assets are not licensed for use; see TRADEMARK.md.
+The brand assets are the files in the branding/ directory (and the symlinks to
+them under shared/src/commonMain/composeResources/drawable/), plus the iOS app
+icon, iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/app-icon-1024.png.
+
+This product includes software developed by third parties, used under their
+own licences:
+
+  - Automerge (https://github.com/automerge/automerge) - MIT
+  - x0x (Saorsa Labs) - MIT OR Apache-2.0
+  - SQLDelight (https://github.com/sqldelight/sqldelight) - Apache-2.0
+  - AndroidX SQLite and Jetpack Compose / Compose Multiplatform - Apache-2.0
+  - Kotlin, kotlinx.coroutines and kotlinx.serialization - Apache-2.0
+
+This list is not exhaustive. Each dependency, including transitive ones,
+remains under its own licence. The full list of libraries the apps ship with,
+including the Rust crates behind x0x, is generated into
+shared/src/commonMain/composeResources/files/licenses.json
+(./gradlew generateLicenses) and shown in the app under
+Settings > Open source licences.

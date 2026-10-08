@@ -87,6 +87,12 @@
     <string name="settings_section_application">Application</string>
     <string name="settings_application_version">Version</string>
     <string name="settings_application_build">Build code</string>
+    <string name="settings_open_source_licenses">Open source licences</string>
+    <string name="settings_open_source_licenses_open">Show open source licences</string>
+    <string name="licenses_title">Open source licences</string>
+    <string name="licenses_back">Back</string>
+    <string name="licenses_intro">Vesta is free software under the Apache License 2.0; the name and logo are trademarks of Veritas Labs. It is built with these open source libraries.</string>
+    <string name="licenses_empty">No licence information is available.</string>
     <string name="settings_synced_devices">Paired devices</string>
     <string name="settings_section_network">Network</string>
     <string name="settings_network_status">x0x status</string>

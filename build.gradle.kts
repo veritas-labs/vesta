@@ -1,3 +1,7 @@
+import com.github.jk1.license.LicenseReportExtension
+import com.github.jk1.license.filter.LicenseBundleNormalizer
+import com.github.jk1.license.render.JsonReportRenderer
+
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
@@ -8,6 +12,32 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.licenseReport)
+}
+
+// The third-party licence list shown under Settings > Open source licences.
+// `./gradlew generateLicenses` rewrites the committed
+// shared/src/commonMain/composeResources/files/licenses.json from what the
+// shipped apps actually resolve (Gradle dependencies via the report below, the
+// embedded x0x daemon's Rust crates via `cargo metadata`); rerun it whenever
+// a dependency changes. It needs network access for the Cargo part.
+val licenseReportDir = layout.buildDirectory.dir("reports/licenses").get().asFile.path
+
+// The renderers and filters read the extension off every project they report
+// on, and look for the extracted licence files in its outputDir.
+subprojects {
+    apply(plugin = "com.github.jk1.dependency-license-report")
+    extensions.configure<LicenseReportExtension> { outputDir = licenseReportDir }
+}
+
+licenseReport {
+    projects = arrayOf(project(":shared"), project(":androidApp"), project(":desktopApp"))
+    // Only what ends up in the apps: no compile-only, test or tooling classpaths.
+    configurations = arrayOf("jvmRuntimeClasspath", "androidRuntimeClasspath", "releaseRuntimeClasspath", "runtimeClasspath")
+    excludeOwnGroup = true
+    outputDir = licenseReportDir
+    filters = arrayOf(LicenseBundleNormalizer())
+    renderers = arrayOf(JsonReportRenderer("licenses.json", false))
 }
 
 // By default Gradle only writes to stdout when a test fails, so a green
@@ -22,5 +52,96 @@ allprojects {
         // rerun and nothing above ever fires — force it to actually execute,
         // and therefore print, every time.
         outputs.upToDateWhen { false }
+    }
+}
+
+// --- Merged licence list for the app ----------------------------------------
+
+val rustFfiDir = layout.projectDirectory.dir("ffi/x0x-ffi")
+// Rust only ships inside the mobile apps (desktop talks to a standalone x0xd).
+val rustTargets = listOf("aarch64-linux-android", "aarch64-apple-ios")
+val licensesResource = layout.projectDirectory.file("shared/src/commonMain/composeResources/files/licenses.json")
+// Kotlin Multiplatform publishes one artifact per target (foo, foo-jvm, foo-android...); list the library once.
+val targetSuffix = Regex("-(jvm|android|desktop|awt)$")
+val UNDECLARED_LICENSE = "Not declared"
+
+fun gradleLicenses(): List<Map<String, Any>> {
+    @Suppress("UNCHECKED_CAST")
+    val report = groovy.json.JsonSlurper().parse(file("$licenseReportDir/licenses.json")) as Map<String, Any>
+    @Suppress("UNCHECKED_CAST")
+    return (report["dependencies"] as List<Map<String, Any?>>).map { dependency ->
+        val licenses = (dependency["moduleLicenses"] as List<Map<String, Any?>>).mapNotNull { it["moduleLicense"] as? String }
+        val url = (dependency["moduleUrls"] as List<String>).firstOrNull()
+        mapOf(
+            "name" to (dependency["moduleName"] as String).let { name ->
+                // ant-android is the library's real name, not a per-target artifact.
+                if (name == "com.autonomi:ant-android") name else name.replace(targetSuffix, "")
+            },
+            "version" to (dependency["moduleVersion"] as String),
+            "licenses" to licenses.distinct().ifEmpty { listOf(UNDECLARED_LICENSE) },
+            "url" to (url ?: ""),
+        )
+    }
+}
+
+fun rustLicenses(): List<Map<String, Any>> {
+    val crates = mutableMapOf<String, Map<String, Any>>()
+    for (target in rustTargets) {
+        val output = providers.exec {
+            workingDir = rustFfiDir.asFile
+            commandLine("cargo", "metadata", "--locked", "--format-version", "1", "--filter-platform", target)
+        }.standardOutput.asText.get()
+        @Suppress("UNCHECKED_CAST")
+        val metadata = groovy.json.JsonSlurper().parseText(output) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val packages = (metadata["packages"] as List<Map<String, Any?>>).associateBy { it["id"] as String }
+        @Suppress("UNCHECKED_CAST")
+        val nodes = ((metadata["resolve"] as Map<String, Any?>)["nodes"] as List<Map<String, Any?>>).associateBy { it["id"] as String }
+        // Walk the normal (non-dev, non-build) dependencies from the FFI crate: what actually ships.
+        @Suppress("UNCHECKED_CAST")
+        val root = (metadata["resolve"] as Map<String, Any?>)["root"] as String
+        val pending = ArrayDeque(listOf(root))
+        val seen = mutableSetOf<String>()
+        while (pending.isNotEmpty()) {
+            val id = pending.removeFirst()
+            if (!seen.add(id)) continue
+            @Suppress("UNCHECKED_CAST")
+            (nodes.getValue(id)["deps"] as List<Map<String, Any?>>)
+                .filter { dep -> (dep["dep_kinds"] as List<Map<String, Any?>>).any { it["kind"] == null } }
+                .forEach { pending.add(it["pkg"] as String) }
+        }
+        (seen - root).map { packages.getValue(it) }.forEach { pkg ->
+            val name = pkg["name"] as String
+            val version = pkg["version"] as String
+            val license = (pkg["license"] as? String) ?: UNDECLARED_LICENSE
+            crates["$name:$version"] = mapOf(
+                "name" to "crates.io:$name",
+                "version" to version,
+                "licenses" to listOf(license),
+                "url" to ((pkg["repository"] ?: pkg["homepage"]) as? String ?: ""),
+            )
+        }
+    }
+    return crates.values.toList()
+}
+
+// The report plugin's task holds on to Project objects, which the configuration cache cannot serialise.
+tasks.named("generateLicenseReport") {
+    notCompatibleWithConfigurationCache("jk1 dependency-license-report keeps Project references")
+}
+
+tasks.register("generateLicenses") {
+    notCompatibleWithConfigurationCache("reads the licence report and runs cargo at execution time")
+    group = "documentation"
+    description = "Regenerates the in-app open source licence list (needs network for the Cargo part)."
+    dependsOn("generateLicenseReport")
+    outputs.file(licensesResource)
+    doLast {
+        val merged = (gradleLicenses() + rustLicenses())
+            .distinctBy { "${it["name"]}:${it["version"]}" }
+            .sortedWith(compareBy({ (it["name"] as String).lowercase() }, { it["version"] as String }))
+        licensesResource.asFile.parentFile.mkdirs()
+        licensesResource.asFile.writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(merged)) + "\n")
+        logger.lifecycle("Wrote ${merged.size} entries to ${licensesResource.asFile.relativeTo(projectDir)}")
     }
 }

@@ -68,6 +68,20 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun openSourceLicensesRowCallsItsCallback() = runComposeUiTest {
+        // Arrange
+        var opened = 0
+        setContent { VestaTheme { SettingsScreen(onOpenSourceLicensesClick = { opened++ }) } }
+
+        // Act
+        onNodeWithTag(SettingsTestTags.OpenSourceLicensesRow).performClick()
+
+        // Assert
+        assertEquals(1, opened)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun x0xStatusRowOpensNetworkDiagnostics() = runComposeUiTest {
         // Arrange
         var opened = 0

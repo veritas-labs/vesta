@@ -71,4 +71,7 @@ android {
     buildFeatures {
         compose = true
     }
+    // The launcher icons are brand assets, kept apart from the Apache-licensed
+    // code under /branding (see branding/README.md and TRADEMARK.md).
+    sourceSets.getByName("main").res.srcDir(rootProject.projectDir.resolve("branding/android/res"))
 }

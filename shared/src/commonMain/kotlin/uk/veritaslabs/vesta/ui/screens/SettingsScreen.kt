@@ -56,6 +56,8 @@ import vesta.shared.generated.resources.settings_network_peers_open
 import vesta.shared.generated.resources.settings_network_status
 import vesta.shared.generated.resources.settings_network_status_open
 import vesta.shared.generated.resources.settings_network_mobile_data
+import vesta.shared.generated.resources.settings_open_source_licenses
+import vesta.shared.generated.resources.settings_open_source_licenses_open
 import vesta.shared.generated.resources.settings_section_application
 import vesta.shared.generated.resources.settings_section_device
 import vesta.shared.generated.resources.settings_section_appearance
@@ -81,6 +83,7 @@ internal object SettingsTestTags {
     const val NetworkStatusRow = "settings_network_status"
     const val NetworkPeersRow = "settings_network_peers"
     const val MobileDataRow = "settings_network_mobile_data"
+    const val OpenSourceLicensesRow = "settings_open_source_licenses"
 }
 
 /**
@@ -88,6 +91,7 @@ internal object SettingsTestTags {
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
  * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default and disabled when
  * the device has no mobile data ([mobileDataAvailable], false on desktop).
+ * The Open source licences row in Application calls [onOpenSourceLicensesClick].
  * The Synced devices row calls [onSyncedDevicesClick], the x0x status row [onNetworkStatusClick] to show network diagnostics, and the Peers row [onPeersClick] to show them as a graph; with a [profileName], a Profile section shows it and its row calls
  * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
@@ -106,6 +110,7 @@ fun SettingsScreen(
     onSyncedDevicesClick: () -> Unit = {},
     onNetworkStatusClick: () -> Unit = {},
     onPeersClick: () -> Unit = {},
+    onOpenSourceLicensesClick: () -> Unit = {},
     profileName: String? = null,
     onProfileNameClick: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -175,6 +180,17 @@ fun SettingsScreen(
                             appInfo.buildCode,
                             Modifier.testTag(SettingsTestTags.BuildRow),
                         )
+                        SettingsRow(
+                            label = stringResource(Res.string.settings_open_source_licenses),
+                            modifier = Modifier.testTag(SettingsTestTags.OpenSourceLicensesRow),
+                            onClick = onOpenSourceLicensesClick,
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_chevron_right),
+                                contentDescription = stringResource(Res.string.settings_open_source_licenses_open),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 item {
