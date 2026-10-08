@@ -185,6 +185,22 @@ class ShoppingListDocumentTest {
     }
 
     @Test
+    fun ensurePantryItemRefreshingFieldsUpdatesAPresentProductButNotItsCounters() {
+        // Arrange
+        val pantry = Document.load(newPantryDocument())
+        val key = ensurePantryItem(pantry, "Dairy", "Milk", "Whole Milk", "2 pint", null, now = { "t1" })
+
+        // Act
+        ensurePantryItem(
+            pantry, "Chilled", null, "Whole Milk", "4 pint", null,
+            countUse = false, refreshFields = true, now = { "t2" },
+        )
+
+        // Assert
+        assertEquals(PantryItem(key, "Chilled", null, "Whole Milk", "4 pint", null, 1, "t1", 0), pantry.readPantryItem(key))
+    }
+
+    @Test
     fun tagsAreStoredTrimmedWithoutBlanksOrRepeatsIgnoringCase() {
         // Arrange
         val doc = newList()

@@ -87,20 +87,7 @@ fun upsertPantryItem(
     val existingId = (tx.get(itemsId, key).getOrNull() as? AmValue.Map)?.id
     val itemId = existingId ?: tx.set(itemsId, key, ObjectType.MAP)
 
-    tx.set(itemId, IdKey, key)
-    tx.set(itemId, PrimaryCategoryKey, primaryCategory)
-    if (secondaryCategory != null) {
-        tx.set(itemId, SecondaryCategoryKey, secondaryCategory)
-    } else if (tx.get(itemId, SecondaryCategoryKey).isPresent) {
-        tx.delete(itemId, SecondaryCategoryKey)
-    }
-    tx.set(itemId, TitleKey, title)
-    tx.set(itemId, PackageSizeKey, packageSize)
-    if (barcode != null) {
-        tx.set(itemId, BarcodeKey, barcode)
-    } else if (tx.get(itemId, BarcodeKey).isPresent) {
-        tx.delete(itemId, BarcodeKey)
-    }
+    tx.writeProductFields(itemId, key, primaryCategory, secondaryCategory, title, packageSize, barcode)
     tx.set(itemId, LastUsedAtKey, now())
 
     if (existingId != null) {
@@ -116,7 +103,8 @@ fun upsertPantryItem(
 /**
  * Makes sure the Pantry has an entry for the product with the given [barcode]/[title] and returns its dedup key:
  * creates one (with `useCount = 1`, `stockCount = 0`) when absent, otherwise leaves its fields alone and, when
- * [countUse], increments `useCount` and refreshes `lastUsedAt`.
+ * [countUse], increments `useCount` and refreshes `lastUsedAt`. With [refreshFields] an existing entry also takes the
+ * given categories, title, package size and barcode (counters and `lastUsedAt` are untouched by that alone).
  */
 fun ensurePantryItem(
     doc: Document,
@@ -126,22 +114,51 @@ fun ensurePantryItem(
     packageSize: String,
     barcode: String?,
     countUse: Boolean = true,
+    refreshFields: Boolean = false,
     now: () -> String = { Clock.System.now().toString() },
 ): String {
     val key = pantryDedupKey(barcode, title)
     if (doc.readPantryItem(key) == null) {
         return upsertPantryItem(doc, primaryCategory, secondaryCategory, title, packageSize, barcode, now)
     }
-    if (countUse) {
+    if (countUse || refreshFields) {
         val tx = doc.startTransaction()
         val itemId = tx.itemsMapId()?.let { (tx.get(it, key).getOrNull() as? AmValue.Map)?.id }
         if (itemId != null) {
-            tx.set(itemId, LastUsedAtKey, now())
-            tx.increment(itemId, UseCountKey, 1)
+            if (refreshFields) tx.writeProductFields(itemId, key, primaryCategory, secondaryCategory, title, packageSize, barcode)
+            if (countUse) {
+                tx.set(itemId, LastUsedAtKey, now())
+                tx.increment(itemId, UseCountKey, 1)
+            }
         }
         tx.commit()
     }
     return key
+}
+
+private fun org.automerge.Transaction.writeProductFields(
+    itemId: ObjectId,
+    key: String,
+    primaryCategory: String,
+    secondaryCategory: String?,
+    title: String,
+    packageSize: String,
+    barcode: String?,
+) {
+    set(itemId, IdKey, key)
+    set(itemId, PrimaryCategoryKey, primaryCategory)
+    if (secondaryCategory != null) {
+        set(itemId, SecondaryCategoryKey, secondaryCategory)
+    } else if (get(itemId, SecondaryCategoryKey).isPresent) {
+        delete(itemId, SecondaryCategoryKey)
+    }
+    set(itemId, TitleKey, title)
+    set(itemId, PackageSizeKey, packageSize)
+    if (barcode != null) {
+        set(itemId, BarcodeKey, barcode)
+    } else if (get(itemId, BarcodeKey).isPresent) {
+        delete(itemId, BarcodeKey)
+    }
 }
 
 /** Adjusts [key]'s [PantryItem.stockCount] by [delta] (negative to decrement). No-op if [key] has no entry. */

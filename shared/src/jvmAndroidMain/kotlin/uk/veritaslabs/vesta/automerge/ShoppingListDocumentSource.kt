@@ -72,6 +72,7 @@ class ShoppingListDocumentSource(
             ensurePantryItem(
                 doc, item.primaryCategory, item.secondaryCategory, item.title, item.packageSize, item.barcode,
                 countUse = item.key == null,
+                refreshFields = item.key != null,
             )
         }
         onLocalChange()

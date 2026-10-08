@@ -100,6 +100,23 @@ class ShoppingListDocumentSourceTest {
     }
 
     @Test
+    fun editingAnItemsCategoriesAndPackageSizeUpdatesItsPantryEntryKeepingStock() = runBlocking {
+        // Arrange
+        val (pantry, shopping) = newSources()
+        shopping.save(milk)
+
+        // Act
+        shopping.save(milk.copy(key = "whole milk", primaryCategory = "Chilled", secondaryCategory = null, packageSize = "4 pint"))
+
+        // Assert
+        val entry = pantry.contents.first().items.single()
+        assertEquals("Chilled", entry.primaryCategory)
+        assertNull(entry.secondaryCategory)
+        assertEquals("4 pint", entry.packageSize)
+        assertEquals(0, entry.stockCount)
+    }
+
+    @Test
     fun removedItemLeavesTheListButStaysInThePantry() = runBlocking {
         // Arrange
         val (pantry, shopping) = newSources()
