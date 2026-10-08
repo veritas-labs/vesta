@@ -47,11 +47,13 @@ import uk.veritaslabs.vesta.ui.components.ProfileAvatar
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.member_detail_agent_id
 import vesta.shared.generated.resources.member_detail_agent_last_seen
 import vesta.shared.generated.resources.member_detail_agent_last_synced
 import vesta.shared.generated.resources.member_detail_agent_machine
 import vesta.shared.generated.resources.member_detail_agents_empty
 import vesta.shared.generated.resources.member_detail_agents_title
+import vesta.shared.generated.resources.member_detail_device_unnamed
 import vesta.shared.generated.resources.member_detail_back
 import vesta.shared.generated.resources.member_detail_manage
 import vesta.shared.generated.resources.members_leave_cancel
@@ -78,14 +80,16 @@ internal object MemberDetailTestTags {
     const val AgentsEmpty = "member_detail_agents_empty"
 
     fun agent(agentId: String) = "member_detail_agent_$agentId"
+    fun device(name: String?) = "member_detail_device_${name.orEmpty()}"
 }
 
 /**
- * One x0x agent of a member (one per device). [machineId], [lastSeenMsAgo] (x0x last saw it) and [lastSyncedMsAgo] (Vesta last
+ * One x0x agent of a member (one per device). [name] is what the device calls itself. [machineId], [lastSeenMsAgo] (x0x last saw it) and [lastSyncedMsAgo] (Vesta last
  * synced with it) are null while unknown.
  */
 data class MemberAgent(
     val agentId: String,
+    val name: String? = null,
     val machineId: String? = null,
     val lastSeenMsAgo: Long? = null,
     val lastSyncedMsAgo: Long? = null,
@@ -181,7 +185,19 @@ fun MemberDetailScreen(
                         )
                     }
                 }
-                items(agents, key = { "agent-${it.agentId}" }) { agent -> AgentRow(agent) }
+                // One heading per device name, in the order the names first appear; agents with no name come last.
+                val byDevice = agents.groupBy { it.name }.toList().sortedBy { (name, _) -> name == null }
+                byDevice.forEach { (name, deviceAgents) ->
+                    item(key = "device-${name.orEmpty()}") {
+                        Text(
+                            text = name ?: stringResource(Res.string.member_detail_device_unnamed),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(top = 8.dp).testTag(MemberDetailTestTags.device(name)),
+                        )
+                    }
+                    items(deviceAgents, key = { "agent-${it.agentId}" }) { agent -> AgentRow(agent) }
+                }
             }
         }
     }
@@ -258,12 +274,7 @@ private fun AgentRow(agent: MemberAgent) {
         modifier = Modifier.fillMaxWidth().testTag(MemberDetailTestTags.agent(agent.agentId)),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = shortAgentId(agent.agentId),
-                style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            InfoLine(stringResource(Res.string.member_detail_agent_id), shortAgentId(agent.agentId), monospace = true)
             agent.machineId?.let { InfoLine(stringResource(Res.string.member_detail_agent_machine), shortId(it), monospace = true) }
             agent.lastSeenMsAgo?.let { InfoLine(stringResource(Res.string.member_detail_agent_last_seen), agoText(it)) }
             InfoLine(stringResource(Res.string.member_detail_agent_last_synced), agoText(agent.lastSyncedMsAgo))
@@ -275,10 +286,12 @@ private val PreviewMember = MemberListItem("2", "Sam", MemberRole.Member)
 private val PreviewAgents = listOf(
     MemberAgent(
         "9f2c41d07a3be58c1d6e0f4a8b7c2d3e5f60718293a4b5c6d7e8f90a1b2c3d4e",
+        name = "Sam's Pixel 9",
         machineId = "11d167d8442575e837eb45fc4859155ffaccc149a50bf6cf22268853175636c3",
         lastSeenMsAgo = 42_000,
         lastSyncedMsAgo = 3 * 60_000,
     ),
+    MemberAgent("3b7e90a1c5d2486f1e0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e", name = "Sam's Pixel 9", lastSyncedMsAgo = 5 * 60_000),
     MemberAgent("1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809"),
 )
 

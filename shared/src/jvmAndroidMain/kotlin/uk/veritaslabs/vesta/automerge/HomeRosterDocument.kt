@@ -9,6 +9,7 @@ import org.automerge.Read
 private const val RosterFeature = "roster"
 private const val MemberPrefix = "member:"
 private const val DevicePrefix = "device:"
+private const val DeviceNamePrefix = "devicename:"
 private const val NameField = "name"
 private const val AvatarField = "avatar"
 private const val RoleField = "role"
@@ -47,6 +48,7 @@ data class RosterMember(
  *
  *   member:<memberId>:name | avatar | role | joinedAt | removed     one person
  *   device:<agentId>  =  <memberId>                                the agents that act for that person
+ *   devicename:<agentId>  =  <name>                                what that device calls itself, written only by that device
  *
  * Nothing is a nested map. Two devices of one person write the same member's keys concurrently, and a nested
  * `member:<id>` map created by both would conflict on merge and lose one device's entries; scalars written with the
@@ -144,6 +146,26 @@ fun claimRosterDevice(doc: Document, agentId: String, memberId: String): Boolean
         return false
     }
     tx.set(ObjectId.ROOT, key, memberId)
+    tx.commit()
+    return true
+}
+
+/** What each device calls itself, by agent id: every `devicename:` key. A device that never wrote one (an older version) has none. */
+fun Read.readRosterDeviceNames(): Map<String, String> =
+    mapEntries(ObjectId.ROOT).getOrNull().orEmpty()
+        .filter { it.key.startsWith(DeviceNamePrefix) }
+        .mapNotNull { entry -> (entry.value as? AmValue.Str)?.value?.takeIf { it.isNotBlank() }?.let { entry.key.removePrefix(DeviceNamePrefix) to it } }
+        .toMap()
+
+/** Records that [agentId] calls itself [name]. Returns whether anything changed. */
+fun setRosterDeviceName(doc: Document, agentId: String, name: String): Boolean {
+    val tx = doc.startTransaction()
+    val key = "$DeviceNamePrefix$agentId"
+    if ((tx.get(ObjectId.ROOT, key).getOrNull() as? AmValue.Str)?.value == name) {
+        tx.rollback()
+        return false
+    }
+    tx.set(ObjectId.ROOT, key, name)
     tx.commit()
     return true
 }

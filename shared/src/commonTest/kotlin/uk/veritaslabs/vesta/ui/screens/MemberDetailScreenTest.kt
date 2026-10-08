@@ -2,6 +2,8 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -59,6 +61,36 @@ class MemberDetailScreenTest {
         onNodeWithText("11d167d8…175636c3").assertIsDisplayed()
         onNodeWithText("42 s ago").assertIsDisplayed()
         onNodeWithText("3 min ago").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsTheNameADeviceGivesItself() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MemberDetailScreen(sam, agents = listOf(MemberAgent(agentA, name = "Sam's Pixel 9"))) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("Sam's Pixel 9").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun groupsAgentsUnderTheirDeviceNameAndLabelsTheAgentId() = runComposeUiTest {
+        // Arrange
+        val agents = listOf(MemberAgent(agentA, name = "Pixel"), MemberAgent(agentB, name = "Pixel"), MemberAgent("c".repeat(64)))
+        setContent { VestaTheme { MemberDetailScreen(sam, agents = agents) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(MemberDetailTestTags.device("Pixel")).assertIsDisplayed()
+        onNodeWithTag(MemberDetailTestTags.device(null)).assertIsDisplayed()
+        onNodeWithText("Unnamed device").assertIsDisplayed()
+        onAllNodesWithText("Agent").assertCountEquals(3)
     }
 
     @OptIn(ExperimentalTestApi::class)

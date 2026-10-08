@@ -130,15 +130,18 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
         eventually { b.homeNames() == listOf("Maple Street") }
+        eventually { a.sync.agentDetails(homeId, "agent-b").name != null } // b's roster entry reaches a a round later
 
         // Act
-        val synced = a.sync.agentDetails("agent-b")
-        val stranger = a.sync.agentDetails("agent-z")
+        val synced = a.sync.agentDetails(homeId, "agent-b")
+        val stranger = a.sync.agentDetails(homeId, "agent-z")
 
         // Assert
         assertTrue(synced.lastSyncedMsAgo != null && synced.lastSyncedMsAgo!! < 10_000)
+        assertTrue(synced.name != null) // learnt from the roster, which agent-b wrote
+        assertEquals(null, stranger.name)
         assertEquals(null, stranger.lastSyncedMsAgo)
         assertEquals(null, stranger.machineId)
         assertEquals(null, stranger.lastSeenMsAgo)

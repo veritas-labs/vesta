@@ -647,8 +647,8 @@ fun VestaApp(
                 memberAgents = { memberId ->
                     deviceDataSync?.let { sync ->
                         sync.memberAgents(homeId, memberId).map { agentId ->
-                            val details = sync.agentDetails(agentId)
-                            MemberAgent(agentId, details.machineId, details.lastSeenMsAgo, details.lastSyncedMsAgo)
+                            val details = sync.agentDetails(homeId, agentId)
+                            MemberAgent(agentId, details.name, details.machineId, details.lastSeenMsAgo, details.lastSyncedMsAgo)
                         }
                     }.orEmpty()
                 },

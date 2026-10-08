@@ -25,7 +25,9 @@ import uk.veritaslabs.vesta.automerge.useRosterInvite
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.automerge.RosterMember
 import uk.veritaslabs.vesta.automerge.putRosterMember
+import uk.veritaslabs.vesta.automerge.readRosterDeviceNames
 import uk.veritaslabs.vesta.automerge.readRosterGoneDevices
+import uk.veritaslabs.vesta.automerge.setRosterDeviceName
 import uk.veritaslabs.vesta.automerge.readRosterGroup
 import uk.veritaslabs.vesta.automerge.readRosterHubs
 import uk.veritaslabs.vesta.automerge.removeRosterHub
@@ -36,6 +38,7 @@ import uk.veritaslabs.vesta.automerge.retireRosterMember
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.setRosterRole
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.getDeviceName
 import uk.veritaslabs.vesta.mailbox.changesSince
 import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -53,6 +56,7 @@ internal class HomeRosters(
     private val database: VestaDatabase,
     private val profiles: ProfileRepository,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    private val deviceName: () -> String = ::getDeviceName,
 ) {
 
     private val lock = Mutex()
@@ -63,8 +67,8 @@ internal class HomeRosters(
     val changes: SharedFlow<String> = _changes.asSharedFlow()
 
     /**
-     * Writes the current user's member of [homeId], and [agentId] (if known) as one of their devices, into that
-     * Home's roster. A device with no member row for the user yet (a Home that has just arrived) does nothing until
+     * Writes the current user's member of [homeId], and [agentId] (if known) as one of their devices, with the name this device
+     * gives itself, into that Home's roster. A device with no member row for the user yet (a Home that has just arrived) does nothing until
      * the roster has brought one. Once [agentId] is known, any other device the roster lists for the user that isn't
      * in [pairedAgents] (the devices this one is paired with) is released: it has been removed from the user's
      * devices, so it no longer acts for them. The member stays, with fewer devices (ADR-014 §4).
@@ -76,11 +80,12 @@ internal class HomeRosters(
             val doc = open(homeId) ?: return
             val member = putRosterMember(doc, row.memberId, row.name, row.avatarResourceId, row.role, row.joinedAt)
             val device = agentId?.let { claimRosterDevice(doc, it, row.memberId) } ?: false
+            val named = agentId?.let { nameOwnDevice(doc, it) } ?: false
             val released = agentId != null && doc.readRoster().firstOrNull { it.memberId == row.memberId }?.devices.orEmpty()
                 .filter { it != agentId && it !in pairedAgents }
                 .map { releaseRosterDevice(doc, it, row.memberId) }
                 .any { it }
-            (member || device || released).also { if (it) persist(homeId, doc) }
+            (member || device || named || released).also { if (it) persist(homeId, doc) }
         }
         if (changed) _changes.tryEmit(homeId)
     }
@@ -179,6 +184,7 @@ internal class HomeRosters(
                 database.homeMemberQueries.selectByHome(homeId).awaitAsList().firstOrNull { it.memberId == memberId }?.let { row ->
                     putRosterMember(doc, row.memberId, row.name, row.avatarResourceId, row.role, row.joinedAt)
                     claimRosterDevice(doc, agent, memberId)
+                    nameOwnDevice(doc, agent)
                 }
             }
             if (doc.readRoster().none { it.memberId == memberId && it.role == MemberRole.Admin.storageValue && !it.removed }) return null
@@ -280,6 +286,12 @@ internal class HomeRosters(
             }
         }
     }
+
+    private fun nameOwnDevice(doc: Document, agentId: String): Boolean =
+        deviceName().trim().takeIf { it.isNotEmpty() }?.let { setRosterDeviceName(doc, agentId, it) } ?: false
+
+    /** What each device of [homeId]'s roster calls itself, by agent id; a device that has not said (an older version, or not yet synced) is left out. */
+    suspend fun deviceNames(homeId: String): Map<String, String> = lock.withLock { open(homeId)?.readRosterDeviceNames().orEmpty() }
 
     /** The agents that act for each member of [homeId], by member id. */
     suspend fun devices(homeId: String): Map<String, Set<String>> = lock.withLock {

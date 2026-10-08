@@ -92,10 +92,11 @@ class DeviceDataSyncService(
     /** When a sync message last passed between this device and each peer, in [nowMillis] time. */
     private val lastSynced = ConcurrentHashMap<String, Long>()
 
-    override suspend fun agentDetails(agentId: String): AgentDetails {
+    override suspend fun agentDetails(homeId: String, agentId: String): AgentDetails {
         val discovered = runCatching { client.getDiscoveredAgent(agentId) }.getOrNull()
         val now = nowMillis()
         return AgentDetails(
+            name = rosters.deviceNames(homeId)[agentId],
             machineId = discovered?.machineId,
             lastSeenMsAgo = discovered?.lastSeen?.let { (now - it * 1_000).coerceAtLeast(0) },
             lastSyncedMsAgo = lastSynced[agentId]?.let { (now - it).coerceAtLeast(0) },

@@ -7,10 +7,11 @@ import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 
 /**
- * What is known about one x0x agent. Each field is null when unknown: [machineId] and [lastSeenMsAgo] come from x0x's discovery
+ * What is known about one x0x agent. Each field is null when unknown: [name] is what the device calls itself, as the Home's roster says; [machineId] and [lastSeenMsAgo] come from x0x's discovery
  * cache, [lastSyncedMsAgo] is the time since a sync message last passed between the agent and this device (in either direction).
  */
 data class AgentDetails(
+    val name: String? = null,
     val machineId: String? = null,
     val lastSeenMsAgo: Long? = null,
     val lastSyncedMsAgo: Long? = null,
@@ -48,8 +49,8 @@ interface DeviceDataSync {
     /** The x0x agent ids that act for [memberId] in [homeId], as the Home's roster lists them: one per device they have, sorted. */
     suspend fun memberAgents(homeId: String, memberId: String): List<String>
 
-    /** What this device knows about [agentId]'s device: its machine, when x0x last saw it and when Vesta last synced with it. */
-    suspend fun agentDetails(agentId: String): AgentDetails
+    /** What this device knows about [agentId]'s device in [homeId]: its name, its machine, when x0x last saw it and when Vesta last synced with it. */
+    suspend fun agentDetails(homeId: String, agentId: String): AgentDetails
 
     /** Asks for a sync round now, e.g. because the app came to the foreground. Returns at once; does nothing until [run] is running. */
     fun syncNow()
