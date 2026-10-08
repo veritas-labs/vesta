@@ -96,3 +96,35 @@ data class X0xDirectMessage(
     val verified: Boolean? = null,
     @SerialName("trust_decision") val trustDecision: String? = null,
 )
+
+/**
+ * One file transfer as `GET /files/transfers[/:id]` reports it. [state] is `"Pending"`, `"InProgress"`, `"Complete"`, `"Failed"` or `"Rejected"`;
+ * a receiver's [outputPath] is where the daemon put the file (it may dangle once the app has moved it) and a sender's [sourcePath] is the file it read.
+ */
+@Serializable
+data class X0xFileTransfer(
+    @SerialName("transfer_id") val transferId: String,
+    val filename: String? = null,
+    val size: Long? = null,
+    val sha256: String? = null,
+    val state: String? = null,
+    val error: String? = null,
+    @SerialName("output_path") val outputPath: String? = null,
+    @SerialName("source_path") val sourcePath: String? = null,
+)
+
+/**
+ * A file-transfer event from the daemon's `/events` stream (`file:*` frames). x0xd sends no `file:failed` frame (ADR-023, Spike 1),
+ * so a failed receive is only visible through [X0xClient.getFileTransfer]; [Failed] is there for daemons that do emit one.
+ */
+sealed interface X0xFileEvent {
+    val transferId: String
+
+    /** Someone offers [filename] of [size] bytes; nothing moves until [X0xClient.acceptFile]. */
+    data class Offer(override val transferId: String, val filename: String, val size: Long, val sender: String) : X0xFileEvent
+
+    /** The file landed at [path] (the daemon's own name for it, not [filename]) and the daemon computed [sha256] over it. */
+    data class Complete(override val transferId: String, val filename: String, val sha256: String?, val path: String) : X0xFileEvent
+
+    data class Failed(override val transferId: String, val reason: String?) : X0xFileEvent
+}

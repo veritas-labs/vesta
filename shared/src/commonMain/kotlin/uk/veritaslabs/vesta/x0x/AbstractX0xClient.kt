@@ -27,7 +27,7 @@ abstract class AbstractX0xClient : X0xClient {
 
     override suspend fun health(): X0xHealth? {
         val (baseUrl, token) = resolveDaemon() ?: return null
-        val result = runCatching { httpRequest("GET", "$baseUrl/health", token, null) }.getOrNull() ?: return null
+        val result = runCatching { request("GET", "$baseUrl/health", token, null) }.getOrNull() ?: return null
         if (result.status !in 200..299) return null
         return X0xHealth.parse(result.body)
     }
@@ -82,6 +82,61 @@ abstract class AbstractX0xClient : X0xClient {
         // The entry sits under "agent" in some daemon versions and at the top level in others.
         val entry = body["agent"] as? JsonObject ?: body
         return runCatching { json.decodeFromJsonElement(X0xDiscoveredAgent.serializer(), entry) }.getOrNull()
+    }
+
+    // --- File transfer ---
+
+    override suspend fun sendFile(agentId: String, filename: String, size: Long, sha256: String, path: String): String =
+        post(
+            "/files/send",
+            buildJsonObject {
+                put("agent_id", agentId)
+                put("filename", filename)
+                put("size", size)
+                put("sha256", sha256)
+                put("path", path)
+            },
+        )["transfer_id"]!!.jsonPrimitive.content
+
+    override suspend fun listFileTransfers(): List<X0xFileTransfer> {
+        val transfers = get("/files/transfers")["transfers"]?.jsonArray ?: return emptyList()
+        return transfers.map { json.decodeFromJsonElement(X0xFileTransfer.serializer(), it) }
+    }
+
+    override suspend fun getFileTransfer(transferId: String): X0xFileTransfer? {
+        val body = call("GET", "/files/transfers/${encodePathSegment(transferId)}", allowNotFound = true) ?: return null
+        // The record sits under "transfer" in some daemon versions and at the top level in others.
+        val entry = body["transfer"] as? JsonObject ?: body
+        return json.decodeFromJsonElement(X0xFileTransfer.serializer(), entry)
+    }
+
+    override suspend fun acceptFile(transferId: String) {
+        post("/files/accept/${encodePathSegment(transferId)}")
+    }
+
+    override suspend fun rejectFile(transferId: String) {
+        post("/files/reject/${encodePathSegment(transferId)}")
+    }
+
+    override suspend fun fileEvents(onEvent: (X0xFileEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream =
+        events("/events", onClose) { event ->
+            parseFileEvent(event)?.let(onEvent)
+        }
+
+    /** A `{type: "file:...", data: {...}}` frame as an [X0xFileEvent]; null for any other frame, or one missing what its type needs. */
+    internal fun parseFileEvent(frame: String): X0xFileEvent? {
+        val root = runCatching { json.parseToJsonElement(frame).jsonObject }.getOrNull() ?: return null
+        val type = root["type"]?.jsonPrimitive?.content ?: return null
+        if (!type.startsWith("file:")) return null
+        val data = root["data"] as? JsonObject ?: return null
+        fun text(key: String) = data[key]?.jsonPrimitive?.content
+        val id = text("transfer_id") ?: return null
+        return when (type) {
+            "file:offer" -> X0xFileEvent.Offer(id, text("filename") ?: return null, text("size")?.toLongOrNull() ?: return null, text("sender") ?: return null)
+            "file:complete" -> X0xFileEvent.Complete(id, text("filename").orEmpty(), text("sha256"), text("path") ?: return null)
+            "file:failed" -> X0xFileEvent.Failed(id, text("error") ?: text("reason"))
+            else -> null
+        }
     }
 
     // --- Network peers ---
@@ -215,6 +270,13 @@ abstract class AbstractX0xClient : X0xClient {
 
     // --- Internals ---
 
+    /** The HTTP seam; tests override it (and [openStream]) to run this class without a daemon. */
+    internal open suspend fun request(method: String, url: String, bearerToken: String?, jsonBody: String?): X0xHttpResult =
+        httpRequest(method, url, bearerToken, jsonBody)
+
+    internal open suspend fun openStream(url: String, bearerToken: String?, onEvent: (String) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream =
+        openSseStream(url, bearerToken, onEvent, onClose)
+
     private suspend fun get(path: String): JsonObject = call("GET", path)!!
     private suspend fun post(path: String, body: JsonObject = buildJsonObject { }): JsonObject = call("POST", path, body)!!
     private suspend fun put(path: String, body: JsonObject = buildJsonObject { }): JsonObject = call("PUT", path, body)!!
@@ -227,7 +289,7 @@ abstract class AbstractX0xClient : X0xClient {
         allowNotFound: Boolean = false,
     ): JsonObject? {
         val (baseUrl, token) = resolveDaemon() ?: throw X0xApiException(0, "x0x daemon not reachable")
-        val result = httpRequest(method, "$baseUrl$path", token, body?.let { json.encodeToString(JsonObject.serializer(), it) })
+        val result = request(method, "$baseUrl$path", token, body?.let { json.encodeToString(JsonObject.serializer(), it) })
         if (result.status == 404 && allowNotFound) return null
         if (result.status >= 400) {
             val apiError = runCatching {
@@ -240,7 +302,7 @@ abstract class AbstractX0xClient : X0xClient {
 
     private suspend fun events(path: String, onClose: (Throwable?) -> Unit, onEvent: (String) -> Unit): X0xEventStream {
         val (baseUrl, token) = resolveDaemon() ?: throw X0xApiException(0, "x0x daemon not reachable")
-        return openSseStream("$baseUrl$path", token, onEvent, onClose)
+        return openStream("$baseUrl$path", token, onEvent, onClose)
     }
 }
 

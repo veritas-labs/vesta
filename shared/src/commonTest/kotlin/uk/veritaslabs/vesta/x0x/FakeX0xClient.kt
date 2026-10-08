@@ -55,6 +55,13 @@ class FakeX0xClient : X0xClient {
 
     override suspend fun presenceEvents(onEvent: (X0xPresenceEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream = X0xEventStream { }
 
+    override suspend fun sendFile(agentId: String, filename: String, size: Long, sha256: String, path: String): String = TODO()
+    override suspend fun listFileTransfers(): List<X0xFileTransfer> = TODO()
+    override suspend fun getFileTransfer(transferId: String): X0xFileTransfer? = TODO()
+    override suspend fun acceptFile(transferId: String) = TODO()
+    override suspend fun rejectFile(transferId: String) = TODO()
+    override suspend fun fileEvents(onEvent: (X0xFileEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream = X0xEventStream { }
+
     override suspend fun health(): X0xHealth? = null
     override suspend fun agent(): X0xAgent = TODO()
     override suspend fun createSession(): X0xSession = TODO()

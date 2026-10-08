@@ -1,5 +1,8 @@
 package uk.veritaslabs.vesta.devicesync
 
+import java.io.File
+import java.nio.file.Files
+import java.security.MessageDigest
 import kotlin.io.encoding.Base64
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -11,6 +14,8 @@ import uk.veritaslabs.vesta.x0x.X0xApiException
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventStream
+import uk.veritaslabs.vesta.x0x.X0xFileEvent
+import uk.veritaslabs.vesta.x0x.X0xFileTransfer
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
 import uk.veritaslabs.vesta.x0x.X0xPresenceEvent
 import uk.veritaslabs.vesta.x0x.X0xStoreKey
@@ -23,6 +28,11 @@ import uk.veritaslabs.vesta.x0x.X0xStoreKey
  * local: reads see only what has reached it. A write reaches every online replica at once; an [offline]
  * node's writes stay local until it [comeOnline]s, and a node coming online (or opening the store) catches
  * up from the replicas that are online, so the writer being offline never stops anyone reading.
+ *
+ * File transfers mirror x0xd (ADR-023, Spikes 1 and 4): an offer reaches only an online node, and nothing moves until the receiver accepts;
+ * the daemon reads the sender's `path` in place, checks the sha256 on arrival and lands the file as `<first 8 of id>_<filename>` in the receiver's
+ * [Node.transfersDir]. A mismatch leaves the receiver `Failed` with no file, the sender still `Complete`, and no event; an offer to an offline node
+ * stays `Pending` for ever and never arrives.
  */
 class FakeX0xNetwork {
 
@@ -90,6 +100,26 @@ class FakeX0xNetwork {
         }
     }
 
+    /** One file transfer, with the state each end sees. */
+    class Transfer(
+        val id: String,
+        val from: String,
+        val to: String,
+        val filename: String,
+        val size: Long,
+        val sha256: String,
+        val sourcePath: String,
+    ) {
+        var senderState = "Pending"
+        var receiverState = "Pending"
+        var error: String? = null
+        var outputPath: String? = null
+    }
+
+    /** Every transfer made so far, by id. */
+    val transfers = linkedMapOf<String, Transfer>()
+    private var nextTransfer = 0
+
     private fun storeId(groupId: String, name: String) = "x0x/group/$groupId/kv/$name"
 
     fun node(agentId: String): Node = Node(agentId).also { nodes[agentId] = it }
@@ -100,6 +130,77 @@ class FakeX0xNetwork {
         var onDirect: (X0xDirectMessage) -> Unit = {}
 
         val sentTo = mutableListOf<String>()
+
+        /** Where this node's "daemon" lands received files. */
+        val transfersDir: File = Files.createTempDirectory("fake-transfers-$agentId").toFile().also { it.deleteOnExit() }
+
+        /** Called for every file event while this node's event stream is open. */
+        var onFile: (X0xFileEvent) -> Unit = {}
+
+        override suspend fun fileEvents(onEvent: (X0xFileEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream {
+            onFile = onEvent
+            return X0xEventStream { onFile = {}; onClose(null) }
+        }
+
+        override suspend fun sendFile(agentId: String, filename: String, size: Long, sha256: String, path: String): String {
+            val id = "%08d-fake-transfer".format(nextTransfer++)
+            val transfer = Transfer(id, this.agentId, agentId, filename, size, sha256, path)
+            transfers[id] = transfer
+            val target = nodes[agentId]
+            if (target != null && agentId !in offline) target.onFile(X0xFileEvent.Offer(id, filename, size, this.agentId))
+            return id
+        }
+
+        private fun view(transfer: Transfer): X0xFileTransfer {
+            val receiving = transfer.to == agentId
+            return X0xFileTransfer(
+                transferId = transfer.id,
+                filename = transfer.filename,
+                size = transfer.size,
+                sha256 = transfer.sha256,
+                state = if (receiving) transfer.receiverState else transfer.senderState,
+                error = transfer.error.takeIf { receiving },
+                outputPath = transfer.outputPath.takeIf { receiving },
+                sourcePath = transfer.sourcePath.takeIf { !receiving },
+            )
+        }
+
+        override suspend fun listFileTransfers(): List<X0xFileTransfer> =
+            transfers.values.filter { it.from == agentId || it.to == agentId }.map(::view)
+
+        override suspend fun getFileTransfer(transferId: String): X0xFileTransfer? =
+            transfers[transferId]?.takeIf { it.from == agentId || it.to == agentId }?.let(::view)
+
+        override suspend fun acceptFile(transferId: String) {
+            val transfer = transfers[transferId]?.takeIf { it.to == agentId } ?: throw X0xApiException(404, "transfer not found")
+            if (transfer.receiverState != "Pending") throw X0xApiException(409, "transfer is ${transfer.receiverState}")
+            val source = File(transfer.sourcePath)
+            val bytes = source.takeIf { it.isFile }?.readBytes()
+            transfer.senderState = "Complete"
+            if (bytes == null) {
+                transfer.receiverState = "Failed"
+                transfer.error = "source unreadable: ${transfer.sourcePath}"
+                return
+            }
+            val actual = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+            if (actual != transfer.sha256) {
+                transfer.receiverState = "Failed"
+                transfer.error = "SHA-256 mismatch: expected ${transfer.sha256} got $actual"
+                return
+            }
+            val landed = File(transfersDir, "${transfer.id.take(8)}_${transfer.filename}").also { it.writeBytes(bytes) }
+            transfer.receiverState = "Complete"
+            transfer.outputPath = landed.path
+            onFile(X0xFileEvent.Complete(transfer.id, transfer.filename, actual, landed.path))
+        }
+
+        override suspend fun rejectFile(transferId: String) {
+            val transfer = transfers[transferId]?.takeIf { it.to == agentId } ?: throw X0xApiException(404, "transfer not found")
+            if (transfer.receiverState != "Pending") throw X0xApiException(409, "transfer is ${transfer.receiverState}")
+            transfer.receiverState = "Rejected"
+            transfer.senderState = "Rejected"
+            transfer.error = "rejected by user"
+        }
 
         /** Called for every presence event while this node's presence stream is open. */
         var onPresence: (X0xPresenceEvent) -> Unit = {}

@@ -58,6 +58,33 @@ interface X0xClient {
     /** `GET /agents/discovered/:id`: the discovery cache's entry for [agentId]; null when the daemon has never heard of it (404). */
     suspend fun getDiscoveredAgent(agentId: String): X0xDiscoveredAgent?
 
+    // --- File transfer ---
+
+    /**
+     * `POST /files/send`: offers the file at [path] (read in place by the daemon, so it must be readable by it) to [agentId] and returns the transfer id.
+     * The offer is not a delivery: the peer must accept, an offline peer never sees it, and the sender cannot tell a lost transfer from a slow one.
+     * [size] and [sha256] are what the receiver checks the arrived bytes against.
+     */
+    suspend fun sendFile(agentId: String, filename: String, size: Long, sha256: String, path: String): String
+
+    /** `GET /files/transfers`: every transfer this daemon knows of since it started (the list does not survive a restart). */
+    suspend fun listFileTransfers(): List<X0xFileTransfer>
+
+    /** `GET /files/transfers/:id`; null when the daemon has no such transfer (404). */
+    suspend fun getFileTransfer(transferId: String): X0xFileTransfer?
+
+    /** `POST /files/accept/:id`: the only way an offered file starts to move. */
+    suspend fun acceptFile(transferId: String)
+
+    /** `POST /files/reject/:id`. */
+    suspend fun rejectFile(transferId: String)
+
+    /**
+     * Opens `GET /events` and reports its `file:*` frames. Gossip is on the same endpoint ([gossipEvents]), and each stream sees every frame,
+     * so this ignores the ones that aren't file events. [onClose] behaves as for [gossipEvents].
+     */
+    suspend fun fileEvents(onEvent: (X0xFileEvent) -> Unit, onClose: (Throwable?) -> Unit = {}): X0xEventStream
+
     // --- Network peers ---
 
     /** `GET /peers`: the ids of the peers this daemon is connected to in the gossip mesh. */

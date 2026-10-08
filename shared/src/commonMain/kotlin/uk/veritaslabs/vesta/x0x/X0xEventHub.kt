@@ -37,6 +37,9 @@ class X0xEventHub(
     /** Agents coming online and going offline, from `/presence/events`; reconnects like [directMessages]. */
     val presence: Flow<X0xPresenceEvent> = reconnecting { onItem, onClose -> client.presenceEvents(onItem, onClose) }
 
+    /** File offers, completions and failures, from `/events`; reconnects like [directMessages]. */
+    val fileEvents: Flow<X0xFileEvent> = reconnecting { onItem, onClose -> client.fileEvents(onItem, onClose) }
+
     private fun <T> reconnecting(open: suspend (onItem: (T) -> Unit, onClose: (Throwable?) -> Unit) -> X0xEventStream): Flow<T> = channelFlow {
         var retryDelay = backoff.initial
         while (isActive) {
