@@ -160,4 +160,31 @@ class ShoppingListCrossOffAcceptanceTest {
             onAllNodesWithText("0 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
         }
     }
+
+    @Test
+    fun uncheckAllInTheOverflowMenuResetsEveryItem() = runComposeUiTest {
+        // Arrange — Given milk crossed off, eggs out of stock and bread partly got
+        val source = newSource().also {
+            runBlocking {
+                it.save(milk)
+                it.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Eggs", quantity = 1))
+                it.save(ShoppingItemDetails(primaryCategory = "Bakery", title = "Bread", quantity = 2))
+                it.setProgress("whole milk", 4, false)
+                it.setProgress("eggs", 0, true)
+                it.setProgress("bread", 1, false)
+            }
+        }
+        show(source)
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertTextEquals("0 of 3 items remaining")
+
+        // Act — When I open the overflow menu and tap "Uncheck all items"
+        onNodeWithTag(ShoppingListTestTags.OverflowButton).performClick()
+        onNodeWithTag(ShoppingListTestTags.UncheckAllItem).performClick()
+
+        // Assert — Then every item is unchecked and the counter reads 3 of 3
+        waitUntil(timeoutMillis = 5_000) {
+            onAllNodesWithText("3 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
+        }
+        assertEquals(false, runBlocking { source.items.first().any { it.isCheckedOff } })
+    }
 }

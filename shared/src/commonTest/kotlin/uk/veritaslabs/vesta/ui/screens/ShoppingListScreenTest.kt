@@ -97,6 +97,21 @@ class ShoppingListScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun theOverflowMenuUnchecksAllItems() = runComposeUiTest {
+        // Arrange
+        var unchecked = false
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk.copy(got = 3)), onUncheckAll = { unchecked = true }) } }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.OverflowButton).performClick()
+        onNodeWithTag(ShoppingListTestTags.UncheckAllItem).performClick()
+
+        // Assert
+        assertEquals(true, unchecked)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun longPressingARowOpensTheSheetWithItsOptions() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }

@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -58,6 +60,7 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_back
@@ -75,7 +78,9 @@ import vesta.shared.generated.resources.shopping_mark_out_of_stock
 import vesta.shared.generated.resources.shopping_out_of_stock
 import vesta.shared.generated.resources.shopping_quantity
 import vesta.shared.generated.resources.shopping_remaining
+import vesta.shared.generated.resources.shopping_more_options
 import vesta.shared.generated.resources.shopping_title
+import vesta.shared.generated.resources.shopping_uncheck_all
 
 private val ShoppingListTabletBreakpoint = 600.dp
 
@@ -84,6 +89,8 @@ internal object ShoppingListTestTags {
     const val BackButton = "shopping_back_button"
     const val AddItemButton = "shopping_add_item_button"
     const val RemainingCounter = "shopping_remaining_counter"
+    const val OverflowButton = "shopping_overflow_button"
+    const val UncheckAllItem = "shopping_uncheck_all_item"
 
     /** Tag for the filter chip of the tag [name]. */
     fun filterChip(name: String) = "shopping_filter_chip_$name"
@@ -119,6 +126,7 @@ fun ShoppingListScreen(
             state.items, modifier, onItemSelected, onBack, onAddItem,
             selectedTags = state.selectedTags, onToggleTag = viewModel::toggleTag,
             onToggleCrossedOff = viewModel::toggleCrossedOff, onSetProgress = viewModel::setProgress,
+            onUncheckAll = viewModel::uncheckAll,
         )
     }
 }
@@ -129,6 +137,8 @@ fun ShoppingListScreen(
  * press opens a bottom sheet to mark the item out of stock or say how many were got ([onSetProgress]: key, got,
  * out of stock), with a button that calls [onItemSelected] (to edit it). Crossed-off, partly got and out-of-stock
  * rows look different (see [ShoppingListItem.isCrossedOff]). [onAddItem] is the floating action button; [onBack] the top-bar back arrow.
+ *
+ * The top bar's overflow menu has one entry, "Uncheck all items", which calls [onUncheckAll].
  *
  * The top bar's right side counts the items still to do ("4 of 12 items remaining"): crossed-off, partly got and
  * out-of-stock items all count as checked off, and the filter does not change the count.
@@ -149,9 +159,11 @@ fun ShoppingListScreen(
     onToggleTag: (String) -> Unit = {},
     onToggleCrossedOff: (ShoppingListItem) -> Unit = {},
     onSetProgress: (key: String, got: Int, outOfStock: Boolean) -> Unit = { _, _, _ -> },
+    onUncheckAll: () -> Unit = {},
 ) {
     var sheetKey by remember { mutableStateOf<String?>(null) }
     val filterDescription = stringResource(Res.string.shopping_filter_label)
+    var menuOpen by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= ShoppingListTabletBreakpoint) 24.dp else 16.dp
 
@@ -166,6 +178,24 @@ fun ShoppingListScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = contentPadding).testTag(ShoppingListTestTags.RemainingCounter),
                         )
+                    }
+                    Box {
+                        IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(ShoppingListTestTags.OverflowButton)) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_dots_vertical),
+                                contentDescription = stringResource(Res.string.shopping_more_options),
+                            )
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.shopping_uncheck_all)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onUncheckAll()
+                                },
+                                modifier = Modifier.testTag(ShoppingListTestTags.UncheckAllItem),
+                            )
+                        }
                     }
                 },
                 navigationIcon = {

@@ -122,6 +122,13 @@ class ShoppingListViewModel(private val source: ShoppingListSource) : ViewModel(
         viewModelScope.launch { source.setProgress(key, got, outOfStock) }
     }
 
+    /** Resets the list: every item that is crossed off, partly got or out of stock becomes unchecked again. */
+    fun uncheckAll() {
+        viewModelScope.launch {
+            uiState.value.items.filter { it.isCheckedOff }.forEach { source.setProgress(it.key, 0, false) }
+        }
+    }
+
     fun remove(key: String) {
         viewModelScope.launch { source.remove(key) }
     }
