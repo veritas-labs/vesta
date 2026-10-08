@@ -5,9 +5,11 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +43,8 @@ import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
  *   size the document gives, and once per hash; anything else is rejected at once. A finished file is hashed again and moved into the store
  *   ([BlobRepository.importFile]); the daemon's own sha256 is not relied on.
  *
+ * * **Garbage collection:** a blob no cookbook has referred to for [gracePeriod] and that is not wanted is deleted ([collectGarbage]).
+ *
  * [peersFor] gives the devices a Home syncs with (its roster's devices and the user's own, not this one).
  */
 class BlobTransferService(
@@ -55,6 +59,7 @@ class BlobTransferService(
     private val serveWindow: Duration = 30.seconds,
     private val maxServing: Int = 4,
     private val acceptTimeout: Duration = 5.minutes,
+    private val gracePeriod: Duration = 7.days,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
     private val isOnline: (suspend (agentId: String) -> Boolean)? = null,
 ) {
@@ -105,24 +110,49 @@ class BlobTransferService(
         }
         launch { cookbookSources.localChanges.collect { homeId -> attempt { scan(homeId) } } }
         while (true) {
+            attempt { watchHomes() }
             attempt { round() }
             delay(interval)
         }
     }
 
     /** One pass of everything that is time-driven. Public so a foreground event can ask for it. */
-    suspend fun round() = coroutineScope {
+    suspend fun round() {
         val homes = database.homeQueries.selectAll().awaitAsList().map { it.id }
-        homes.forEach { homeId ->
-            attempt { scan(homeId) }
+        homes.forEach { attempt { scan(it) } }
+        attempt { checkAccepted() }
+        attempt { askRound() }
+        attempt { collectGarbage() }
+        attempt { _waitingForWifi.value = repository.wants().isNotEmpty() && !X0xNetworkPolicy.useMobileData.value && client.health() == null }
+    }
+
+    /** Starts watching each Home's cookbook that is not watched yet: a change that arrives from another device (a sync) is scanned at once, not at the next round. */
+    private suspend fun CoroutineScope.watchHomes() {
+        database.homeQueries.selectAll().awaitAsList().map { it.id }.forEach { homeId ->
             if (lock.withLock { watching.add(homeId) }) {
-                // A change that arrives from another device (a sync) is seen at once rather than at the next round.
                 launch { cookbookSources.forHome(homeId)?.recipes?.collect { attempt { scan(homeId) } } }
             }
         }
-        attempt { checkAccepted() }
-        attempt { askRound() }
-        attempt { _waitingForWifi.value = repository.wants().isNotEmpty() && !X0xNetworkPolicy.useMobileData.value && client.health() == null }
+    }
+
+    // --- Garbage collection ---
+
+    /**
+     * Deletes the blobs no cookbook has referred to for [gracePeriod] and that nothing wants. The period is what lets a photo removed from a recipe by
+     * mistake, or a Home's cookbook that has not synced yet, come back without the bytes being gone; a reference that reappears restarts the clock
+     * (the scan touches it). Does nothing if any Home's cookbook could not be read, so a failure never looks like "no references".
+     */
+    suspend fun collectGarbage() {
+        val stale = repository.unreferencedSince(nowMillis() - gracePeriod.inWholeMilliseconds)
+        if (stale.isEmpty()) return
+        val homes = database.homeQueries.selectAll().awaitAsList().map { it.id }
+        val referenced = mutableSetOf<String>()
+        for (homeId in homes) {
+            val source = cookbookSources.forHome(homeId) ?: return
+            source.blobReferences().mapTo(referenced) { it.hash }
+        }
+        val wanted = repository.wants().mapTo(mutableSetOf()) { it.hash }
+        stale.filter { it !in referenced && it !in wanted }.forEach { repository.delete(it) }
     }
 
     // --- Scan and push ---

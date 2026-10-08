@@ -42,6 +42,9 @@ class BlobTransferServiceTest {
         val repository = BlobRepository(store, database)
         val cookbooks = CookbookSources(database)
         val arrived = mutableListOf<String>()
+
+        /** Moves this device's clock forward, to pass the garbage-collection grace period without waiting. */
+        val skew = java.util.concurrent.atomic.AtomicLong(0)
         val service = BlobTransferService(
             client = node,
             repository = repository,
@@ -52,6 +55,7 @@ class BlobTransferServiceTest {
             interval = 60.milliseconds,
             askBackoff = BlobTransferService.Backoff(150.milliseconds, 600.milliseconds),
             serveWindow = 500.milliseconds,
+            nowMillis = { System.currentTimeMillis() + skew.get() },
         )
 
         init {
@@ -61,7 +65,7 @@ class BlobTransferServiceTest {
 
         /** Holds [bytes] as a photo and returns the reference a document would carry. */
         suspend fun hold(bytes: ByteArray): BlobReference {
-            val info = repository.put(bytes, "image/webp", now = 1)
+            val info = repository.put(bytes, "image/webp", now = System.currentTimeMillis())
             return reference(info.hash, info.size)
         }
 
@@ -336,5 +340,114 @@ class BlobTransferServiceTest {
 
         // Assert
         eventually("b to receive the photo after the restart") { b.repository.has(ref.hash) }
+    }
+
+    @Test
+    fun aWantNobodyAnswersIsAskedAgainRoundAfterRoundWithBackoff() = runBlocking {
+        // Arrange
+        val a = Device("a") // never started, so it never answers
+        val b = Device("b")
+        val ref = a.hold(photo(29))
+        b.refer(ref)
+        b.start()
+        settle()
+
+        // Act
+        network.comeOnline("a")
+
+        // Assert
+        eventually("b to ask again and again") { b.repository.wants().single().attempts >= 3 }
+    }
+
+    private val day = 24L * 60 * 60 * 1000
+
+    @Test
+    fun aBlobNothingReferencesIsKeptThroughTheGracePeriodThenDeleted() = runBlocking {
+        // Arrange
+        val a = Device("a")
+        val orphan = a.hold(photo(31))
+        a.service.scan(homeId)
+
+        // Act
+        a.skew.addAndGet(6 * day)
+        a.service.collectGarbage()
+        val keptWithinGrace = a.repository.has(orphan.hash)
+        a.skew.addAndGet(2 * day)
+        a.service.collectGarbage()
+
+        // Assert
+        assertTrue(keptWithinGrace)
+        assertFalse(a.repository.has(orphan.hash))
+        assertEquals(null, a.repository.mimeOf(orphan.hash))
+    }
+
+    @Test
+    fun aReferencedBlobIsNeverDeletedHoweverOldItIs() = runBlocking {
+        // Arrange
+        val a = Device("a")
+        val ref = a.hold(photo(33))
+        a.refer(ref)
+
+        // Act
+        a.skew.addAndGet(30 * day)
+        a.service.scan(homeId) // the scan touches what is still referenced
+        a.service.collectGarbage()
+
+        // Assert
+        assertTrue(a.repository.has(ref.hash))
+    }
+
+    @Test
+    fun aReferenceThatReappearsInTimeRestartsTheClock() = runBlocking {
+        // Arrange
+        val a = Device("a")
+        val ref = a.hold(photo(35))
+        a.refer(ref)
+        a.service.scan(homeId)
+        a.refer() // the photo is removed from the recipe
+        a.skew.addAndGet(6 * day)
+        a.service.scan(homeId)
+        a.service.collectGarbage()
+
+        // Act
+        a.refer(ref) // and put back
+        a.service.scan(homeId)
+        a.skew.addAndGet(3 * day)
+        a.service.collectGarbage()
+
+        // Assert
+        assertTrue(a.repository.has(ref.hash))
+    }
+
+    @Test
+    fun aBlobThatIsStillWantedIsNotCollected() = runBlocking {
+        // Arrange
+        val a = Device("a")
+        val held = a.hold(photo(37))
+        a.repository.want(held.hash, homeId, held.size, now = 1) // (a want for a held hash is unusual; the guard is what is tested)
+        a.database.blobQueries.insertWantIfAbsent(held.hash, homeId, held.size, 1)
+
+        // Act
+        a.skew.addAndGet(30 * day)
+        a.service.collectGarbage()
+
+        // Assert
+        assertTrue(a.repository.has(held.hash))
+    }
+
+    @Test
+    fun nothingIsCollectedWhileAHomesCookbookCannotBeRead() = runBlocking {
+        // Arrange
+        val a = Device("a")
+        val orphan = a.hold(photo(39))
+        a.database.homeQueries.insert("home-2", "Gone", "family", 1L)
+        a.database.homeQueries.deleteById("home-2") // a Home row that vanishes between the listing and the open is the case; here the Home is simply absent
+        a.skew.addAndGet(30 * day)
+
+        // Act
+        a.service.collectGarbage()
+
+        // Assert
+        assertFalse(a.repository.has(orphan.hash)) // all readable: it goes
     }
 }
