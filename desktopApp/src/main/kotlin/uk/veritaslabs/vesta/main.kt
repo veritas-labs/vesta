@@ -3,7 +3,10 @@ package uk.veritaslabs.vesta
 import androidx.compose.runtime.remember
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import java.io.File
 import uk.veritaslabs.vesta.agent.AgentCommandService
+import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
+import uk.veritaslabs.vesta.blobs.SkiaPhotoEncoder
 import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
 
 fun main() = application {
@@ -22,6 +25,14 @@ fun main() = application {
                 DeviceDataSyncService(
                     client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
                     agentCommands.cookbookSources(database),
+                )
+            },
+            blobRuntime = { database, client, sync ->
+                DeviceBlobRuntime(
+                    database, client, agentCommands.cookbookSources(database),
+                    peersFor = { homeId -> sync?.blobPeers(homeId).orEmpty() },
+                    directory = File(System.getProperty("user.home"), ".vesta/blobs"),
+                    encoder = SkiaPhotoEncoder(),
                 )
             },
             ownDeviceCanBeHub = true,

@@ -52,6 +52,9 @@ interface DeviceDataSync {
     /** What this device knows about [agentId]'s device in [homeId]: its name, its machine, when x0x last saw it and when Vesta last synced with it. */
     suspend fun agentDetails(homeId: String, agentId: String): AgentDetails
 
+    /** The devices [homeId]'s photos (blobs, ADR-023) move between: its roster's devices and the user's own, this one not among them. Empty where there is no document layer. */
+    suspend fun blobPeers(homeId: String): Set<String> = emptySet()
+
     /** Asks for a sync round now, e.g. because the app came to the foreground. Returns at once; does nothing until [run] is running. */
     fun syncNow()
 

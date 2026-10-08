@@ -6,7 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import java.io.File
 import uk.veritaslabs.vesta.agent.AgentCommandService
+import uk.veritaslabs.vesta.blobs.AndroidPhotoEncoder
+import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
 import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
 import uk.veritaslabs.vesta.x0x.VestaAndroid
 
@@ -32,6 +35,14 @@ class MainActivity : ComponentActivity() {
                     DeviceDataSyncService(
                         client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
                         agentCommands.cookbookSources(database),
+                    )
+                },
+                blobRuntime = { database, client, sync ->
+                    DeviceBlobRuntime(
+                        database, client, agentCommands.cookbookSources(database),
+                        peersFor = { homeId -> sync?.blobPeers(homeId).orEmpty() },
+                        directory = File(filesDir, "blobs"),
+                        encoder = AndroidPhotoEncoder(),
                     )
                 },
             )

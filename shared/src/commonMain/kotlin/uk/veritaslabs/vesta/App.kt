@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.blobs.BlobRuntime
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -633,6 +635,7 @@ internal fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
  * runs for as long as the app is shown, with the database (created here, so callers can't have it earlier).
  * [dataSync], if given, builds the sync of the user's data (Homes, Pantries) between their paired devices from the
  * database, the x0x client and the device list; it is fed Home changes and run for as long as the app is shown.
+ * [blobRuntime], if given, builds the storage and transfer of photos from the same three; screens get it through [LocalBlobs].
  * [ownDeviceCanBeHub] lets a user make this device an always-on hub of a Home (docs/adr/ADR-020, several-hubs amendment): true where
  * the x0x daemon keeps running when the app is closed, as on the desktop, not where it is embedded and stops with the app.
  */
@@ -644,6 +647,7 @@ fun VestaApp(
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
+    blobRuntime: ((VestaDatabase, X0xClient, DeviceDataSync?) -> BlobRuntime)? = null,
     ownDeviceCanBeHub: Boolean = false,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
@@ -652,6 +656,9 @@ fun VestaApp(
     val devices = remember { SyncedDeviceRepository(database) }
     val deviceDataSync = remember { dataSync?.invoke(database, client, devices) }
     LaunchedEffect(deviceDataSync) { deviceDataSync?.run() }
+    // Photos (ADR-023): the runtime moves them between devices while the app is shown, and the screens reach it through LocalBlobs.
+    val blobs = remember { blobRuntime?.invoke(database, client, deviceDataSync) }
+    LaunchedEffect(blobs) { blobs?.run() }
     // Coming back to the app is a moment other devices may be up (ADR-020), so sync then, not at the next timer round.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { deviceDataSync?.syncNow() }
     val profiles = remember { ProfileRepository(database, changes = deviceDataSync?.profileChanges) }
@@ -675,39 +682,41 @@ fun VestaApp(
         }
     }
     LaunchedEffect(deviceSync) { deviceSync.service.run() }
-    App(
-        homes = homeRepository.homes,
-        homeRepository = homeRepository,
-        agentAccess = agentAccess,
-        deviceSync = deviceSync,
-        homeJoining = deviceDataSync?.joining,
-        profiles = profiles,
-        settings = settings,
-        homeContent = homeContent ?: { homeId, homeName, onEditHome ->
-            val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
-            val shoppingListSource by produceState<ShoppingListSource?>(null, homeId) { value = openShoppingList?.invoke(database, homeId) }
-            val cookbookSource by produceState<CookbookSource?>(null, homeId) { value = openCookbook?.invoke(database, homeId) }
-            val members = remember(homeId) { memberRepository.members(homeId) }
-            HomeContent(
-                homeId, homeName, pantrySource, shoppingListSource, cookbookSource, members,
-                onLeave = { homeRepository.leave(homeId) },
-                onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
-                onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },
-                memberAgents = { memberId ->
-                    deviceDataSync?.let { sync ->
-                        sync.memberAgents(homeId, memberId).map { agentId ->
-                            val details = sync.agentDetails(homeId, agentId)
-                            MemberAgent(agentId, details.name, details.machineId, details.lastSeenMsAgo, details.lastSyncedMsAgo)
-                        }
-                    }.orEmpty()
-                },
-                onEditHome = onEditHome,
-                onDeleteHome = { homeRepository.delete(homeId) },
-                joining = deviceDataSync?.joining,
-                hubs = deviceDataSync?.hubs,
-                ownDeviceCanBeHub = ownDeviceCanBeHub,
-                onOpened = { deviceDataSync?.syncNow() },
-            )
-        },
-    )
+    CompositionLocalProvider(LocalBlobs provides blobs?.blobs) {
+        App(
+            homes = homeRepository.homes,
+            homeRepository = homeRepository,
+            agentAccess = agentAccess,
+            deviceSync = deviceSync,
+            homeJoining = deviceDataSync?.joining,
+            profiles = profiles,
+            settings = settings,
+            homeContent = homeContent ?: { homeId, homeName, onEditHome ->
+                val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
+                val shoppingListSource by produceState<ShoppingListSource?>(null, homeId) { value = openShoppingList?.invoke(database, homeId) }
+                val cookbookSource by produceState<CookbookSource?>(null, homeId) { value = openCookbook?.invoke(database, homeId) }
+                val members = remember(homeId) { memberRepository.members(homeId) }
+                HomeContent(
+                    homeId, homeName, pantrySource, shoppingListSource, cookbookSource, members,
+                    onLeave = { homeRepository.leave(homeId) },
+                    onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
+                    onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },
+                    memberAgents = { memberId ->
+                        deviceDataSync?.let { sync ->
+                            sync.memberAgents(homeId, memberId).map { agentId ->
+                                val details = sync.agentDetails(homeId, agentId)
+                                MemberAgent(agentId, details.name, details.machineId, details.lastSeenMsAgo, details.lastSyncedMsAgo)
+                            }
+                        }.orEmpty()
+                    },
+                    onEditHome = onEditHome,
+                    onDeleteHome = { homeRepository.delete(homeId) },
+                    joining = deviceDataSync?.joining,
+                    hubs = deviceDataSync?.hubs,
+                    ownDeviceCanBeHub = ownDeviceCanBeHub,
+                    onOpened = { deviceDataSync?.syncNow() },
+                )
+            },
+        )
+    }
 }

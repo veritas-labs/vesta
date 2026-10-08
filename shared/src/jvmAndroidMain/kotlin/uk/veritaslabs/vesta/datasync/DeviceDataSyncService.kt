@@ -268,8 +268,8 @@ class DeviceDataSyncService(
         return (paired + members) - setOfNotNull(self())
     }
 
-    /** The devices of [homeId] that blobs (photos) move between (ADR-023): the same ones its cookbook syncs with, this device not among them. */
-    internal suspend fun blobPeers(homeId: String): Set<String> = peersFor(cookbookDocumentId(homeId))
+    /** The same devices [homeId]'s cookbook syncs with, so a photo reaches whoever can see the recipe that shows it. */
+    override suspend fun blobPeers(homeId: String): Set<String> = peersFor(cookbookDocumentId(homeId))
 
     private fun homeIdOf(documentId: String): String? = when {
         documentId.endsWith(PantrySuffix) -> documentId.removeSuffix(PantrySuffix)
