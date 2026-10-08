@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
@@ -89,7 +90,8 @@ internal class Phone(val daemon: Daemon, private val scope: CoroutineScope, priv
     val devices = SyncedDeviceRepository(database)
     val pantries = PantrySources(database)
     val shopping = ShoppingListSources(database, pantries)
-    val sync = DeviceDataSyncService(daemon.client, database, devices, pantries, shopping, interval = 3.seconds)
+    val cookbooks = CookbookSources(database)
+    val sync = DeviceDataSyncService(daemon.client, database, devices, pantries, shopping, cookbooks, interval = 3.seconds)
     val homes = HomeRepository(database, sync.homeChanges)
     val profiles = ProfileRepository(database, changes = sync.profileChanges)
     private var running: Job? = null

@@ -122,9 +122,13 @@ class FakeX0xNetwork {
 
     private fun storeId(groupId: String, name: String) = "x0x/group/$groupId/kv/$name"
 
-    fun node(agentId: String): Node = Node(agentId).also { nodes[agentId] = it }
+    /**
+     * A node on this mesh. With [directStream] its [X0xClient.directEvents] delivers what the node is sent, as a real daemon's stream does; without it
+     * (the default, what most tests wire by hand through [Node.onDirect]) that stream stays silent.
+     */
+    fun node(agentId: String, directStream: Boolean = false): Node = Node(agentId, directStream).also { nodes[agentId] = it }
 
-    inner class Node(val agentId: String) : X0xClient by FakeX0xClient() {
+    inner class Node(val agentId: String, private val directStream: Boolean = false) : X0xClient by FakeX0xClient() {
 
         /** Called for every direct message delivered to this node. */
         var onDirect: (X0xDirectMessage) -> Unit = {}
@@ -140,6 +144,14 @@ class FakeX0xNetwork {
         override suspend fun fileEvents(onEvent: (X0xFileEvent) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream {
             onFile = onEvent
             return X0xEventStream { onFile = {}; onClose(null) }
+        }
+
+        /** Opens a direct-message stream beside any already open (a real daemon serves several), delivering what [onDirect] gets. */
+        override suspend fun directEvents(onMessage: (X0xDirectMessage) -> Unit, onClose: (Throwable?) -> Unit): X0xEventStream {
+            if (!directStream) return X0xEventStream { onClose(null) }
+            val previous = onDirect
+            onDirect = { previous(it); onMessage(it) }
+            return X0xEventStream { onDirect = previous; onClose(null) }
         }
 
         override suspend fun sendFile(agentId: String, filename: String, size: Long, sha256: String, path: String): String {
