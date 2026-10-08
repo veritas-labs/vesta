@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.blobs
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 sealed interface PhotoAddResult {
     class Added(val reference: BlobReference) : PhotoAddResult
@@ -22,6 +23,12 @@ interface Blobs {
 
     /** The hash of each blob that has just been stored on this device by a transfer from another one. */
     val arrivals: Flow<String>
+
+    /**
+     * True while photos are wanted but x0x may not use the mobile connection this device is on (Settings > Network), so a photo that is not here yet
+     * is waiting for Wi-Fi rather than for another device.
+     */
+    val waitingForWifi: Flow<Boolean> get() = flowOf(false)
 }
 
 /** The [Blobs] of the running app; null where there is none (previews, iOS), in which case photos can't be added and show their placeholder. */

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Canvas as GraphicsCanvas
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import org.jetbrains.compose.resources.stringResource
@@ -45,10 +47,12 @@ import uk.veritaslabs.vesta.ui.screens.MediaKind
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.blob_waiting_for_photo
+import vesta.shared.generated.resources.blob_waiting_for_wifi
 
 object BlobImageTestTags {
     const val Photo = "blob_image_photo"
     const val Waiting = "blob_image_waiting"
+    const val WaitingForWifi = "blob_image_waiting_for_wifi"
 }
 
 /** Whether the bytes of a photo are on this device yet. */
@@ -83,6 +87,8 @@ fun BlobImage(reference: BlobReference, modifier: Modifier = Modifier, contentDe
             value = read() ?: PhotoState.Missing
         }
     }
+    val noWifi = remember(blobs) { blobs?.waitingForWifi ?: flowOf(false) }
+    val waitingForWifi by noWifi.collectAsState(false)
     val described = Modifier.semantics { contentDescription?.let { this.contentDescription = it } }
     Box(modifier.clipToBounds().background(MaterialTheme.colorScheme.surfaceVariant).then(described)) {
         when (val current = state) {
@@ -115,11 +121,11 @@ fun BlobImage(reference: BlobReference, modifier: Modifier = Modifier, contentDe
                     }
                 }
                 Text(
-                    stringResource(Res.string.blob_waiting_for_photo),
+                    stringResource(if (waitingForWifi) Res.string.blob_waiting_for_wifi else Res.string.blob_waiting_for_photo),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.BottomStart).padding(8.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)).padding(horizontal = 6.dp, vertical = 2.dp)
-                        .testTag(BlobImageTestTags.Waiting),
+                        .testTag(if (waitingForWifi) BlobImageTestTags.WaitingForWifi else BlobImageTestTags.Waiting),
                 )
             }
         }

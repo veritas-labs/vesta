@@ -66,6 +66,7 @@ import vesta.shared.generated.resources.settings_network_peers_open
 import vesta.shared.generated.resources.settings_network_status
 import vesta.shared.generated.resources.settings_network_status_open
 import vesta.shared.generated.resources.settings_network_mobile_data
+import vesta.shared.generated.resources.settings_network_mobile_data_hint
 import vesta.shared.generated.resources.settings_open_source_licenses
 import vesta.shared.generated.resources.settings_open_source_licenses_open
 import vesta.shared.generated.resources.settings_section_application
@@ -272,6 +273,7 @@ fun SettingsScreen(
                         }
                         SettingsRow(
                             label = stringResource(Res.string.settings_network_mobile_data),
+                            supporting = stringResource(Res.string.settings_network_mobile_data_hint),
                             enabled = mobileDataAvailable,
                             modifier = Modifier
                                 .toggleable(
@@ -396,6 +398,7 @@ private fun SettingsRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    supporting: String? = null,
     trailing: @Composable () -> Unit,
 ) {
     val shape = MaterialTheme.shapes.medium
@@ -409,12 +412,16 @@ private fun SettingsRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            supporting?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         trailing()
     }
 }

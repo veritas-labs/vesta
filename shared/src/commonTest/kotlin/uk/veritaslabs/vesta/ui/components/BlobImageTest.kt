@@ -102,4 +102,47 @@ class BlobImageTest {
         // Assert
         onNodeWithTag(BlobImageTestTags.Waiting).assertIsDisplayed()
     }
+
+    @Test
+    fun aPhotoWaitingBecauseMobileDataIsOffSaysItIsWaitingForWifi() = runComposeUiTest {
+        // Arrange
+        val blobs = FakeBlobs().apply { wifi.value = true }
+
+        // Act
+        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { BlobImage(reference, Modifier.size(120.dp)) } } }
+        waitUntil { runCatching { onNodeWithTag(BlobImageTestTags.WaitingForWifi).assertIsDisplayed() }.isSuccess }
+
+        // Assert
+        onNodeWithTag(BlobImageTestTags.WaitingForWifi).assertIsDisplayed()
+        onNodeWithTag(BlobImageTestTags.Waiting).assertDoesNotExist()
+    }
+
+    @Test
+    fun theCueChangesBackWhenWifiReturns() = runComposeUiTest {
+        // Arrange
+        val blobs = FakeBlobs().apply { wifi.value = true }
+        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { BlobImage(reference, Modifier.size(120.dp)) } } }
+        waitUntil { runCatching { onNodeWithTag(BlobImageTestTags.WaitingForWifi).assertIsDisplayed() }.isSuccess }
+
+        // Act
+        blobs.wifi.value = false
+        waitUntil { runCatching { onNodeWithTag(BlobImageTestTags.Waiting).assertIsDisplayed() }.isSuccess }
+
+        // Assert
+        onNodeWithTag(BlobImageTestTags.Waiting).assertIsDisplayed()
+        onNodeWithTag(BlobImageTestTags.WaitingForWifi).assertDoesNotExist()
+    }
+
+    @Test
+    fun aPhotoThisDeviceHoldsNeverShowsAWifiCue() = runComposeUiTest {
+        // Arrange
+        val blobs = FakeBlobs(held = mutableMapOf(reference.hash to TinyImageBytes)).apply { wifi.value = true }
+
+        // Act
+        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { BlobImage(reference, Modifier.size(120.dp)) } } }
+        waitUntil { runCatching { onNodeWithTag(BlobImageTestTags.Photo).assertIsDisplayed() }.isSuccess }
+
+        // Assert
+        onNodeWithTag(BlobImageTestTags.WaitingForWifi).assertDoesNotExist()
+    }
 }

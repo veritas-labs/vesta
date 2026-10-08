@@ -107,6 +107,7 @@
     <string name="settings_section_network">Network</string>
     <string name="settings_network_status">x0x status</string>
     <string name="settings_network_mobile_data">Use mobile data</string>
+    <string name="settings_network_mobile_data_hint">Photos and sync only move over a mobile connection when this is on.</string>
     <string name="settings_network_peers">Peers</string>
     <string name="settings_network_peers_open">Show peers</string>
     <string name="network_peers_title">Peers</string>
@@ -484,6 +485,7 @@
     <string name="recipe_edit_media_photo_too_large">That photo is too large to add.</string>
     <string name="recipe_edit_media_photo_unreadable">That file isn\'t a photo Vesta can read.</string>
     <string name="blob_waiting_for_photo">Waiting for photo</string>
+    <string name="blob_waiting_for_wifi">Waiting for Wi-Fi</string>
     <string name="recipe_edit_ingredients_heading">Ingredients</string>
     <string name="recipe_edit_ingredient_quantity">Qty</string>
     <string name="recipe_edit_ingredient_unit">Unit</string>

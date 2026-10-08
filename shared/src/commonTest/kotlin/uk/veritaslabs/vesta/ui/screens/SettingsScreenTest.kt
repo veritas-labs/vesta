@@ -145,6 +145,19 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun theMobileDataRowSaysPhotosAreAffectedToo() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { SettingsScreen() } }
+
+        // Act
+        onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.MobileDataRow))
+
+        // Assert
+        onNodeWithText("Photos and sync only move over a mobile connection when this is on.", useUnmergedTree = true).assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun togglingMobileDataReportsTheNewValue() = runComposeUiTest {
         // Arrange
         var requested: Boolean? = null

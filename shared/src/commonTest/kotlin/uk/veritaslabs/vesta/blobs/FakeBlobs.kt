@@ -23,6 +23,10 @@ class FakeBlobs(
 
     override val arrivals: Flow<String> = arrived
 
+    /** Whether the photos not held are waiting for Wi-Fi. */
+    val wifi = kotlinx.coroutines.flow.MutableStateFlow(false)
+    override val waitingForWifi: Flow<Boolean> = wifi
+
     override suspend fun addPhoto(source: PhotoSource): PhotoAddResult {
         added += source
         return addResult
