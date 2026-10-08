@@ -1,0 +1,56 @@
+-- Binary files (photos first, docs/adr/ADR-023-blob-storage-and-transfer.md) a document refers to by the SHA-256 of their bytes.
+-- Blob is what this device holds: the bytes themselves live in files named by hash, this row is their index.
+-- lastReferencedAt is when a document last referred to the hash, so a blob nothing refers to can be deleted after a grace period.
+-- BlobWant is a hash a document refers to that this device does not hold yet. lastAskedAt and attempts drive the backoff between asking peers for it.
+-- Not synced: each device holds and wants its own. Keep in sync with migrations/17.sqm.
+CREATE TABLE IF NOT EXISTS Blob (
+    hash TEXT NOT NULL PRIMARY KEY,
+    size INTEGER NOT NULL,
+    mime TEXT NOT NULL,
+    lastReferencedAt INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS BlobWant (
+    hash TEXT NOT NULL PRIMARY KEY,
+    homeId TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    firstWantedAt INTEGER NOT NULL,
+    lastAskedAt INTEGER NOT NULL,
+    attempts INTEGER NOT NULL
+);
+
+selectBlob:
+SELECT * FROM Blob WHERE hash = ?;
+
+selectAllBlobs:
+SELECT * FROM Blob ORDER BY hash;
+
+upsertBlob:
+INSERT OR REPLACE INTO Blob(hash, size, mime, lastReferencedAt) VALUES (?, ?, ?, ?);
+
+touchBlob:
+UPDATE Blob SET lastReferencedAt = ? WHERE hash = ?;
+
+deleteBlob:
+DELETE FROM Blob WHERE hash = ?;
+
+selectBlobsNotReferencedSince:
+SELECT * FROM Blob WHERE lastReferencedAt < ? ORDER BY lastReferencedAt;
+
+selectWant:
+SELECT * FROM BlobWant WHERE hash = ?;
+
+selectAllWants:
+SELECT * FROM BlobWant ORDER BY firstWantedAt, hash;
+
+insertWantIfAbsent:
+INSERT OR IGNORE INTO BlobWant(hash, homeId, size, firstWantedAt, lastAskedAt, attempts) VALUES (?, ?, ?, ?, 0, 0);
+
+recordAsk:
+UPDATE BlobWant SET lastAskedAt = ?, attempts = attempts + 1 WHERE hash = ?;
+
+resetBackoff:
+UPDATE BlobWant SET lastAskedAt = 0, attempts = 0;
+
+deleteWant:
+DELETE FROM BlobWant WHERE hash = ?;

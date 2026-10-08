@@ -1,0 +1,15 @@
+-- Version 17 -> 18: adds Blob and BlobWant (see uk/veritaslabs/vesta/db/Blob.sq).
+CREATE TABLE IF NOT EXISTS Blob (
+    hash TEXT NOT NULL PRIMARY KEY,
+    size INTEGER NOT NULL,
+    mime TEXT NOT NULL,
+    lastReferencedAt INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS BlobWant (
+    hash TEXT NOT NULL PRIMARY KEY,
+    homeId TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    firstWantedAt INTEGER NOT NULL,
+    lastAskedAt INTEGER NOT NULL,
+    attempts INTEGER NOT NULL
+);
