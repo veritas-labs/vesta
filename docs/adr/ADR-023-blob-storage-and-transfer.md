@@ -144,6 +144,83 @@ deletion waits a grace period (proposed 7 days) and is skipped if a reference re
 4. **Daemon disk hygiene**: confirm the `.part`/final files don't accumulate in `transfers_dir` once the app has moved them, and what to
    call to clear them.
 
+### Spike 1 findings (2026-10-08, x0xd 0.46.0, two standalone desktop daemons `spike-a`/`spike-b`, same user, raw HTTP)
+
+Not yet covered: a daemon of another user, and an Android emulator with the app backgrounded (both still open).
+
+- **Offer:** `POST /files/send` returns `{ok, transfer_id}` at once. The receiver gets `file:offer` on **`/events`** as `{type, data:{filename, sender, size, transfer_id}}`
+  (no sha256 in the frame; it is in `GET /files/transfers/{id}`). Nothing moves until `POST /files/accept/{id}`; the receiver stays `Pending`.
+  The contact needs to be trusted on both sides for the test to run (`POST /contacts` with `trust_level: trusted`); `agents/connect` returned `NotFound` but the send worked anyway.
+- **Accept:** transfer runs in 32 KiB chunks. 200 kB took ~25 s on loopback (first chunk after ~4 s, slow ramp), so UI must treat transfers as slow and background.
+- **Complete:** `file:complete` on `/events` carries `{filename, path, sha256, transfer_id}`. **The landed file is `transfers/<first 8 of transfer_id>_<filename>`**,
+  not `<filename>`. This contradicts plan decision 4: take the file from `path` in the frame and never assume the name; the hash we want is still readable from the offer filename.
+- **`path` vs `data_b64`:** both work. With `path` the daemon reads the source in place (`source_path` is the original, nothing copied). With `data_b64` the daemon writes
+  `transfers/<id>.send` on the sender and **never deletes it** (a second copy per photo). Plan decision 3 (send by `path`) is confirmed. The daemon does not check `path` or `size` at send time (a nonsense path/size still returns `ok`).
+- **Integrity:** the receiver checks the sha256 given at send time against what arrived. A wrong claimed sha gave receiver `Failed` with
+  `SHA-256 mismatch: expected ... got ...` and **no file left behind**; the **sender still showed `Complete`** and **no `file:failed` frame appeared on `/events`**. So the receiver can only learn of a failure by polling `/files/transfers`,
+  and a sender cannot know delivery succeeded. Our own re-hash stays the authority.
+- **Reject:** `POST /files/reject/{id}` gives `Rejected` / `"rejected by user"` on both sides; no file.
+- **Offer to a stopped daemon:** send returns `ok`, sender stays `Pending` with no error. After the receiver restarted (45 s and again 60 s later) **the offer was never delivered**,
+  the sender stayed `Pending`, and the receiver's `/files/transfers` was **empty (transfers do not survive a daemon restart, even completed ones)**.
+  Consequence: a Pending send is not a promise. The want/serve loop must treat any transfer that is not `Complete` within a timeout as lost and ask again; the want list, not the daemon, is the source of truth.
+- **Hygiene (early answer to Spike 4):** completed files stay in `transfers/` until the app moves them; failed ones leave nothing. No delete endpoint for a finished transfer was seen (only `send/accept/reject/transfers`), so `data_b64` sends will leak `.send` files; use `path`.
+
+**Plan impact:** WP1 must (a) read the file from `file:complete.path`, (b) poll `GET /files/transfers/{id}` for `Failed`, (c) retry on timeout instead of trusting `Pending`, (d) send by `path` only.
+Exit rule check: the embedded daemon surfacing `file:offer`/accept is **not** disproved on desktop; the Android-backgrounded question still gates the ADR.
+
+### Spike 2 findings (2026-10-08, three standalone desktop daemons `spike-a`/`b`/`c`, same user, raw HTTP)
+
+Run: B stopped; A sent a 150 kB file to C (offer to accepted 7 s, complete 10 s); A stopped; B started; B sent C a `blob-want` direct message;
+C sent the file to B by `path` from its own `transfers/`; B accepted. B's re-hash matched the wanted hash.
+
+- **"Any holder serves" works**: B got the bytes from C with A (the author) down. The want DM was delivered (`trust_decision: accept`, `verified: true`) and C could serve with no
+  involvement from A. The serving daemon sends from `transfers/<id8>_<hash>.webp` in place; no copy is needed (the app's own blob store is the better source in production).
+- **Latency:** serve to offer on B 2 s, accept to complete 2 s. The want DM itself was not timed precisely (my grep for `blob-want` could not see inside the base64 payload), only bounded
+  at under 40 s. Not a worry for a 30 s reconciler round, but the real reconciler test should time it.
+- **Correction to Spike 1:** the receiver's `transfers/` **files survive a daemon restart** (B still held the Spike 1 files); only the in-memory transfer *list* is lost. A restarted device therefore
+  still has files it never moved, so the receiver should sweep `transfers/` for unclaimed hash-named files at start-up, not only rely on `file:complete`.
+- **Mutual trust:** the serving device must trust the asker (and vice versa for the offer to be shown). In the app this is already true for Home roster devices and paired devices
+  (the `peersFor(documentId)` set), but a want from an untrusted agent must be ignored.
+- **Not tested**: a third device that has genuinely *never* seen the author online (C here was sent the file by A directly, then served B), the backoff/convergence loop (it is app code, WP7),
+  and many simultaneous askers. Those belong in the fake-mesh tests and the real-daemon test of the reconciler.
+
+### Spike 3 findings (2026-10-08, partial: desktop only, no real phone photos available)
+
+**Limits of this run.** The machine holds no phone photos. The corpus was 11 images: 8 generated illustrations/screenshots (1.0-1.8 MP), a printer sample photo (1780x2728), one
+already-downscaled portrait from a chat app (862x1280), and a darkened (x0.15) copy of the sample as the "dark" case. No Android run (no device/emulator used). Treat the byte counts as indicative for
+*photographic* content only through the two photo-like files; generated art compresses differently. **Re-run on ~10 real phone photos before freezing the numbers.**
+
+- **Skia WebP on desktop works.** `org.jetbrains.skia.Image.encodeToData(EncodedImageFormat.WEBP, q)` (skiko 0.144.6) returned data, 44-91 ms per image, and matches libwebp via Pillow within ~2% on size.
+  So no WebP encoder dependency is needed on desktop (the ADR's open question at line 81). Needs `kotlinx-coroutines` on the classpath, which the app already has.
+- **Bytes at long edge 1600 (no upscaling):** mean over 11 images q70 **138 KB**, q75 **147 KB**, q80 **180 KB**. Per image q75: 232, 203, 175, 156, 210, 213, 136, 78, 157 (the sample photo), 26 (chat-app portrait), 29 (dark).
+  JPEG q85 of the same was 2-3x larger (mean ~340 KB). q80 costs ~22% more than q75 for q70-to-q75's ~6%; the knee is at 75.
+- **Placeholder:** BlurHash 4x3 is always **28 chars** and decodes in ~0.1 ms; ThumbHash was **25-28 bytes** (~34-38 base64 chars), encodes in ~11-17 ms (pure-Python, will be far less on JVM) and decodes in ~2-3 ms.
+  ThumbHash carries the aspect ratio itself and has lower mean error on 8 of 11 images (e.g. 25.5 vs 34.5 on the portrait, 37.0 vs 50.2 on the sample photo; BlurHash won only on the flat illustration and dark images). Both are fine to store in a document.
+- **Provisional decisions (need the real-photo re-run to confirm):** WebP lossy **q75**, long edge **1600**, no upscaling, **ThumbHash** (`t:` prefix, base64), expected blob size 30-250 KB, so the document-side `blur` is ~40 chars.
+- **Input cap:** not measured. Decoding is the risk, not the file: a 48 MP source decoded fully is ~190 MB of RGBA. Plan: decode with a sample-size bound on Android (`inSampleSize`) and cap input at ~50 MP / 25 MB, to be checked on a device.
+- **Still to do:** Android `Bitmap.compress(WEBP_LOSSY)` sizes and time on a mid-range phone/emulator, EXIF orientation of a real portrait shot, and the 10 real photos.
+
+### Spike 4 findings (2026-10-08, x0xd 0.46.0, `spike-a`/`spike-b`, desktop, same user)
+
+- **Files in `transfers/`:** while receiving, the daemon writes `<full transfer_id>.part` (growing; 196 MB seen mid-way on a 400 MB send). On completion it is renamed to
+  `<id8>_<filename>` (Spike 1). On a SHA mismatch the `.part` is removed (Spike 1: nothing left). On the sender, `path` sends leave nothing; `data_b64` sends leave `<id>.send` forever.
+- **The daemon never deletes a finished file.** Moving the file away (our `importFile` step) is harmless: the transfer stays `Complete` with the now-dangling `output_path`, no error, no events.
+  So the app's move is the cleanup for good transfers, as the plan assumes.
+- **No API to delete a transfer or its record:** `DELETE /files/transfers/{id}` is 405 and every other probe (`/files/delete/{id}`, `/files/clear`, POST variants) returned no body; the CLI has only
+  `send-file`, `receive-file`, `transfers`, `transfer-status`, `accept-file`, `reject-file`. Nothing in the binary mentions retention, TTL or cleanup. Transfer *records* are in memory only and vanish on restart.
+- **Interrupted receives leave orphans that nothing cleans up.** Killing the receiver (kill -9) mid-transfer left the `.part` (199 MB), and it was still there after the daemon restarted, which listed no transfers.
+  There is no resume: the sender stayed `InProgress` indefinitely (no error), and a retry makes a new transfer id and a new `.part`. A clean `x0x stop` was not tested.
+- **Disk growth:** with moves, the steady state is zero (blob store holds one copy). Without them every received photo would sit in `transfers/` for ever. The risk is orphans: phone killed mid-photo (Android does this routinely), each costing up to a photo's size
+  and never reclaimed, plus `.send` files if `data_b64` is ever used.
+
+**Plan impact (WP1/WP2/WP7):**
+1. Always send by `path`; never `data_b64`.
+2. On `file:complete` verify, move into the blob store, then delete whatever remains. Never leave the daemon's copy.
+3. **Add a `transfers/` janitor** run at app start and each reconciler round: delete `*.part` files whose transfer id is not in `GET /files/transfers` and whose mtime is older than a short bound (e.g. 15 min),
+   and adopt-or-delete finished `<id8>_<hash>.webp` files not yet claimed (Spike 2: those survive restarts). The directory is the daemon's `transfers_dir` (flat, in its data dir), which the app must be told on both platforms.
+4. A sender cannot tell a lost transfer from a slow one; it should not hold state on a sent transfer beyond the want-list's own retry/backoff.
+5. Open: clean-shutdown behaviour of a `.part`, and whether an Android embedded daemon uses an app-private `transfers_dir` the janitor can reach (check in WP1).
+
 ## Consequences
 
 - Cookbook media change from `uri` to a blob reference with an inline placeholder. Existing `uri` entries stay valid.
