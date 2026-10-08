@@ -2,6 +2,11 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -46,16 +51,95 @@ class ShoppingListScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun tappingARowSelectsThatItem() = runComposeUiTest {
+    fun tappingARowTogglesItCrossedOff() = runComposeUiTest {
         // Arrange
-        var selected: ShoppingListItem? = null
-        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), onItemSelected = { selected = it }) } }
+        var toggled: ShoppingListItem? = null
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), onToggleCrossedOff = { toggled = it }) } }
 
         // Act
         onNodeWithTag(ShoppingListTestTags.item("whole milk")).performClick()
 
         // Assert
+        assertEquals(milk, toggled)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun longPressingARowOpensTheSheetWithItsOptions() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.item("whole milk")).performTouchInput { longClick() }
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.OutOfStockButton).assertIsDisplayed()
+        onNodeWithTag(ShoppingListTestTags.GotCount).assertTextEquals("0 of 3")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun rightClickingARowOpensTheSheet() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.item("whole milk")).performMouseInput { rightClick() }
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.OutOfStockButton).assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theSheetRecordsAPartialCheckOffAndOutOfStock() = runComposeUiTest {
+        // Arrange
+        val calls = mutableListOf<Triple<String, Int, Boolean>>()
+        setContent {
+            VestaTheme {
+                ShoppingListScreen(items = listOf(milk), onSetProgress = { key, got, oos -> calls += Triple(key, got, oos) })
+            }
+        }
+        onNodeWithTag(ShoppingListTestTags.item("whole milk")).performTouchInput { longClick() }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.GotIncrease).performClick()
+        onNodeWithTag(ShoppingListTestTags.OutOfStockButton).performClick()
+
+        // Assert
+        assertEquals(listOf(Triple("whole milk", 1, false), Triple("whole milk", 0, true)), calls)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theSheetEditButtonSelectsTheItem() = runComposeUiTest {
+        // Arrange
+        var selected: ShoppingListItem? = null
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), onItemSelected = { selected = it }) } }
+        onNodeWithTag(ShoppingListTestTags.item("whole milk")).performTouchInput { longClick() }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.EditItemButton).performClick()
+
+        // Assert
         assertEquals(milk, selected)
+    }
+
+    @Test
+    fun anItemIsCrossedOffOnceAllOfItIsGotUnlessOutOfStock() {
+        // Arrange
+        val partly = milk.copy(got = 1)
+        val all = milk.copy(got = 3)
+        val missing = milk.copy(got = 3, outOfStock = true)
+
+        // Act
+        val states = listOf(milk, partly, all, missing).map { Triple(it.isCrossedOff, it.isPartlyGot, it.outOfStock) }
+
+        // Assert
+        assertEquals(
+            listOf(Triple(false, false, false), Triple(false, true, false), Triple(true, false, false), Triple(false, false, true)),
+            states,
+        )
     }
 
     @OptIn(ExperimentalTestApi::class)

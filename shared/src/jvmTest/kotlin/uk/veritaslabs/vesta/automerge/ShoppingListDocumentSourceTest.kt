@@ -145,4 +145,48 @@ class ShoppingListDocumentSourceTest {
         assertEquals("shopping-list", before?.feature)
         assertNull(after)
     }
+
+    @Test
+    fun progressIsPublishedAndSurvivesAReload() = runBlocking {
+        // Arrange
+        val (_, shopping) = newSources()
+        shopping.save(milk)
+
+        // Act
+        shopping.setProgress("whole milk", got = 1, outOfStock = false)
+        val partly = shopping.items.first().single()
+        shopping.setProgress("whole milk", got = 0, outOfStock = true)
+        val missing = shopping.items.first().single()
+
+        // Assert
+        assertEquals(Triple(1, false, true), Triple(partly.got, partly.outOfStock, partly.isPartlyGot))
+        assertEquals(Pair(0, true), Pair(missing.got, missing.outOfStock))
+    }
+
+    @Test
+    fun editingAnItemKeepsItsProgress() = runBlocking {
+        // Arrange
+        val (_, shopping) = newSources()
+        shopping.save(milk)
+        shopping.setProgress("whole milk", got = 1, outOfStock = false)
+
+        // Act
+        shopping.save(milk.copy(key = "whole milk", quantity = 4))
+        val item = shopping.items.first().single()
+
+        // Assert
+        assertEquals(Pair(4, 1), Pair(item.quantity, item.got))
+    }
+
+    @Test
+    fun progressOnAMissingItemChangesNothing() = runBlocking {
+        // Arrange
+        val (_, shopping) = newSources()
+
+        // Act
+        shopping.setProgress("nothing", got = 1, outOfStock = false)
+
+        // Assert
+        assertEquals(emptyList(), shopping.items.first())
+    }
 }

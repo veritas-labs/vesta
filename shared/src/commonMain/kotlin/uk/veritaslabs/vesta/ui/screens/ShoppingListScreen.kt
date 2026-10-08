@@ -1,7 +1,8 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,18 +25,29 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,12 +58,21 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.shopping_add_item
 import vesta.shared.generated.resources.shopping_empty_subtitle
 import vesta.shared.generated.resources.shopping_filter_label
+import vesta.shared.generated.resources.shopping_edit_item
 import vesta.shared.generated.resources.shopping_empty_title
+import vesta.shared.generated.resources.shopping_got_count
+import vesta.shared.generated.resources.shopping_got_decrease
+import vesta.shared.generated.resources.shopping_got_increase
+import vesta.shared.generated.resources.shopping_got_label
+import vesta.shared.generated.resources.shopping_mark_in_stock
+import vesta.shared.generated.resources.shopping_mark_out_of_stock
+import vesta.shared.generated.resources.shopping_out_of_stock
 import vesta.shared.generated.resources.shopping_quantity
 import vesta.shared.generated.resources.shopping_title
 
@@ -67,6 +88,13 @@ internal object ShoppingListTestTags {
 
     /** Tag for the row of the item with the given [key] (its dedup key — see ADR-008). */
     fun item(key: String) = "shopping_item_$key"
+
+    const val ItemSheet = "shopping_item_sheet"
+    const val OutOfStockButton = "shopping_sheet_out_of_stock_button"
+    const val EditItemButton = "shopping_sheet_edit_button"
+    const val GotIncrease = "shopping_sheet_got_increase"
+    const val GotDecrease = "shopping_sheet_got_decrease"
+    const val GotCount = "shopping_sheet_got_count"
 }
 
 /**
@@ -88,14 +116,17 @@ fun ShoppingListScreen(
         ShoppingListScreen(
             state.items, modifier, onItemSelected, onBack, onAddItem,
             selectedTags = state.selectedTags, onToggleTag = viewModel::toggleTag,
+            onToggleCrossedOff = viewModel::toggleCrossedOff, onSetProgress = viewModel::setProgress,
         )
     }
 }
 
 /**
  * The shopping list: [items] grouped by primary category, then secondary category (an aisle-by-aisle view), each row
- * showing the product, its package size and the quantity to buy. A tap on a row calls [onItemSelected] (to edit
- * it); [onAddItem] is the floating action button; [onBack] the top-bar back arrow.
+ * showing the product, its package size and the quantity to buy. A tap on a row calls [onToggleCrossedOff]; a long
+ * press opens a bottom sheet to mark the item out of stock or say how many were got ([onSetProgress]: key, got,
+ * out of stock), with a button that calls [onItemSelected] (to edit it). Crossed-off, partly got and out-of-stock
+ * rows look different (see [ShoppingListItem.isCrossedOff]). [onAddItem] is the floating action button; [onBack] the top-bar back arrow.
  *
  * When any item has tags, a row of filter chips (one per tag) sits under the top bar: [selectedTags] (lower-cased) are
  * the chips switched on, [onToggleTag] is called with a chip's tag when it is tapped, and with any on, only the items
@@ -111,7 +142,10 @@ fun ShoppingListScreen(
     onAddItem: () -> Unit = {},
     selectedTags: Set<String> = emptySet(),
     onToggleTag: (String) -> Unit = {},
+    onToggleCrossedOff: (ShoppingListItem) -> Unit = {},
+    onSetProgress: (key: String, got: Int, outOfStock: Boolean) -> Unit = { _, _, _ -> },
 ) {
+    var sheetKey by remember { mutableStateOf<String?>(null) }
     val filterDescription = stringResource(Res.string.shopping_filter_label)
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= ShoppingListTabletBreakpoint) 24.dp else 16.dp
@@ -202,7 +236,8 @@ fun ShoppingListScreen(
                                     Column {
                                         ShoppingItemRow(
                                             item = item,
-                                            onClick = { onItemSelected(item) },
+                                            onClick = { onToggleCrossedOff(item) },
+                                            onLongClick = { sheetKey = item.key },
                                             modifier = Modifier.testTag(ShoppingListTestTags.item(item.key)),
                                         )
                                         Spacer(Modifier.height(4.dp))
@@ -232,17 +267,126 @@ fun ShoppingListScreen(
             )
         }
     }
+
+    // Looked up by key so the sheet follows the item as it changes; it closes if the item goes away.
+    items.firstOrNull { it.key == sheetKey }?.let { sheetItem ->
+        ModalBottomSheet(onDismissRequest = { sheetKey = null }, sheetState = rememberModalBottomSheetState()) {
+            ShoppingItemSheetContent(
+                item = sheetItem,
+                onSetProgress = { got, outOfStock -> onSetProgress(sheetItem.key, got, outOfStock) },
+                onEdit = {
+                    sheetKey = null
+                    onItemSelected(sheetItem)
+                },
+                onOutOfStockMarked = { sheetKey = null },
+            )
+        }
+    }
 }
 
 @Composable
-private fun ShoppingItemRow(item: ShoppingListItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ShoppingItemSheetContent(
+    item: ShoppingListItem,
+    onSetProgress: (got: Int, outOfStock: Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onOutOfStockMarked: () -> Unit,
+) {
+    val got = item.got.coerceIn(0, item.quantity)
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag(ShoppingListTestTags.ItemSheet)) {
+        Text(
+            text = item.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(Res.string.shopping_got_label),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick = { onSetProgress(got - 1, false) },
+                enabled = got > 0,
+                modifier = Modifier.testTag(ShoppingListTestTags.GotDecrease),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_minus),
+                    contentDescription = stringResource(Res.string.shopping_got_decrease),
+                )
+            }
+            Text(
+                text = stringResource(Res.string.shopping_got_count, got, item.quantity),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(72.dp).testTag(ShoppingListTestTags.GotCount),
+            )
+            IconButton(
+                onClick = { onSetProgress(got + 1, false) },
+                enabled = got < item.quantity,
+                modifier = Modifier.testTag(ShoppingListTestTags.GotIncrease),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_plus),
+                    contentDescription = stringResource(Res.string.shopping_got_increase),
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                if (item.outOfStock) {
+                    onSetProgress(0, false)
+                } else {
+                    onSetProgress(0, true)
+                    onOutOfStockMarked()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().testTag(ShoppingListTestTags.OutOfStockButton),
+        ) {
+            Text(
+                stringResource(if (item.outOfStock) Res.string.shopping_mark_in_stock else Res.string.shopping_mark_out_of_stock),
+            )
+        }
+        TextButton(
+            onClick = onEdit,
+            modifier = Modifier.fillMaxWidth().testTag(ShoppingListTestTags.EditItemButton),
+        ) {
+            Text(stringResource(Res.string.shopping_edit_item))
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ShoppingItemRow(
+    item: ShoppingListItem,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val shape = MaterialTheme.shapes.medium
+    val faded = item.isCrossedOff || item.outOfStock
+    val strike = if (item.isCrossedOff) TextDecoration.LineThrough else TextDecoration.None
+    val contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = if (faded) 0.5f else 1f)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), shape)
-            .clickable(onClick = onClick)
+            .pointerInput(onLongClick) {
+                // A right mouse button press (desktop) does what a long press does.
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.type == PointerEventType.Press && event.buttons.isSecondaryPressed) onLongClick()
+                    }
+                }
+            }
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -251,13 +395,15 @@ private fun ShoppingItemRow(item: ShoppingListItem, onClick: () -> Unit, modifie
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = contentColor,
+                    textDecoration = strike,
                 )
                 if (item.packageSize.isNotBlank()) {
                     Text(
                         text = " · ${item.packageSize}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textDecoration = strike,
                     )
                 }
             }
@@ -270,21 +416,34 @@ private fun ShoppingItemRow(item: ShoppingListItem, onClick: () -> Unit, modifie
             }
         }
         Spacer(Modifier.width(12.dp))
-        Text(
-            text = stringResource(Res.string.shopping_quantity, item.quantity),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        when {
+            item.outOfStock -> Text(
+                text = stringResource(Res.string.shopping_out_of_stock),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.error,
+            )
+            item.isPartlyGot -> Text(
+                text = stringResource(Res.string.shopping_got_count, item.got, item.quantity),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            else -> Text(
+                text = stringResource(Res.string.shopping_quantity, item.quantity),
+                style = MaterialTheme.typography.labelLarge,
+                color = contentColor,
+                textDecoration = strike,
+            )
+        }
     }
 }
 
 private val ShoppingPreviewItems = listOf(
     ShoppingListItem("5000157024671", "Condiments", "Ketchup", "Heinz Ketchup", 2, "500ml", "5000157024671", listOf("Supermarket")),
-    ShoppingListItem("whole milk", "Dairy", "Milk", "Whole Milk", 3, "2 pint", tags = listOf("Farm shop")),
-    ShoppingListItem("brie", "Dairy", "Cheese", "Brie", 1, "250g", tags = listOf("Supermarket")),
-    ShoppingListItem("bananas", "Fruit & Vegetables", null, "Bananas", 1, "6 pack", tags = listOf("Supermarket")),
+    ShoppingListItem("whole milk", "Dairy", "Milk", "Whole Milk", 4, "2 pint", tags = listOf("Farm shop"), got = 2),
+    ShoppingListItem("brie", "Dairy", "Cheese", "Brie", 1, "250g", tags = listOf("Supermarket"), got = 1),
+    ShoppingListItem("bananas", "Fruit & Vegetables", null, "Bananas", 1, "6 pack", tags = listOf("Supermarket"), got = 1),
     ShoppingListItem("carrots", "Fruit & Vegetables", null, "Carrots", 2, "1kg", tags = listOf("Farm shop")),
-    ShoppingListItem("sausages", "Meat", null, "Sausages", 1, "8 pack", tags = listOf("Butcher")),
+    ShoppingListItem("sausages", "Meat", null, "Sausages", 1, "8 pack", tags = listOf("Butcher"), outOfStock = true),
 )
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)

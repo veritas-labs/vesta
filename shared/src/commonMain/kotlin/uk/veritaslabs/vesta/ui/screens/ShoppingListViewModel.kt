@@ -23,7 +23,17 @@ data class ShoppingListItem(
     val packageSize: String,
     val barcode: String? = null,
     val tags: List<String> = emptyList(),
-)
+    /** How many of [quantity] have been picked up so far. */
+    val got: Int = 0,
+    /** The shop had none of it. */
+    val outOfStock: Boolean = false,
+) {
+    /** Everything wanted has been picked up. */
+    val isCrossedOff: Boolean get() = !outOfStock && got >= quantity
+
+    /** Some, but not all, of what was wanted has been picked up. */
+    val isPartlyGot: Boolean get() = !outOfStock && got in 1 until quantity
+}
 
 /** The editable fields of a shopping-list item; [key] is null while adding one. */
 data class ShoppingItemDetails(
@@ -48,6 +58,9 @@ interface ShoppingListSource {
     suspend fun save(item: ShoppingItemDetails)
 
     suspend fun remove(key: String)
+
+    /** Records that [got] of the item at [key] are picked up, or that the shop is [outOfStock] of it. */
+    suspend fun setProgress(key: String, got: Int, outOfStock: Boolean)
 }
 
 /**
@@ -90,6 +103,17 @@ class ShoppingListViewModel(private val source: ShoppingListSource) : ViewModel(
 
     fun save(item: ShoppingItemDetails) {
         viewModelScope.launch { source.save(item) }
+    }
+
+    /** Crosses [item] off, or puts it back to normal if it is crossed off or out of stock (a partly got item is crossed off). */
+    fun toggleCrossedOff(item: ShoppingListItem) {
+        val normal = item.isCrossedOff || item.outOfStock
+        setProgress(item.key, got = if (normal) 0 else item.quantity, outOfStock = false)
+    }
+
+    /** Records that [got] of the item at [key] are picked up (or that it is [outOfStock]). */
+    fun setProgress(key: String, got: Int, outOfStock: Boolean) {
+        viewModelScope.launch { source.setProgress(key, got, outOfStock) }
     }
 
     fun remove(key: String) {

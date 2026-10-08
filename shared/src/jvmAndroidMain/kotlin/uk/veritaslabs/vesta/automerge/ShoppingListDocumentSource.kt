@@ -86,6 +86,15 @@ class ShoppingListDocumentSource(
         onLocalChange()
     }
 
+    override suspend fun setProgress(key: String, got: Int, outOfStock: Boolean) {
+        if (queuedUntilSeeded { setProgress(key, got, outOfStock) }) return
+        lock.withLock {
+            setShoppingItemProgress(document, key, got, outOfStock)
+            publishAndPersist()
+        }
+        onLocalChange()
+    }
+
     /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
     suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
         document.generateSyncMessage(state).orElse(null)
@@ -132,6 +141,8 @@ class ShoppingListDocumentSource(
             packageSize = it.packageSize,
             barcode = it.barcode,
             tags = it.tags,
+            got = it.got,
+            outOfStock = it.outOfStock,
         )
     }
 }

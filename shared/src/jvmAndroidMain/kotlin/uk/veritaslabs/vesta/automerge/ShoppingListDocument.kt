@@ -16,6 +16,8 @@ private const val QuantityKey = "quantity"
 private const val PackageSizeKey = "packageSize"
 private const val BarcodeKey = "barcode"
 private const val TagsKey = "tags"
+private const val GotKey = "got"
+private const val OutOfStockKey = "outOfStock"
 
 /**
  * One line of a Home's shopping list — see ADR-008 ("Fourth amendment"). [id] is the item's [pantryDedupKey], which
@@ -30,6 +32,10 @@ data class ShoppingItem(
     val packageSize: String,
     val barcode: String?,
     val tags: List<String> = emptyList(),
+    /** How many of [quantity] have been picked up so far; [quantity] or more means crossed off. */
+    val got: Int = 0,
+    /** The shop had none of it. */
+    val outOfStock: Boolean = false,
 )
 
 /** Builds the initial (empty) bytes for a shopping-list document. */
@@ -132,6 +138,23 @@ fun updateShoppingItem(
     return newKey
 }
 
+/**
+ * Records how many of the item at [key] have been picked up ([got], at least 0) and whether the shop was out of it.
+ * Only these two fields are written, so the rest of the item (and a concurrent edit of it) is left alone. No-op if
+ * [key] has no item.
+ */
+fun setShoppingItemProgress(doc: Document, key: String, got: Int, outOfStock: Boolean) {
+    val tx = doc.startTransaction()
+    val itemId = tx.itemsMapId()?.let { (tx.get(it, key).getOrNull() as? AmValue.Map)?.id }
+    if (itemId == null) {
+        tx.rollback()
+        return
+    }
+    tx.set(itemId, GotKey, got.coerceAtLeast(0))
+    tx.set(itemId, OutOfStockKey, outOfStock)
+    tx.commit()
+}
+
 /** Removes the item at [key]. No-op if there is none. */
 fun removeShoppingItem(doc: Document, key: String) {
     val tx = doc.startTransaction()
@@ -207,6 +230,8 @@ private fun Read.readShoppingItemAt(itemId: ObjectId): ShoppingItem = ShoppingIt
     packageSize = strField(itemId, PackageSizeKey),
     barcode = (get(itemId, BarcodeKey).getOrNull() as? AmValue.Str)?.value,
     tags = readTags(itemId),
+    got = (get(itemId, GotKey).getOrNull() as? AmValue.Int)?.value?.toInt() ?: 0,
+    outOfStock = (get(itemId, OutOfStockKey).getOrNull() as? AmValue.Bool)?.value ?: false,
 )
 
 private fun Read.readTags(itemId: ObjectId): List<String> {

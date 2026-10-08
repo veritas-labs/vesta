@@ -12,7 +12,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.AfterTest
@@ -109,6 +111,12 @@ class ShoppingListTagsAcceptanceTest {
     private fun ComposeUiTest.assertNotShown(vararg titles: String) =
         titles.forEach { onNodeWithText(it).assertDoesNotExist() }
 
+    /** Long-presses the row titled [title] and taps Edit item in the sheet that opens. */
+    private fun ComposeUiTest.openForEdit(title: String) {
+        onNodeWithText(title).performTouchInput { longClick() }
+        onNodeWithTag(ShoppingListTestTags.EditItemButton).performClick()
+    }
+
     private fun ComposeUiTest.tapFilter(tag: String) = onNodeWithTag(ShoppingListTestTags.filterChip(tag)).performClick()
 
     @Test
@@ -170,7 +178,7 @@ class ShoppingListTagsAcceptanceTest {
         tapFilter("Butcher")
 
         // Act — When I open a butcher item and go back without changing it
-        onNodeWithText("Sausages").performClick()
+        openForEdit("Sausages")
         onNodeWithTag(PantryItemEditTestTags.BackButton).performClick()
 
         // Assert — Then I am still looking at only the butcher's items
@@ -211,7 +219,7 @@ class ShoppingListTagsAcceptanceTest {
         waitForText("Salt")
 
         // Act — When I open the untagged item and tap the "Farm shop" suggestion, then save
-        onNodeWithText("Salt").performClick()
+        openForEdit("Salt")
         onNodeWithTag(PantryItemEditTestTags.tagSuggestion("Farm shop")).performClick()
         onNodeWithTag(PantryItemEditTestTags.SaveButton).performClick()
         waitUntil(timeoutMillis = 5_000) { runBlocking { source.items.first() }.first { it.title == "Salt" }.tags.isNotEmpty() }
@@ -231,7 +239,7 @@ class ShoppingListTagsAcceptanceTest {
         waitForText("Sausages")
 
         // Act — When I remove the "Butcher" tag from the sausages and filter to "Butcher"
-        onNodeWithText("Sausages").performClick()
+        openForEdit("Sausages")
         onNodeWithTag(PantryItemEditTestTags.tag("Butcher")).performClick()
         onNodeWithTag(PantryItemEditTestTags.SaveButton).performClick()
         waitUntil(timeoutMillis = 5_000) { runBlocking { source.items.first() }.first { it.title == "Sausages" }.tags.isEmpty() }

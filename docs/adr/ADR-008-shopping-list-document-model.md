@@ -456,6 +456,20 @@ ShoppingItem (map)
 - **Shopping sessions** (phase two) will add `state` back, per session, and store-specific ordering; nothing here
   prevents that.
 
+### Fifth amendment: crossing items off (2026-10-08)
+
+Each `ShoppingItem` gains two optional fields, "missing key = default":
+
+- `"got": Int` (default 0) — how many of `quantity` are picked up. `got >= quantity` is *crossed off*; between 1 and
+  `quantity - 1` is *partly got*.
+- `"outOfStock": Bool` (default false) — the shop had none; shown apart from crossed off.
+
+A tap on a row toggles crossed off (a partly got item becomes fully crossed off; crossed off or out of stock goes back
+to normal). A long press opens a bottom sheet with a got-count stepper, an out-of-stock button and an Edit item button
+(editing moved there because the tap no longer opens it). `setShoppingItemProgress` writes only these two fields, so an
+edit of the item's other fields and a progress change made on another device don't overwrite each other; an edit never
+resets them. Progress is not reset when a list is "finished" — there is no such step yet — and does not touch the Pantry.
+
 ## Consequences
 
 - **Vesta's second real feature document, and the first to use a `Map`-of-`Map` shape.** `TaskListDocument`'s
