@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +68,7 @@ import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
+import vesta.shared.generated.resources.ic_tag
 import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.shopping_add_item
@@ -236,6 +239,16 @@ fun ShoppingListScreen(
                             selected = tag.lowercase() in activeTags,
                             onClick = { onToggleTag(tag) },
                             label = { Text(tag) },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_tag),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                             modifier = Modifier.testTag(ShoppingListTestTags.filterChip(tag)),
                         )
                     }
@@ -506,11 +519,20 @@ private fun ShoppingItemRow(
                 }
             }
             if (item.tags.isNotEmpty()) {
-                Text(
-                    text = item.tags.joinToString(" · "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_tag),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = item.tags.joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
         Spacer(Modifier.width(12.dp))

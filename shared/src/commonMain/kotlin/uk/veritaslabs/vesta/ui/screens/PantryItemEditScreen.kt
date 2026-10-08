@@ -31,9 +31,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -66,6 +68,7 @@ import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_scan
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
+import vesta.shared.generated.resources.ic_tag
 import vesta.shared.generated.resources.pantry_stock_decrease
 import vesta.shared.generated.resources.pantry_stock_increase
 import vesta.shared.generated.resources.pantry_back
@@ -564,6 +567,16 @@ private fun TagsEditor(
                         selected = true,
                         onClick = { onTagsChange(tags - tag) },
                         label = { Text(tag) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_tag),
+                                contentDescription = null,
+                                modifier = Modifier.size(InputChipDefaults.IconSize),
+                            )
+                        },
+                        colors = InputChipDefaults.inputChipColors(
+                            selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
                         trailingIcon = {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_close),
@@ -578,6 +591,16 @@ private fun TagsEditor(
                     SuggestionChip(
                         onClick = { add(tag) },
                         label = { Text(tag) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_tag),
+                                contentDescription = null,
+                                modifier = Modifier.size(SuggestionChipDefaults.IconSize),
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                         modifier = Modifier.testTag(PantryItemEditTestTags.tagSuggestion(tag)),
                     )
                 }
