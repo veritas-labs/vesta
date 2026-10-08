@@ -51,7 +51,9 @@ import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.X0xConnectivityIndicator
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.home_dashboard_back
+import vesta.shared.generated.resources.cookbook_title
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_cookbook
 import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_pantry
 import vesta.shared.generated.resources.ic_shopping_cart
@@ -77,6 +79,7 @@ internal object HomeDashboardTestTags {
     const val BackButton = "home_dashboard_back_button"
     const val PantryTile = "home_dashboard_pantry_tile"
     const val ShoppingTile = "home_dashboard_shopping_tile"
+    const val CookbookTile = "home_dashboard_cookbook_tile"
     const val X0xIndicator = "home_dashboard_x0x_indicator"
     const val OverflowButton = "home_dashboard_overflow_button"
     const val EditMenuItem = "home_dashboard_edit_menu_item"
@@ -96,7 +99,7 @@ private data class DashboardTile(
 
 /**
  * Landing page for a selected Home: a two-column grid of tiles, each an icon with a label, that
- * open the Home's areas. The Pantry ([onPantryClick]) and the shopping list ([onShoppingClick]) so far. The app bar is titled with
+ * open the Home's areas. The Pantry ([onPantryClick]), the shopping list ([onShoppingClick]) and the cookbook ([onCookbookClick]) so far. The app bar is titled with
  * [homeName], its back arrow calls [onBack] (to the Home picker), and its trailing indicator shows
  * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Members
  * ([onMembersClick]), with a badge of [membersBadge] people waiting to join, for an admin.
@@ -114,6 +117,7 @@ fun HomeDashboardScreen(
     onBack: () -> Unit = {},
     onPantryClick: () -> Unit = {},
     onShoppingClick: () -> Unit = {},
+    onCookbookClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
     onMembersClick: () -> Unit = {},
     isAdmin: Boolean = false,
@@ -129,6 +133,7 @@ fun HomeDashboardScreen(
     val tiles = listOf(
         DashboardTile(HomeDashboardTestTags.PantryTile, Res.string.pantry_title, Res.drawable.ic_pantry, onPantryClick),
         DashboardTile(HomeDashboardTestTags.ShoppingTile, Res.string.shopping_title, Res.drawable.ic_shopping_cart, onShoppingClick),
+        DashboardTile(HomeDashboardTestTags.CookbookTile, Res.string.cookbook_title, Res.drawable.ic_cookbook, onCookbookClick),
     )
 
     BoxWithConstraints(

@@ -27,9 +27,11 @@ class MainActivity : ComponentActivity() {
             VestaApp(
                 openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
                 openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
+                openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
                 dataSync = { database, client, devices ->
                     DeviceDataSyncService(
                         client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
+                        agentCommands.cookbookSources(database),
                     )
                 },
             )

@@ -19,7 +19,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.PantrySources
+import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.vesta.db.VestaDatabase
@@ -57,8 +59,9 @@ class DeviceDataSyncServiceTest {
         val devices = SyncedDeviceRepository(database)
         val pantries = PantrySources(database)
         val shopping = ShoppingListSources(database, pantries)
+        val cookbook = CookbookSources(database)
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, shopping, interval = interval,
+            node, database, devices, pantries, shopping, cookbook, interval = interval,
         )
         /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
         val deviceSync: DeviceSyncService by lazy {
@@ -107,6 +110,9 @@ class DeviceDataSyncServiceTest {
 
         suspend fun shoppingTitles(homeId: String) =
             shopping.forHome(homeId)!!.items.first().map { it.title }.sorted()
+
+        suspend fun recipeTitles(homeId: String) =
+            cookbook.forHome(homeId)!!.recipes.first().map { it.title }.sorted()
 
         suspend fun pantryTitles(homeId: String) =
             pantries.forHome(homeId)!!.contents.first().items.map { it.title }.sorted()
@@ -217,6 +223,25 @@ class DeviceDataSyncServiceTest {
         eventually { a.shoppingTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
         eventually { a.pantryTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
         eventually { b.pantryTitles(homeId) == listOf("Beef Mince", "Whole Milk") }
+        scope.cancel()
+    }
+
+    @Test
+    fun recipesAddedOnEitherDeviceReachBoth() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        b.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames().isNotEmpty() }
+
+        // Act
+        a.cookbook.forHome(homeId)!!.save(Recipe(title = "Shepherd's Pie"))
+        eventually { b.recipeTitles(homeId) == listOf("Shepherd's Pie") }
+        b.cookbook.forHome(homeId)!!.save(Recipe(title = "Apple Crumble"))
+
+        // Assert
+        eventually { a.recipeTitles(homeId) == listOf("Apple Crumble", "Shepherd's Pie") }
         scope.cancel()
     }
 

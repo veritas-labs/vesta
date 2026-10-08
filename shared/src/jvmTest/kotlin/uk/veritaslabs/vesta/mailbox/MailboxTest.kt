@@ -34,7 +34,7 @@ class MailboxTest {
         val lists = ShoppingListSources(database, pantries)
         val node = network.node(agentId)
         var storeId: String? = null
-        val documents = HomeMailboxDocuments(pantries, lists, rosters)
+        val documents = HomeMailboxDocuments(pantries, lists, uk.veritaslabs.vesta.automerge.CookbookSources(database), rosters)
         var writer = MailboxWriter(node, database, documents) { storeId }
         val reader = MailboxReader(node, database, documents) { storeId }
 

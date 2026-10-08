@@ -16,10 +16,12 @@ fun main() = application {
         VestaApp(
             openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
             openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
+            openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
             backgroundServices = { database -> agentCommands.run(database) },
             dataSync = { database, client, devices ->
                 DeviceDataSyncService(
                     client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
+                    agentCommands.cookbookSources(database),
                 )
             },
             ownDeviceCanBeHub = true,

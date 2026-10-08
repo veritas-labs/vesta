@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.agent.AgentAccessRepository
 import uk.veritaslabs.vesta.agent.AgentApprovalHost
@@ -49,6 +50,10 @@ import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
+import uk.veritaslabs.vesta.ui.flows.CookbookFlow
+import uk.veritaslabs.vesta.ui.screens.CookbookScreen
+import uk.veritaslabs.vesta.ui.screens.CookbookSource
+import uk.veritaslabs.vesta.ui.screens.CookbookViewModel
 import uk.veritaslabs.vesta.ui.screens.HubManagerScreen
 import uk.veritaslabs.vesta.ui.screens.HubScreen
 import uk.veritaslabs.vesta.ui.screens.HubTutorialScreen
@@ -321,6 +326,7 @@ private fun HomeContent(
     homeName: String,
     pantrySource: PantrySource? = null,
     shoppingListSource: ShoppingListSource? = null,
+    cookbookSource: CookbookSource? = null,
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
@@ -352,6 +358,10 @@ private fun HomeContent(
         viewModel(key = "shopping-$homeId") { ShoppingListViewModel(source) }
     }
     var editingShoppingItem by remember { mutableStateOf<ShoppingItemDetails?>(null) }
+    val cookbookViewModel = cookbookSource?.let { source ->
+        val pantryItems = pantrySource?.contents?.map { it.items } ?: flowOf(emptyList())
+        viewModel(key = "cookbook-$homeId") { CookbookViewModel(source, pantryItems) }
+    }
     val categoriesViewModel = pantrySource?.categoriesSource?.let { source ->
         viewModel(key = "pantry-categories-$homeId") { PantryCategoriesViewModel(source) }
     }
@@ -367,6 +377,7 @@ private fun HomeContent(
             x0xConnectivity = rememberX0xConnectivity(),
             onPantryClick = { destination = HomeDestination.Pantry },
             onShoppingClick = { destination = HomeDestination.ShoppingList },
+            onCookbookClick = { destination = HomeDestination.Cookbook },
             onMembersClick = { destination = HomeDestination.Members },
             isAdmin = isAdmin,
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
@@ -463,6 +474,13 @@ private fun HomeContent(
                     onAddItem = onAddItem,
                     onManageCategories = onManageCategories,
                 )
+            }
+        }
+        HomeDestination.Cookbook -> {
+            if (cookbookViewModel != null) {
+                CookbookFlow(cookbookViewModel, onBack = { destination = HomeDestination.Dashboard })
+            } else {
+                CookbookScreen(recipes = emptyList(), onBack = { destination = HomeDestination.Dashboard })
             }
         }
         HomeDestination.ShoppingList -> {
@@ -589,7 +607,7 @@ class DeviceSyncHost(
 
 private enum class HomeDestination {
     Dashboard, Members, MemberDetail, InviteLinks, HubManager, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
-    ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage,
+    ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook,
 }
 
 internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(
@@ -622,6 +640,7 @@ internal fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
 fun VestaApp(
     openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
     openShoppingList: (suspend (VestaDatabase, homeId: String) -> ShoppingListSource)? = null,
+    openCookbook: (suspend (VestaDatabase, homeId: String) -> CookbookSource)? = null,
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
@@ -667,9 +686,10 @@ fun VestaApp(
         homeContent = homeContent ?: { homeId, homeName, onEditHome ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             val shoppingListSource by produceState<ShoppingListSource?>(null, homeId) { value = openShoppingList?.invoke(database, homeId) }
+            val cookbookSource by produceState<CookbookSource?>(null, homeId) { value = openCookbook?.invoke(database, homeId) }
             val members = remember(homeId) { memberRepository.members(homeId) }
             HomeContent(
-                homeId, homeName, pantrySource, shoppingListSource, members,
+                homeId, homeName, pantrySource, shoppingListSource, cookbookSource, members,
                 onLeave = { homeRepository.leave(homeId) },
                 onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
                 onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },

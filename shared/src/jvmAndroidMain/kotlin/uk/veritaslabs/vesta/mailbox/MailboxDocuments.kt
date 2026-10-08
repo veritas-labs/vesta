@@ -1,7 +1,9 @@
 package uk.veritaslabs.vesta.mailbox
 
+import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
+import uk.veritaslabs.vesta.automerge.cookbookDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
@@ -28,14 +30,15 @@ internal interface MailboxDocuments {
     suspend fun open(homeId: String, documentId: String): MailboxDocument?
 }
 
-/** A Home's Pantry, shopping list and roster. */
+/** A Home's Pantry, shopping list, cookbook and roster. */
 internal class HomeMailboxDocuments(
     private val pantries: PantrySources,
     private val shoppingLists: ShoppingListSources,
+    private val cookbooks: CookbookSources,
     private val rosters: HomeRosters,
 ) : MailboxDocuments {
 
-    override fun documentIds(homeId: String) = listOf(rosterDocumentId(homeId), pantryDocumentId(homeId), shoppingListDocumentId(homeId))
+    override fun documentIds(homeId: String) = listOf(rosterDocumentId(homeId), pantryDocumentId(homeId), shoppingListDocumentId(homeId), cookbookDocumentId(homeId))
 
     override suspend fun open(homeId: String, documentId: String): MailboxDocument? = when (documentId) {
         rosterDocumentId(homeId) -> object : MailboxDocument {
@@ -51,6 +54,13 @@ internal class HomeMailboxDocuments(
             }
         }
         shoppingListDocumentId(homeId) -> shoppingLists.forHome(homeId)?.let { source ->
+            object : MailboxDocument {
+                override suspend fun heads() = source.heads()
+                override suspend fun changesSince(saved: ByteArray) = source.changesSince(saved)
+                override suspend fun applyChanges(changes: ByteArray) = source.applyChanges(changes)
+            }
+        }
+        cookbookDocumentId(homeId) -> cookbooks.forHome(homeId)?.let { source ->
             object : MailboxDocument {
                 override suspend fun heads() = source.heads()
                 override suspend fun changesSince(saved: ByteArray) = source.changesSince(saved)
