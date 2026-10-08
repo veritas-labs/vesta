@@ -2,7 +2,7 @@
 
 Written 2026-10-08 so a fresh session can build [ADR-023](../adr/ADR-023-blob-storage-and-transfer.md) without
 re-deriving context. Read the ADR first (reference shape, "Why not the hub", Decision 1-8, acceptance criteria 1-11); this
-plan says **how to build it in this codebase**, in what order, and how to verify it. Nothing here is built.
+plan says **how to build it in this codebase**, in what order, and how to verify it. **Status (2026-10-08): WP0-WP10 are built and tested; see the ADR's "As built" section for the differences and what is not done.**
 
 ## Goal
 

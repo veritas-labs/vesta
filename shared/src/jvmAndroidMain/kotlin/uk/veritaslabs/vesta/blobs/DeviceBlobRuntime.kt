@@ -1,6 +1,9 @@
 package uk.veritaslabs.vesta.blobs
 
 import java.io.File
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
@@ -17,6 +20,8 @@ class DeviceBlobRuntime(
     directory: File,
     encoder: PhotoEncoder,
     nowMillis: () -> Long = { System.currentTimeMillis() },
+    interval: Duration = 30.seconds,
+    askBackoff: BlobTransferService.Backoff = BlobTransferService.Backoff(30.seconds, 10.minutes),
 ) : BlobRuntime {
 
     private val repository = BlobRepository(BlobStore(directory), database)
@@ -29,6 +34,8 @@ class DeviceBlobRuntime(
         database = database,
         peersFor = peersFor,
         onArrived = { hash -> runtimeBlobs.notifyArrived(hash) },
+        interval = interval,
+        askBackoff = askBackoff,
         nowMillis = nowMillis,
     )
 

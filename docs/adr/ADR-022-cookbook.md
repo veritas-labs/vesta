@@ -43,10 +43,9 @@ ROOT
   stock* (entry exists, stock zero) or *Not in pantry*. Nothing is copied between documents.
 - **Servings scale the display**: the detail screen can show the recipe for another number of servings; ingredient
   quantities are multiplied, the stored recipe is untouched.
-- **Media are references** (`uri` + kind + caption), not bytes. Picking a photo/video from the device and syncing the
-  bytes to other devices is a separate decision (blob storage doesn't exist in the sync layer yet, and the Automerge
-  document is the wrong place for megabytes); until then a media entry is a link or a path on the device that added
-  it, and the UI shows it as a labelled tile rather than a thumbnail.
+- **Media are references**, not bytes. A photo picked from the device is a blob reference (hash, size, w, h and a placeholder blur,
+  [[ADR-023]]) whose bytes are stored on each device and moved between them by file transfer; a video, or an entry from before
+  ADR-023, is a link (`uri` + kind + caption) shown as a labelled tile. The Automerge document never holds the bytes.
 
 Recipe types: Breakfast, Lunch, Dinner, Starter, Side, Dessert, Baking, Snack, Drink, Other.
 
@@ -76,8 +75,8 @@ Recipe types: Breakfast, Lunch, Dinner, Starter, Side, Dessert, Baking, Snack, D
 
 - **Real-app run.** The screens have only been exercised by Compose UI tests; nobody has looked at them on desktop or
   an emulator, so layout and polish are unchecked.
-- **Media pipeline.** No picker, no thumbnails (the project has no image loader) and no byte sync: a media entry is a
-  link or a local path and shows as a labelled tile.
+- **Media pipeline.** Photos are done ([[ADR-023]]): a picker, a placeholder, byte transfer between devices. Not done: video capture and playback,
+  and the real-app run of the photo flow.
 - **Missing ingredients → shopping list** in one tap (the Pantry matching already knows which are missing).
 - **Agent commands (ADR-009)** to add or find recipes.
 - **Web import** of recipes from a page.

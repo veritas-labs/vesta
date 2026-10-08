@@ -1,6 +1,7 @@
 # ADR-023: Storing and transferring blobs (photos first)
 
-**Status:** Proposed (2026-10-08). Nothing is built. Spikes 1-4 below must run before the transfer design is final.
+**Status:** Implemented on desktop and Android (2026-10-08), not yet run by hand in the real app or on a phone; see "As built". Spikes 1-4 ran first
+and their findings are below; the Android and real-photo parts of Spike 3 and the Android parts of Spike 1 are still open.
 Closes the gap [[ADR-022]] left ("blob storage doesn't exist in the sync layer yet"). Builds on [[ADR-005]], [[ADR-012]],
 [[ADR-013]] and [[ADR-017]]. Relates to [[ADR-020]]: its hub does **not** carry blobs (see "Why not the hub").
 
@@ -220,6 +221,48 @@ already-downscaled portrait from a chat app (862x1280), and a darkened (x0.15) c
    and adopt-or-delete finished `<id8>_<hash>.webp` files not yet claimed (Spike 2: those survive restarts). The directory is the daemon's `transfers_dir` (flat, in its data dir), which the app must be told on both platforms.
 4. A sender cannot tell a lost transfer from a slow one; it should not hold state on a sent transfer beyond the want-list's own retry/backoff.
 5. Open: clean-shutdown behaviour of a `.part`, and whether an Android embedded daemon uses an app-private `transfers_dir` the janitor can reach (check in WP1).
+
+## As built (2026-10-08)
+
+Built as [docs/plans/ADR-023-implementation-plan.md](../plans/ADR-023-implementation-plan.md) says, in `shared/.../blobs`, with these differences from the text above.
+
+- **Message and file names.** The want-request is a JSON direct message `{"kind":"blob.want","homeId","hash"}` (the `blob.` prefix as the `homegroup.` messages do), not `blob-want {hash}`. The file is named `<hash>.webp`; the
+  daemon lands it as `<id8>_<hash>.webp`, so the app reads the path from `file:complete` and the hash from the offer's name.
+- **Reject at once.** An offer that fails the gate is rejected immediately, not left pending until a timeout. The gate is: sender on the wanting Home's roster, name `<hash>.webp` for a wanted hash, size equal to the
+  reference's, and no other transfer for that hash in flight.
+- **Push only for new references.** The author offers a photo to the Home's online devices when its reference is new to the cookbook and the bytes are held; the first scan after start-up pushes nothing. A device
+  that was offline gets it by asking, as the text says.
+- **Online** means a presence event said so or the daemon heard from the device in the last two minutes. Offers to a device that is not there are never delivered or retried (Spike 1), so pull is the guarantee and push is the speed-up.
+- **Reference.** `RecipeMedia` carries an optional `blob` (hash, size, mime, w, h, blur) beside the old `uri`; `kind` and `caption` stay on the entry. An entry without a well-formed hash is a link. `size` is stored as an Int.
+- **Placeholder** is ThumbHash (`t:` + unpadded base64, about 34-38 characters), as Spike 3 leaned; a different scheme can use another prefix. Encoder settings: WebP lossy quality 75, long edge 1600, inputs over 25 MB or 50 MP refused
+  before decoding. Desktop encodes with Skia; Android with `Bitmap.compress` (never run on a device yet).
+- **Rounds repeat.** The service's 30 s round runs forever; it re-asks with a per-want backoff of 30 s doubling to 10 min, restarted by any device coming online.
+- **Garbage collection** (7 days, [section 8](#8-local-garbage-collection)) runs in the same round and does nothing if any Home's cookbook could not be read.
+- **Mobile data** is enforced by the daemon being stopped, as before. `waitingForWifi` is a heuristic (photos wanted, mobile data off, daemon not answering), and the tile says "Waiting for Wi-Fi" instead of "Waiting for photo".
+
+**Not done, or not verified**
+
+- The daemon's `transfers/` folder is not swept for orphaned `.part` files or finished files the app never claimed (Spike 4, point 3); the app does not know the directory on either platform. Interrupted receives can leave up to a photo's size each.
+- Not run by hand: two desktop instances, or desktop plus an emulator, with a photo added and a transfer interrupted. Android: `file:offer` with the app in the background, the embedded daemon's `transfers_dir`, `AndroidPhotoEncoder`, and the system photo picker.
+- iOS has no blob support (it has no Automerge); `LocalBlobs` is absent there, so photos cannot be added and a reference shows its placeholder.
+- Photos are decoded at their stored size (at most 1600 px) with no extra downsampling in lists.
+- The x0x status card does not show a count of wanted photos.
+
+**Acceptance criteria and where they are tested**
+
+| # | Test |
+|---|---|
+| 1 | `CookbookPhotosAcceptanceTest.aPhotoIAddIsKeptSmallAsWebPWithoutMyLocation`, `SkiaPhotoEncoderTest` |
+| 2 | `CookbookPhotosAcceptanceTest.aPhotoAppearsOnAnotherDeviceThatIsOnlineAtTheSameTime`, `BlobTransferServiceTest`, `BlobTransferDaemonIntegrationTest` (real daemons, opt-in) |
+| 3 | `CookbookPhotosAcceptanceTest.aDeviceThatWasOfflineGetsThePhotoFromAnyDeviceThatHoldsItNotJustTheAuthor` |
+| 4 | `CookbookPhotosAcceptanceTest.beforeThePhotoArrivesTheRecipeShowsAPlaceholderAndSaysItIsWaiting`, `BlobImageTest` |
+| 5 | `BlobTransferServiceTest.aFileThatIsNotTheWantedHashLeavesTheWantInPlace`, `BlobStoreTest` |
+| 6 | `BlobTransferServiceTest` (unwanted hash, wrong size, stranger offers; stranger and unreferenced asks) |
+| 7 | `CookbookPhotosAcceptanceTest.withMobileDataOffTheRecipeSaysItsPhotoIsWaitingForWifi`, `BlobImageTest` |
+| 8 | `CookbookPhotosAcceptanceTest.thePhotoIStoredForTwoRecipesIsKeptOnce`, `BlobIngestTest` |
+| 9 | `BlobTransferServiceTest` (grace period, referenced, re-referenced, wanted) |
+| 10 | `CookbookPhotosAcceptanceTest.aRecipeWhosePhotoHasNotArrivedCanStillBeOpenedEditedAndSaved`, `BlobImageTest` |
+| 11 | `BlobTransferServiceTest.aKilledAndRestartedDeviceResumesFromItsWantList`, `BlobStoreTest` (no partial blob is ever visible) |
 
 ## Consequences
 

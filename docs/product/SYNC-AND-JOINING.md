@@ -19,6 +19,17 @@ and without one. See [ADR-020](../adr/ADR-020-syncing-without-overlapping-online
   third device that meets both (a tablet, a laptop, another member's phone) carries changes between them.
 - A phone that is asleep, or has Vesta closed, does not sync. It catches up the next time Vesta is opened.
 
+## Photos
+
+- A photo you add to a recipe is shrunk and kept on your device without its location or camera details; the recipe itself, its caption and a small blurred
+  stand-in reach everyone the way any other change does.
+- The photo itself travels **only while a device that has it and a device that wants it are online together**, and then without anything to do. A hub does
+  not carry photos. Until a photo arrives the recipe shows the blurred stand-in with "Waiting for photo"; nothing is broken.
+- Any member's device that has the photo can pass it on, not only the one that added it, so a photo reaches a device that was away the next time it is
+  online with any device that has it.
+- With **Use mobile data** off in Settings, photos are not fetched over a mobile connection, and the recipe says "Waiting for Wi-Fi".
+- A photo nothing refers to any longer is removed from the device after about a week.
+
 ## Joining a Home
 
 - After the new person opens an invite link and sends their request, an admin's device and the new person's device must
