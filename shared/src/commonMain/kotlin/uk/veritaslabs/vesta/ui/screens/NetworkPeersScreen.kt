@@ -336,7 +336,7 @@ private fun PeerInfoCard(peer: X0xPeer, measuring: Boolean, roundTripMs: Long?, 
 }
 
 @Composable
-private fun InfoLine(label: String, value: String, monospace: Boolean = false) {
+internal fun InfoLine(label: String, value: String, monospace: Boolean = false) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
             label,
@@ -358,7 +358,7 @@ private fun InfoLine(label: String, value: String, monospace: Boolean = false) {
 internal fun shortId(id: String): String = if (id.length <= 20) id else id.take(8) + "…" + id.takeLast(8)
 
 @Composable
-private fun agoText(ms: Long?): String = when {
+internal fun agoText(ms: Long?): String = when {
     ms == null -> stringResource(Res.string.network_peers_info_never)
     ms < 1_000 -> stringResource(Res.string.network_peers_ago_now)
     ms < 60_000 -> stringResource(Res.string.network_peers_ago_seconds, (ms / 1_000).toInt())

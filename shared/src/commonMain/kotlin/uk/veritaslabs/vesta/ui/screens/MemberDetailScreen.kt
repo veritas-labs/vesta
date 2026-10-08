@@ -47,6 +47,9 @@ import uk.veritaslabs.vesta.ui.components.ProfileAvatar
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.member_detail_agent_last_seen
+import vesta.shared.generated.resources.member_detail_agent_last_synced
+import vesta.shared.generated.resources.member_detail_agent_machine
 import vesta.shared.generated.resources.member_detail_agents_empty
 import vesta.shared.generated.resources.member_detail_agents_title
 import vesta.shared.generated.resources.member_detail_back
@@ -78,6 +81,17 @@ internal object MemberDetailTestTags {
 }
 
 /**
+ * One x0x agent of a member (one per device). [machineId], [lastSeenMsAgo] (x0x last saw it) and [lastSyncedMsAgo] (Vesta last
+ * synced with it) are null while unknown.
+ */
+data class MemberAgent(
+    val agentId: String,
+    val machineId: String? = null,
+    val lastSeenMsAgo: Long? = null,
+    val lastSyncedMsAgo: Long? = null,
+)
+
+/**
  * One member of a Home: their avatar, name and role in the app bar, and the x0x [agents] (one per device) that act for them. An admin looking at
  * someone else also gets a Manage button, which opens a dialog to make them an admin or an ordinary member
  * ([onSetRole]) or remove them from the Home ([onRemoveMember], after confirming). The back arrow calls [onBack].
@@ -87,7 +101,7 @@ internal object MemberDetailTestTags {
 @Composable
 fun MemberDetailScreen(
     member: MemberListItem,
-    agents: List<String>,
+    agents: List<MemberAgent>,
     modifier: Modifier = Modifier,
     canManage: Boolean = false,
     onBack: () -> Unit = {},
@@ -167,7 +181,7 @@ fun MemberDetailScreen(
                         )
                     }
                 }
-                items(agents, key = { "agent-$it" }) { agentId -> AgentRow(agentId) }
+                items(agents, key = { "agent-${it.agentId}" }) { agent -> AgentRow(agent) }
             }
         }
     }
@@ -236,27 +250,36 @@ fun MemberDetailScreen(
 }
 
 @Composable
-private fun AgentRow(agentId: String) {
+private fun AgentRow(agent: MemberAgent) {
     Surface(
         shape = MaterialTheme.shapes.small,
         color = Color.Transparent,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth().testTag(MemberDetailTestTags.agent(agentId)),
+        modifier = Modifier.fillMaxWidth().testTag(MemberDetailTestTags.agent(agent.agentId)),
     ) {
-        Text(
-            text = shortAgentId(agentId),
-            style = MaterialTheme.typography.bodyMedium,
-            fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(12.dp),
-        )
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = shortAgentId(agent.agentId),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            agent.machineId?.let { InfoLine(stringResource(Res.string.member_detail_agent_machine), shortId(it), monospace = true) }
+            agent.lastSeenMsAgo?.let { InfoLine(stringResource(Res.string.member_detail_agent_last_seen), agoText(it)) }
+            InfoLine(stringResource(Res.string.member_detail_agent_last_synced), agoText(agent.lastSyncedMsAgo))
+        }
     }
 }
 
 private val PreviewMember = MemberListItem("2", "Sam", MemberRole.Member)
 private val PreviewAgents = listOf(
-    "9f2c41d07a3be58c1d6e0f4a8b7c2d3e5f60718293a4b5c6d7e8f90a1b2c3d4e",
-    "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809",
+    MemberAgent(
+        "9f2c41d07a3be58c1d6e0f4a8b7c2d3e5f60718293a4b5c6d7e8f90a1b2c3d4e",
+        machineId = "11d167d8442575e837eb45fc4859155ffaccc149a50bf6cf22268853175636c3",
+        lastSeenMsAgo = 42_000,
+        lastSyncedMsAgo = 3 * 60_000,
+    ),
+    MemberAgent("1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809"),
 )
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)

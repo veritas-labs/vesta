@@ -125,6 +125,27 @@ class DeviceDataSyncServiceTest {
     }
 
     @Test
+    fun aPeerThatHasSyncedReportsWhenItLastDidAndAStrangerDoesNot() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        b.start()
+        a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames() == listOf("Maple Street") }
+
+        // Act
+        val synced = a.sync.agentDetails("agent-b")
+        val stranger = a.sync.agentDetails("agent-z")
+
+        // Assert
+        assertTrue(synced.lastSyncedMsAgo != null && synced.lastSyncedMsAgo!! < 10_000)
+        assertEquals(null, stranger.lastSyncedMsAgo)
+        assertEquals(null, stranger.machineId)
+        assertEquals(null, stranger.lastSeenMsAgo)
+        scope.cancel()
+    }
+
+    @Test
     fun aHomeCreatedOnOneDeviceAppearsOnTheOther() = runBlocking {
         // Arrange
         val (a, b) = pair()

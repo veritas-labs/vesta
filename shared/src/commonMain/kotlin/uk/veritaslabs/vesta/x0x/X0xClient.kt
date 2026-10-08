@@ -55,6 +55,9 @@ interface X0xClient {
 
     suspend fun listDirectConnections(): JsonObject
 
+    /** `GET /agents/discovered/:id`: the discovery cache's entry for [agentId]; null when the daemon has never heard of it (404). */
+    suspend fun getDiscoveredAgent(agentId: String): X0xDiscoveredAgent?
+
     // --- Network peers ---
 
     /** `GET /peers`: the ids of the peers this daemon is connected to in the gossip mesh. */

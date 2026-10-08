@@ -73,6 +73,11 @@ class FakeX0xClient : X0xClient {
     val peerHealth = mutableMapOf<String, X0xPeerHealth>()
     val peerHealthFailures = mutableSetOf<String>()
 
+    /** What [getDiscoveredAgent] answers per agent; one left out answers null. */
+    val discoveredAgents = mutableMapOf<String, X0xDiscoveredAgent>()
+
+    override suspend fun getDiscoveredAgent(agentId: String): X0xDiscoveredAgent? = discoveredAgents[agentId]
+
     override suspend fun getTransportSnapshot(): X0xTransportSnapshot = TODO()
 
     override suspend fun probePeer(peerId: String, timeoutMs: Long): Long? = null

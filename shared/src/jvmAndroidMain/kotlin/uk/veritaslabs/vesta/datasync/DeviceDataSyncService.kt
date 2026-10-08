@@ -24,6 +24,7 @@ import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.devicesync.AgentDetails
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeChangeListener
@@ -87,6 +88,19 @@ class DeviceDataSyncService(
      * is seen coming online ([syncWith]) or it sends something ([handle]).
      */
     private val peerDownUntil = ConcurrentHashMap<String, Long>()
+
+    /** When a sync message last passed between this device and each peer, in [nowMillis] time. */
+    private val lastSynced = ConcurrentHashMap<String, Long>()
+
+    override suspend fun agentDetails(agentId: String): AgentDetails {
+        val discovered = runCatching { client.getDiscoveredAgent(agentId) }.getOrNull()
+        val now = nowMillis()
+        return AgentDetails(
+            machineId = discovered?.machineId,
+            lastSeenMsAgo = discovered?.lastSeen?.let { (now - it * 1_000).coerceAtLeast(0) },
+            lastSyncedMsAgo = lastSynced[agentId]?.let { (now - it).coerceAtLeast(0) },
+        )
+    }
 
     override val homeChanges: HomeChangeListener get() = registry
 
@@ -223,6 +237,7 @@ class DeviceDataSyncService(
         val envelope = SyncEnvelope.decode(bytes) ?: return@withLock
         if (sender !in peersFor(envelope.documentId)) return@withLock
         receive(sender, envelope.documentId, envelope.message)
+        lastSynced[sender] = nowMillis()
     }
 
     private var selfAgent: String? = null
@@ -364,6 +379,7 @@ class DeviceDataSyncService(
                     } else pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())
+                lastSynced[peer] = nowMillis()
             }
         } catch (e: CancellationException) {
             throw e

@@ -77,6 +77,13 @@ abstract class AbstractX0xClient : X0xClient {
 
     override suspend fun listDirectConnections(): JsonObject = get("/direct/connections")
 
+    override suspend fun getDiscoveredAgent(agentId: String): X0xDiscoveredAgent? {
+        val body = call("GET", "/agents/discovered/${encodePathSegment(agentId)}", allowNotFound = true) ?: return null
+        // The entry sits under "agent" in some daemon versions and at the top level in others.
+        val entry = body["agent"] as? JsonObject ?: body
+        return runCatching { json.decodeFromJsonElement(X0xDiscoveredAgent.serializer(), entry) }.getOrNull()
+    }
+
     // --- Network peers ---
 
     override suspend fun listPeers(): List<String> {

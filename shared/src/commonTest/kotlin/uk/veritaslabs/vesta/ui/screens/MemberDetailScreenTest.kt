@@ -34,7 +34,7 @@ class MemberDetailScreenTest {
     @Test
     fun listsEveryAgentOfTheMember() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { MemberDetailScreen(sam, agents = listOf(agentA, agentB)) } }
+        setContent { VestaTheme { MemberDetailScreen(sam, agents = listOf(MemberAgent(agentA), MemberAgent(agentB))) } }
 
         // Act
         // (no user interaction — checking the screen's initial state)
@@ -43,6 +43,37 @@ class MemberDetailScreenTest {
         onNodeWithTag(MemberDetailTestTags.agent(agentA)).assertIsDisplayed()
         onNodeWithTag(MemberDetailTestTags.agent(agentB)).assertIsDisplayed()
         onNodeWithTag(MemberDetailTestTags.AgentsEmpty).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun showsAnAgentsMachineLastSeenAndLastSynced() = runComposeUiTest {
+        // Arrange
+        val agent = MemberAgent(agentA, machineId = "11d167d8442575e837eb45fc4859155ffaccc149a50bf6cf22268853175636c3", lastSeenMsAgo = 42_000, lastSyncedMsAgo = 180_000)
+        setContent { VestaTheme { MemberDetailScreen(sam, agents = listOf(agent)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("11d167d8…175636c3").assertIsDisplayed()
+        onNodeWithText("42 s ago").assertIsDisplayed()
+        onNodeWithText("3 min ago").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anAgentNeverSyncedSaysSoAndHidesWhatIsUnknown() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MemberDetailScreen(sam, agents = listOf(MemberAgent(agentA))) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("Never").assertIsDisplayed()
+        onNodeWithText("Machine").assertDoesNotExist()
+        onNodeWithText("Last seen").assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)

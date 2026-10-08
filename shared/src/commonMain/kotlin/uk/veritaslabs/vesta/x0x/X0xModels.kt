@@ -10,6 +10,14 @@ data class X0xAgent(
     @SerialName("user_id") val userId: String? = null,
 )
 
+/** One row of `GET /agents/discovered`: what the daemon's discovery cache knows of an agent; [lastSeen] is Unix seconds. */
+@Serializable
+data class X0xDiscoveredAgent(
+    @SerialName("agent_id") val agentId: String,
+    @SerialName("machine_id") val machineId: String? = null,
+    @SerialName("last_seen") val lastSeen: Long? = null,
+)
+
 @Serializable
 data class X0xSession(
     @SerialName("session_token") val sessionToken: String,

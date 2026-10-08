@@ -52,6 +52,7 @@ import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
 import uk.veritaslabs.vesta.ui.screens.HubManagerScreen
 import uk.veritaslabs.vesta.ui.screens.HubScreen
 import uk.veritaslabs.vesta.ui.screens.HubTutorialScreen
+import uk.veritaslabs.vesta.ui.screens.MemberAgent
 import uk.veritaslabs.vesta.ui.screens.NetworkDiagnosticsScreen
 import uk.veritaslabs.vesta.ui.screens.NetworkPeersScreen
 import uk.veritaslabs.vesta.ui.screens.OpenSourceLicensesScreen
@@ -299,7 +300,7 @@ private fun HomeContent(
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
     onRemoveMember: suspend (memberId: String) -> Unit = {},
-    memberAgents: suspend (memberId: String) -> List<String> = { emptyList() },
+    memberAgents: suspend (memberId: String) -> List<MemberAgent> = { emptyList() },
     onEditHome: () -> Unit = {},
     onDeleteHome: suspend () -> Unit = {},
     joining: HomeJoining? = null,
@@ -371,7 +372,7 @@ private fun HomeContent(
                 LaunchedEffect(Unit) { destination = HomeDestination.Members }
             } else {
                 // Reads the roster each time the member's list changes, so a device they just added shows up.
-                val agents by produceState(emptyList<String>(), member.memberId, memberList) { value = memberAgents(member.memberId) }
+                val agents by produceState(emptyList<MemberAgent>(), member.memberId, memberList) { value = memberAgents(member.memberId) }
                 MemberDetailScreen(
                     member = member,
                     agents = agents,
@@ -643,7 +644,14 @@ fun VestaApp(
                 onLeave = { homeRepository.leave(homeId) },
                 onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
                 onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },
-                memberAgents = { memberId -> deviceDataSync?.memberAgents(homeId, memberId).orEmpty() },
+                memberAgents = { memberId ->
+                    deviceDataSync?.let { sync ->
+                        sync.memberAgents(homeId, memberId).map { agentId ->
+                            val details = sync.agentDetails(agentId)
+                            MemberAgent(agentId, details.machineId, details.lastSeenMsAgo, details.lastSyncedMsAgo)
+                        }
+                    }.orEmpty()
+                },
                 onEditHome = onEditHome,
                 onDeleteHome = { homeRepository.delete(homeId) },
                 joining = deviceDataSync?.joining,
