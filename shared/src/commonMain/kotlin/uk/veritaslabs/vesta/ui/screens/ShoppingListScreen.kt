@@ -29,6 +29,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -63,10 +66,12 @@ import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
+import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.shopping_add_item
 import vesta.shared.generated.resources.shopping_empty_subtitle
 import vesta.shared.generated.resources.shopping_filter_label
+import vesta.shared.generated.resources.shopping_delete_item
 import vesta.shared.generated.resources.shopping_edit_item
 import vesta.shared.generated.resources.shopping_empty_title
 import vesta.shared.generated.resources.shopping_got_count
@@ -91,6 +96,9 @@ internal object ShoppingListTestTags {
     const val RemainingCounter = "shopping_remaining_counter"
     const val OverflowButton = "shopping_overflow_button"
     const val UncheckAllItem = "shopping_uncheck_all_item"
+
+    /** Tag for the swipe-to-delete wrapper of the item with the given [key]; its semantic action `Dismiss` deletes it. */
+    fun swipeToDelete(key: String) = "shopping_swipe_delete_$key"
 
     /** Tag for the filter chip of the tag [name]. */
     fun filterChip(name: String) = "shopping_filter_chip_$name"
@@ -126,7 +134,7 @@ fun ShoppingListScreen(
             state.items, modifier, onItemSelected, onBack, onAddItem,
             selectedTags = state.selectedTags, onToggleTag = viewModel::toggleTag,
             onToggleCrossedOff = viewModel::toggleCrossedOff, onSetProgress = viewModel::setProgress,
-            onUncheckAll = viewModel::uncheckAll,
+            onUncheckAll = viewModel::uncheckAll, onDeleteItem = viewModel::remove,
         )
     }
 }
@@ -137,6 +145,8 @@ fun ShoppingListScreen(
  * press opens a bottom sheet to mark the item out of stock or say how many were got ([onSetProgress]: key, got,
  * out of stock), with a button that calls [onItemSelected] (to edit it). Crossed-off, partly got and out-of-stock
  * rows look different (see [ShoppingListItem.isCrossedOff]). [onAddItem] is the floating action button; [onBack] the top-bar back arrow.
+ *
+ * Swiping a row either way (partway reveals a red background with a trash can) deletes the item via [onDeleteItem].
  *
  * The top bar's overflow menu has one entry, "Uncheck all items", which calls [onUncheckAll].
  *
@@ -160,6 +170,7 @@ fun ShoppingListScreen(
     onToggleCrossedOff: (ShoppingListItem) -> Unit = {},
     onSetProgress: (key: String, got: Int, outOfStock: Boolean) -> Unit = { _, _, _ -> },
     onUncheckAll: () -> Unit = {},
+    onDeleteItem: (key: String) -> Unit = {},
 ) {
     var sheetKey by remember { mutableStateOf<String?>(null) }
     val filterDescription = stringResource(Res.string.shopping_filter_label)
@@ -279,12 +290,17 @@ fun ShoppingListScreen(
                                 }
                                 items(secondaryItems, key = { it.key }) { item ->
                                     Column {
-                                        ShoppingItemRow(
-                                            item = item,
-                                            onClick = { onToggleCrossedOff(item) },
-                                            onLongClick = { sheetKey = item.key },
-                                            modifier = Modifier.testTag(ShoppingListTestTags.item(item.key)),
-                                        )
+                                        SwipeToDeleteRow(
+                                            onDelete = { onDeleteItem(item.key) },
+                                            modifier = Modifier.testTag(ShoppingListTestTags.swipeToDelete(item.key)),
+                                        ) {
+                                            ShoppingItemRow(
+                                                item = item,
+                                                onClick = { onToggleCrossedOff(item) },
+                                                onLongClick = { sheetKey = item.key },
+                                                modifier = Modifier.testTag(ShoppingListTestTags.item(item.key)),
+                                            )
+                                        }
                                         Spacer(Modifier.height(4.dp))
                                     }
                                 }
@@ -403,6 +419,43 @@ private fun ShoppingItemSheetContent(
         }
         Spacer(Modifier.height(16.dp))
     }
+}
+
+/** Calls [onDelete] when [content] is swiped away in either direction; the red trash background shows underneath as it slides. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDeleteRow(
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val shape = MaterialTheme.shapes.medium
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value != SwipeToDismissBoxValue.Settled) onDelete()
+            true
+        },
+    )
+    SwipeToDismissBox(
+        state = state,
+        modifier = modifier,
+        backgroundContent = {
+            val direction = state.dismissDirection
+            if (direction != SwipeToDismissBoxValue.Settled) {
+                Box(
+                    modifier = Modifier.fillMaxSize().clip(shape).background(MaterialTheme.colorScheme.error).padding(horizontal = 20.dp),
+                    contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_trash),
+                        contentDescription = stringResource(Res.string.shopping_delete_item),
+                        tint = MaterialTheme.colorScheme.onError,
+                    )
+                }
+            }
+        },
+        content = { content() },
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
