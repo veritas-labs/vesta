@@ -12,5 +12,5 @@ enum class ThemeMode {
     }
 }
 
-/** The look the app is drawn in; Vesta is the only one so far. */
-enum class AppTheme { Vesta }
+/** The look the app is drawn in. Halloween is always dark and ignores [ThemeMode]. */
+enum class AppTheme { Vesta, Halloween }

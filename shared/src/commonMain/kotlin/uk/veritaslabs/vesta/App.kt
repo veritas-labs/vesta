@@ -92,6 +92,7 @@ import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
+import uk.veritaslabs.vesta.settings.AppSettingsRepository
 import uk.veritaslabs.vesta.ui.theme.AppTheme
 import uk.veritaslabs.vesta.ui.theme.ThemeMode
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
@@ -131,6 +132,7 @@ fun App(
     deviceSync: DeviceSyncHost? = null,
     homeJoining: HomeJoining? = null,
     profiles: ProfileRepository? = null,
+    settings: AppSettingsRepository? = null,
     x0xConnectivity: @Composable () -> X0xConnectivity = { rememberX0xConnectivity() },
     homeContent: @Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit = { id, name, onEditHome ->
         HomeContent(id, name, onEditHome = onEditHome)
@@ -164,15 +166,30 @@ fun App(
     LaunchedEffect(homes, selectedHome) {
         homes.collect { list -> selectedHome.homeId.value?.let { id -> if (list.none { it.id == id }) selectedHome.clear() } }
     }
-    // Follows the system until the user picks light or dark in Settings; not persisted yet.
+    // Follows the system until the user picks light or dark in Settings; saved in [settings] when there is one.
     var themeMode by remember { mutableStateOf(ThemeMode.System) }
     var appTheme by remember { mutableStateOf(AppTheme.Vesta) }
-    val darkTheme = themeMode.isDark(isSystemInDarkTheme())
-    // On until the user opts out; not persisted yet. Platforms that run x0x in-process stop it on mobile data unless this is on.
     var useMobileData by remember { mutableStateOf(X0xNetworkPolicy.useMobileData.value) }
-    LaunchedEffect(useMobileData) { X0xNetworkPolicy.useMobileData.value = useMobileData }
+    // Until the saved settings have been read there is nothing to draw, rather than a flash of the default theme.
+    var settingsLoaded by remember(settings) { mutableStateOf(settings == null) }
+    LaunchedEffect(settings) {
+        settings?.appearance()?.let { saved ->
+            themeMode = saved.themeMode
+            appTheme = saved.appTheme
+            useMobileData = settings.useMobileData()
+            settingsLoaded = true
+        }
+    }
+    val darkTheme = themeMode.isDark(isSystemInDarkTheme())
+    // On until the user opts out; saved in [settings]. Platforms that run x0x in-process stop it on mobile data unless this is on.
+    // The policy is only set once the saved choice is known, so a saved "off" is never briefly overridden by the default.
+    LaunchedEffect(useMobileData, settingsLoaded) { if (settingsLoaded) X0xNetworkPolicy.useMobileData.value = useMobileData }
     CompositionLocalProvider(LocalSelectedHome provides selectedHome) {
-        VestaTheme(darkTheme = darkTheme) {
+        VestaTheme(darkTheme = darkTheme, appTheme = appTheme) {
+            if (!settingsLoaded) {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+                return@VestaTheme
+            }
             Box(modifier = Modifier.fillMaxSize()) {
                 val currentProfile = profile
                 if (profiles != null && currentProfile == null) {
@@ -219,11 +236,20 @@ fun App(
                         SettingsScreen(
                             x0xConnectivity = rememberX0xConnectivity(),
                             themeMode = themeMode,
-                            onThemeModeChange = { themeMode = it },
+                            onThemeModeChange = {
+                                themeMode = it
+                                scope.launch { settings?.setThemeMode(it) }
+                            },
                             appTheme = appTheme,
-                            onAppThemeChange = { appTheme = it },
+                            onAppThemeChange = {
+                                appTheme = it
+                                scope.launch { settings?.setAppTheme(it) }
+                            },
                             useMobileData = useMobileData,
-                            onUseMobileDataChange = { useMobileData = it },
+                            onUseMobileDataChange = {
+                                useMobileData = it
+                                scope.launch { settings?.setUseMobileData(it) }
+                            },
                             onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },
                             onNetworkStatusClick = { settingsDestination = SettingsDestination.NetworkDiagnostics },
                             onPeersClick = { settingsDestination = SettingsDestination.Peers },
@@ -613,6 +639,7 @@ fun VestaApp(
     val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val agentAccess = remember { AgentAccessRepository(database) }
+    val settings = remember { AppSettingsRepository(database) }
     val deviceSync = remember {
         val service = DeviceSyncService(
             client, database, devices,
@@ -636,6 +663,7 @@ fun VestaApp(
         deviceSync = deviceSync,
         homeJoining = deviceDataSync?.joining,
         profiles = profiles,
+        settings = settings,
         homeContent = homeContent ?: { homeId, homeName, onEditHome ->
             val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
             val shoppingListSource by produceState<ShoppingListSource?>(null, homeId) { value = openShoppingList?.invoke(database, homeId) }

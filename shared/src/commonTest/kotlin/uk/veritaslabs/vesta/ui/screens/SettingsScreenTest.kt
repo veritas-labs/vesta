@@ -222,6 +222,21 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun themeDropdownReportsHalloweenWhenChosen() = runComposeUiTest {
+        // Arrange
+        var requested: AppTheme? = null
+        setContent { VestaTheme { SettingsScreen(onAppThemeChange = { requested = it }) } }
+
+        // Act
+        onNodeWithTag(SettingsTestTags.ThemeRow).performClick()
+        onNodeWithText("Halloween").performClick()
+
+        // Assert
+        assertEquals(AppTheme.Halloween, requested)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun tappingSyncedDevicesInvokesOnSyncedDevicesClick() = runComposeUiTest {
         // Arrange
         var clicks = 0

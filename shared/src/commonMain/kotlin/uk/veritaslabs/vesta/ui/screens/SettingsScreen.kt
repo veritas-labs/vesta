@@ -79,6 +79,7 @@ import vesta.shared.generated.resources.settings_theme
 import vesta.shared.generated.resources.settings_theme_mode_dark
 import vesta.shared.generated.resources.settings_theme_mode_light
 import vesta.shared.generated.resources.settings_theme_mode_system
+import vesta.shared.generated.resources.settings_theme_halloween
 import vesta.shared.generated.resources.settings_theme_vesta
 import vesta.shared.generated.resources.settings_title
 
@@ -304,6 +305,7 @@ private fun ThemeMode.testTag() = when (this) {
 
 private fun AppTheme.labelRes() = when (this) {
     AppTheme.Vesta -> Res.string.settings_theme_vesta
+    AppTheme.Halloween -> Res.string.settings_theme_halloween
 }
 
 /** Light / Dark / System as a horizontal radio group, in the same surface as a settings row. */

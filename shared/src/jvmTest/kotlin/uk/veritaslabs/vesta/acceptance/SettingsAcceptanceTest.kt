@@ -22,7 +22,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
+import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.AppInfo
+import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.vesta.settings.AppSettingsRepository
+import uk.veritaslabs.vesta.settings.Appearance
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsTestTags
 import uk.veritaslabs.vesta.ui.theme.AppTheme
@@ -36,7 +40,7 @@ import uk.veritaslabs.vesta.x0x.X0xConnectivity
  * 1. The screen shows the app version and build code, and the platform the device runs on.
  * 2. Appearance: the user picks Light, Dark or System; the app is drawn light or dark accordingly, and System follows the
  *    operating system. The choice starts as System.
- * 3. Appearance: a Theme drop-down lists the available themes (only "Vesta" so far) and Vesta is the one chosen.
+ * 3. Appearance: a Theme drop-down lists the available themes ("Vesta" and "Halloween") and Vesta is the one chosen at first.
  * 4. Network: the x0x status says whether the device is connected, connecting or offline, and tapping it opens
  *    network diagnostics; the Peers row (with the count) appears only when connected, and opens the peer graph.
  * 5. Network: "Use mobile data" starts on and the user can turn it off; it is greyed out and untouchable on a device with
@@ -44,7 +48,8 @@ import uk.veritaslabs.vesta.x0x.X0xConnectivity
  * 6. Profile: with a profile the user sees their name and can tap it to change it; without one there is no Profile section.
  * 7. The user can open Paired devices and Open source licences from Settings, and go back from Settings.
  *
- * The theme and mobile-data choices are not saved between launches yet, so there is no reload scenario.
+ * 8. The theme, the Light / Dark / System choice and the "Use mobile data" choice are remembered, so the app comes back the
+ *    way the user left it.
  *
  * Driven like a user over the real [SettingsScreen] and [VestaTheme]; the harness holds the state and navigation that
  * `App.kt` holds (it shares [ThemeMode.isDark] with it), and a destination screen is just the text naming where the tap went.
@@ -59,11 +64,14 @@ class SettingsAcceptanceTest {
         profileName: String? = null,
         platformName: String = "Android 15",
         appInfo: AppInfo = AppInfo("1.0", "1"),
+        settings: AppSettingsRepository? = null,
     ) {
+        val saved = settings?.let { runBlocking { it.appearance() } } ?: Appearance()
+        val savedMobileData = settings?.let { runBlocking { it.useMobileData() } } ?: true
         setContent {
-            var themeMode by remember { mutableStateOf(ThemeMode.System) }
-            var appTheme by remember { mutableStateOf(AppTheme.Vesta) }
-            var useMobileData by remember { mutableStateOf(true) }
+            var themeMode by remember { mutableStateOf(saved.themeMode) }
+            var appTheme by remember { mutableStateOf(saved.appTheme) }
+            var useMobileData by remember { mutableStateOf(savedMobileData) }
             var destination by remember { mutableStateOf<String?>(null) }
             VestaTheme(darkTheme = themeMode.isDark(systemDark)) {
                 // Stands in for "what the app looks like": the same background every screen is drawn on.
@@ -74,11 +82,20 @@ class SettingsAcceptanceTest {
                     appInfo = appInfo,
                     x0xConnectivity = x0xConnectivity,
                     themeMode = themeMode,
-                    onThemeModeChange = { themeMode = it },
+                    onThemeModeChange = {
+                        themeMode = it
+                        settings?.let { repository -> runBlocking { repository.setThemeMode(it) } }
+                    },
                     appTheme = appTheme,
-                    onAppThemeChange = { appTheme = it },
+                    onAppThemeChange = {
+                        appTheme = it
+                        settings?.let { repository -> runBlocking { repository.setAppTheme(it) } }
+                    },
                     useMobileData = useMobileData,
-                    onUseMobileDataChange = { useMobileData = it },
+                    onUseMobileDataChange = {
+                        useMobileData = it
+                        settings?.let { repository -> runBlocking { repository.setUseMobileData(it) } }
+                    },
                     mobileDataAvailable = mobileDataAvailable,
                     onSyncedDevicesClick = { destination = "Paired devices" },
                     onNetworkStatusClick = { destination = "Network diagnostics" },
@@ -318,5 +335,29 @@ class SettingsAcceptanceTest {
 
         // Assert — Then Settings is left
         onNodeWithText("Went to Back").assertIsDisplayed()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theChosenThemeModeAndMobileDataSettingAreStillChosenAfterTheAppIsRelaunched() {
+        // Arrange — Given a user who picks the Halloween theme and Dark mode and turns off mobile data in Settings
+        val settings = AppSettingsRepository(openInMemoryDatabase())
+        runComposeUiTest {
+            showSettings(settings = settings)
+            tap(SettingsTestTags.ThemeRow)
+            onNodeWithText("Halloween").performClick()
+            tap(SettingsTestTags.ThemeModeDark)
+            tap(SettingsTestTags.MobileDataRow)
+        }
+
+        // Act — When the app is relaunched (a new Settings screen over the same saved settings)
+        runComposeUiTest { showSettings(settings = settings)
+
+            // Assert — Then Halloween is the theme shown, Dark is selected, the app is drawn dark and mobile data is off
+            onNodeWithText("Halloween").assertIsDisplayed()
+            onNodeWithTag(SettingsTestTags.ThemeModeDark).assertIsSelected()
+            assertShown("Drawn dark")
+            onNodeWithTag(SettingsTestTags.MobileDataRow).assertIsOff()
+        }
     }
 }

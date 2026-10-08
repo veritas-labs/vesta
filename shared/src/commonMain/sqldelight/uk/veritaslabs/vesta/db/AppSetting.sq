@@ -1,0 +1,12 @@
+-- Device-level app preferences (theme, light/dark mode, use of mobile data), as key/value text.
+-- Not synced: each device keeps its own look. Keep in sync with migrations/16.sqm.
+CREATE TABLE AppSetting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+selectValue:
+SELECT value FROM AppSetting WHERE key = ?;
+
+upsert:
+INSERT OR REPLACE INTO AppSetting(key, value) VALUES (?, ?);

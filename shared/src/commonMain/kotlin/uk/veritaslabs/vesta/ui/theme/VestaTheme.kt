@@ -81,6 +81,46 @@ private val VestaDarkColorScheme = darkColorScheme(
     surfaceContainerHighest = Color(0xFF37352F),
 )
 
+// Halloween: pumpkin orange on near-black, with candle yellow as the third accent.
+// Always dark; it ignores the Light / Dark / System choice.
+private val HalloweenColorScheme = darkColorScheme(
+    primary = Color(0xFFFF7A00),
+    onPrimary = Color(0xFF1A0A00),
+    primaryContainer = Color(0xFF5C2A00),
+    onPrimaryContainer = Color(0xFFFFDCC2),
+    inversePrimary = Color(0xFFB34F00),
+    secondary = Color(0xFFFFA64D),
+    onSecondary = Color(0xFF2B1400),
+    secondaryContainer = Color(0xFF3D2200),
+    onSecondaryContainer = Color(0xFFFFDDB8),
+    tertiary = Color(0xFFFFC933),
+    onTertiary = Color(0xFF2B2000),
+    tertiaryContainer = Color(0xFF4A3A00),
+    onTertiaryContainer = Color(0xFFFFE699),
+    error = Color(0xFFFF5449),
+    onError = Color(0xFF2B0000),
+    errorContainer = Color(0xFF5C0F0A),
+    onErrorContainer = Color(0xFFFFDAD6),
+    background = Color(0xFF080605),
+    onBackground = Color(0xFFFFE9D6),
+    surface = Color(0xFF080605),
+    onSurface = Color(0xFFFFE9D6),
+    surfaceVariant = Color(0xFF3A2A1C),
+    onSurfaceVariant = Color(0xFFE6C9AC),
+    surfaceTint = Color(0xFFFF7A00),
+    inverseSurface = Color(0xFFFFE9D6),
+    inverseOnSurface = Color(0xFF1F1610),
+    outline = Color(0xFFB8875A),
+    outlineVariant = Color(0xFF4A3524),
+    surfaceBright = Color(0xFF2E2118),
+    surfaceDim = Color(0xFF080605),
+    surfaceContainerLowest = Color(0xFF040302),
+    surfaceContainerLow = Color(0xFF120D09),
+    surfaceContainer = Color(0xFF1A130D),
+    surfaceContainerHigh = Color(0xFF241A12),
+    surfaceContainerHighest = Color(0xFF2F2217),
+)
+
 private val VestaShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(8.dp),
@@ -90,9 +130,16 @@ private val VestaShapes = Shapes(
 )
 
 @Composable
-fun VestaTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun VestaTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    appTheme: AppTheme = AppTheme.Vesta,
+    content: @Composable () -> Unit,
+) {
     MaterialTheme(
-        colorScheme = if (darkTheme) VestaDarkColorScheme else VestaLightColorScheme,
+        colorScheme = when (appTheme) {
+            AppTheme.Halloween -> HalloweenColorScheme
+            AppTheme.Vesta -> if (darkTheme) VestaDarkColorScheme else VestaLightColorScheme
+        },
         shapes = VestaShapes,
         typography = vestaTypography(),
         content = content,

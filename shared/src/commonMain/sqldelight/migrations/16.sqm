@@ -1,0 +1,5 @@
+-- Version 16 -> 17: adds AppSetting (see uk/veritaslabs/vesta/db/AppSetting.sq).
+CREATE TABLE IF NOT EXISTS AppSetting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
