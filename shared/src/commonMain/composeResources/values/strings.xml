@@ -452,10 +452,8 @@
     <string name="recipe_availability_out_of_stock">Out of stock</string>
     <string name="recipe_availability_not_in_pantry">Not in pantry</string>
     <string name="recipe_method">Method</string>
-    <string name="recipe_stage_single">Stage %1$d</string>
-    <string name="recipe_stage_together">Stage %1$d - do these at the same time</string>
+    <string name="recipe_stage">Stage %1$d</string>
     <string name="recipe_step_number">Step %1$d</string>
-    <string name="recipe_step_after">After %1$s</string>
     <string name="recipe_step_minutes">%1$d min</string>
     <string name="recipe_notes">Notes</string>
     <string name="recipe_source">Source</string>

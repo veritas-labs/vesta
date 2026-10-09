@@ -227,16 +227,15 @@ class CookbookAcceptanceTest {
         openRecipe("Shepherd's Pie")
         waitForText("Method")
 
-        // Assert — Then boiling and browning are together in stage 1, then mashing, then baking, each naming what it waits for
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1 - do these at the same time")
-        onNodeWithTag(RecipeDetailTestTags.step(1)).assertIsDisplayed()
+        // Assert — Then boiling and browning are together in stage 1, then mashing, then baking
+        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1")
+        onNodeWithTag(RecipeDetailTestTags.step(1)).performScrollTo().assertIsDisplayed()
         onNodeWithText("Boil the potatoes").assertIsDisplayed()
         onNodeWithText("Brown the mince").assertIsDisplayed()
         onNodeWithTag(RecipeDetailTestTags.stage(2)).assertTextEquals("Stage 2")
         onNodeWithText("Mash the potatoes").performScrollTo().assertIsDisplayed()
-        onNodeWithTag(RecipeDetailTestTags.stepAfter(3)).assertTextEquals("After 1")
         onNodeWithTag(RecipeDetailTestTags.stage(3)).assertTextEquals("Stage 3")
-        onNodeWithTag(RecipeDetailTestTags.stepAfter(4)).assertTextEquals("After 2, 3 · 30 min")
+        onNodeWithTag(RecipeDetailTestTags.stepMinutes(4)).assertTextEquals("30 min")
     }
 
     @Test
@@ -260,9 +259,9 @@ class CookbookAcceptanceTest {
         waitForText("Method")
 
         // Assert — Then the first two are one stage to do together, and the last follows
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1 - do these at the same time")
+        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1")
         onNodeWithTag(RecipeDetailTestTags.stage(2)).assertTextEquals("Stage 2")
-        onNodeWithTag(RecipeDetailTestTags.stepAfter(3)).assertTextEquals("After 1, 2")
+        onNodeWithTag(RecipeDetailTestTags.step(3)).assertExists()
     }
 
     @Test
@@ -424,7 +423,7 @@ class CookbookAcceptanceTest {
         // Assert — Then the tablet's cookbook shows the recipe with its method intact
         openRecipe("Shepherd's Pie")
         waitForText("Method")
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1 - do these at the same time")
+        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1")
         assertEquals(shepherdsPie.ingredients, runBlocking { tablet.recipes.first().single().ingredients })
     }
 }

@@ -14,8 +14,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -86,9 +94,7 @@ import vesta.shared.generated.resources.recipe_servings_decrease
 import vesta.shared.generated.resources.recipe_servings_increase
 import vesta.shared.generated.resources.recipe_servings_scaled
 import vesta.shared.generated.resources.recipe_source
-import vesta.shared.generated.resources.recipe_stage_single
-import vesta.shared.generated.resources.recipe_stage_together
-import vesta.shared.generated.resources.recipe_step_after
+import vesta.shared.generated.resources.recipe_stage
 import vesta.shared.generated.resources.recipe_step_minutes
 import vesta.shared.generated.resources.recipe_step_number
 import vesta.shared.generated.resources.recipe_time_cook
@@ -97,7 +103,7 @@ import vesta.shared.generated.resources.recipe_time_rest
 import vesta.shared.generated.resources.recipe_time_total
 
 private val RecipeTabletBreakpoint = 600.dp
-private val RecipeMaxContentWidth = 720.dp
+private val RecipeParallelStepWidth = 260.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object RecipeDetailTestTags {
@@ -130,16 +136,16 @@ internal object RecipeDetailTestTags {
     /** Tag for the stage's heading, 1-based. */
     fun stage(number: Int) = "recipe_stage_$number"
 
-    /** Tag for the step with this 1-based [number]; its prerequisites line is tagged [stepAfter]. */
+    /** Tag for the step with this 1-based [number]; its duration is tagged [stepMinutes]. */
     fun step(number: Int) = "recipe_step_$number"
 
-    fun stepAfter(number: Int) = "recipe_step_after_$number"
+    fun stepMinutes(number: Int) = "recipe_step_minutes_$number"
 }
 
 /**
  * One recipe (ADR-022): media, title, [onRate] stars (tapping the star that is already lit clears the rating), description, the
  * prep/cook/rest/total times, a servings stepper that rescales the ingredient quantities on screen only, the ingredients each
- * labelled by whether the [pantry] has them, and the method as stages (see [planSteps]) — steps in one stage can be done at the same time.
+ * labelled by whether the [pantry] has them, and the method as stages (see [planSteps]) — steps in one stage can be done at the same time, so they scroll sideways.
  * The top bar has the favourite toggle ([onFavourite]) and an overflow menu with Edit ([onEdit]) and Delete ([onDelete], after confirming).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,7 +213,7 @@ fun RecipeDetailScreen(
                     .padding(horizontal = contentPadding)
                     .padding(bottom = 32.dp),
             ) {
-                Column(modifier = Modifier.widthIn(max = RecipeMaxContentWidth)) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     if (recipe.media.isNotEmpty()) MediaRow(recipe.media)
                     Text(
                         recipe.title,
@@ -261,20 +267,24 @@ fun RecipeDetailScreen(
     }
 }
 
+/** A section title; [divided] puts a rule above it so a major section (ingredients, method) stands apart from the one before. */
 @Composable
-private fun SectionHeading(text: String) {
+private fun SectionHeading(text: String, divided: Boolean = false) {
+    if (divided) {
+        HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(top = 40.dp))
+    }
     Text(
         text,
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(top = 24.dp, bottom = 8.dp),
+        modifier = Modifier.padding(top = if (divided) 28.dp else 24.dp, bottom = 8.dp),
     )
 }
 
 @Composable
 private fun MediaRow(media: List<RecipeMedia>) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    DragScrollableRow(modifier = Modifier.fillMaxWidth()) {
         itemsIndexed(media) { index, item ->
             OutlinedCard(modifier = Modifier.width(160.dp).height(112.dp).testTag(RecipeDetailTestTags.media(index))) {
                 val blob = item.blob
@@ -369,7 +379,7 @@ private fun ServingsStepper(servings: Int, original: Int, onChange: (Int) -> Uni
 @Composable
 private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<PantryListItem>) {
     if (recipe.ingredients.isEmpty()) return
-    SectionHeading(stringResource(Res.string.recipe_ingredients))
+    SectionHeading(stringResource(Res.string.recipe_ingredients), divided = true)
     val states = recipe.ingredients.map { availability(it, pantry) }
     Text(
         stringResource(Res.string.recipe_ingredients_in_pantry, states.count { it == IngredientAvailability.InPantry }, states.size),
@@ -410,41 +420,75 @@ private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<Pantr
 @Composable
 private fun MethodSection(steps: List<RecipeStep>) {
     if (steps.isEmpty()) return
-    SectionHeading(stringResource(Res.string.recipe_method))
+    SectionHeading(stringResource(Res.string.recipe_method), divided = true)
     planSteps(steps).forEachIndexed { stageIndex, stage ->
         val stageNumber = stageIndex + 1
         Text(
-            text = stringResource(if (stage.size > 1) Res.string.recipe_stage_together else Res.string.recipe_stage_single, stageNumber),
-            style = MaterialTheme.typography.labelLarge,
+            text = stringResource(Res.string.recipe_stage, stageNumber),
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = if (stageIndex == 0) 0.dp else 12.dp, bottom = 4.dp).testTag(RecipeDetailTestTags.stage(stageNumber)),
         )
-        stage.forEach { numbered ->
-            OutlinedCard(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).testTag(RecipeDetailTestTags.step(numbered.number))) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        stringResource(Res.string.recipe_step_number, numbered.number),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(numbered.step.text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                    val extras = listOfNotNull(
-                        numbered.afterNumbers.takeIf { it.isNotEmpty() }?.let { stringResource(Res.string.recipe_step_after, it.joinToString(", ")) },
-                        numbered.step.minutes?.let { stringResource(Res.string.recipe_step_minutes, it) },
-                    )
-                    if (extras.isNotEmpty()) {
-                        Text(
-                            extras.joinToString(" · "),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.testTag(RecipeDetailTestTags.stepAfter(numbered.number)),
-                        )
-                    }
-                }
+        if (stage.size > 1) {
+            // Steps that can be done at the same time sit side by side, scrolling sideways.
+            DragScrollableRow(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+                items(stage) { numbered -> StepCard(numbered, Modifier.width(RecipeParallelStepWidth)) }
             }
+        } else {
+            stage.forEach { numbered -> StepCard(numbered, Modifier.fillMaxWidth().padding(bottom = 6.dp)) }
         }
     }
     Spacer(Modifier.height(8.dp))
+}
+
+/**
+ * A [LazyRow] that a mouse can drag as well as a finger: on desktop a plain LazyRow ignores a mouse drag, so this drives the
+ * scrolling from a horizontal drag (with a fling on release) instead of the row's own touch scrolling.
+ */
+@Composable
+private fun DragScrollableRow(modifier: Modifier = Modifier, content: LazyListScope.() -> Unit) {
+    val state = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val fling = ScrollableDefaults.flingBehavior()
+    LazyRow(
+        state = state,
+        userScrollEnabled = false,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.draggable(
+            orientation = Orientation.Horizontal,
+            state = rememberDraggableState { state.dispatchRawDelta(-it) },
+            onDragStopped = { velocity ->
+                scope.launch { state.scroll { with(fling) { performFling(-velocity) } } }
+            },
+        ),
+        content = content,
+    )
+}
+
+@Composable
+private fun StepCard(numbered: NumberedStep, modifier: Modifier = Modifier) {
+    OutlinedCard(modifier = modifier.testTag(RecipeDetailTestTags.step(numbered.number))) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                stringResource(Res.string.recipe_step_number, numbered.number),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                numbered.step.text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            // Always composed, so every step reserves the same bottom line (at any font scale) whether or not it has minutes.
+            val minutes = numbered.step.minutes
+            Text(
+                minutes?.let { stringResource(Res.string.recipe_step_minutes, it) }.orEmpty(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = if (minutes != null) Modifier.testTag(RecipeDetailTestTags.stepMinutes(numbered.number)) else Modifier,
+            )
+        }
+    }
 }
 
 internal val RecipePreview = Recipe(

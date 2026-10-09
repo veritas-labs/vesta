@@ -72,11 +72,11 @@ class RecipeDetailScreenTest {
         onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo()
 
         // Assert
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).assertTextEquals("Stage 1 - do these at the same time")
+        onNodeWithTag(RecipeDetailTestTags.stage(1)).assertTextEquals("Stage 1")
         onNodeWithTag(RecipeDetailTestTags.stage(2)).assertTextEquals("Stage 2")
         onNodeWithTag(RecipeDetailTestTags.stage(3)).assertTextEquals("Stage 3")
-        onNodeWithTag(RecipeDetailTestTags.stepAfter(3)).assertTextEquals("After 1")
-        onNodeWithTag(RecipeDetailTestTags.stepAfter(4)).assertTextEquals("After 2, 3 · 30 min")
+        onNodeWithTag(RecipeDetailTestTags.stepMinutes(3)).assertDoesNotExist()
+        onNodeWithTag(RecipeDetailTestTags.stepMinutes(4)).assertTextEquals("30 min")
     }
 
     @Test

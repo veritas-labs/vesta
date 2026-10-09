@@ -55,8 +55,8 @@ Recipe types: Breakfast, Lunch, Dinner, Starter, Side, Dessert, Baking, Snack, D
    cookbook afterwards.
 2. The recipe page shows prep, cook, rest and total time.
 3. Each ingredient shows whether the Pantry has it, is out of it, or doesn't know it.
-4. The method lists steps in stages; steps that can happen at the same time are grouped in one stage and labelled as
-   such, and a step that depends on others says which.
+4. The method lists steps in stages; steps that can happen at the same time are grouped in one stage and shown side by side
+   in a row that scrolls sideways.
 5. I can rate a recipe 1–5 stars from its page, and the rating shows in the cookbook list.
 6. I can show the recipe for a different number of servings and the ingredient quantities scale.
 7. I can filter the cookbook by type, by favourites, and search by title, ingredient or tag.
