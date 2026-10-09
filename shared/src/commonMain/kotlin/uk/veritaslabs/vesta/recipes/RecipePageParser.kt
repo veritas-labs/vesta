@@ -19,8 +19,7 @@ private val LdJsonScript = Regex(
 
 /**
  * The recipe on the web page [html] (downloaded from [pageUrl]), read from the schema.org `Recipe` data that nearly every recipe site embeds
- * as JSON-LD; null if the page has none or it has no title. The method comes back as one step after another, since pages don't say which
- * steps can be done together.
+ * as JSON-LD; null if the page has none or it has no title. Sections of steps are flattened into the one list.
  */
 fun parseRecipePage(html: String, pageUrl: String): RecipeImportResult.Imported? {
     val data = LdJsonScript.findAll(html).mapNotNull { match ->
@@ -44,7 +43,7 @@ fun parseRecipePage(html: String, pageUrl: String): RecipeImportResult.Imported?
         cookMinutes = cook,
         restMinutes = (total - prep - cook).coerceAtLeast(0),
         ingredients = strings(data["recipeIngredient"]).map(::cleanText).filter { it.isNotBlank() }.map(::parseIngredientLine),
-        steps = texts.mapIndexed { index, text -> RecipeStep("s$index", text, if (index == 0) emptyList() else listOf("s${index - 1}")) },
+        steps = texts.mapIndexed { index, text -> RecipeStep("s$index", text) },
         tags = keywords(data["keywords"]),
         source = pageUrl,
     )

@@ -21,7 +21,7 @@ ROOT
    ├─ "tags": List<Str>
    ├─ "media": List<Map{ "uri", "kind" (PHOTO|VIDEO), "caption" }>
    ├─ "ingredients": List<Map{ "name", "milli": Int?, "unit", "note" }>               -- quantity in thousandths
-   └─ "steps": List<Map{ "id", "text", "minutes": Int?, "after": List<Str> }>         -- after = ids of steps first
+   └─ "steps": List<Map{ "id", "text", "minutes": Int? }>                              -- in the order they are done
 ```
 
 - **Recipes are keys of the document's root map**, with no `recipes` wrapper. Every Home that exists before this ADR
@@ -32,11 +32,10 @@ ROOT
 - **A save rewrites the whole recipe**, like a shopping-list item edit (last writer wins per field). Rating and
   favourite have their own narrow writes so rating a recipe never clobbers a concurrent edit of its text.
 - **Quantities are stored as integer thousandths** (1500 = 1½), so the document never needs floating point.
-- **Steps form a dependency graph.** Each step lists the ids of the steps that must be finished first. Display order
-  is a topological layering: stage 1 is every step with no prerequisites, stage *n* is every step whose prerequisites
-  are all in earlier stages. Steps in one stage can be done at the same time. A prerequisite id that no longer exists
-  is ignored; a cycle (only possible from a bad merge, the editor can't make one) puts the steps it traps in a final
-  stage so nothing is ever hidden.
+- **The method is a flat, ordered list of steps**, the way recipe sites write it. The first version had each step list
+  the ids of the steps to finish first and showed the method in "stages"; that is kept in git as the tag
+  `recipes-with-stages`. Documents saved by it may still carry an `after` list on each step; it is ignored and
+  dropped the next time the recipe is saved.
 - **Total time is derived** (prep + cook + rest), never stored, so it can't disagree with its parts.
 - **Pantry awareness is computed at display time**, not stored. An ingredient matches a Pantry entry when their names
   are equal ignoring case, whitespace and plurals (each word is singularised: "cherry tomatoes" = "Cherry Tomato",
@@ -59,8 +58,7 @@ Recipe types: Breakfast, Lunch, Dinner, Starter, Side, Dessert, Baking, Snack, D
    cookbook afterwards.
 2. The recipe page shows prep, cook, rest and total time.
 3. Each ingredient shows whether the Pantry has it, is out of it, or doesn't know it.
-4. The method lists steps in stages; steps that can happen at the same time are grouped in one stage and shown side by side
-   in a row that scrolls sideways.
+4. The method is a numbered list of steps, in the order they were written, each with optional minutes.
 5. I can rate a recipe 1–5 stars from its page, and the rating shows in the cookbook list.
 6. I can show the recipe for a different number of servings and the ingredient quantities scale.
 7. I can filter the cookbook by type, by favourites, and search by title, ingredient or tag.

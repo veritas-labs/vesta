@@ -452,7 +452,6 @@
     <string name="recipe_availability_out_of_stock">Out of stock</string>
     <string name="recipe_availability_not_in_pantry">Not in pantry</string>
     <string name="recipe_method">Method</string>
-    <string name="recipe_stage">Stage %1$d</string>
     <string name="recipe_step_number">Step %1$d</string>
     <string name="recipe_step_minutes">%1$d min</string>
     <string name="recipe_notes">Notes</string>
@@ -498,9 +497,6 @@
     <string name="recipe_edit_steps_heading">Method</string>
     <string name="recipe_edit_step_text">What to do</string>
     <string name="recipe_edit_step_minutes">Minutes</string>
-    <string name="recipe_edit_stage_number">Stage %1$d</string>
-    <string name="recipe_edit_stage_add">Add stage</string>
-    <string name="recipe_edit_stage_remove">Remove stage</string>
     <string name="recipe_edit_step_add">Add step</string>
     <string name="recipe_edit_step_remove">Remove step</string>
     <string name="recipe_edit_save">Save</string>

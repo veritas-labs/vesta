@@ -28,7 +28,7 @@ class CookbookDocumentTest {
         favourite = true,
         media = listOf(RecipeMedia("file:///pie.jpg", MediaKind.Photo, "Fresh"), RecipeMedia("https://x/pie.mp4", MediaKind.Video)),
         ingredients = listOf(RecipeIngredient("Lamb mince", 0.5, "kg", "lean"), RecipeIngredient("Thyme")),
-        steps = listOf(RecipeStep("a", "Boil", minutes = 20), RecipeStep("b", "Bake", after = listOf("a"))),
+        steps = listOf(RecipeStep("a", "Boil", minutes = 20), RecipeStep("b", "Bake")),
         tags = listOf("Comfort", "comfort", " Winter "),
         source = "Gran",
         notes = "Better next day",

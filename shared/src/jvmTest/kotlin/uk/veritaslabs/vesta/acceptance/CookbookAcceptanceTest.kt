@@ -61,7 +61,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
  *  1. I can add a recipe (title, description, type, servings, times, rating) and find it in the cookbook.
  *  2. The recipe page shows prep, cook, rest and total time.
  *  3. Each ingredient shows whether the Pantry has it, is out of it, or doesn't know it.
- *  4. The method is in stages; steps that can happen together share a stage, and a step says what it waits for.
+ *  4. The method is a numbered list of steps, in the order I wrote them, each with its optional minutes.
  *  5. I can rate a recipe from its page, and the rating shows in the cookbook list.
  *  6. I can show the recipe for other servings and the quantities scale.
  *  7. I can filter by type and favourites, and search by title, ingredient or tag.
@@ -96,8 +96,8 @@ class CookbookAcceptanceTest {
         steps = listOf(
             RecipeStep("boil", "Boil the potatoes"),
             RecipeStep("brown", "Brown the mince"),
-            RecipeStep("mash", "Mash the potatoes", after = listOf("boil")),
-            RecipeStep("bake", "Assemble and bake", after = listOf("brown", "mash"), minutes = 30),
+            RecipeStep("mash", "Mash the potatoes"),
+            RecipeStep("bake", "Assemble and bake", minutes = 30),
         ),
         tags = listOf("Comfort"),
     )
@@ -242,8 +242,8 @@ class CookbookAcceptanceTest {
     }
 
     @Test
-    fun theMethodGroupsStepsThatCanBeDoneAtTheSameTime() = runComposeUiTest {
-        // Arrange — Given a recipe where boiling and browning are independent, mashing follows boiling, and baking follows both
+    fun theMethodIsANumberedListOfSteps() = runComposeUiTest {
+        // Arrange — Given a recipe with four steps, the last taking 30 minutes
         val source = newSource()
         runBlocking { source.save(shepherdsPie) }
         showCookbook(source)
@@ -252,41 +252,37 @@ class CookbookAcceptanceTest {
         openRecipe("Shepherd's Pie")
         waitForText("Method")
 
-        // Assert — Then boiling and browning are together in stage 1, then mashing, then baking
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1")
+        // Assert — Then the four steps are numbered in order, and the last shows its time
         onNodeWithTag(RecipeDetailTestTags.step(1)).performScrollTo().assertIsDisplayed()
         onNodeWithText("Boil the potatoes").assertIsDisplayed()
         onNodeWithText("Brown the mince").assertIsDisplayed()
-        onNodeWithTag(RecipeDetailTestTags.stage(2)).assertTextEquals("Stage 2")
         onNodeWithText("Mash the potatoes").performScrollTo().assertIsDisplayed()
-        onNodeWithTag(RecipeDetailTestTags.stage(3)).assertTextEquals("Stage 3")
+        onNodeWithTag(RecipeDetailTestTags.step(4)).assertExists()
         onNodeWithTag(RecipeDetailTestTags.stepMinutes(4)).assertTextEquals("30 min")
     }
 
     @Test
-    fun stepsIBuildInTheFormComeOutInStages() = runComposeUiTest {
+    fun stepsIBuildInTheFormComeOutInTheSameOrder() = runComposeUiTest {
         // Arrange — Given an empty cookbook and a new recipe with three steps
         val source = newSource()
         showCookbook(source)
         waitForText("No recipes yet")
         onNodeWithTag(CookbookTestTags.AddRecipeButton).performClick()
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Pasta")
-        repeat(2) { onNodeWithTag(RecipeEditTestTags.AddStageButton).performScrollTo().performClick() }
-        repeat(2) { onNodeWithTag(RecipeEditTestTags.addStep(0)).performScrollTo().performClick() }
-        onNodeWithTag(RecipeEditTestTags.addStep(1)).performScrollTo().performClick()
-        listOf("Boil the water", "Make the sauce", "Combine and serve").zip(listOf(0 to 0, 0 to 1, 1 to 0)).forEach { (text, place) ->
-            onNodeWithTag(RecipeEditTestTags.stepText(place.first, place.second)).performScrollTo().performTextInput(text)
+        repeat(3) { onNodeWithTag(RecipeEditTestTags.AddStepButton).performScrollTo().performClick() }
+        listOf("Boil the water", "Make the sauce", "Combine and serve").forEachIndexed { index, text ->
+            onNodeWithTag(RecipeEditTestTags.stepText(index)).performScrollTo().performTextInput(text)
         }
 
-        // Act — When I say the last step comes after the first two, and save
+        // Act — When I save and open the recipe
         onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
         openRecipe("Pasta")
         waitForText("Method")
 
-        // Assert — Then the first two are one stage to do together, and the last follows
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1")
-        onNodeWithTag(RecipeDetailTestTags.stage(2)).assertTextEquals("Stage 2")
+        // Assert — Then the steps are numbered 1 to 3 in the order I wrote them
+        onNodeWithTag(RecipeDetailTestTags.step(1)).performScrollTo().assertIsDisplayed()
         onNodeWithTag(RecipeDetailTestTags.step(3)).assertExists()
+        onNodeWithText("Combine and serve").assertExists()
     }
 
     @Test
@@ -444,7 +440,7 @@ class CookbookAcceptanceTest {
         // Assert — Then the tablet's cookbook shows the recipe with its method intact
         openRecipe("Shepherd's Pie")
         waitForText("Method")
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo().assertTextEquals("Stage 1")
+        onNodeWithTag(RecipeDetailTestTags.step(1)).performScrollTo().assertIsDisplayed()
         assertEquals(shepherdsPie.ingredients, runBlocking { tablet.recipes.first().single().ingredients })
     }
 }

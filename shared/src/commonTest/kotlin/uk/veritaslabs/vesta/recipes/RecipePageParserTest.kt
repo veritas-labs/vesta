@@ -63,7 +63,7 @@ class RecipePageParserTest {
     }
 
     @Test
-    fun `chains the steps one after another`() {
+    fun `reads the steps in order with distinct ids`() {
         // Arrange
         val html = page(soup)
 
@@ -72,8 +72,7 @@ class RecipePageParserTest {
 
         // Assert
         assertEquals(listOf("Chop the onion.", "Simmer for 30 minutes."), steps.map { it.text })
-        assertEquals(emptyList(), steps[0].after)
-        assertEquals(listOf(steps[0].id), steps[1].after)
+        assertEquals(2, steps.map { it.id }.toSet().size)
     }
 
     @Test

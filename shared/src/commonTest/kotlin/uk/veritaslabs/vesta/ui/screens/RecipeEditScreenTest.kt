@@ -68,8 +68,7 @@ class RecipeEditScreenTest {
         onNodeWithTag(RecipeEditTestTags.ingredientName(1)).performScrollTo().performTextInput("Bread")
         onNodeWithTag(RecipeEditTestTags.ingredientQuantity(1)).performScrollTo().performTextInput("2")
         onNodeWithTag(RecipeEditTestTags.ingredientUnit(1)).performScrollTo().performTextInput("slices")
-        onNodeWithTag(RecipeEditTestTags.AddStageButton).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.addStep(0)).performScrollTo().performClick()
+        onNodeWithTag(RecipeEditTestTags.AddStepButton).performScrollTo().performClick()
         onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
@@ -78,42 +77,39 @@ class RecipeEditScreenTest {
     }
 
     @Test
-    fun aStepCanBeMarkedToComeAfterAnEarlierOneAndRemovingThatStepUnmarksIt() = runComposeUiTest {
+    fun stepsAreAddedInOrderAndSavedAsOneList() = runComposeUiTest {
         // Arrange
         var saved: Recipe? = null
         setContent { VestaTheme { RecipeEditScreen(recipe = null, onSave = { saved = it }) } }
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Pasta")
-        repeat(2) { onNodeWithTag(RecipeEditTestTags.AddStageButton).performScrollTo().performClick() }
-        repeat(2) { onNodeWithTag(RecipeEditTestTags.addStep(0)).performScrollTo().performClick() }
-        onNodeWithTag(RecipeEditTestTags.addStep(1)).performScrollTo().performClick()
-        listOf("Boil water", "Make sauce", "Combine").zip(listOf(0 to 0, 0 to 1, 1 to 0)).forEach { (text, place) ->
-            onNodeWithTag(RecipeEditTestTags.stepText(place.first, place.second)).performScrollTo().performTextInput(text)
+        repeat(3) { onNodeWithTag(RecipeEditTestTags.AddStepButton).performScrollTo().performClick() }
+        listOf("Boil water", "Make sauce", "Combine").forEachIndexed { index, text ->
+            onNodeWithTag(RecipeEditTestTags.stepText(index)).performScrollTo().performTextInput(text)
         }
 
         // Act
         onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
-        val steps = saved!!.steps
-        assertEquals(listOf(steps[0].id, steps[1].id), steps[2].after)
-        assertEquals(planSteps(steps).map { stage -> stage.map { it.step.text } }, listOf(listOf("Boil water", "Make sauce"), listOf("Combine")))
+        assertEquals(listOf("Boil water", "Make sauce", "Combine"), saved!!.steps.map { it.text })
+        assertEquals(3, saved!!.steps.map { it.id }.toSet().size)
     }
 
     @Test
-    fun removingAStepDropsItFromTheStepsThatCameAfterIt() = runComposeUiTest {
+    fun removingAStepKeepsTheOthersInOrder() = runComposeUiTest {
         // Arrange
         var saved: Recipe? = null
         setContent {
             VestaTheme {
                 RecipeEditScreen(
-                    recipe = Recipe(key = "r", title = "Pasta", steps = listOf(RecipeStep("a", "Boil"), RecipeStep("b", "Serve", after = listOf("a")))),
+                    recipe = Recipe(key = "r", title = "Pasta", steps = listOf(RecipeStep("a", "Boil"), RecipeStep("b", "Serve"))),
                     onSave = { saved = it },
                 )
             }
         }
 
         // Act
-        onNodeWithTag(RecipeEditTestTags.removeStep(0, 0)).performScrollTo().performClick()
+        onNodeWithTag(RecipeEditTestTags.removeStep(0)).performScrollTo().performClick()
         onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert

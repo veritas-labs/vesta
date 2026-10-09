@@ -95,7 +95,6 @@ import vesta.shared.generated.resources.recipe_servings_decrease
 import vesta.shared.generated.resources.recipe_servings_increase
 import vesta.shared.generated.resources.recipe_servings_scaled
 import vesta.shared.generated.resources.recipe_source
-import vesta.shared.generated.resources.recipe_stage
 import vesta.shared.generated.resources.recipe_step_minutes
 import vesta.shared.generated.resources.recipe_step_number
 import vesta.shared.generated.resources.recipe_time_cook
@@ -104,7 +103,6 @@ import vesta.shared.generated.resources.recipe_time_rest
 import vesta.shared.generated.resources.recipe_time_total
 
 private val RecipeTabletBreakpoint = 600.dp
-private val RecipeParallelStepWidth = 260.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object RecipeDetailTestTags {
@@ -133,9 +131,6 @@ internal object RecipeDetailTestTags {
 
     fun availability(index: Int) = "recipe_ingredient_availability_$index"
 
-    /** Tag for the stage's heading, 1-based. */
-    fun stage(number: Int) = "recipe_stage_$number"
-
     /** Tag for the step with this 1-based [number]; its duration is tagged [stepMinutes]. */
     fun step(number: Int) = "recipe_step_$number"
 
@@ -145,7 +140,7 @@ internal object RecipeDetailTestTags {
 /**
  * One recipe (ADR-022): media, title, [onRate] stars (tapping the star that is already lit clears the rating), description, the
  * prep/cook/rest/total times, a servings stepper that rescales the ingredient quantities on screen only, the ingredients each
- * labelled by whether the [pantry] has them, and the method as stages (see [planSteps]) — steps in one stage can be done at the same time, so they scroll sideways.
+ * labelled by whether the [pantry] has them, and the method as a numbered list of steps.
  * The top bar has the favourite toggle ([onFavourite]) and an overflow menu with Edit ([onEdit]) and Delete ([onDelete], after confirming).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -441,71 +436,31 @@ private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<Pantr
 private fun MethodSection(steps: List<RecipeStep>) {
     if (steps.isEmpty()) return
     SectionHeading(stringResource(Res.string.recipe_method), divided = true)
-    planSteps(steps).forEachIndexed { stageIndex, stage ->
-        val stageNumber = stageIndex + 1
-        Text(
-            text = stringResource(Res.string.recipe_stage, stageNumber),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = if (stageIndex == 0) 0.dp else 12.dp, bottom = 4.dp).testTag(RecipeDetailTestTags.stage(stageNumber)),
-        )
-        if (stage.size > 1) {
-            // Steps that can be done at the same time sit side by side, scrolling sideways.
-            DragScrollableRow(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                itemsIndexed(stage) { index, numbered -> StepCard(numbered, index + 1, Modifier.width(RecipeParallelStepWidth)) }
-            }
-        } else {
-            stage.forEachIndexed { index, numbered -> StepCard(numbered, index + 1, Modifier.fillMaxWidth().padding(bottom = 6.dp)) }
-        }
-    }
+    steps.forEachIndexed { index, step -> StepCard(step, index + 1, Modifier.fillMaxWidth().padding(bottom = 6.dp)) }
     Spacer(Modifier.height(8.dp))
 }
 
-/**
- * A [LazyRow] that a mouse can drag as well as a finger: on desktop a plain LazyRow ignores a mouse drag, so this drives the
- * scrolling from a horizontal drag (with a fling on release) instead of the row's own touch scrolling.
- */
 @Composable
-private fun DragScrollableRow(modifier: Modifier = Modifier, content: LazyListScope.() -> Unit) {
-    val state = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-    val fling = ScrollableDefaults.flingBehavior()
-    LazyRow(
-        state = state,
-        userScrollEnabled = false,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.draggable(
-            orientation = Orientation.Horizontal,
-            state = rememberDraggableState { state.dispatchRawDelta(-it) },
-            onDragStopped = { velocity ->
-                scope.launch { state.scroll { with(fling) { performFling(-velocity) } } }
-            },
-        ),
-        content = content,
-    )
-}
-
-@Composable
-private fun StepCard(numbered: NumberedStep, numberInStage: Int, modifier: Modifier = Modifier) {
-    OutlinedCard(modifier = modifier.testTag(RecipeDetailTestTags.step(numbered.number))) {
+private fun StepCard(step: RecipeStep, number: Int, modifier: Modifier = Modifier) {
+    OutlinedCard(modifier = modifier.testTag(RecipeDetailTestTags.step(number))) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                stringResource(Res.string.recipe_step_number, numberInStage),
+                stringResource(Res.string.recipe_step_number, number),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                numbered.step.text,
+                step.text,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             // Always composed, so every step reserves the same bottom line (at any font scale) whether or not it has minutes.
-            val minutes = numbered.step.minutes
+            val minutes = step.minutes
             Text(
                 minutes?.let { stringResource(Res.string.recipe_step_minutes, it) }.orEmpty(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = if (minutes != null) Modifier.testTag(RecipeDetailTestTags.stepMinutes(numbered.number)) else Modifier,
+                modifier = if (minutes != null) Modifier.testTag(RecipeDetailTestTags.stepMinutes(number)) else Modifier,
             )
         }
     }
@@ -540,8 +495,8 @@ internal val RecipePreview = Recipe(
     steps = listOf(
         RecipeStep("a", "Peel and boil the potatoes.", minutes = 20),
         RecipeStep("b", "Brown the mince with the onion.", minutes = 15),
-        RecipeStep("c", "Mash the potatoes.", after = listOf("a")),
-        RecipeStep("d", "Assemble and bake.", after = listOf("b", "c"), minutes = 30),
+        RecipeStep("c", "Mash the potatoes."),
+        RecipeStep("d", "Assemble and bake.", minutes = 30),
     ),
     tags = listOf("Comfort"),
     notes = "Better the next day.",

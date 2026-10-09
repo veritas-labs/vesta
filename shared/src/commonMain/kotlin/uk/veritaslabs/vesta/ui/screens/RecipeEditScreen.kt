@@ -103,8 +103,6 @@ import vesta.shared.generated.resources.recipe_edit_save
 import vesta.shared.generated.resources.recipe_edit_servings_label
 import vesta.shared.generated.resources.recipe_edit_source_label
 import vesta.shared.generated.resources.recipe_edit_step_add
-import vesta.shared.generated.resources.recipe_edit_stage_add
-import vesta.shared.generated.resources.recipe_edit_stage_remove
 import vesta.shared.generated.resources.recipe_step_number
 import vesta.shared.generated.resources.recipe_edit_step_minutes
 import vesta.shared.generated.resources.recipe_edit_step_remove
@@ -115,7 +113,6 @@ import vesta.shared.generated.resources.recipe_edit_title_label
 import vesta.shared.generated.resources.recipe_edit_type_label
 import vesta.shared.generated.resources.recipe_servings_decrease
 import vesta.shared.generated.resources.recipe_servings_increase
-import vesta.shared.generated.resources.recipe_edit_stage_number
 
 private val RecipeEditTabletBreakpoint = 600.dp
 private val RecipeEditMaxContentWidth = 720.dp
@@ -157,38 +154,26 @@ internal object RecipeEditTestTags {
 
     fun removeIngredient(index: Int) = "recipe_edit_ingredient_remove_$index"
 
-    const val AddStageButton = "recipe_edit_stage_add"
+    const val AddStepButton = "recipe_edit_step_add"
 
-    fun addStep(stage: Int) = "recipe_edit_step_add_$stage"
+    fun stepText(index: Int) = "recipe_edit_step_text_$index"
 
-    fun stepText(stage: Int, step: Int) = "recipe_edit_step_text_${stage}_$step"
+    fun stepMinutes(index: Int) = "recipe_edit_step_minutes_$index"
 
-    fun stepMinutes(stage: Int, step: Int) = "recipe_edit_step_minutes_${stage}_$step"
-
-    fun removeStep(stage: Int, step: Int) = "recipe_edit_step_remove_${stage}_$step"
-
-    fun removeStage(stage: Int) = "recipe_edit_stage_remove_$stage"
+    fun removeStep(index: Int) = "recipe_edit_step_remove_$index"
 }
 
 private data class IngredientDraft(val quantity: String = "", val unit: String = "", val name: String = "", val note: String = "")
 
 private data class StepDraft(val id: String, val text: String = "", val minutes: String = "")
 
-/** A group of steps done at the same time; each stage comes after the one above it. */
-private data class StageDraft(val id: String, val steps: List<StepDraft> = emptyList())
-
 private fun Recipe.ingredientDrafts() = ingredients.map { IngredientDraft(it.quantity?.let(::formatQuantity).orEmpty(), it.unit, it.name, it.note) }
 
-/** The method laid out as stages (see [planSteps]). */
-private fun Recipe.stageDrafts(): List<StageDraft> =
-    planSteps(steps).mapIndexed { index, stage ->
-        StageDraft("g$index", stage.map { StepDraft(it.step.id, it.step.text, it.step.minutes?.toString().orEmpty()) })
-    }
+private fun Recipe.stepDrafts() = steps.map { StepDraft(it.id, it.text, it.minutes?.toString().orEmpty()) }
 
 /**
  * The form for adding a recipe ([recipe] null) or editing one: title, description, type, servings, the three times,
- * rating, tags, source, notes, photos and videos, ingredients and the method. The method is a list of stages, each
- * holding the steps done at the same time (see [planSteps]); each stage comes after the one above it. Save is enabled once there is a title; blank ingredients and steps are dropped.
+ * rating, tags, source, notes, photos and videos, ingredients and the method, a list of steps done in order. Save is enabled once there is a title; blank ingredients and steps are dropped.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -229,9 +214,8 @@ fun RecipeEditScreen(
         }
     }
     var ingredients by remember(recipe) { mutableStateOf(original.ingredientDrafts()) }
-    var stages by remember(recipe) { mutableStateOf(original.stageDrafts()) }
+    var steps by remember(recipe) { mutableStateOf(original.stepDrafts()) }
     var nextStepNumber by remember(recipe) { mutableIntStateOf(1) }
-    var nextStageNumber by remember(recipe) { mutableIntStateOf(stages.size) }
 
     // Filling the form from a web link: offered when adding a recipe, where the app can download pages.
     val importer = LocalRecipeImporter.current.takeIf { recipe == null }
@@ -258,8 +242,7 @@ fun RecipeEditScreen(
                     tags = imported.tags.joinToString(", ")
                     source = imported.source
                     ingredients = imported.ingredientDrafts()
-                    stages = imported.stageDrafts()
-                    nextStageNumber = stages.size
+                    steps = imported.stepDrafts()
                     importOpen = false
                     // The page's picture is a bonus: if it can't be downloaded the recipe is still imported.
                     result.photoUrl?.let { link ->
@@ -489,73 +472,48 @@ fun RecipeEditScreen(
                     ) { Text(stringResource(Res.string.recipe_edit_ingredient_add)) }
 
                     Heading(stringResource(Res.string.recipe_edit_steps_heading))
-                    stages.forEachIndexed { stageIndex, stage ->
+                    steps.forEachIndexed { index, step ->
                         OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        stringResource(Res.string.recipe_edit_stage_number, stageIndex + 1),
-                                        style = MaterialTheme.typography.labelLarge,
+                                        stringResource(Res.string.recipe_step_number, index + 1),
+                                        style = MaterialTheme.typography.titleMedium,
                                         modifier = Modifier.weight(1f),
                                     )
                                     IconButton(
-                                        onClick = { stages = stages.filterIndexed { i, _ -> i != stageIndex } },
-                                        modifier = Modifier.testTag(RecipeEditTestTags.removeStage(stageIndex)),
+                                        onClick = { steps = steps.filterIndexed { i, _ -> i != index } },
+                                        modifier = Modifier.testTag(RecipeEditTestTags.removeStep(index)),
                                     ) {
-                                        Icon(painterResource(Res.drawable.ic_trash), contentDescription = stringResource(Res.string.recipe_edit_stage_remove))
+                                        Icon(painterResource(Res.drawable.ic_trash), contentDescription = stringResource(Res.string.recipe_edit_step_remove))
                                     }
                                 }
-                                stage.steps.forEachIndexed { stepIndex, step ->
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            stringResource(Res.string.recipe_step_number, stepIndex + 1),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        IconButton(
-                                            onClick = { stages = stages.update(stageIndex) { it.copy(steps = it.steps.filterIndexed { i, _ -> i != stepIndex }) } },
-                                            modifier = Modifier.testTag(RecipeEditTestTags.removeStep(stageIndex, stepIndex)),
-                                        ) {
-                                            Icon(painterResource(Res.drawable.ic_trash), contentDescription = stringResource(Res.string.recipe_edit_step_remove))
-                                        }
-                                    }
-                                    OutlinedTextField(
-                                        value = step.text,
-                                        onValueChange = { value -> stages = stages.update(stageIndex) { it.copy(steps = it.steps.update(stepIndex) { s -> s.copy(text = value) }) } },
-                                        label = { Text(stringResource(Res.string.recipe_edit_step_text)) },
-                                        minLines = 2,
-                                        modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.stepText(stageIndex, stepIndex)),
-                                    )
-                                    MinutesField(
-                                        step.minutes,
-                                        { value -> stages = stages.update(stageIndex) { it.copy(steps = it.steps.update(stepIndex) { s -> s.copy(minutes = value) }) } },
-                                        stringResource(Res.string.recipe_edit_step_minutes),
-                                        RecipeEditTestTags.stepMinutes(stageIndex, stepIndex),
-                                        Modifier.fillMaxWidth(),
-                                    )
-                                }
-                                OutlinedButton(
-                                    onClick = {
-                                        val taken = stages.flatMap { g -> g.steps.map { it.id } }.toSet()
-                                        while ("s$nextStepNumber" in taken) nextStepNumber++
-                                        val added = StepDraft("s$nextStepNumber")
-                                        nextStepNumber++
-                                        stages = stages.update(stageIndex) { it.copy(steps = it.steps + added) }
-                                    },
-                                    modifier = Modifier.testTag(RecipeEditTestTags.addStep(stageIndex)),
-                                ) { Text(stringResource(Res.string.recipe_edit_step_add)) }
+                                OutlinedTextField(
+                                    value = step.text,
+                                    onValueChange = { value -> steps = steps.update(index) { it.copy(text = value) } },
+                                    label = { Text(stringResource(Res.string.recipe_edit_step_text)) },
+                                    minLines = 2,
+                                    modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.stepText(index)),
+                                )
+                                MinutesField(
+                                    step.minutes,
+                                    { value -> steps = steps.update(index) { it.copy(minutes = value) } },
+                                    stringResource(Res.string.recipe_edit_step_minutes),
+                                    RecipeEditTestTags.stepMinutes(index),
+                                    Modifier.fillMaxWidth(),
+                                )
                             }
                         }
                     }
                     OutlinedButton(
                         onClick = {
-                            val taken = stages.map { it.id }.toSet()
-                            while ("g$nextStageNumber" in taken) nextStageNumber++
-                            stages = stages + StageDraft("g$nextStageNumber")
-                            nextStageNumber++
+                            val taken = steps.map { it.id }.toSet()
+                            while ("s$nextStepNumber" in taken) nextStepNumber++
+                            steps = steps + StepDraft("s$nextStepNumber")
+                            nextStepNumber++
                         },
-                        modifier = Modifier.testTag(RecipeEditTestTags.AddStageButton),
-                    ) { Text(stringResource(Res.string.recipe_edit_stage_add)) }
+                        modifier = Modifier.testTag(RecipeEditTestTags.AddStepButton),
+                    ) { Text(stringResource(Res.string.recipe_edit_step_add)) }
 
                     OutlinedTextField(
                         value = source,
@@ -575,7 +533,6 @@ fun RecipeEditScreen(
                         label = stringResource(Res.string.recipe_edit_save),
                         enabled = title.isNotBlank(),
                         onClick = {
-                            val keptStages = stages.map { it to it.steps.filter { step -> step.text.isNotBlank() } }.filter { it.second.isNotEmpty() }
                             onSave(
                                 original.copy(
                                     title = title.trim(),
@@ -593,10 +550,7 @@ fun RecipeEditScreen(
                                     ingredients = ingredients.filter { it.name.isNotBlank() }.map {
                                         RecipeIngredient(it.name.trim(), it.quantity.trim().toDoubleOrNull(), it.unit.trim(), it.note)
                                     },
-                                    steps = keptStages.flatMapIndexed { index, (_, kept) ->
-                                        val after = keptStages.getOrNull(index - 1)?.second.orEmpty().map { it.id }
-                                        kept.map { RecipeStep(it.id, it.text.trim(), after, it.minutes.toIntOrNull()) }
-                                    },
+                                    steps = steps.filter { it.text.isNotBlank() }.map { RecipeStep(it.id, it.text.trim(), it.minutes.toIntOrNull()) },
                                 ),
                             )
                         },

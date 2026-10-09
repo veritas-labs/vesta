@@ -48,7 +48,6 @@ private const val NoteKey = "note"
 private const val StepsKey = "steps"
 private const val TextKey = "text"
 private const val MinutesKey = "minutes"
-private const val AfterKey = "after"
 
 private const val MilliPerUnit = 1000
 
@@ -176,8 +175,6 @@ private fun Transaction.writeRecipe(recipeId: ObjectId, key: String, recipe: Rec
         set(entry, IdKey, step.id)
         set(entry, TextKey, step.text)
         step.minutes?.let { set(entry, MinutesKey, it) }
-        val afterId = set(entry, AfterKey, ObjectType.LIST)
-        step.after.forEachIndexed { afterIndex, id -> insert(afterId, afterIndex.toLong(), id) }
     }
 }
 
@@ -205,7 +202,6 @@ private fun Read.readRecipeAt(recipeId: ObjectId): Recipe = Recipe(
         RecipeStep(
             id = str(it, IdKey),
             text = str(it, TextKey),
-            after = listStrings(it, AfterKey),
             minutes = int(it, MinutesKey),
         )
     },

@@ -39,11 +39,10 @@ data class RecipeIngredient(
     val note: String = "",
 )
 
-/** One step of the method. [after] are the ids of the steps that must be done first; [minutes] is optional. */
+/** One step of the method, which is a list of these in the order they are done; [minutes] is optional. */
 data class RecipeStep(
     val id: String,
     val text: String,
-    val after: List<String> = emptyList(),
     val minutes: Int? = null,
 )
 
@@ -108,41 +107,6 @@ fun availability(
     if (stocked.isEmpty()) return IngredientAvailability.OutOfStock
     val need = quantity?.takeIf { it > 0 }?.let { measureOf(it, ingredient.unit) }
     return if (need != null && holdsEnough(need, stocked) == false) IngredientAvailability.NotEnough else IngredientAvailability.InPantry
-}
-
-/** A step with its place in the method: [number] counts from 1 across all stages; [afterNumbers] are its prerequisites' numbers. */
-data class NumberedStep(val number: Int, val step: RecipeStep, val afterNumbers: List<Int>)
-
-/**
- * Lays [steps] out in topological order as stages (ADR-022): stage 1 holds the steps with nothing to wait for, each
- * later stage the steps whose prerequisites are all in earlier stages, so the steps within one stage can be done at
- * the same time. Within a stage steps keep their original order. Prerequisites that name no step (or the step itself)
- * are ignored; steps caught in a cycle go in a last stage so none is lost.
- */
-fun planSteps(steps: List<RecipeStep>): List<List<NumberedStep>> {
-    val ids = steps.map { it.id }.toSet()
-    val prerequisites = steps.associate { step -> step.id to step.after.filter { it in ids && it != step.id }.toSet() }
-    val placed = LinkedHashSet<String>()
-    val stages = mutableListOf<List<RecipeStep>>()
-    while (placed.size < steps.size) {
-        val ready = steps.filter { it.id !in placed && placed.containsAll(prerequisites.getValue(it.id)) }
-        if (ready.isEmpty()) {
-            stages += steps.filter { it.id !in placed }
-            break
-        }
-        stages += ready
-        placed += ready.map { it.id }
-    }
-    val numbers = stages.flatten().mapIndexed { index, step -> step.id to index + 1 }.toMap()
-    return stages.map { stage ->
-        stage.map { step ->
-            NumberedStep(
-                number = numbers.getValue(step.id),
-                step = step,
-                afterNumbers = prerequisites.getValue(step.id).map { numbers.getValue(it) }.sorted(),
-            )
-        }
-    }
 }
 
 /** [quantity] for [target] servings of a recipe written for [from]; unchanged if either is not positive. */

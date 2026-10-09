@@ -77,17 +77,15 @@ class RecipeDetailScreenTest {
     }
 
     @Test
-    fun stepsThatCanHappenTogetherShareAStageAndNameWhatTheyWaitFor() = runComposeUiTest {
+    fun theMethodIsOneNumberedListOfSteps() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { RecipeDetailScreen(recipe) } }
 
         // Act
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).performScrollTo()
+        onNodeWithTag(RecipeDetailTestTags.step(1)).performScrollTo()
 
         // Assert
-        onNodeWithTag(RecipeDetailTestTags.stage(1)).assertTextEquals("Stage 1")
-        onNodeWithTag(RecipeDetailTestTags.stage(2)).assertTextEquals("Stage 2")
-        onNodeWithTag(RecipeDetailTestTags.stage(3)).assertTextEquals("Stage 3")
+        onNodeWithTag(RecipeDetailTestTags.step(4)).assertExists()
         onNodeWithTag(RecipeDetailTestTags.stepMinutes(3)).assertDoesNotExist()
         onNodeWithTag(RecipeDetailTestTags.stepMinutes(4)).assertTextEquals("30 min")
     }

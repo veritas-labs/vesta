@@ -27,7 +27,7 @@ class RecipeEditImportTest {
         servings = 6,
         cookMinutes = 40,
         ingredients = listOf(RecipeIngredient("red lentils", 1.0, "cup")),
-        steps = listOf(RecipeStep("s0", "Simmer."), RecipeStep("s1", "Serve.", listOf("s0"))),
+        steps = listOf(RecipeStep("s0", "Simmer."), RecipeStep("s1", "Serve.")),
         tags = listOf("vegan"),
         source = "https://example.com/dal",
     )
