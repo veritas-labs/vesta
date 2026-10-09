@@ -136,23 +136,6 @@ class RecipeEditScreenTest {
     }
 
     @Test
-    fun anAddedPhotoOrVideoIsKeptWithItsKindAndCaption() = runComposeUiTest {
-        // Arrange
-        var saved: Recipe? = null
-        setContent { VestaTheme { RecipeEditScreen(recipe = Recipe(title = "Soup"), onSave = { saved = it }) } }
-
-        // Act
-        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://x/soup.mp4")
-        onNodeWithTag(RecipeEditTestTags.MediaCaptionField).performScrollTo().performTextInput("Stirring")
-        onNodeWithTag(RecipeEditTestTags.MediaVideoChip).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
-
-        // Assert
-        assertEquals(listOf(RecipeMedia("https://x/soup.mp4", MediaKind.Video, "Stirring")), saved!!.media)
-    }
-
-    @Test
     fun cancelReportsWithoutSaving() = runComposeUiTest {
         // Arrange
         var cancelled = false

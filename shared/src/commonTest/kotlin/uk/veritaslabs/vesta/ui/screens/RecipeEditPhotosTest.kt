@@ -27,28 +27,27 @@ class RecipeEditPhotosTest {
     private val choosesAtOnce: (((PhotoSource) -> Unit) -> PhotoPicker) = { onPicked -> PhotoPicker { onPicked(PhotoSource.Bytes(byteArrayOf(1, 2, 3))) } }
 
     @Test
-    fun withoutBlobMachineryThereIsNoAddPhotoButtonAndTheLinkFormIsAsBefore() = runComposeUiTest {
+    fun withoutBlobMachineryThereIsNoPhotoButton() = runComposeUiTest {
         // Arrange / Act
         setContent { VestaTheme { RecipeEditScreen(recipe = null) } }
 
         // Assert
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).assertDoesNotExist()
-        onNodeWithTag(RecipeEditTestTags.MediaPhotoChip).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(RecipeEditTestTags.RemovePhotoButton).assertDoesNotExist()
     }
 
     @Test
-    fun withBlobMachineryThePhotoButtonSitsBesideTheLinkFormAndItsKindChoice() = runComposeUiTest {
+    fun withBlobMachineryThereIsAnAddPhotoButtonAndNoLinkOrCaptionFields() = runComposeUiTest {
         // Arrange / Act
         setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides FakeBlobs()) { RecipeEditScreen(recipe = null) } } }
 
         // Assert
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().assertIsDisplayed()
-        onNodeWithTag(RecipeEditTestTags.MediaPhotoChip).performScrollTo().assertIsDisplayed()
-        onNodeWithTag(RecipeEditTestTags.MediaVideoChip).assertIsDisplayed()
+        onNodeWithTag(RecipeEditTestTags.RemovePhotoButton).assertDoesNotExist()
     }
 
     @Test
-    fun aPickedPhotoIsAddedWithItsCaptionAndSavedAsABlobReference() = runComposeUiTest {
+    fun aPickedPhotoIsSavedAsABlobReferenceAndTheButtonBecomesRemovePhoto() = runComposeUiTest {
         // Arrange
         val blobs = FakeBlobs()
         var saved: Recipe? = null
@@ -60,19 +59,18 @@ class RecipeEditPhotosTest {
             }
         }
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Soup")
-        onNodeWithTag(RecipeEditTestTags.MediaCaptionField).performScrollTo().performTextInput("Lunch")
 
         // Act
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
-        waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.removeMedia(0)).assertIsDisplayed() }.isSuccess }
+        waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.RemovePhotoButton).assertExists() }.isSuccess }
         onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
 
         // Assert
         val media = saved!!.media.single()
         assertEquals(1, blobs.added.size)
-        assertEquals("Lunch", media.caption)
         assertEquals("", media.uri)
         assertEquals("b".repeat(64), media.blob?.hash)
+        onNodeWithTag(RecipeEditTestTags.AddPhotoButton).assertDoesNotExist()
     }
 
     @Test
@@ -99,85 +97,18 @@ class RecipeEditPhotosTest {
     }
 
     @Test
-    fun aPhotoLinkIsDownloadedAndSavedAsABlobReference() = runComposeUiTest {
+    fun removePhotoDropsTheRecipesPhotoAndOffersAddPhotoAgain() = runComposeUiTest {
         // Arrange
-        val blobs = FakeBlobs()
-        var saved: Recipe? = null
-        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { RecipeEditScreen(recipe = null, onSave = { saved = it }) } } }
-        onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Soup")
-
-        // Act
-        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://example.com/soup.jpg")
-        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
-        waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.removeMedia(0)).assertIsDisplayed() }.isSuccess }
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
-
-        // Assert
-        val media = saved!!.media.single()
-        assertEquals(listOf("https://example.com/soup.jpg"), blobs.addedUrls)
-        assertEquals("", media.uri)
-        assertEquals(MediaKind.Photo, media.kind)
-        assertEquals("b".repeat(64), media.blob?.hash)
-    }
-
-    @Test
-    fun aPhotoLinkThatCannotBeDownloadedShowsAMessageAndAddsNothing() = runComposeUiTest {
-        // Arrange
-        val blobs = FakeBlobs(addResult = PhotoAddResult.Rejected(PhotoRejection.Unreachable))
-        var saved: Recipe? = null
-        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { RecipeEditScreen(recipe = null, onSave = { saved = it }) } } }
-        onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Soup")
-
-        // Act
-        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://example.com/gone.jpg")
-        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
-        waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.PhotoError).assertExists() }.isSuccess }
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
-
-        // Assert
-        assertEquals(emptyList(), saved!!.media)
-    }
-
-    @Test
-    fun aVideoLinkIsKeptAsALinkAndNotDownloaded() = runComposeUiTest {
-        // Arrange
-        val blobs = FakeBlobs()
-        var saved: Recipe? = null
-        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { RecipeEditScreen(recipe = null, onSave = { saved = it }) } } }
-        onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Soup")
-
-        // Act
-        onNodeWithTag(RecipeEditTestTags.MediaVideoChip).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://example.com/soup.mp4")
-        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
-
-        // Assert
-        val media = saved!!.media.single()
-        assertEquals(MediaKind.Video, media.kind)
-        assertEquals("https://example.com/soup.mp4", media.uri)
-        assertEquals(emptyList(), blobs.addedUrls)
-    }
-
-    @Test
-    fun aRecipeKeepsItsExistingPhotosAndLinksAndEitherCanBeRemoved() = runComposeUiTest {
-        // Arrange
-        val recipe = Recipe(
-            key = "r1",
-            title = "Pie",
-            media = listOf(
-                RecipeMedia("", MediaKind.Photo, "Fresh", testBlobReference()),
-                RecipeMedia("https://example.com/old.jpg", MediaKind.Photo, "Old link"),
-            ),
-        )
+        val recipe = Recipe(key = "r1", title = "Pie", media = listOf(RecipeMedia("", MediaKind.Photo, "", testBlobReference())))
         var saved: Recipe? = null
         setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides FakeBlobs()) { RecipeEditScreen(recipe, onSave = { saved = it }) } } }
 
         // Act
-        onNodeWithTag(RecipeEditTestTags.removeMedia(0)).performScrollTo().performClick()
+        onNodeWithTag(RecipeEditTestTags.RemovePhotoButton).performScrollTo().performClick()
         onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
 
         // Assert
-        assertEquals(listOf("https://example.com/old.jpg"), saved!!.media.map { it.uri })
+        assertEquals(emptyList(), saved!!.media)
+        onNodeWithTag(RecipeEditTestTags.AddPhotoButton).assertExists()
     }
 }

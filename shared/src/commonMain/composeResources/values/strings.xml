@@ -474,12 +474,9 @@
     <string name="recipe_edit_source_label">Source</string>
     <string name="recipe_edit_notes_label">Notes</string>
     <string name="recipe_edit_media_heading">Photos and videos</string>
-    <string name="recipe_edit_media_uri_label">Link or file path</string>
-    <string name="recipe_edit_media_caption_label">Caption</string>
-    <string name="recipe_edit_media_add">Add</string>
+    <string name="recipe_edit_media_remove_photo">Remove photo</string>
     <string name="recipe_edit_media_remove">Remove photo or video</string>
     <string name="recipe_edit_media_add_photo">Add photo</string>
-    <string name="recipe_edit_media_add_video_link">Add video link</string>
     <string name="recipe_edit_media_photo_too_large">That photo is too large to add.</string>
     <string name="recipe_edit_media_photo_unreachable">Vesta couldn\'t download a photo from that link.</string>
     <string name="recipe_edit_media_photo_unreadable">That file isn\'t a photo Vesta can read.</string>

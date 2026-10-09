@@ -1,5 +1,12 @@
 package uk.veritaslabs.vesta.acceptance
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.onAllNodesWithTag
+import uk.veritaslabs.vesta.blobs.FakeBlobs
+import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.blobs.PhotoSource
+import uk.veritaslabs.vesta.ui.components.LocalPhotoPickerFactory
+import uk.veritaslabs.vesta.ui.components.PhotoPicker
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -367,34 +374,30 @@ class CookbookAcceptanceTest {
     }
 
     @Test
-    fun aPhotoAndAVideoIAttachAppearOnTheRecipePage() = runComposeUiTest {
-        // Arrange — Given a recipe I open for editing
+    fun aPhotoIPickIsKeptOnTheRecipeAndCanBeRemoved() = runComposeUiTest {
+        // Arrange — Given a recipe I open for editing, on a device that can pick photos
         val source = newSource()
         runBlocking { source.save(crumble) }
-        showCookbook(source)
+        setContent {
+            val viewModel = androidx.compose.runtime.remember { CookbookViewModel(source, newPantry().contents.map { it.items }) }
+            val picks: ((PhotoSource) -> Unit) -> PhotoPicker = { onPicked -> PhotoPicker { onPicked(PhotoSource.Bytes(byteArrayOf(1, 2, 3))) } }
+            VestaTheme {
+                CompositionLocalProvider(LocalBlobs provides FakeBlobs(), LocalPhotoPickerFactory provides picks) { CookbookFlow(viewModel, onBack = {}) }
+            }
+        }
         openRecipe("Apple Crumble")
         waitForText("Serves 6")
         onNodeWithTag(RecipeDetailTestTags.OverflowButton).performClick()
         onNodeWithTag(RecipeDetailTestTags.EditMenuItem).performClick()
 
-        // Act — When I attach a photo and a captioned video, and save
-        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("file:///photos/crumble.jpg")
-        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://example.com/crumble.mp4")
-        onNodeWithTag(RecipeEditTestTags.MediaCaptionField).performScrollTo().performTextInput("Topping it")
-        onNodeWithTag(RecipeEditTestTags.MediaVideoChip).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
+        // Act — When I add a photo and save
+        onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(RecipeEditTestTags.RemovePhotoButton).fetchSemanticsNodes().isNotEmpty() }
         onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
 
-        // Assert — Then the page shows the first (the photo, by file name) and both are kept
-        waitForText("crumble.jpg")
-        onNodeWithTag(RecipeDetailTestTags.media(0)).assertIsDisplayed()
-        onNodeWithText("crumble.jpg").assertIsDisplayed()
-        onNodeWithTag(RecipeDetailTestTags.media(1)).assertDoesNotExist()
-        assertEquals(
-            listOf(MediaKind.Photo, MediaKind.Video),
-            runBlocking { source.recipes.first().single().media.map { it.kind } },
-        )
+        // Assert — Then the recipe keeps exactly one photo
+        waitUntil(timeoutMillis = 5_000) { runBlocking { source.recipes.first().single().media.size == 1 } }
+        assertEquals(listOf(MediaKind.Photo), runBlocking { source.recipes.first().single().media.map { it.kind } })
     }
 
     @Test

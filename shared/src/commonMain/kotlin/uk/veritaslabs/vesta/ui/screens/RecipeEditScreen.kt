@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -38,7 +40,7 @@ import uk.veritaslabs.vesta.blobs.PhotoRejection
 import uk.veritaslabs.vesta.ui.components.BlobImage
 import uk.veritaslabs.vesta.ui.components.rememberPhotoPickerForScreen
 import vesta.shared.generated.resources.recipe_edit_media_add_photo
-import vesta.shared.generated.resources.recipe_edit_media_add_video_link
+import vesta.shared.generated.resources.recipe_edit_media_remove_photo
 import vesta.shared.generated.resources.recipe_edit_media_photo_too_large
 import vesta.shared.generated.resources.recipe_edit_media_photo_unreachable
 import vesta.shared.generated.resources.recipe_edit_media_photo_unreadable
@@ -75,11 +77,8 @@ import vesta.shared.generated.resources.recipe_edit_ingredient_quantity
 import vesta.shared.generated.resources.recipe_edit_ingredient_remove
 import vesta.shared.generated.resources.recipe_edit_ingredient_unit
 import vesta.shared.generated.resources.recipe_edit_ingredients_heading
-import vesta.shared.generated.resources.recipe_edit_media_add
-import vesta.shared.generated.resources.recipe_edit_media_caption_label
 import vesta.shared.generated.resources.recipe_edit_media_heading
 import vesta.shared.generated.resources.recipe_edit_media_remove
-import vesta.shared.generated.resources.recipe_edit_media_uri_label
 import vesta.shared.generated.resources.recipe_edit_notes_label
 import vesta.shared.generated.resources.recipe_edit_prep_label
 import vesta.shared.generated.resources.recipe_edit_rating_label
@@ -120,11 +119,7 @@ internal object RecipeEditTestTags {
     const val TagsField = "recipe_edit_tags"
     const val SourceField = "recipe_edit_source"
     const val NotesField = "recipe_edit_notes"
-    const val MediaUriField = "recipe_edit_media_uri"
-    const val MediaCaptionField = "recipe_edit_media_caption"
-    const val MediaPhotoChip = "recipe_edit_media_photo"
-    const val MediaVideoChip = "recipe_edit_media_video"
-    const val AddMediaButton = "recipe_edit_media_add"
+    const val RemovePhotoButton = "recipe_edit_media_remove_photo"
     const val AddPhotoButton = "recipe_edit_media_add_photo"
     const val PhotoError = "recipe_edit_media_photo_error"
     const val AddIngredientButton = "recipe_edit_ingredient_add"
@@ -189,22 +184,17 @@ fun RecipeEditScreen(
     var source by remember(recipe) { mutableStateOf(original.source) }
     var notes by remember(recipe) { mutableStateOf(original.notes) }
     var media by remember(recipe) { mutableStateOf(original.media) }
-    var mediaUri by remember(recipe) { mutableStateOf("") }
-    var mediaCaption by remember(recipe) { mutableStateOf("") }
-    var mediaKind by remember(recipe) { mutableStateOf(MediaKind.Photo) }
-    // With the blob machinery present (ADR-023) a photo can be picked from the device, and a typed link (photo or video) is still offered beside it.
+    // With the blob machinery present (ADR-023) a photo can be picked from the device.
     val blobs = LocalBlobs.current
     val scope = rememberCoroutineScope()
     var photoRejection by remember(recipe) { mutableStateOf<PhotoRejection?>(null) }
-    var fetchingPhoto by remember(recipe) { mutableStateOf(false) }
     val photoPicker = rememberPhotoPickerForScreen { source ->
         blobs?.let { blobs ->
             scope.launch {
                 when (val result = blobs.addPhoto(source)) {
                     is PhotoAddResult.Added -> {
                         photoRejection = null
-                        media = media + RecipeMedia("", result.reference.kind, mediaCaption.trim(), result.reference)
-                        mediaCaption = ""
+                        media = media + RecipeMedia("", result.reference.kind, "", result.reference)
                     }
                     is PhotoAddResult.Rejected -> photoRejection = result.reason
                 }
@@ -331,27 +321,28 @@ fun RecipeEditScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f),
                             )
-                            IconButton(onClick = { media = media.filterIndexed { i, _ -> i != index } }, modifier = Modifier.testTag(RecipeEditTestTags.removeMedia(index))) {
-                                Icon(painterResource(Res.drawable.ic_trash), contentDescription = stringResource(Res.string.recipe_edit_media_remove))
+                            if (item.kind != MediaKind.Photo) {
+                                IconButton(onClick = { media = media.filterIndexed { i, _ -> i != index } }, modifier = Modifier.testTag(RecipeEditTestTags.removeMedia(index))) {
+                                    Icon(painterResource(Res.drawable.ic_trash), contentDescription = stringResource(Res.string.recipe_edit_media_remove))
+                                }
                             }
                         }
                     }
-                    if (blobs == null) {
-                        MediaLinkFields(mediaUri, { mediaUri = it }, mediaCaption, { mediaCaption = it }, mediaKind, { mediaKind = it }, showKind = true, showCaption = true) {
-                            media = media + RecipeMedia(mediaUri.trim(), mediaKind, mediaCaption.trim())
-                            mediaUri = ""
-                            mediaCaption = ""
-                        }
-                    } else {
-                        OutlinedTextField(
-                            value = mediaCaption,
-                            onValueChange = { mediaCaption = it },
-                            label = { Text(stringResource(Res.string.recipe_edit_media_caption_label)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaCaptionField),
-                        )
-                        OutlinedButton(onClick = { photoPicker.launch() }, modifier = Modifier.testTag(RecipeEditTestTags.AddPhotoButton)) {
-                            Text(stringResource(Res.string.recipe_edit_media_add_photo))
+                    if (blobs != null) {
+                        // A recipe has at most one photo: the button adds it, or (once there is one) removes it.
+                        if (media.any { it.kind == MediaKind.Photo }) {
+                            OutlinedButton(
+                                onClick = { media = media.filter { it.kind != MediaKind.Photo } },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                                modifier = Modifier.testTag(RecipeEditTestTags.RemovePhotoButton),
+                            ) {
+                                Text(stringResource(Res.string.recipe_edit_media_remove_photo))
+                            }
+                        } else {
+                            OutlinedButton(onClick = { photoPicker.launch() }, modifier = Modifier.testTag(RecipeEditTestTags.AddPhotoButton)) {
+                                Text(stringResource(Res.string.recipe_edit_media_add_photo))
+                            }
                         }
                         photoRejection?.let {
                             Text(
@@ -366,28 +357,6 @@ fun RecipeEditScreen(
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.testTag(RecipeEditTestTags.PhotoError),
                             )
-                        }
-                        MediaLinkFields(mediaUri, { mediaUri = it }, mediaCaption, { mediaCaption = it }, mediaKind, { mediaKind = it }, showKind = true, showCaption = false, busy = fetchingPhoto) {
-                            if (mediaKind == MediaKind.Photo) {
-                                // A photo link is downloaded and stored like a picked photo, so it syncs and shows offline.
-                                fetchingPhoto = true
-                                scope.launch {
-                                    when (val result = blobs.addPhotoFromUrl(mediaUri.trim())) {
-                                        is PhotoAddResult.Added -> {
-                                            photoRejection = null
-                                            media = media + RecipeMedia("", result.reference.kind, mediaCaption.trim(), result.reference)
-                                            mediaUri = ""
-                                            mediaCaption = ""
-                                        }
-                                        is PhotoAddResult.Rejected -> photoRejection = result.reason
-                                    }
-                                    fetchingPhoto = false
-                                }
-                            } else {
-                                media = media + RecipeMedia(mediaUri.trim(), mediaKind, mediaCaption.trim())
-                                mediaUri = ""
-                                mediaCaption = ""
-                            }
                         }
                     }
 
@@ -517,59 +486,6 @@ internal fun normalizeRecipeTags(tags: String): List<String> =
     tags.split(',').map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
 
 private fun <T> List<T>.update(index: Int, change: (T) -> T): List<T> = mapIndexed { i, item -> if (i == index) change(item) else item }
-
-/** The typed link to a photo or video (ADR-022): its address, a caption, and which kind it is; [onAdd] when the person adds it. */
-@Composable
-private fun MediaLinkFields(
-    uri: String,
-    onUriChange: (String) -> Unit,
-    caption: String,
-    onCaptionChange: (String) -> Unit,
-    kind: MediaKind,
-    onKindChange: (MediaKind) -> Unit,
-    showKind: Boolean,
-    showCaption: Boolean,
-    busy: Boolean = false,
-    onAdd: () -> Unit,
-) {
-    OutlinedTextField(
-        value = uri,
-        onValueChange = onUriChange,
-        label = { Text(stringResource(Res.string.recipe_edit_media_uri_label)) },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaUriField),
-    )
-    if (showCaption) {
-        OutlinedTextField(
-            value = caption,
-            onValueChange = onCaptionChange,
-            label = { Text(stringResource(Res.string.recipe_edit_media_caption_label)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.MediaCaptionField),
-        )
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (showKind) {
-            FilterChip(
-                selected = kind == MediaKind.Photo,
-                onClick = { onKindChange(MediaKind.Photo) },
-                label = { Text(stringResource(Res.string.recipe_media_photo)) },
-                modifier = Modifier.testTag(RecipeEditTestTags.MediaPhotoChip),
-            )
-            FilterChip(
-                selected = kind == MediaKind.Video,
-                onClick = { onKindChange(MediaKind.Video) },
-                label = { Text(stringResource(Res.string.recipe_media_video)) },
-                modifier = Modifier.testTag(RecipeEditTestTags.MediaVideoChip),
-            )
-        }
-        OutlinedButton(
-            enabled = uri.isNotBlank() && !busy,
-            onClick = onAdd,
-            modifier = Modifier.testTag(RecipeEditTestTags.AddMediaButton),
-        ) { Text(stringResource(if (showKind) Res.string.recipe_edit_media_add else Res.string.recipe_edit_media_add_video_link)) }
-    }
-}
 
 @Composable
 private fun Heading(text: String) {

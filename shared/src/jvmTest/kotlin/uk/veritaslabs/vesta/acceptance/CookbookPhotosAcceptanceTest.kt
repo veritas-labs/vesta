@@ -146,7 +146,7 @@ class CookbookPhotosAcceptanceTest {
         onNodeWithTag(CookbookTestTags.AddRecipeButton).performClick()
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput(title)
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
-        waitForTag(RecipeEditTestTags.removeMedia(0))
+        waitForTag(RecipeEditTestTags.RemovePhotoButton)
         onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
         waitForText(title)
     }
