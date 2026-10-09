@@ -8,6 +8,7 @@ import uk.veritaslabs.vesta.agent.AgentCommandService
 import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
 import uk.veritaslabs.vesta.blobs.SkiaPhotoEncoder
 import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
+import uk.veritaslabs.vesta.recipes.HttpRecipeImporter
 
 fun main() = application {
     Window(
@@ -36,6 +37,7 @@ fun main() = application {
                     transfersDir = x0xTransfersDir(),
                 )
             },
+            recipeImporter = HttpRecipeImporter(),
             ownDeviceCanBeHub = true,
         )
     }

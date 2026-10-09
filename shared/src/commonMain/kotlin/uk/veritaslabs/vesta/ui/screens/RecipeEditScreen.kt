@@ -16,7 +16,12 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +41,9 @@ import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.blobs.LocalBlobs
 import uk.veritaslabs.vesta.blobs.PhotoAddResult
 import uk.veritaslabs.vesta.blobs.PhotoRejection
+import uk.veritaslabs.vesta.recipes.LocalRecipeImporter
+import uk.veritaslabs.vesta.recipes.RecipeImportFailure
+import uk.veritaslabs.vesta.recipes.RecipeImportResult
 import uk.veritaslabs.vesta.ui.components.BlobImage
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.rememberPhotoPickerForScreen
@@ -63,6 +71,7 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_close
+import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_trash
@@ -71,6 +80,14 @@ import vesta.shared.generated.resources.recipe_edit_cancel
 import vesta.shared.generated.resources.recipe_edit_cook_label
 import vesta.shared.generated.resources.recipe_edit_description_label
 import vesta.shared.generated.resources.recipe_edit_edit_title
+import vesta.shared.generated.resources.recipe_edit_import_from_url
+import vesta.shared.generated.resources.recipe_edit_more_options
+import vesta.shared.generated.resources.recipe_import_confirm
+import vesta.shared.generated.resources.recipe_import_in_progress
+import vesta.shared.generated.resources.recipe_import_no_recipe
+import vesta.shared.generated.resources.recipe_import_title
+import vesta.shared.generated.resources.recipe_import_unreachable
+import vesta.shared.generated.resources.recipe_import_url_label
 import vesta.shared.generated.resources.recipe_edit_ingredient_add
 import vesta.shared.generated.resources.recipe_edit_ingredient_name
 import vesta.shared.generated.resources.recipe_edit_ingredient_quantity
@@ -121,6 +138,12 @@ internal object RecipeEditTestTags {
     const val AddPhotoButton = "recipe_edit_media_add_photo"
     const val PhotoError = "recipe_edit_media_photo_error"
     const val AddIngredientButton = "recipe_edit_ingredient_add"
+    const val OverflowButton = "recipe_edit_overflow"
+    const val ImportMenuItem = "recipe_edit_import_menu_item"
+    const val ImportUrlField = "recipe_edit_import_url"
+    const val ImportConfirmButton = "recipe_edit_import_confirm"
+    const val ImportCancelButton = "recipe_edit_import_cancel"
+    const val ImportError = "recipe_edit_import_error"
 
     fun typeChip(type: RecipeType) = "recipe_edit_type_${type.name}"
 
@@ -210,6 +233,91 @@ fun RecipeEditScreen(
     var nextStepNumber by remember(recipe) { mutableIntStateOf(1) }
     var nextStageNumber by remember(recipe) { mutableIntStateOf(stages.size) }
 
+    // Filling the form from a web link: offered when adding a recipe, where the app can download pages.
+    val importer = LocalRecipeImporter.current.takeIf { recipe == null }
+    var importOpen by remember { mutableStateOf(false) }
+    var importUrl by remember { mutableStateOf("") }
+    var importing by remember { mutableStateOf(false) }
+    var importFailure by remember { mutableStateOf<RecipeImportFailure?>(null) }
+    fun runImport() {
+        val importer = importer ?: return
+        importing = true
+        importFailure = null
+        scope.launch {
+            when (val result = importer.import(importUrl)) {
+                is RecipeImportResult.Failed -> importFailure = result.reason
+                is RecipeImportResult.Imported -> {
+                    val imported = result.recipe
+                    title = imported.title
+                    description = imported.description
+                    type = imported.type
+                    servings = imported.servings
+                    prep = imported.prepMinutes.takeIf { it > 0 }?.toString().orEmpty()
+                    cook = imported.cookMinutes.takeIf { it > 0 }?.toString().orEmpty()
+                    rest = imported.restMinutes.takeIf { it > 0 }?.toString().orEmpty()
+                    tags = imported.tags.joinToString(", ")
+                    source = imported.source
+                    ingredients = imported.ingredientDrafts()
+                    stages = imported.stageDrafts()
+                    nextStageNumber = stages.size
+                    importOpen = false
+                    // The page's picture is a bonus: if it can't be downloaded the recipe is still imported.
+                    result.photoUrl?.let { link ->
+                        blobs?.let { blobs ->
+                            (blobs.addPhotoFromUrl(link) as? PhotoAddResult.Added)?.let { added ->
+                                media = media.filter { it.kind != MediaKind.Photo } + RecipeMedia("", added.reference.kind, "", added.reference)
+                            }
+                        }
+                    }
+                }
+            }
+            importing = false
+        }
+    }
+
+    if (importOpen) {
+        AlertDialog(
+            onDismissRequest = { if (!importing) importOpen = false },
+            title = { Text(stringResource(Res.string.recipe_import_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = importUrl,
+                        onValueChange = { importUrl = it },
+                        label = { Text(stringResource(Res.string.recipe_import_url_label)) },
+                        singleLine = true,
+                        enabled = !importing,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        modifier = Modifier.fillMaxWidth().testTag(RecipeEditTestTags.ImportUrlField),
+                    )
+                    if (importing) Text(stringResource(Res.string.recipe_import_in_progress), style = MaterialTheme.typography.bodyMedium)
+                    importFailure?.let {
+                        Text(
+                            stringResource(if (it == RecipeImportFailure.Unreachable) Res.string.recipe_import_unreachable else Res.string.recipe_import_no_recipe),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag(RecipeEditTestTags.ImportError),
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = ::runImport,
+                    enabled = importUrl.isNotBlank() && !importing,
+                    modifier = Modifier.testTag(RecipeEditTestTags.ImportConfirmButton),
+                ) { Text(stringResource(Res.string.recipe_import_confirm)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { importOpen = false },
+                    enabled = !importing,
+                    modifier = Modifier.testTag(RecipeEditTestTags.ImportCancelButton),
+                ) { Text(stringResource(Res.string.recipe_edit_cancel)) }
+            },
+        )
+    }
+
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= RecipeEditTabletBreakpoint) 24.dp else 16.dp
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -220,11 +328,32 @@ fun RecipeEditScreen(
                         Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.recipe_edit_cancel))
                     }
                 },
+                actions = {
+                    importer?.let {
+                        var menuExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }, modifier = Modifier.testTag(RecipeEditTestTags.OverflowButton)) {
+                                Icon(painterResource(Res.drawable.ic_dots_vertical), contentDescription = stringResource(Res.string.recipe_edit_more_options))
+                            }
+                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.recipe_edit_import_from_url)) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        importFailure = null
+                                        importOpen = true
+                                    },
+                                    modifier = Modifier.testTag(RecipeEditTestTags.ImportMenuItem),
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor = MaterialTheme.colorScheme.primary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
             Column(

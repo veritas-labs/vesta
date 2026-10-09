@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.recipes.LocalRecipeImporter
+import uk.veritaslabs.vesta.recipes.RecipeImporter
 import uk.veritaslabs.vesta.blobs.BlobRuntime
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -636,6 +638,7 @@ internal fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
  * [dataSync], if given, builds the sync of the user's data (Homes, Pantries) between their paired devices from the
  * database, the x0x client and the device list; it is fed Home changes and run for as long as the app is shown.
  * [blobRuntime], if given, builds the storage and transfer of photos from the same three; screens get it through [LocalBlobs].
+ * [recipeImporter], if given, lets the add-recipe form fill itself from a web link; screens get it through [LocalRecipeImporter].
  * [ownDeviceCanBeHub] lets a user make this device an always-on hub of a Home (docs/adr/ADR-020, several-hubs amendment): true where
  * the x0x daemon keeps running when the app is closed, as on the desktop, not where it is embedded and stops with the app.
  */
@@ -648,6 +651,7 @@ fun VestaApp(
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
     blobRuntime: ((VestaDatabase, X0xClient, DeviceDataSync?) -> BlobRuntime)? = null,
+    recipeImporter: RecipeImporter? = null,
     ownDeviceCanBeHub: Boolean = false,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
@@ -682,7 +686,7 @@ fun VestaApp(
         }
     }
     LaunchedEffect(deviceSync) { deviceSync.service.run() }
-    CompositionLocalProvider(LocalBlobs provides blobs?.blobs) {
+    CompositionLocalProvider(LocalBlobs provides blobs?.blobs, LocalRecipeImporter provides recipeImporter) {
         App(
             homes = homeRepository.homes,
             homeRepository = homeRepository,

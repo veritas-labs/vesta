@@ -462,6 +462,14 @@
     <string name="recipe_media_video">Video</string>
     <string name="recipe_edit_add_title">Add recipe</string>
     <string name="recipe_edit_edit_title">Edit recipe</string>
+    <string name="recipe_edit_more_options">More options</string>
+    <string name="recipe_edit_import_from_url">Import from URL</string>
+    <string name="recipe_import_title">Import a recipe</string>
+    <string name="recipe_import_url_label">Web address of the recipe</string>
+    <string name="recipe_import_confirm">Import</string>
+    <string name="recipe_import_in_progress">Importing…</string>
+    <string name="recipe_import_unreachable">Vesta couldn\'t download that page. Check the address and your connection.</string>
+    <string name="recipe_import_no_recipe">Vesta couldn\'t find a recipe on that page.</string>
     <string name="recipe_edit_title_label">Title</string>
     <string name="recipe_edit_description_label">Description</string>
     <string name="recipe_edit_type_label">Type</string>

@@ -11,6 +11,7 @@ import uk.veritaslabs.vesta.agent.AgentCommandService
 import uk.veritaslabs.vesta.blobs.AndroidPhotoEncoder
 import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
 import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
+import uk.veritaslabs.vesta.recipes.HttpRecipeImporter
 import uk.veritaslabs.vesta.x0x.VestaAndroid
 
 class MainActivity : ComponentActivity() {
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
                         transfersDir = File(filesDir, "x0x/transfers"), // the embedded daemon's data dir is filesDir/x0x; unverified that it lands files here
                     )
                 },
+                recipeImporter = HttpRecipeImporter(),
             )
         }
     }
