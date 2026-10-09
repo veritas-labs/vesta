@@ -343,16 +343,16 @@ private fun RecipeRow(recipe: Recipe, pantry: List<PantryListItem>, onClick: () 
                     stringResource(Res.string.cookbook_row_serves, recipe.servings),
                 ).joinToString(" · ")
                 Text(details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                RatingStars(recipe.rating, modifier = Modifier.padding(top = 4.dp))
                 if (recipe.ingredients.isNotEmpty()) {
                     val have = recipe.ingredients.count { availability(it, pantry) == IngredientAvailability.InPantry }
                     Text(
                         text = stringResource(Res.string.cookbook_row_pantry, have, recipe.ingredients.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp).testTag(CookbookTestTags.pantrySummary(recipe.key)),
+                        modifier = Modifier.testTag(CookbookTestTags.pantrySummary(recipe.key)),
                     )
                 }
+                RatingStars(recipe.rating, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
