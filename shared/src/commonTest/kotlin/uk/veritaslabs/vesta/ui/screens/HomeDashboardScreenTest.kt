@@ -250,4 +250,18 @@ class HomeDashboardScreenTest {
         // Assert
         onNodeWithTag(HomeNavigationBarTestTags.MembersBadge, useUnmergedTree = true).assertDoesNotExist()
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingTheCalendarTileInvokesOnCalendarClick() = runComposeUiTest {
+        // Arrange
+        var clicks = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", onCalendarClick = { clicks++ }) } }
+
+        // Act
+        onNodeWithTag(HomeDashboardTestTags.CalendarTile).performClick()
+
+        // Assert
+        assertEquals(1, clicks)
+    }
 }

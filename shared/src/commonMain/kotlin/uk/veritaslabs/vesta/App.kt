@@ -55,6 +55,11 @@ import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
 import uk.veritaslabs.vesta.ui.flows.CookbookFlow
+import uk.veritaslabs.vesta.calendar.CalendarSettings
+import uk.veritaslabs.vesta.calendar.CalendarSettingsController
+import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
+import uk.veritaslabs.vesta.ui.screens.CalendarScreen
+import uk.veritaslabs.vesta.ui.screens.CalendarSettingsScreen
 import uk.veritaslabs.vesta.ui.screens.CookbookScreen
 import uk.veritaslabs.vesta.ui.screens.CookbookSource
 import uk.veritaslabs.vesta.ui.screens.CookbookViewModel
@@ -382,6 +387,7 @@ private fun HomeContent(
             onPantryClick = { destination = HomeDestination.Pantry },
             onShoppingClick = { destination = HomeDestination.ShoppingList },
             onCookbookClick = { destination = HomeDestination.Cookbook },
+            onCalendarClick = { destination = HomeDestination.Calendar },
             onMembersClick = { destination = HomeDestination.Members },
             isAdmin = isAdmin,
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
@@ -486,6 +492,14 @@ private fun HomeContent(
             } else {
                 CookbookScreen(recipes = emptyList(), onBack = { destination = HomeDestination.Dashboard })
             }
+        }
+        HomeDestination.Calendar -> CalendarScreen(
+            onBack = { destination = HomeDestination.Dashboard },
+            onSettingsClick = { destination = HomeDestination.CalendarSettings },
+        )
+        HomeDestination.CalendarSettings -> {
+            val calendarSettings = LocalCalendarSettings.current
+            CalendarSettingsScreen(calendarSettings.settings, calendarSettings.onChange, onBack = { destination = HomeDestination.Calendar })
         }
         HomeDestination.ShoppingList -> {
             val onItemSelected = { item: ShoppingListItem ->
@@ -611,7 +625,7 @@ class DeviceSyncHost(
 
 private enum class HomeDestination {
     Dashboard, Members, MemberDetail, InviteLinks, HubManager, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
-    ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook,
+    ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, Calendar, CalendarSettings,
 }
 
 internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(
@@ -686,7 +700,20 @@ fun VestaApp(
         }
     }
     LaunchedEffect(deviceSync) { deviceSync.service.run() }
-    CompositionLocalProvider(LocalBlobs provides blobs?.blobs, LocalRecipeImporter provides recipeImporter) {
+    val calendarScope = rememberCoroutineScope()
+    var calendarSettings by remember { mutableStateOf(CalendarSettings()) }
+    LaunchedEffect(settings) { calendarSettings = settings.calendarSettings() }
+    val calendarController = remember(calendarSettings) {
+        CalendarSettingsController(calendarSettings) { changed ->
+            calendarSettings = changed
+            calendarScope.launch { settings.setCalendarSettings(changed) }
+        }
+    }
+    CompositionLocalProvider(
+        LocalBlobs provides blobs?.blobs,
+        LocalRecipeImporter provides recipeImporter,
+        LocalCalendarSettings provides calendarController,
+    ) {
         App(
             homes = homeRepository.homes,
             homeRepository = homeRepository,

@@ -407,6 +407,52 @@
     <string name="hub_tutorial_ready_point_1">Install x0x version 0.46.3 or newer on the computer.</string>
     <string name="hub_tutorial_ready_point_2">Run the two commands this app shows you.</string>
     <string name="hub_tutorial_ready_point_3">Tap Use as hub when the computer appears.</string>
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_more_options">More options</string>
+    <string name="calendar_settings">Settings</string>
+    <string name="calendar_setting_week_start">Week starts on</string>
+    <string name="calendar_week_start_monday">Monday</string>
+    <string name="calendar_week_start_saturday">Saturday</string>
+    <string name="calendar_week_start_sunday">Sunday</string>
+    <string name="calendar_setting_week_numbers">Show week numbers</string>
+    <string name="calendar_setting_other_months">Show days from other months</string>
+    <string name="calendar_setting_start_collapsed">Open with the month collapsed</string>
+    <string name="calendar_week_number">w%1$d</string>
+    <string name="calendar_previous_week">Previous week</string>
+    <string name="calendar_next_week">Next week</string>
+    <string name="calendar_previous_month">Previous month</string>
+    <string name="calendar_next_month">Next month</string>
+    <string name="calendar_back">Back</string>
+    <string name="calendar_collapse">Collapse month</string>
+    <string name="calendar_expand">Expand month</string>
+    <string name="calendar_no_events">No events</string>
+    <string name="calendar_pick_title">Go to month</string>
+    <string name="calendar_pick_cancel">Cancel</string>
+    <string name="calendar_previous_year">Previous year</string>
+    <string name="calendar_next_year">Next year</string>
+    <string-array name="calendar_months">
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
+    <string-array name="calendar_weekdays">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+        <item>Sun</item>
+    </string-array>
     <string name="cookbook_title">Cookbook</string>
     <string name="cookbook_add_recipe">Add recipe</string>
     <string name="cookbook_search_label">Search recipes</string>
