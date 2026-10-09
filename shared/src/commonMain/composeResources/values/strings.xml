@@ -447,7 +447,6 @@
     <string name="recipe_servings_decrease">Fewer servings</string>
     <string name="recipe_servings_scaled">Scaled from %1$d</string>
     <string name="recipe_ingredients">Ingredients</string>
-    <string name="recipe_ingredients_in_pantry">%1$d of %2$d in your pantry</string>
     <string name="recipe_availability_in_pantry">In pantry</string>
     <string name="recipe_availability_out_of_stock">Out of stock</string>
     <string name="recipe_availability_not_in_pantry">Not in pantry</string>

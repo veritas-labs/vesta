@@ -190,7 +190,6 @@ class CookbookAcceptanceTest {
         onNodeWithTag(RecipeDetailTestTags.availability(1)).assertTextEquals("Out of stock")
         onNodeWithTag(RecipeDetailTestTags.availability(2)).assertTextEquals("Not in pantry")
         onNodeWithTag(RecipeDetailTestTags.availability(3)).assertTextEquals("Not in pantry")
-        onNodeWithTag(RecipeDetailTestTags.IngredientsSummary).assertTextEquals("1 of 4 in your pantry")
     }
 
     @Test

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -83,7 +84,6 @@ import vesta.shared.generated.resources.recipe_delete_confirm_title
 import vesta.shared.generated.resources.recipe_delete_menu
 import vesta.shared.generated.resources.recipe_edit_menu
 import vesta.shared.generated.resources.recipe_ingredients
-import vesta.shared.generated.resources.recipe_ingredients_in_pantry
 import vesta.shared.generated.resources.recipe_media_photo
 import vesta.shared.generated.resources.recipe_media_video
 import vesta.shared.generated.resources.recipe_method
@@ -122,7 +122,6 @@ internal object RecipeDetailTestTags {
     const val Servings = "recipe_servings"
     const val ServingsIncrease = "recipe_servings_increase"
     const val ServingsDecrease = "recipe_servings_decrease"
-    const val IngredientsSummary = "recipe_ingredients_summary"
 
     fun star(n: Int) = "recipe_star_$n"
 
@@ -226,7 +225,13 @@ fun RecipeDetailScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    RatingStars(recipe.rating, onRate = { star -> onRate(if (star == recipe.rating) 0 else star) }, starTag = RecipeDetailTestTags::star)
+                    // The star buttons carry 12dp of touch padding each side; pull the row back so the first star lines up with the text.
+                    RatingStars(
+                        recipe.rating,
+                        modifier = Modifier.offset(x = (-12).dp),
+                        onRate = { star -> onRate(if (star == recipe.rating) 0 else star) },
+                        starTag = RecipeDetailTestTags::star,
+                    )
                     if (recipe.description.isNotBlank()) {
                         Text(
                             recipe.description,
@@ -236,8 +241,7 @@ fun RecipeDetailScreen(
                         )
                     }
                     TimesRow(recipe, modifier = Modifier.padding(top = 16.dp))
-                    ServingsStepper(servings, recipe.servings, onChange = { servings = it.coerceAtLeast(1) }, modifier = Modifier.padding(top = 16.dp))
-                    IngredientsSection(recipe, servings, pantry)
+                    IngredientsSection(recipe, servings, pantry, onServingsChange = { servings = it.coerceAtLeast(1) })
                     MethodSection(recipe.steps)
                     if (recipe.notes.isNotBlank()) {
                         SectionHeading(stringResource(Res.string.recipe_notes))
@@ -267,19 +271,28 @@ fun RecipeDetailScreen(
     }
 }
 
-/** A section title; [divided] puts a rule above it so a major section (ingredients, method) stands apart from the one before. */
+/**
+ * A section title; [divided] puts a rule above it so a major section (ingredients, method) stands apart from the one before.
+ * [trailing] sits at the right end of the title's line.
+ */
 @Composable
-private fun SectionHeading(text: String, divided: Boolean = false) {
+private fun SectionHeading(text: String, divided: Boolean = false, trailing: (@Composable () -> Unit)? = null) {
     if (divided) {
         HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(top = 40.dp))
     }
-    Text(
-        text,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(top = if (divided) 28.dp else 24.dp, bottom = 8.dp),
-    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(top = if (divided) 28.dp else 24.dp, bottom = 8.dp),
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f),
+        )
+        trailing?.invoke()
+    }
 }
 
 @Composable
@@ -377,16 +390,11 @@ private fun ServingsStepper(servings: Int, original: Int, onChange: (Int) -> Uni
 }
 
 @Composable
-private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<PantryListItem>) {
-    if (recipe.ingredients.isEmpty()) return
-    SectionHeading(stringResource(Res.string.recipe_ingredients), divided = true)
+private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<PantryListItem>, onServingsChange: (Int) -> Unit) {
+    SectionHeading(stringResource(Res.string.recipe_ingredients), divided = true) {
+        ServingsStepper(servings, recipe.servings, onChange = onServingsChange)
+    }
     val states = recipe.ingredients.map { availability(it, pantry) }
-    Text(
-        stringResource(Res.string.recipe_ingredients_in_pantry, states.count { it == IngredientAvailability.InPantry }, states.size),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 8.dp).testTag(RecipeDetailTestTags.IngredientsSummary),
-    )
     recipe.ingredients.forEachIndexed { index, ingredient ->
         val amount = listOfNotNull(
             ingredient.quantity?.let { formatQuantity(scaleQuantity(it, recipe.servings, servings)) },

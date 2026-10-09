@@ -60,7 +60,6 @@ class RecipeDetailScreenTest {
         onNodeWithTag(RecipeDetailTestTags.availability(0)).assertTextEquals("Not in pantry") // lamb
         onNodeWithTag(RecipeDetailTestTags.availability(1)).assertTextEquals("In pantry") // potatoes
         onNodeWithTag(RecipeDetailTestTags.availability(2)).assertTextEquals("Out of stock") // onion
-        onNodeWithTag(RecipeDetailTestTags.IngredientsSummary).assertTextEquals("1 of 4 in your pantry")
     }
 
     @Test
