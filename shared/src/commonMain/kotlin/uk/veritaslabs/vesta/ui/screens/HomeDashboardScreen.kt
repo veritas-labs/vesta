@@ -139,7 +139,9 @@ fun HomeDashboardScreen(
         DashboardTile(HomeDashboardTestTags.ShoppingTile, Res.string.shopping_title, Res.drawable.ic_shopping_cart, onShoppingClick),
         DashboardTile(HomeDashboardTestTags.CookbookTile, Res.string.cookbook_title, Res.drawable.ic_cookbook, onCookbookClick),
         DashboardTile(HomeDashboardTestTags.CalendarTile, Res.string.calendar_title, Res.drawable.ic_calendar, onCalendarClick),
-    )
+    ).map { it to stringResource(it.label) }
+        .sortedBy { (_, label) -> label.lowercase() }
+        .map { (tile, _) -> tile }
 
     BoxWithConstraints(
         modifier = modifier

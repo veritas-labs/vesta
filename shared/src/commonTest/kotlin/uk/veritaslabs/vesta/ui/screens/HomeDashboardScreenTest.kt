@@ -30,6 +30,25 @@ class HomeDashboardScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun listsTheTilesAlphabetically() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons") } }
+
+        // Act
+        val tags = listOf(
+            HomeDashboardTestTags.CalendarTile,
+            HomeDashboardTestTags.CookbookTile,
+            HomeDashboardTestTags.PantryTile,
+            HomeDashboardTestTags.ShoppingTile,
+        )
+        val order = tags.sortedBy { onNodeWithTag(it).fetchSemanticsNode().boundsInRoot.let { b -> b.top * 10000 + b.left } }
+
+        // Assert
+        assertEquals(tags, order)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun tappingThePantryTileInvokesOnPantryClick() = runComposeUiTest {
         // Arrange
         var clicks = 0
