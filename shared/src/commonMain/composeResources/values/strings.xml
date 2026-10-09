@@ -473,10 +473,9 @@
     <string name="recipe_edit_tags_label">Tags (comma separated)</string>
     <string name="recipe_edit_source_label">Source</string>
     <string name="recipe_edit_notes_label">Notes</string>
-    <string name="recipe_edit_media_heading">Photos and videos</string>
+    <string name="recipe_edit_media_heading">Photo</string>
     <string name="recipe_edit_media_remove_photo">Remove photo</string>
-    <string name="recipe_edit_media_remove">Remove photo or video</string>
-    <string name="recipe_edit_media_add_photo">Add photo</string>
+        <string name="recipe_edit_media_add_photo">Add photo</string>
     <string name="recipe_edit_media_photo_too_large">That photo is too large to add.</string>
     <string name="recipe_edit_media_photo_unreachable">Vesta couldn\'t download a photo from that link.</string>
     <string name="recipe_edit_media_photo_unreadable">That file isn\'t a photo Vesta can read.</string>
@@ -491,7 +490,9 @@
     <string name="recipe_edit_steps_heading">Method</string>
     <string name="recipe_edit_step_text">What to do</string>
     <string name="recipe_edit_step_minutes">Minutes</string>
-    <string name="recipe_edit_step_after">Do after step</string>
+    <string name="recipe_edit_stage_number">Stage %1$d</string>
+    <string name="recipe_edit_stage_add">Add stage</string>
+    <string name="recipe_edit_stage_remove">Remove stage</string>
     <string name="recipe_edit_step_add">Add step</string>
     <string name="recipe_edit_step_remove">Remove step</string>
     <string name="recipe_edit_save">Save</string>

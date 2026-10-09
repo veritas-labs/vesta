@@ -147,7 +147,7 @@ class CookbookPhotosAcceptanceTest {
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput(title)
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
         waitForTag(RecipeEditTestTags.RemovePhotoButton)
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
         waitForText(title)
     }
 
@@ -312,7 +312,7 @@ class CookbookPhotosAcceptanceTest {
         onNodeWithTag(RecipeDetailTestTags.OverflowButton).performClick()
         onNodeWithTag(RecipeDetailTestTags.EditMenuItem).performClick()
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextReplacement("Soup with croutons")
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert — Then it is saved, and still refers to the photo
         waitForText("Soup with croutons")

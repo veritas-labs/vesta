@@ -161,7 +161,7 @@ class CookbookAcceptanceTest {
         onNodeWithTag(RecipeEditTestTags.PrepField).performScrollTo().performTextInput("15")
         onNodeWithTag(RecipeEditTestTags.CookField).performScrollTo().performTextInput("40")
         onNodeWithTag(RecipeEditTestTags.star(3)).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
         waitForText("Apple Crumble")
 
         // Assert — Then the cookbook lists it, and its page shows the details and the times
@@ -271,15 +271,15 @@ class CookbookAcceptanceTest {
         waitForText("No recipes yet")
         onNodeWithTag(CookbookTestTags.AddRecipeButton).performClick()
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Pasta")
-        repeat(3) { onNodeWithTag(RecipeEditTestTags.AddStepButton).performScrollTo().performClick() }
-        listOf("Boil the water", "Make the sauce", "Combine and serve").forEachIndexed { index, text ->
-            onNodeWithTag(RecipeEditTestTags.stepText(index)).performScrollTo().performTextInput(text)
+        repeat(2) { onNodeWithTag(RecipeEditTestTags.AddStageButton).performScrollTo().performClick() }
+        repeat(2) { onNodeWithTag(RecipeEditTestTags.addStep(0)).performScrollTo().performClick() }
+        onNodeWithTag(RecipeEditTestTags.addStep(1)).performScrollTo().performClick()
+        listOf("Boil the water", "Make the sauce", "Combine and serve").zip(listOf(0 to 0, 0 to 1, 1 to 0)).forEach { (text, place) ->
+            onNodeWithTag(RecipeEditTestTags.stepText(place.first, place.second)).performScrollTo().performTextInput(text)
         }
 
         // Act — When I say the last step comes after the first two, and save
-        onNodeWithTag(RecipeEditTestTags.stepAfter(2, 0)).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.stepAfter(2, 1)).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
         openRecipe("Pasta")
         waitForText("Method")
 
@@ -393,7 +393,7 @@ class CookbookAcceptanceTest {
         // Act — When I add a photo and save
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(RecipeEditTestTags.RemovePhotoButton).fetchSemanticsNodes().isNotEmpty() }
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert — Then the recipe keeps exactly one photo
         waitUntil(timeoutMillis = 5_000) { runBlocking { source.recipes.first().single().media.size == 1 } }
@@ -413,7 +413,7 @@ class CookbookAcceptanceTest {
         onNodeWithTag(RecipeDetailTestTags.OverflowButton).performClick()
         onNodeWithTag(RecipeDetailTestTags.EditMenuItem).performClick()
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextReplacement("Apple Crumble and Custard")
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert — Then the page shows the new name
         waitForText("Apple Crumble and Custard")

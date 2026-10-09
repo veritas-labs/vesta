@@ -43,7 +43,7 @@ class RecipeEditScreenTest {
         onNodeWithTag(RecipeEditTestTags.CookField).performScrollTo().performTextInput("40")
         onNodeWithTag(RecipeEditTestTags.star(3)).performScrollTo().performClick()
         onNodeWithTag(RecipeEditTestTags.TagsField).performScrollTo().performTextInput("Quick, quick,  Autumn ")
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         val recipe = saved!!
@@ -68,8 +68,9 @@ class RecipeEditScreenTest {
         onNodeWithTag(RecipeEditTestTags.ingredientName(1)).performScrollTo().performTextInput("Bread")
         onNodeWithTag(RecipeEditTestTags.ingredientQuantity(1)).performScrollTo().performTextInput("2")
         onNodeWithTag(RecipeEditTestTags.ingredientUnit(1)).performScrollTo().performTextInput("slices")
-        onNodeWithTag(RecipeEditTestTags.AddStepButton).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.AddStageButton).performScrollTo().performClick()
+        onNodeWithTag(RecipeEditTestTags.addStep(0)).performScrollTo().performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         assertEquals(listOf(RecipeIngredient("Bread", 2.0, "slices")), saved!!.ingredients)
@@ -82,15 +83,15 @@ class RecipeEditScreenTest {
         var saved: Recipe? = null
         setContent { VestaTheme { RecipeEditScreen(recipe = null, onSave = { saved = it }) } }
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Pasta")
-        repeat(3) { onNodeWithTag(RecipeEditTestTags.AddStepButton).performScrollTo().performClick() }
-        listOf("Boil water", "Make sauce", "Combine").forEachIndexed { index, text ->
-            onNodeWithTag(RecipeEditTestTags.stepText(index)).performScrollTo().performTextInput(text)
+        repeat(2) { onNodeWithTag(RecipeEditTestTags.AddStageButton).performScrollTo().performClick() }
+        repeat(2) { onNodeWithTag(RecipeEditTestTags.addStep(0)).performScrollTo().performClick() }
+        onNodeWithTag(RecipeEditTestTags.addStep(1)).performScrollTo().performClick()
+        listOf("Boil water", "Make sauce", "Combine").zip(listOf(0 to 0, 0 to 1, 1 to 0)).forEach { (text, place) ->
+            onNodeWithTag(RecipeEditTestTags.stepText(place.first, place.second)).performScrollTo().performTextInput(text)
         }
 
         // Act
-        onNodeWithTag(RecipeEditTestTags.stepAfter(2, 0)).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.stepAfter(2, 1)).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         val steps = saved!!.steps
@@ -112,8 +113,8 @@ class RecipeEditScreenTest {
         }
 
         // Act
-        onNodeWithTag(RecipeEditTestTags.removeStep(0)).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.removeStep(0, 0)).performScrollTo().performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         assertEquals(listOf(RecipeStep("b", "Serve")), saved!!.steps)
@@ -127,7 +128,7 @@ class RecipeEditScreenTest {
 
         // Act
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextReplacement("Tomato Soup")
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         assertEquals("r1", saved!!.key)

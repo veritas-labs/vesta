@@ -24,7 +24,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -452,10 +452,10 @@ private fun MethodSection(steps: List<RecipeStep>) {
         if (stage.size > 1) {
             // Steps that can be done at the same time sit side by side, scrolling sideways.
             DragScrollableRow(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                items(stage) { numbered -> StepCard(numbered, Modifier.width(RecipeParallelStepWidth)) }
+                itemsIndexed(stage) { index, numbered -> StepCard(numbered, index + 1, Modifier.width(RecipeParallelStepWidth)) }
             }
         } else {
-            stage.forEach { numbered -> StepCard(numbered, Modifier.fillMaxWidth().padding(bottom = 6.dp)) }
+            stage.forEachIndexed { index, numbered -> StepCard(numbered, index + 1, Modifier.fillMaxWidth().padding(bottom = 6.dp)) }
         }
     }
     Spacer(Modifier.height(8.dp))
@@ -486,11 +486,11 @@ private fun DragScrollableRow(modifier: Modifier = Modifier, content: LazyListSc
 }
 
 @Composable
-private fun StepCard(numbered: NumberedStep, modifier: Modifier = Modifier) {
+private fun StepCard(numbered: NumberedStep, numberInStage: Int, modifier: Modifier = Modifier) {
     OutlinedCard(modifier = modifier.testTag(RecipeDetailTestTags.step(numbered.number))) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                stringResource(Res.string.recipe_step_number, numbered.number),
+                stringResource(Res.string.recipe_step_number, numberInStage),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

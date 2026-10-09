@@ -63,7 +63,7 @@ class RecipeEditPhotosTest {
         // Act
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
         waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.RemovePhotoButton).assertExists() }.isSuccess }
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         val media = saved!!.media.single()
@@ -90,7 +90,7 @@ class RecipeEditPhotosTest {
         // Act
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
         waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.PhotoError).assertExists() }.isSuccess }
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         assertEquals(emptyList(), saved!!.media)
@@ -105,7 +105,7 @@ class RecipeEditPhotosTest {
 
         // Act
         onNodeWithTag(RecipeEditTestTags.RemovePhotoButton).performScrollTo().performClick()
-        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performScrollTo().performClick()
 
         // Assert
         assertEquals(emptyList(), saved!!.media)
