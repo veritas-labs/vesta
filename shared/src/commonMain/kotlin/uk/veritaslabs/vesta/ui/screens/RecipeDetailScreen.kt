@@ -29,6 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -71,6 +72,7 @@ import vesta.shared.generated.resources.ic_heart
 import vesta.shared.generated.resources.ic_heart_filled
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_photo
+import vesta.shared.generated.resources.ic_player_play
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_video
 import vesta.shared.generated.resources.pantry_back
@@ -78,6 +80,7 @@ import vesta.shared.generated.resources.recipe_availability_in_pantry
 import vesta.shared.generated.resources.recipe_availability_not_enough
 import vesta.shared.generated.resources.recipe_availability_not_in_pantry
 import vesta.shared.generated.resources.recipe_availability_out_of_stock
+import vesta.shared.generated.resources.recipe_cook_start
 import vesta.shared.generated.resources.recipe_delete_cancel
 import vesta.shared.generated.resources.recipe_delete_confirm
 import vesta.shared.generated.resources.recipe_delete_confirm_body
@@ -121,6 +124,7 @@ internal object RecipeDetailTestTags {
     const val Servings = "recipe_servings"
     const val ServingsIncrease = "recipe_servings_increase"
     const val ServingsDecrease = "recipe_servings_decrease"
+    const val StartCookingButton = "recipe_start_cooking_button"
 
     fun star(n: Int) = "recipe_star_$n"
 
@@ -157,6 +161,7 @@ fun RecipeDetailScreen(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
+    var cooking by remember(recipe.key) { mutableStateOf(false) }
     var servings by remember(recipe.key) { mutableIntStateOf(recipe.servings.coerceAtLeast(1)) }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= RecipeTabletBreakpoint) 24.dp else 16.dp
@@ -261,6 +266,24 @@ fun RecipeDetailScreen(
                     }
                 }
             }
+        }
+        if (recipe.steps.isNotEmpty()) {
+            FloatingActionButton(
+                onClick = { cooking = true },
+                shape = MaterialTheme.shapes.small,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .safeDrawingPadding()
+                    .padding(contentPadding)
+                    .testTag(RecipeDetailTestTags.StartCookingButton),
+            ) {
+                Icon(painterResource(Res.drawable.ic_player_play), contentDescription = stringResource(Res.string.recipe_cook_start))
+            }
+        }
+        if (cooking) {
+            CookingScreen(recipe, servings, onClose = { cooking = false })
         }
     }
 
@@ -402,12 +425,7 @@ private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<Pantr
         availability(ingredient, pantry, ingredient.quantity?.let { scaleQuantity(it, recipe.servings, servings) })
     }
     recipe.ingredients.forEachIndexed { index, ingredient ->
-        val amount = listOfNotNull(
-            ingredient.quantity?.let { formatQuantity(scaleQuantity(it, recipe.servings, servings)) },
-            ingredient.unit.ifBlank { null },
-        ).joinToString(" ")
-        val line = listOf(amount, ingredient.name).filter { it.isNotEmpty() }.joinToString(" ") +
-            if (ingredient.note.isNotBlank()) ", ${ingredient.note}" else ""
+        val line = ingredientLine(ingredient, recipe.servings, servings)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag(RecipeDetailTestTags.ingredient(index)),
@@ -430,6 +448,16 @@ private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<Pantr
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
+}
+
+/** One ingredient as text, e.g. "500 g Lamb mince, diced", with its quantity rescaled from [original] to [servings]. */
+internal fun ingredientLine(ingredient: RecipeIngredient, original: Int, servings: Int): String {
+    val amount = listOfNotNull(
+        ingredient.quantity?.let { formatQuantity(scaleQuantity(it, original, servings)) },
+        ingredient.unit.ifBlank { null },
+    ).joinToString(" ")
+    return listOf(amount, ingredient.name).filter { it.isNotEmpty() }.joinToString(" ") +
+        if (ingredient.note.isNotBlank()) ", ${ingredient.note}" else ""
 }
 
 @Composable

@@ -454,6 +454,13 @@
     <string name="recipe_method">Method</string>
     <string name="recipe_step_number">Step %1$d</string>
     <string name="recipe_step_minutes">%1$d min</string>
+    <string name="recipe_cook_start">Start cooking</string>
+    <string name="recipe_cook_close">Stop cooking</string>
+    <string name="recipe_cook_progress">Step %1$d of %2$d</string>
+    <string name="recipe_cook_previous">Previous</string>
+    <string name="recipe_cook_next">Next</string>
+    <string name="recipe_cook_done">Done</string>
+    <string name="recipe_cook_ingredients">Show ingredients</string>
     <string name="recipe_notes">Notes</string>
     <string name="recipe_source">Source</string>
     <string name="recipe_rate_star">Rate %1$d stars</string>
