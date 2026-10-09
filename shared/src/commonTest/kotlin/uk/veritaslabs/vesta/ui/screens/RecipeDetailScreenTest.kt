@@ -136,11 +136,11 @@ class RecipeDetailScreenTest {
     }
 
     @Test
-    fun aBlobPhotoShowsItsPlaceholderUntilThePhotoArrivesAndALegacyLinkStaysATile() = runComposeUiTest {
+    fun aBlobPhotoShowsItsPlaceholderUntilThePhotoArrives() = runComposeUiTest {
         // Arrange
         val blobs = uk.veritaslabs.vesta.blobs.FakeBlobs()
         val reference = uk.veritaslabs.vesta.blobs.testBlobReference()
-        val withPhoto = recipe.copy(media = listOf(RecipeMedia("", MediaKind.Photo, "Fresh", reference), RecipeMedia("file:///old.jpg", MediaKind.Photo, "Old link")))
+        val withPhoto = recipe.copy(media = listOf(RecipeMedia("", MediaKind.Photo, "Fresh", reference)))
         setContent {
             VestaTheme {
                 androidx.compose.runtime.CompositionLocalProvider(uk.veritaslabs.vesta.blobs.LocalBlobs provides blobs) { RecipeDetailScreen(withPhoto) }
@@ -154,6 +154,16 @@ class RecipeDetailScreenTest {
 
         // Assert
         onNodeWithTag(uk.veritaslabs.vesta.ui.components.BlobImageTestTags.Photo).assertIsDisplayed()
-        onNodeWithText("Old link").assertIsDisplayed()
+    }
+
+    @Test
+    fun onlyTheFirstPhotoIsShown() = runComposeUiTest {
+        // Arrange
+        val twoPhotos = recipe.copy(media = listOf(RecipeMedia("file:///a.jpg", MediaKind.Photo, "First"), RecipeMedia("file:///b.jpg", MediaKind.Photo, "Second")))
+        setContent { VestaTheme { RecipeDetailScreen(twoPhotos) } }
+
+        // Act / Assert
+        onNodeWithText("First").assertIsDisplayed()
+        onNodeWithTag(RecipeDetailTestTags.media(1)).assertDoesNotExist()
     }
 }

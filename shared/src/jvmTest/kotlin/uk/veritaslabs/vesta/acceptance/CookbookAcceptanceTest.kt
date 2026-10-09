@@ -367,11 +367,11 @@ class CookbookAcceptanceTest {
         onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
         onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
 
-        // Assert — Then the page shows both, the photo by file name and the video by caption
-        waitForText("Topping it")
+        // Assert — Then the page shows the first (the photo, by file name) and both are kept
+        waitForText("crumble.jpg")
         onNodeWithTag(RecipeDetailTestTags.media(0)).assertIsDisplayed()
         onNodeWithText("crumble.jpg").assertIsDisplayed()
-        onNodeWithTag(RecipeDetailTestTags.media(1)).assertIsDisplayed()
+        onNodeWithTag(RecipeDetailTestTags.media(1)).assertDoesNotExist()
         assertEquals(
             listOf(MediaKind.Photo, MediaKind.Video),
             runBlocking { source.recipes.first().single().media.map { it.kind } },

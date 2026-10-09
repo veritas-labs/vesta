@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -56,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -166,7 +166,25 @@ fun RecipeDetailScreen(
         val contentPadding = if (maxWidth >= RecipeTabletBreakpoint) 24.dp else 16.dp
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
-                title = {},
+                title = {
+                    Column {
+                        Text(
+                            recipe.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag(RecipeDetailTestTags.Title),
+                        )
+                        Text(
+                            text = listOf(recipeTypeLabel(recipe.type)).plus(recipe.tags).joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(RecipeDetailTestTags.BackButton)) {
                         Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
@@ -213,32 +231,26 @@ fun RecipeDetailScreen(
                     .padding(bottom = 32.dp),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (recipe.media.isNotEmpty()) MediaRow(recipe.media)
-                    Text(
-                        recipe.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(top = 8.dp).testTag(RecipeDetailTestTags.Title),
-                    )
-                    Text(
-                        text = listOf(recipeTypeLabel(recipe.type)).plus(recipe.tags).joinToString(" · "),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    // The star buttons carry 12dp of touch padding each side; pull the row back so the first star lines up with the text.
-                    RatingStars(
-                        recipe.rating,
-                        modifier = Modifier.offset(x = (-12).dp),
-                        onRate = { star -> onRate(if (star == recipe.rating) 0 else star) },
-                        starTag = RecipeDetailTestTags::star,
-                    )
-                    if (recipe.description.isNotBlank()) {
-                        Text(
-                            recipe.description,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(top = 4.dp).testTag(RecipeDetailTestTags.Description),
-                        )
+                    // The recipe shows one photo (its first); the description and rating sit beside it.
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
+                        recipe.media.firstOrNull()?.let { MediaCard(it) }
+                        Column(modifier = Modifier.weight(1f)) {
+                            if (recipe.description.isNotBlank()) {
+                                Text(
+                                    recipe.description,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.testTag(RecipeDetailTestTags.Description),
+                                )
+                            }
+                            // The star buttons carry 12dp of touch padding each side; pull the row back so the first star lines up with the text.
+                            RatingStars(
+                                recipe.rating,
+                                modifier = Modifier.offset(x = (-12).dp),
+                                onRate = { star -> onRate(if (star == recipe.rating) 0 else star) },
+                                starTag = RecipeDetailTestTags::star,
+                            )
+                        }
                     }
                     TimesRow(recipe, modifier = Modifier.padding(top = 16.dp))
                     IngredientsSection(recipe, servings, pantry, onServingsChange = { servings = it.coerceAtLeast(1) })
@@ -296,43 +308,39 @@ private fun SectionHeading(text: String, divided: Boolean = false, trailing: (@C
 }
 
 @Composable
-private fun MediaRow(media: List<RecipeMedia>) {
-    DragScrollableRow(modifier = Modifier.fillMaxWidth()) {
-        itemsIndexed(media) { index, item ->
-            OutlinedCard(modifier = Modifier.width(160.dp).height(112.dp).testTag(RecipeDetailTestTags.media(index))) {
-                val blob = item.blob
-                if (blob != null) {
-                    Box(Modifier.fillMaxSize()) {
-                        BlobImage(blob, Modifier.fillMaxSize(), contentDescription = item.caption.ifBlank { stringResource(Res.string.recipe_media_photo) })
-                        if (item.caption.isNotBlank()) {
-                            Text(
-                                item.caption,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)).padding(horizontal = 6.dp, vertical = 2.dp),
-                            )
-                        }
-                    }
-                } else Column(
-                    modifier = Modifier.fillMaxSize().padding(12.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Icon(
-                        painterResource(if (item.kind == MediaKind.Video) Res.drawable.ic_video else Res.drawable.ic_photo),
-                        contentDescription = stringResource(if (item.kind == MediaKind.Video) Res.string.recipe_media_video else Res.string.recipe_media_photo),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(32.dp),
-                    )
+private fun MediaCard(item: RecipeMedia) {
+    OutlinedCard(modifier = Modifier.width(160.dp).height(112.dp).testTag(RecipeDetailTestTags.media(0))) {
+        val blob = item.blob
+        if (blob != null) {
+            Box(Modifier.fillMaxSize()) {
+                BlobImage(blob, Modifier.fillMaxSize(), contentDescription = item.caption.ifBlank { stringResource(Res.string.recipe_media_photo) })
+                if (item.caption.isNotBlank()) {
                     Text(
-                        item.caption.ifBlank { item.uri.substringAfterLast('/') },
+                        item.caption,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
+                        maxLines = 1,
+                        modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)).padding(horizontal = 6.dp, vertical = 2.dp),
                     )
                 }
             }
+        } else Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                painterResource(if (item.kind == MediaKind.Video) Res.drawable.ic_video else Res.drawable.ic_photo),
+                contentDescription = stringResource(if (item.kind == MediaKind.Video) Res.string.recipe_media_video else Res.string.recipe_media_photo),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(32.dp),
+            )
+            Text(
+                item.caption.ifBlank { item.uri.substringAfterLast('/') },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+            )
         }
     }
 }
