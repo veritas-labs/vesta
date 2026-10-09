@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.x0x.X0xClient
 
 /**
  * The blob machinery of one device (ADR-023): the store under [directory], the photo [encoder] of this platform, and the [BlobTransferService] that
- * moves photos to and from the Home's other devices ([peersFor] says which). Built by the platform entry points and handed to `VestaApp`.
+ * moves photos to and from the Home's other devices ([peersFor] says which). [transfersDir] is the x0x daemon's `transfers/` folder, which the service sweeps ([TransfersJanitor]); null when this device can't reach it. Built by the platform entry points and handed to `VestaApp`.
  */
 class DeviceBlobRuntime(
     database: VestaDatabase,
@@ -22,6 +22,8 @@ class DeviceBlobRuntime(
     nowMillis: () -> Long = { System.currentTimeMillis() },
     interval: Duration = 30.seconds,
     askBackoff: BlobTransferService.Backoff = BlobTransferService.Backoff(30.seconds, 10.minutes),
+    transfersDir: File? = null,
+    transfersMinAge: Duration = 15.minutes,
 ) : BlobRuntime {
 
     private val repository = BlobRepository(BlobStore(directory), database)
@@ -37,6 +39,8 @@ class DeviceBlobRuntime(
         interval = interval,
         askBackoff = askBackoff,
         nowMillis = nowMillis,
+        transfersDir = transfersDir,
+        transfersMinAge = transfersMinAge,
     )
 
     init {

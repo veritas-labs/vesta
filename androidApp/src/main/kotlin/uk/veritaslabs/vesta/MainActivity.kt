@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
                         peersFor = { homeId -> sync?.blobPeers(homeId).orEmpty() },
                         directory = File(filesDir, "blobs"),
                         encoder = AndroidPhotoEncoder(),
+                        transfersDir = File(filesDir, "x0x/transfers"), // the embedded daemon's data dir is filesDir/x0x; unverified that it lands files here
                     )
                 },
             )

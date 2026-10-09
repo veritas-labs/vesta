@@ -43,6 +43,7 @@ import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
  *   size the document gives, and once per hash; anything else is rejected at once. A finished file is hashed again and moved into the store
  *   ([BlobRepository.importFile]); the daemon's own sha256 is not relied on.
  *
+ * * **Janitor:** when given the daemon's `transfers/` folder, each round sweeps it of orphaned `.part` files and finished photos nobody moved ([TransfersJanitor]).
  * * **Garbage collection:** a blob no cookbook has referred to for [gracePeriod] and that is not wanted is deleted ([collectGarbage]).
  *
  * [peersFor] gives the devices a Home syncs with (its roster's devices and the user's own, not this one).
@@ -62,7 +63,11 @@ class BlobTransferService(
     private val gracePeriod: Duration = 7.days,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
     private val isOnline: (suspend (agentId: String) -> Boolean)? = null,
+    transfersDir: java.io.File? = null,
+    transfersMinAge: Duration = 15.minutes,
 ) {
+    private val janitor = transfersDir?.let { TransfersJanitor(it, client, repository, transfersMinAge, nowMillis, onArrived) }
+
     /** Capped exponential delay between asks for one blob: [initial], doubling per attempt up to [max]. */
     data class Backoff(val initial: Duration, val max: Duration) {
         /** How long to wait after the [attempts]th ask (1 or more) before the next. */
@@ -123,6 +128,7 @@ class BlobTransferService(
         attempt { checkAccepted() }
         attempt { askRound() }
         attempt { collectGarbage() }
+        attempt { janitor?.sweep(lock.withLock { accepting.values.map { it.transferId }.toSet() }) }
         attempt { _waitingForWifi.value = repository.wants().isNotEmpty() && !X0xNetworkPolicy.useMobileData.value && client.health() == null }
     }
 

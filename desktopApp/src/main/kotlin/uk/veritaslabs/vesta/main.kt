@@ -33,9 +33,20 @@ fun main() = application {
                     peersFor = { homeId -> sync?.blobPeers(homeId).orEmpty() },
                     directory = File(System.getProperty("user.home"), ".vesta/blobs"),
                     encoder = SkiaPhotoEncoder(),
+                    transfersDir = x0xTransfersDir(),
                 )
             },
             ownDeviceCanBeHub = true,
         )
     }
+}
+
+/** The standalone x0xd's `transfers/` folder, found where the client finds the daemon's data directory; null if there isn't one. */
+private fun x0xTransfersDir(): File? {
+    val home = System.getProperty("user.home")
+    return listOfNotNull(
+        System.getenv("X0X_DATA_DIR")?.let { File(it) },
+        File(home, ".local/share/x0x"),
+        File(home, "Library/Application Support/x0x"),
+    ).map { File(it, "transfers") }.firstOrNull { it.isDirectory }
 }

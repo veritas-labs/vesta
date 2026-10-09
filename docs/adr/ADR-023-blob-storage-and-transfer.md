@@ -237,12 +237,13 @@ Built as [docs/plans/ADR-023-implementation-plan.md](../plans/ADR-023-implementa
 - **Placeholder** is ThumbHash (`t:` + unpadded base64, about 34-38 characters), as Spike 3 leaned; a different scheme can use another prefix. Encoder settings: WebP lossy quality 75, long edge 1600, inputs over 25 MB or 50 MP refused
   before decoding. Desktop encodes with Skia; Android with `Bitmap.compress` (never run on a device yet).
 - **Rounds repeat.** The service's 30 s round runs forever; it re-asks with a per-want backoff of 30 s doubling to 10 min, restarted by any device coming online.
+- **`transfers/` janitor** ([`TransfersJanitor`](../../shared/src/jvmAndroidMain/kotlin/uk/veritaslabs/vesta/blobs/TransfersJanitor.kt)), run in each round and at start-up, given the daemon's folder by the platform entry point. It deletes `<id>.part` files older than 15 minutes that the daemon no longer lists as running, `.send` files older than 15 minutes, and finished `<id8>_<hash>.webp` files older than 15 minutes: imported if the hash is still wanted, deleted otherwise. Files of any other shape are never touched, nor are transfers this device is accepting.
 - **Garbage collection** (7 days, [section 8](#8-local-garbage-collection)) runs in the same round and does nothing if any Home's cookbook could not be read.
 - **Mobile data** is enforced by the daemon being stopped, as before. `waitingForWifi` is a heuristic (photos wanted, mobile data off, daemon not answering), and the tile says "Waiting for Wi-Fi" instead of "Waiting for photo".
 
 **Not done, or not verified**
 
-- The daemon's `transfers/` folder is not swept for orphaned `.part` files or finished files the app never claimed (Spike 4, point 3); the app does not know the directory on either platform. Interrupted receives can leave up to a photo's size each.
+- The `transfers/` janitor is built but has only run against the fake mesh's folder. Desktop finds the folder where it finds the standalone daemon's data directory (`X0X_DATA_DIR`, `~/.local/share/x0x`); Android assumes `filesDir/x0x/transfers`, which is unverified (if the embedded daemon lands files elsewhere the janitor finds nothing and does no harm).
 - Not run by hand: two desktop instances, or desktop plus an emulator, with a photo added and a transfer interrupted. Android: `file:offer` with the app in the background, the embedded daemon's `transfers_dir`, `AndroidPhotoEncoder`, and the system photo picker.
 - iOS has no blob support (it has no Automerge); `LocalBlobs` is absent there, so photos cannot be added and a reference shows its placeholder.
 - Photos are decoded at their stored size (at most 1600 px) with no extra downsampling in lists.
