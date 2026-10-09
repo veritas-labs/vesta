@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -30,6 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -40,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.blobs.BlobReference
+import uk.veritaslabs.vesta.blobs.Placeholder
+import uk.veritaslabs.vesta.ui.components.BlobImage
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.cookbook_add_recipe
@@ -93,6 +98,9 @@ internal object CookbookTestTags {
 
     /** Tag for the pantry summary line of the recipe with the given [key]. */
     fun pantrySummary(key: String) = "cookbook_recipe_pantry_$key"
+
+    /** Tag for the thumbnail of the recipe with the given [key]; present only when the recipe has a photo. */
+    fun thumbnail(key: String) = "cookbook_recipe_thumbnail_$key"
 }
 
 @Composable
@@ -308,47 +316,58 @@ fun CookbookScreen(
 @Composable
 private fun RecipeRow(recipe: Recipe, pantry: List<PantryListItem>, onClick: () -> Unit, modifier: Modifier = Modifier) {
     OutlinedCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = recipe.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                if (recipe.favourite) {
-                    Icon(
-                        painterResource(Res.drawable.ic_heart_filled),
-                        contentDescription = stringResource(Res.string.cookbook_favourite),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
+        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            recipe.media.firstNotNullOfOrNull { if (it.kind == MediaKind.Photo) it.blob else null }?.let { photo ->
+                BlobImage(photo, Modifier.size(72.dp).clip(RoundedCornerShape(8.dp)).testTag(CookbookTestTags.thumbnail(recipe.key)))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = recipe.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (recipe.favourite) {
+                        Icon(
+                            painterResource(Res.drawable.ic_heart_filled),
+                            contentDescription = stringResource(Res.string.cookbook_favourite),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                val details = listOfNotNull(
+                    recipeTypeLabel(recipe.type),
+                    formatMinutes(recipe.totalMinutes).ifEmpty { null },
+                    stringResource(Res.string.cookbook_row_serves, recipe.servings),
+                ).joinToString(" · ")
+                Text(details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                RatingStars(recipe.rating, modifier = Modifier.padding(top = 4.dp))
+                if (recipe.ingredients.isNotEmpty()) {
+                    val have = recipe.ingredients.count { availability(it, pantry) == IngredientAvailability.InPantry }
+                    Text(
+                        text = stringResource(Res.string.cookbook_row_pantry, have, recipe.ingredients.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp).testTag(CookbookTestTags.pantrySummary(recipe.key)),
                     )
                 }
-            }
-            val details = listOfNotNull(
-                recipeTypeLabel(recipe.type),
-                formatMinutes(recipe.totalMinutes).ifEmpty { null },
-                stringResource(Res.string.cookbook_row_serves, recipe.servings),
-            ).joinToString(" · ")
-            Text(details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            RatingStars(recipe.rating, modifier = Modifier.padding(top = 4.dp))
-            if (recipe.ingredients.isNotEmpty()) {
-                val have = recipe.ingredients.count { availability(it, pantry) == IngredientAvailability.InPantry }
-                Text(
-                    text = stringResource(Res.string.cookbook_row_pantry, have, recipe.ingredients.size),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp).testTag(CookbookTestTags.pantrySummary(recipe.key)),
-                )
             }
         }
     }
 }
 
+private val CookbookPreviewPhoto = BlobReference(
+    hash = "b".repeat(64), size = 90_000, mime = "image/webp", kind = MediaKind.Photo, w = 4, h = 3,
+    blur = Placeholder.encode(IntArray(12) { if (it % 4 < 2) 0xFFE8A33D.toInt() else 0xFF7A4B2A.toInt() }, 4, 3),
+)
+
 internal val CookbookPreviewRecipes = listOf(
     Recipe(
         key = "pie", title = "Shepherd's Pie", type = RecipeType.Dinner, servings = 4, prepMinutes = 20, cookMinutes = 50,
         rating = 5, favourite = true, tags = listOf("Comfort"),
+        media = listOf(RecipeMedia("", MediaKind.Photo, blob = CookbookPreviewPhoto)),
         ingredients = listOf(RecipeIngredient("Lamb mince", 500.0, "g"), RecipeIngredient("Potatoes", 800.0, "g"), RecipeIngredient("Onion", 1.0)),
     ),
     Recipe(key = "crumble", title = "Apple Crumble", type = RecipeType.Dessert, servings = 6, prepMinutes = 15, cookMinutes = 40, rating = 3),

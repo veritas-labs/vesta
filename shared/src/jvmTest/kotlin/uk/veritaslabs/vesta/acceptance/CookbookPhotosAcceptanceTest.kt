@@ -68,6 +68,7 @@ import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
  *  7. With "use mobile data" off, the recipe says its photos are waiting for Wi-Fi.
  *  8. The same photo in two recipes is stored once.
  * 10. A recipe whose photo has not arrived can still be opened, edited and saved.
+ * 12. In the recipe list, a recipe with a photo shows its first photo on the left of its row, and one without shows none.
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class CookbookPhotosAcceptanceTest {
@@ -318,5 +319,24 @@ class CookbookPhotosAcceptanceTest {
         val saved = runBlocking { b.source().recipes.first().single() }
         assertEquals("Soup with croutons", saved.title)
         assertEquals(1, saved.media.count { it.blob != null })
+    }
+
+    @Test
+    fun theRecipeListShowsTheFirstPhotoOfARecipeOnTheLeftOfItsRow() = runComposeUiTest {
+        // Arrange — Given a cookbook with a recipe that has a photo and one that has none
+        val a = Device("a").also { it.start() }
+        runBlocking { a.source().save(Recipe(key = "plain", title = "Porridge")) }
+        show(a, picked = photoBytes())
+        waitForText("Porridge")
+
+        // Act — When I add a recipe with a photo and am back at the list
+        addRecipeWithPhoto("Soup")
+
+        // Assert — Then the photo recipe's row shows a thumbnail, and the plain one does not
+        val withPhoto = runBlocking { a.source().recipes.first().single { it.title == "Soup" } }
+        // The row is clickable, which merges its children's semantics, so the thumbnail is looked up in the unmerged tree.
+        waitUntil(timeoutMillis = 10_000) { onAllNodesWithTag(CookbookTestTags.thumbnail(withPhoto.key), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithTag(CookbookTestTags.thumbnail(withPhoto.key), useUnmergedTree = true).assertIsDisplayed()
+        assertTrue(onAllNodesWithTag(CookbookTestTags.thumbnail("plain"), useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
     }
 }
