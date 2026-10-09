@@ -32,6 +32,13 @@ class FakeBlobs(
         return addResult
     }
 
+    val addedUrls = mutableListOf<String>()
+
+    override suspend fun addPhotoFromUrl(url: String): PhotoAddResult {
+        addedUrls += url
+        return addResult
+    }
+
     override suspend fun load(hash: String): ByteArray? = held[hash]
 
     /** The photo [hash] has just arrived from another device. */

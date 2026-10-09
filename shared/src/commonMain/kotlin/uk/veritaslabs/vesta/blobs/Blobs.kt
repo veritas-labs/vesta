@@ -18,6 +18,9 @@ interface Blobs {
     /** Encodes and stores a picked photo; the reference to put in the document comes back. */
     suspend fun addPhoto(source: PhotoSource): PhotoAddResult
 
+    /** Downloads the photo at the web address [url], then stores it as [addPhoto] does; the reference to put in the document comes back. */
+    suspend fun addPhotoFromUrl(url: String): PhotoAddResult
+
     /** The bytes of the blob [hash] if this device holds it, otherwise null (its placeholder is shown instead). */
     suspend fun load(hash: String): ByteArray?
 

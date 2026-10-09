@@ -14,6 +14,7 @@ class RepositoryBlobs(
     private val ingest: BlobIngest,
     private val repository: BlobRepository,
     override val waitingForWifi: Flow<Boolean> = flowOf(false),
+    private val fetcher: PhotoFetcher = HttpPhotoFetcher(),
 ) : Blobs {
 
     private val arrived = MutableSharedFlow<String>(extraBufferCapacity = 64)
@@ -24,6 +25,12 @@ class RepositoryBlobs(
         when (val result = ingest.addPhoto(source)) {
             is BlobIngestResult.Added -> PhotoAddResult.Added(result.reference)
             is BlobIngestResult.Rejected -> PhotoAddResult.Rejected(result.reason)
+        }
+
+    override suspend fun addPhotoFromUrl(url: String): PhotoAddResult =
+        when (val fetched = fetcher.fetch(url)) {
+            is PhotoFetchResult.Fetched -> addPhoto(PhotoSource.Bytes(fetched.bytes))
+            is PhotoFetchResult.Failed -> PhotoAddResult.Rejected(fetched.reason)
         }
 
     override suspend fun load(hash: String): ByteArray? =

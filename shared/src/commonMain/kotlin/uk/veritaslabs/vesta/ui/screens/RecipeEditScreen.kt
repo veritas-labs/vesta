@@ -40,6 +40,7 @@ import uk.veritaslabs.vesta.ui.components.rememberPhotoPickerForScreen
 import vesta.shared.generated.resources.recipe_edit_media_add_photo
 import vesta.shared.generated.resources.recipe_edit_media_add_video_link
 import vesta.shared.generated.resources.recipe_edit_media_photo_too_large
+import vesta.shared.generated.resources.recipe_edit_media_photo_unreachable
 import vesta.shared.generated.resources.recipe_edit_media_photo_unreadable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -191,10 +192,11 @@ fun RecipeEditScreen(
     var mediaUri by remember(recipe) { mutableStateOf("") }
     var mediaCaption by remember(recipe) { mutableStateOf("") }
     var mediaKind by remember(recipe) { mutableStateOf(MediaKind.Photo) }
-    // With the blob machinery present (ADR-023) a photo is picked from the device; the typed link is then only for videos.
+    // With the blob machinery present (ADR-023) a photo can be picked from the device, and a typed link (photo or video) is still offered beside it.
     val blobs = LocalBlobs.current
     val scope = rememberCoroutineScope()
     var photoRejection by remember(recipe) { mutableStateOf<PhotoRejection?>(null) }
+    var fetchingPhoto by remember(recipe) { mutableStateOf(false) }
     val photoPicker = rememberPhotoPickerForScreen { source ->
         blobs?.let { blobs ->
             scope.launch {
@@ -353,16 +355,39 @@ fun RecipeEditScreen(
                         }
                         photoRejection?.let {
                             Text(
-                                stringResource(if (it == PhotoRejection.TooLarge) Res.string.recipe_edit_media_photo_too_large else Res.string.recipe_edit_media_photo_unreadable),
+                                stringResource(
+                                    when (it) {
+                                        PhotoRejection.TooLarge -> Res.string.recipe_edit_media_photo_too_large
+                                        PhotoRejection.Unreadable -> Res.string.recipe_edit_media_photo_unreadable
+                                        PhotoRejection.Unreachable -> Res.string.recipe_edit_media_photo_unreachable
+                                    },
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.testTag(RecipeEditTestTags.PhotoError),
                             )
                         }
-                        MediaLinkFields(mediaUri, { mediaUri = it }, mediaCaption, { mediaCaption = it }, MediaKind.Video, {}, showKind = false, showCaption = false) {
-                            media = media + RecipeMedia(mediaUri.trim(), MediaKind.Video, mediaCaption.trim())
-                            mediaUri = ""
-                            mediaCaption = ""
+                        MediaLinkFields(mediaUri, { mediaUri = it }, mediaCaption, { mediaCaption = it }, mediaKind, { mediaKind = it }, showKind = true, showCaption = false, busy = fetchingPhoto) {
+                            if (mediaKind == MediaKind.Photo) {
+                                // A photo link is downloaded and stored like a picked photo, so it syncs and shows offline.
+                                fetchingPhoto = true
+                                scope.launch {
+                                    when (val result = blobs.addPhotoFromUrl(mediaUri.trim())) {
+                                        is PhotoAddResult.Added -> {
+                                            photoRejection = null
+                                            media = media + RecipeMedia("", result.reference.kind, mediaCaption.trim(), result.reference)
+                                            mediaUri = ""
+                                            mediaCaption = ""
+                                        }
+                                        is PhotoAddResult.Rejected -> photoRejection = result.reason
+                                    }
+                                    fetchingPhoto = false
+                                }
+                            } else {
+                                media = media + RecipeMedia(mediaUri.trim(), mediaKind, mediaCaption.trim())
+                                mediaUri = ""
+                                mediaCaption = ""
+                            }
                         }
                     }
 
@@ -504,6 +529,7 @@ private fun MediaLinkFields(
     onKindChange: (MediaKind) -> Unit,
     showKind: Boolean,
     showCaption: Boolean,
+    busy: Boolean = false,
     onAdd: () -> Unit,
 ) {
     OutlinedTextField(
@@ -538,7 +564,7 @@ private fun MediaLinkFields(
             )
         }
         OutlinedButton(
-            enabled = uri.isNotBlank(),
+            enabled = uri.isNotBlank() && !busy,
             onClick = onAdd,
             modifier = Modifier.testTag(RecipeEditTestTags.AddMediaButton),
         ) { Text(stringResource(if (showKind) Res.string.recipe_edit_media_add else Res.string.recipe_edit_media_add_video_link)) }

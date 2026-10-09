@@ -10,7 +10,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import uk.veritaslabs.vesta.blobs.FakeBlobs
 import uk.veritaslabs.vesta.blobs.LocalBlobs
 import uk.veritaslabs.vesta.blobs.PhotoAddResult
@@ -38,14 +37,14 @@ class RecipeEditPhotosTest {
     }
 
     @Test
-    fun withBlobMachineryThePhotoButtonReplacesTheLinkFormsPhotoChoice() = runComposeUiTest {
+    fun withBlobMachineryThePhotoButtonSitsBesideTheLinkFormAndItsKindChoice() = runComposeUiTest {
         // Arrange / Act
         setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides FakeBlobs()) { RecipeEditScreen(recipe = null) } } }
 
         // Assert
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().assertIsDisplayed()
-        onNodeWithTag(RecipeEditTestTags.MediaPhotoChip).assertDoesNotExist()
-        onNodeWithTag(RecipeEditTestTags.MediaVideoChip).assertDoesNotExist()
+        onNodeWithTag(RecipeEditTestTags.MediaPhotoChip).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(RecipeEditTestTags.MediaVideoChip).assertIsDisplayed()
     }
 
     @Test
@@ -100,13 +99,55 @@ class RecipeEditPhotosTest {
     }
 
     @Test
-    fun withBlobMachineryALinkCanStillBeAddedAsAVideo() = runComposeUiTest {
+    fun aPhotoLinkIsDownloadedAndSavedAsABlobReference() = runComposeUiTest {
         // Arrange
+        val blobs = FakeBlobs()
         var saved: Recipe? = null
-        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides FakeBlobs()) { RecipeEditScreen(recipe = null, onSave = { saved = it }) } } }
+        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { RecipeEditScreen(recipe = null, onSave = { saved = it }) } } }
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Soup")
 
         // Act
+        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://example.com/soup.jpg")
+        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
+        waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.removeMedia(0)).assertIsDisplayed() }.isSuccess }
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+
+        // Assert
+        val media = saved!!.media.single()
+        assertEquals(listOf("https://example.com/soup.jpg"), blobs.addedUrls)
+        assertEquals("", media.uri)
+        assertEquals(MediaKind.Photo, media.kind)
+        assertEquals("b".repeat(64), media.blob?.hash)
+    }
+
+    @Test
+    fun aPhotoLinkThatCannotBeDownloadedShowsAMessageAndAddsNothing() = runComposeUiTest {
+        // Arrange
+        val blobs = FakeBlobs(addResult = PhotoAddResult.Rejected(PhotoRejection.Unreachable))
+        var saved: Recipe? = null
+        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { RecipeEditScreen(recipe = null, onSave = { saved = it }) } } }
+        onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Soup")
+
+        // Act
+        onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://example.com/gone.jpg")
+        onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
+        waitUntil { runCatching { onNodeWithTag(RecipeEditTestTags.PhotoError).assertExists() }.isSuccess }
+        onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
+
+        // Assert
+        assertEquals(emptyList(), saved!!.media)
+    }
+
+    @Test
+    fun aVideoLinkIsKeptAsALinkAndNotDownloaded() = runComposeUiTest {
+        // Arrange
+        val blobs = FakeBlobs()
+        var saved: Recipe? = null
+        setContent { VestaTheme { CompositionLocalProvider(LocalBlobs provides blobs) { RecipeEditScreen(recipe = null, onSave = { saved = it }) } } }
+        onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput("Soup")
+
+        // Act
+        onNodeWithTag(RecipeEditTestTags.MediaVideoChip).performScrollTo().performClick()
         onNodeWithTag(RecipeEditTestTags.MediaUriField).performScrollTo().performTextInput("https://example.com/soup.mp4")
         onNodeWithTag(RecipeEditTestTags.AddMediaButton).performScrollTo().performClick()
         onNodeWithTag(RecipeEditTestTags.SaveButton).performClick()
@@ -114,7 +155,8 @@ class RecipeEditPhotosTest {
         // Assert
         val media = saved!!.media.single()
         assertEquals(MediaKind.Video, media.kind)
-        assertNull(media.blob)
+        assertEquals("https://example.com/soup.mp4", media.uri)
+        assertEquals(emptyList(), blobs.addedUrls)
     }
 
     @Test

@@ -483,6 +483,7 @@
     <string name="recipe_edit_media_add_photo">Add photo</string>
     <string name="recipe_edit_media_add_video_link">Add video link</string>
     <string name="recipe_edit_media_photo_too_large">That photo is too large to add.</string>
+    <string name="recipe_edit_media_photo_unreachable">Vesta couldn\'t download a photo from that link.</string>
     <string name="recipe_edit_media_photo_unreadable">That file isn\'t a photo Vesta can read.</string>
     <string name="blob_waiting_for_photo">Waiting for photo</string>
     <string name="blob_waiting_for_wifi">Waiting for Wi-Fi</string>

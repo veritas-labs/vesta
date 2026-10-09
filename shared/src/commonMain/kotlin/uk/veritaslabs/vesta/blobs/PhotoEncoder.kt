@@ -21,6 +21,9 @@ enum class PhotoRejection {
 
     /** Not an image this device can decode. */
     Unreadable,
+
+    /** A photo link that could not be fetched: not a web address, no connection, or the site did not give the file. */
+    Unreachable,
 }
 
 sealed interface PhotoEncodeResult {
