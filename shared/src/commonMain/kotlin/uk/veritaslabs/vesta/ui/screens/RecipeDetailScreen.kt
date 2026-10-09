@@ -257,11 +257,11 @@ fun RecipeDetailScreen(
                     IngredientsSection(recipe, servings, pantry, onServingsChange = { servings = it.coerceAtLeast(1) })
                     MethodSection(recipe.steps)
                     if (recipe.notes.isNotBlank()) {
-                        SectionHeading(stringResource(Res.string.recipe_notes))
+                        SectionHeading(stringResource(Res.string.recipe_notes), divided = true)
                         Text(recipe.notes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                     if (recipe.source.isNotBlank()) {
-                        SectionHeading(stringResource(Res.string.recipe_source))
+                        SectionHeading(stringResource(Res.string.recipe_source), divided = true)
                         Text(recipe.source, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
