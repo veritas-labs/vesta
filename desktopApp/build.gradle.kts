@@ -24,6 +24,8 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "uk.veritaslabs.vesta"
             packageVersion = "1.0.0"
+            // Brand asset under /branding (see branding/README.md and TRADEMARK.md).
+            linux { iconFile.set(rootProject.file("branding/app-icon.png")) }
         }
     }
 }
