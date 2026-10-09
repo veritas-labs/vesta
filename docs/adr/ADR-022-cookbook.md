@@ -39,8 +39,12 @@ ROOT
   stage so nothing is ever hidden.
 - **Total time is derived** (prep + cook + rest), never stored, so it can't disagree with its parts.
 - **Pantry awareness is computed at display time**, not stored. An ingredient matches a Pantry entry when their names
-  are equal ignoring case, whitespace and a trailing plural "s". It shows as *In pantry* (stock above zero), *Out of
-  stock* (entry exists, stock zero) or *Not in pantry*. Nothing is copied between documents.
+  are equal ignoring case, whitespace and plurals (each word is singularised: "cherry tomatoes" = "Cherry Tomato",
+  "berries" = "berry"). It shows as *In pantry*, *Not enough*, *Out of stock* (entry exists, stock zero) or *Not in
+  pantry*. *Not enough* compares the quantity the recipe needs at the servings on screen with what the matching
+  entries hold (stock count × package size, summed), within mass, volume or plain counts, converting units (g/kg/oz/lb,
+  ml/l/tsp/tbsp/cup/pint). Where the amounts can't be compared (no package size, a "pinch", mismatched kinds) the
+  ingredient counts as *In pantry*. Nothing is copied between documents.
 - **Servings scale the display**: the detail screen can show the recipe for another number of servings; ingredient
   quantities are multiplied, the stored recipe is untouched.
 - **Media are references**, not bytes. A photo picked from the device is a blob reference (hash, size, w, h and a placeholder blur,

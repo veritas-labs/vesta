@@ -87,19 +87,27 @@ interface CookbookSource {
 }
 
 /** How the Pantry stands on an ingredient. */
-enum class IngredientAvailability { InPantry, OutOfStock, NotInPantry }
+enum class IngredientAvailability { InPantry, NotEnough, OutOfStock, NotInPantry }
 
-private fun ingredientKey(name: String): String = name.trim().lowercase().removeSuffix("s")
-
-/** Whether the Pantry has [ingredient]: names are compared ignoring case, spacing and a trailing plural "s". */
-fun availability(ingredient: RecipeIngredient, pantry: List<PantryListItem>): IngredientAvailability {
+/**
+ * Whether the Pantry has [ingredient]: names are compared ignoring case, spacing and plurals (see [ingredientKey]).
+ * With stock on hand, [quantity] (the amount the recipe needs at the servings being cooked) is checked against what the
+ * matching entries hold: stock count times package size, so 2 x "400g" holds 800 g. Mass, volume and plain counts are
+ * compared within their own kind; when the units can't be compared (a "pinch", a package size of "family pack") the
+ * ingredient is given the benefit of the doubt and counts as [IngredientAvailability.InPantry].
+ */
+fun availability(
+    ingredient: RecipeIngredient,
+    pantry: List<PantryListItem>,
+    quantity: Double? = ingredient.quantity,
+): IngredientAvailability {
     val wanted = ingredientKey(ingredient.name)
     val matches = pantry.filter { ingredientKey(it.title) == wanted }
-    return when {
-        matches.isEmpty() -> IngredientAvailability.NotInPantry
-        matches.any { it.stockCount > 0 } -> IngredientAvailability.InPantry
-        else -> IngredientAvailability.OutOfStock
-    }
+    val stocked = matches.filter { it.stockCount > 0 }
+    if (matches.isEmpty()) return IngredientAvailability.NotInPantry
+    if (stocked.isEmpty()) return IngredientAvailability.OutOfStock
+    val need = quantity?.takeIf { it > 0 }?.let { measureOf(it, ingredient.unit) }
+    return if (need != null && holdsEnough(need, stocked) == false) IngredientAvailability.NotEnough else IngredientAvailability.InPantry
 }
 
 /** A step with its place in the method: [number] counts from 1 across all stages; [afterNumbers] are its prerequisites' numbers. */

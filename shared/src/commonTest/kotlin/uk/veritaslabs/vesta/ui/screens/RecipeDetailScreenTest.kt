@@ -63,6 +63,20 @@ class RecipeDetailScreenTest {
     }
 
     @Test
+    fun scalingTheServingsCanTipAnIngredientIntoNotEnough() = runComposeUiTest {
+        // Arrange — 800 g of potatoes for 4, and a Pantry holding 1 kg
+        val pantry = listOf(PantryListItem("potatoes", "Veg", null, "Potatoes", "500g", 2))
+        setContent { VestaTheme { RecipeDetailScreen(recipe, pantry = pantry) } }
+        onNodeWithTag(RecipeDetailTestTags.availability(1)).assertTextEquals("In pantry")
+
+        // Act — double the servings, so 1.6 kg is needed
+        repeat(4) { onNodeWithTag(RecipeDetailTestTags.ServingsIncrease).performClick() }
+
+        // Assert
+        onNodeWithTag(RecipeDetailTestTags.availability(1)).assertTextEquals("Not enough")
+    }
+
+    @Test
     fun stepsThatCanHappenTogetherShareAStageAndNameWhatTheyWaitFor() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { RecipeDetailScreen(recipe) } }

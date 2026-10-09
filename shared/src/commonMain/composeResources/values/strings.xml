@@ -448,6 +448,7 @@
     <string name="recipe_servings_scaled">Scaled from %1$d</string>
     <string name="recipe_ingredients">Ingredients</string>
     <string name="recipe_availability_in_pantry">In pantry</string>
+    <string name="recipe_availability_not_enough">Not enough</string>
     <string name="recipe_availability_out_of_stock">Out of stock</string>
     <string name="recipe_availability_not_in_pantry">Not in pantry</string>
     <string name="recipe_method">Method</string>

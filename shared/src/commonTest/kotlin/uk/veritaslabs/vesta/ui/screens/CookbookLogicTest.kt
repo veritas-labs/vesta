@@ -103,6 +103,92 @@ class CookbookLogicTest {
     }
 
     @Test
+    fun namesMatchAcrossIrregularPluralsAndEveryWordOfAPhrase() {
+        // Arrange
+        val pantry = listOf(
+            PantryListItem("cherry-tomatoes", "Veg", null, "Cherry Tomatoes", "", 1),
+            PantryListItem("berries", "Fruit", null, "Berries", "", 1),
+            PantryListItem("hummus", "Deli", null, "Hummus", "", 1),
+        )
+
+        // Act
+        val tomato = availability(RecipeIngredient("cherry  tomato"), pantry)
+        val berry = availability(RecipeIngredient("Berry"), pantry)
+        val hummus = availability(RecipeIngredient("hummus"), pantry)
+        val other = availability(RecipeIngredient("Tomato"), pantry)
+
+        // Assert
+        assertEquals(IngredientAvailability.InPantry, tomato)
+        assertEquals(IngredientAvailability.InPantry, berry)
+        assertEquals(IngredientAvailability.InPantry, hummus)
+        assertEquals(IngredientAvailability.NotInPantry, other)
+    }
+
+    @Test
+    fun anIngredientIsNotEnoughWhenTheStockedPackagesHoldLessThanTheRecipeNeeds() {
+        // Arrange
+        val pantry = listOf(PantryListItem("flour", "Baking", null, "Flour", "500g", 1))
+
+        // Act
+        val short = availability(RecipeIngredient("Flour", 750.0, "g"), pantry)
+        val enough = availability(RecipeIngredient("Flour", 0.5, "kg"), pantry)
+
+        // Assert
+        assertEquals(IngredientAvailability.NotEnough, short)
+        assertEquals(IngredientAvailability.InPantry, enough)
+    }
+
+    @Test
+    fun stockCountMultipliesThePackageSizeAndSeveralEntriesAreAdded() {
+        // Arrange
+        val pantry = listOf(
+            PantryListItem("milk-a", "Dairy", null, "Milk", "2 pint", 1),
+            PantryListItem("milk-b", "Dairy", null, "Milk", "500ml", 2),
+        )
+
+        // Act
+        val enough = availability(RecipeIngredient("Milk", 2000.0, "ml"), pantry)
+        val short = availability(RecipeIngredient("Milk", 2.5, "l"), pantry)
+
+        // Assert
+        assertEquals(IngredientAvailability.InPantry, enough)
+        assertEquals(IngredientAvailability.NotEnough, short)
+    }
+
+    @Test
+    fun plainCountsCompareWithTheStockCount() {
+        // Arrange
+        val pantry = listOf(PantryListItem("eggs", "Dairy", null, "Eggs", "", 3))
+
+        // Act
+        val short = availability(RecipeIngredient("Egg", 4.0), pantry)
+        val enough = availability(RecipeIngredient("Egg", 3.0), pantry)
+
+        // Assert
+        assertEquals(IngredientAvailability.NotEnough, short)
+        assertEquals(IngredientAvailability.InPantry, enough)
+    }
+
+    @Test
+    fun amountsThatCannotBeComparedGetTheBenefitOfTheDoubt() {
+        // Arrange
+        val pantry = listOf(
+            PantryListItem("flour", "Baking", null, "Flour", "", 1),
+            PantryListItem("garlic", "Veg", null, "Garlic", "1 bulb", 1),
+        )
+
+        // Act
+        val noSize = availability(RecipeIngredient("Flour", 5000.0, "g"), pantry)
+        val oddUnit = availability(RecipeIngredient("Garlic", 3.0, "clove"), pantry)
+        val toTaste = availability(RecipeIngredient("Garlic"), pantry)
+
+        // Assert
+        assertEquals(IngredientAvailability.InPantry, noSize)
+        assertEquals(IngredientAvailability.InPantry, oddUnit)
+        assertEquals(IngredientAvailability.InPantry, toTaste)
+    }
+
+    @Test
     fun quantitiesScaleWithServingsAndFormatWithoutTrailingZeros() {
         // Arrange / Act
         val doubled = scaleQuantity(1.5, from = 4, target = 8)

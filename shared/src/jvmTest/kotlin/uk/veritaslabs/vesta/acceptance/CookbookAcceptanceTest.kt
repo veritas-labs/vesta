@@ -193,6 +193,25 @@ class CookbookAcceptanceTest {
     }
 
     @Test
+    fun anIngredientSaysWhenThePantryHasLessThanTheRecipeNeeds() = runComposeUiTest {
+        // Arrange — Given a Pantry with one egg, and a recipe that needs two
+        val source = newSource()
+        val pantry = newPantry()
+        runBlocking {
+            pantry.stock("Egg", 1)
+            source.save(shepherdsPie)
+        }
+        showCookbook(source, pantry)
+
+        // Act — When I open the recipe
+        openRecipe("Shepherd's Pie")
+        waitForText("Ingredients")
+
+        // Assert — Then eggs are marked as not enough
+        onNodeWithTag(RecipeDetailTestTags.availability(0)).assertTextEquals("Not enough")
+    }
+
+    @Test
     fun theCookbookListSaysHowManyIngredientsThePantryHas() = runComposeUiTest {
         // Arrange — Given a recipe needing four ingredients and a Pantry holding two of them
         val source = newSource()

@@ -75,6 +75,7 @@ import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_video
 import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.recipe_availability_in_pantry
+import vesta.shared.generated.resources.recipe_availability_not_enough
 import vesta.shared.generated.resources.recipe_availability_not_in_pantry
 import vesta.shared.generated.resources.recipe_availability_out_of_stock
 import vesta.shared.generated.resources.recipe_delete_cancel
@@ -402,7 +403,9 @@ private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<Pantr
     SectionHeading(stringResource(Res.string.recipe_ingredients), divided = true) {
         ServingsStepper(servings, recipe.servings, onChange = onServingsChange)
     }
-    val states = recipe.ingredients.map { availability(it, pantry) }
+    val states = recipe.ingredients.map { ingredient ->
+        availability(ingredient, pantry, ingredient.quantity?.let { scaleQuantity(it, recipe.servings, servings) })
+    }
     recipe.ingredients.forEachIndexed { index, ingredient ->
         val amount = listOfNotNull(
             ingredient.quantity?.let { formatQuantity(scaleQuantity(it, recipe.servings, servings)) },
@@ -420,6 +423,7 @@ private fun IngredientsSection(recipe: Recipe, servings: Int, pantry: List<Pantr
                 stringResource(
                     when (state) {
                         IngredientAvailability.InPantry -> Res.string.recipe_availability_in_pantry
+                        IngredientAvailability.NotEnough -> Res.string.recipe_availability_not_enough
                         IngredientAvailability.OutOfStock -> Res.string.recipe_availability_out_of_stock
                         IngredientAvailability.NotInPantry -> Res.string.recipe_availability_not_in_pantry
                     },
