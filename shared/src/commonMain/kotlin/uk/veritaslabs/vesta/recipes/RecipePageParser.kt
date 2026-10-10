@@ -13,8 +13,8 @@ import uk.veritaslabs.vesta.ui.screens.RecipeType
 private const val MaxImportedTags = 8
 
 private val LdJsonScript = Regex(
-    """<script[^>]*type\s*=\s*["']?application/ld\+json["']?[^>]*>(.*?)</script>""",
-    setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+    """<script[^>]*type\s*=\s*["']?application/ld\+json["']?[^>]*>([\s\S]*?)</script>""",
+    RegexOption.IGNORE_CASE,
 )
 
 /**
