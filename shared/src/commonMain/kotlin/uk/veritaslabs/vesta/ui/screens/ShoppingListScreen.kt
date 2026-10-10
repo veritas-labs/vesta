@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -88,6 +89,11 @@ import vesta.shared.generated.resources.shopping_quantity
 import vesta.shared.generated.resources.shopping_remaining
 import vesta.shared.generated.resources.shopping_more_options
 import vesta.shared.generated.resources.shopping_title
+import vesta.shared.generated.resources.shopping_delete_all
+import vesta.shared.generated.resources.shopping_delete_all_cancel
+import vesta.shared.generated.resources.shopping_delete_all_confirm
+import vesta.shared.generated.resources.shopping_delete_all_message
+import vesta.shared.generated.resources.shopping_delete_all_title
 import vesta.shared.generated.resources.shopping_uncheck_all
 
 private val ShoppingListTabletBreakpoint = 600.dp
@@ -99,6 +105,9 @@ internal object ShoppingListTestTags {
     const val RemainingCounter = "shopping_remaining_counter"
     const val OverflowButton = "shopping_overflow_button"
     const val UncheckAllItem = "shopping_uncheck_all_item"
+    const val DeleteAllItem = "shopping_delete_all_item"
+    const val DeleteAllConfirmButton = "shopping_delete_all_confirm_button"
+    const val DeleteAllCancelButton = "shopping_delete_all_cancel_button"
 
     /** Tag for the swipe-to-delete wrapper of the item with the given [key]; its semantic action `Dismiss` deletes it. */
     fun swipeToDelete(key: String) = "shopping_swipe_delete_$key"
@@ -137,7 +146,7 @@ fun ShoppingListScreen(
             state.items, modifier, onItemSelected, onBack, onAddItem,
             selectedTags = state.selectedTags, onToggleTag = viewModel::toggleTag,
             onToggleCrossedOff = viewModel::toggleCrossedOff, onSetProgress = viewModel::setProgress,
-            onUncheckAll = viewModel::uncheckAll, onDeleteItem = viewModel::remove,
+            onUncheckAll = viewModel::uncheckAll, onDeleteItem = viewModel::remove, onDeleteAll = viewModel::removeAll,
         )
     }
 }
@@ -151,7 +160,8 @@ fun ShoppingListScreen(
  *
  * Swiping a row either way (partway reveals a red background with a trash can) deletes the item via [onDeleteItem].
  *
- * The top bar's overflow menu has one entry, "Uncheck all items", which calls [onUncheckAll].
+ * The top bar's overflow menu has two entries: "Uncheck all items", which calls [onUncheckAll], and "Delete all items",
+ * which asks for confirmation and then calls [onDeleteAll].
  *
  * Under the top bar (and under the filter chips, when shown) a line counts the items still to do ("4 of 12 items
  * remaining"): crossed-off, partly got and out-of-stock items all count as checked off, and the filter does not change
@@ -175,7 +185,9 @@ fun ShoppingListScreen(
     onSetProgress: (key: String, got: Int, outOfStock: Boolean) -> Unit = { _, _, _ -> },
     onUncheckAll: () -> Unit = {},
     onDeleteItem: (key: String) -> Unit = {},
+    onDeleteAll: () -> Unit = {},
 ) {
+    var confirmDeleteAll by remember { mutableStateOf(false) }
     var sheetKey by remember { mutableStateOf<String?>(null) }
     val filterDescription = stringResource(Res.string.shopping_filter_label)
     var menuOpen by remember { mutableStateOf(false) }
@@ -201,6 +213,14 @@ fun ShoppingListScreen(
                                     onUncheckAll()
                                 },
                                 modifier = Modifier.testTag(ShoppingListTestTags.UncheckAllItem),
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.shopping_delete_all)) },
+                                onClick = {
+                                    menuOpen = false
+                                    confirmDeleteAll = true
+                                },
+                                modifier = Modifier.testTag(ShoppingListTestTags.DeleteAllItem),
                             )
                         }
                     }
@@ -345,6 +365,29 @@ fun ShoppingListScreen(
                 contentDescription = stringResource(Res.string.shopping_add_item),
             )
         }
+    }
+
+    if (confirmDeleteAll) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteAll = false },
+            title = { Text(stringResource(Res.string.shopping_delete_all_title)) },
+            text = { Text(stringResource(Res.string.shopping_delete_all_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDeleteAll = false
+                        onDeleteAll()
+                    },
+                    modifier = Modifier.testTag(ShoppingListTestTags.DeleteAllConfirmButton),
+                ) { Text(stringResource(Res.string.shopping_delete_all_confirm)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmDeleteAll = false },
+                    modifier = Modifier.testTag(ShoppingListTestTags.DeleteAllCancelButton),
+                ) { Text(stringResource(Res.string.shopping_delete_all_cancel)) }
+            },
+        )
     }
 
     // Looked up by key so the sheet follows the item as it changes; it closes if the item goes away.

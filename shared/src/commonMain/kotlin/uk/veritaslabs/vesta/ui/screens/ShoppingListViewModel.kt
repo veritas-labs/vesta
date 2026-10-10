@@ -129,6 +129,11 @@ class ShoppingListViewModel(private val source: ShoppingListSource) : ViewModel(
         }
     }
 
+    /** Removes every item from the list. */
+    fun removeAll() {
+        viewModelScope.launch { uiState.value.items.forEach { source.remove(it.key) } }
+    }
+
     fun remove(key: String) {
         viewModelScope.launch { source.remove(key) }
     }

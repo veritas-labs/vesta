@@ -112,6 +112,41 @@ class ShoppingListScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun deleteAllInTheOverflowMenuDeletesOnlyAfterConfirming() = runComposeUiTest {
+        // Arrange
+        var deletedAll = 0
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), onDeleteAll = { deletedAll++ }) } }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.OverflowButton).performClick()
+        onNodeWithTag(ShoppingListTestTags.DeleteAllItem).performClick()
+        val deletedBeforeConfirming = deletedAll
+        onNodeWithTag(ShoppingListTestTags.DeleteAllConfirmButton).performClick()
+
+        // Assert
+        assertEquals(0, deletedBeforeConfirming)
+        assertEquals(1, deletedAll)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun cancellingTheDeleteAllDialogKeepsTheItems() = runComposeUiTest {
+        // Arrange
+        var deletedAll = false
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), onDeleteAll = { deletedAll = true }) } }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.OverflowButton).performClick()
+        onNodeWithTag(ShoppingListTestTags.DeleteAllItem).performClick()
+        onNodeWithTag(ShoppingListTestTags.DeleteAllCancelButton).performClick()
+
+        // Assert
+        assertEquals(false, deletedAll)
+        onNodeWithTag(ShoppingListTestTags.DeleteAllConfirmButton).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun longPressingARowOpensTheSheetWithItsOptions() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }

@@ -187,4 +187,33 @@ class ShoppingListCrossOffAcceptanceTest {
         }
         assertEquals(false, runBlocking { source.items.first().any { it.isCheckedOff } })
     }
+
+    @Test
+    fun deleteAllInTheOverflowMenuEmptiesTheListOnlyAfterConfirming() = runComposeUiTest {
+        // Arrange — Given a list with milk and eggs
+        val source = newSource().also {
+            runBlocking {
+                it.save(milk)
+                it.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Eggs", quantity = 1))
+            }
+        }
+        show(source)
+
+        // Act — When I open the overflow menu, tap "Delete all items" and then cancel
+        onNodeWithTag(ShoppingListTestTags.OverflowButton).performClick()
+        onNodeWithTag(ShoppingListTestTags.DeleteAllItem).performClick()
+        onNodeWithTag(ShoppingListTestTags.DeleteAllCancelButton).performClick()
+
+        // Assert — Then both items are still there
+        assertEquals(2, runBlocking { source.items.first().size })
+
+        // Act — When I do it again and confirm
+        onNodeWithTag(ShoppingListTestTags.OverflowButton).performClick()
+        onNodeWithTag(ShoppingListTestTags.DeleteAllItem).performClick()
+        onNodeWithTag(ShoppingListTestTags.DeleteAllConfirmButton).performClick()
+
+        // Assert — Then the list is empty
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(ShoppingListTestTags.item("whole milk")).fetchSemanticsNodes().isEmpty() }
+        assertEquals(0, runBlocking { source.items.first().size })
+    }
 }

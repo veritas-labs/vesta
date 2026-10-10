@@ -218,6 +218,11 @@
     <string name="shopping_more_options">More options</string>
     <string name="shopping_delete_item">Delete item</string>
     <string name="shopping_uncheck_all">Uncheck all items</string>
+    <string name="shopping_delete_all">Delete all items</string>
+    <string name="shopping_delete_all_title">Delete all items?</string>
+    <string name="shopping_delete_all_message">Every item will be removed from the shopping list.</string>
+    <string name="shopping_delete_all_confirm">Delete all</string>
+    <string name="shopping_delete_all_cancel">Cancel</string>
     <string name="shopping_filter_label">Filter by tag</string>
     <string name="shopping_tags_label">Tags</string>
     <string name="shopping_tags_hint">Add a tag, e.g. a shop</string>
