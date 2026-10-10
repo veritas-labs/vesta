@@ -143,6 +143,7 @@ class CookbookPhotosAcceptanceTest {
 
     /** Adds a recipe called [title] with a photo through the form, as a person would. */
     private fun ComposeUiTest.addRecipeWithPhoto(title: String) {
+        waitForTag(CookbookTestTags.AddRecipeButton) // the cookbook is blank until it has loaded
         onNodeWithTag(CookbookTestTags.AddRecipeButton).performClick()
         onNodeWithTag(RecipeEditTestTags.TitleField).performTextInput(title)
         onNodeWithTag(RecipeEditTestTags.AddPhotoButton).performScrollTo().performClick()
