@@ -113,8 +113,8 @@ class PantryMerchantsAcceptanceTest {
         // Act — When I open the Pantry
         showPantry(source)
 
-        // Assert — Then milk shows "Buy from: Dave's Veg Stall, Tesco Extra"
-        waitForBuyFrom("milk", "Buy from: Dave's Veg Stall, Tesco Extra")
+        // Assert — Then milk shows "Dave's Veg Stall, Tesco Extra"
+        waitForBuyFrom("milk", "Dave's Veg Stall, Tesco Extra")
     }
 
     @Test
@@ -138,8 +138,8 @@ class PantryMerchantsAcceptanceTest {
         onNodeWithTag(MerchantLinkTestTags.Apply).performClick()
 
         // Assert — Then milk keeps Tesco first and gains the butcher, eggs gets both in the order chosen, bread is untouched
-        waitForBuyFrom("eggs", "Buy from: Hargreaves & Son, Tesco Extra")
-        waitForBuyFrom("milk", "Buy from: Tesco Extra, Hargreaves & Son")
+        waitForBuyFrom("eggs", "Hargreaves & Son, Tesco Extra")
+        waitForBuyFrom("milk", "Tesco Extra, Hargreaves & Son")
         assertEquals(emptyList(), source.merchantsOf("bread"))
     }
 
@@ -163,8 +163,8 @@ class PantryMerchantsAcceptanceTest {
         onNodeWithTag(MerchantLinkTestTags.Apply).performClick()
 
         // Assert — Then both are bought from the butcher only
-        waitForBuyFrom("milk", "Buy from: Hargreaves & Son")
-        waitForBuyFrom("eggs", "Buy from: Hargreaves & Son")
+        waitForBuyFrom("milk", "Hargreaves & Son")
+        waitForBuyFrom("eggs", "Hargreaves & Son")
     }
 
     @Test
@@ -188,7 +188,7 @@ class PantryMerchantsAcceptanceTest {
         onNodeWithTag(MerchantLinkTestTags.Apply).performClick()
 
         // Assert — Then both are bought from the stall first, then Tesco
-        waitForBuyFrom("milk", "Buy from: Dave's Veg Stall, Tesco Extra")
-        waitForBuyFrom("eggs", "Buy from: Dave's Veg Stall, Tesco Extra")
+        waitForBuyFrom("milk", "Dave's Veg Stall, Tesco Extra")
+        waitForBuyFrom("eggs", "Dave's Veg Stall, Tesco Extra")
     }
 }

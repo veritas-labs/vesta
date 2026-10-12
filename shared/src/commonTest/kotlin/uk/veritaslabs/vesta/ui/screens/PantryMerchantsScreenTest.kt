@@ -36,7 +36,7 @@ class PantryMerchantsScreenTest {
         // (no interaction — checking the initial state)
 
         // Assert
-        onNodeWithTag(PantryTestTags.buyFrom("milk"), useUnmergedTree = true).assertTextEquals("Buy from: Hargreaves & Son, Tesco Extra")
+        onNodeWithTag(PantryTestTags.buyFrom("milk"), useUnmergedTree = true).assertTextEquals("Hargreaves & Son, Tesco Extra")
     }
 
     @Test

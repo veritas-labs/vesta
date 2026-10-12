@@ -63,9 +63,9 @@ A Pantry item can be bought from many merchants, in priority order (2026-10-12).
   A write that would not change the list writes nothing. Repeated and blank keys are dropped (first position wins).
 - **`PantryItemDetails.merchantKeys`** is null for "leave as is" (the shopping-list form, stock steppers), a list to set
   it; renaming an item moves its merchants to the new dedup key unless the edit set them.
-- **One item:** the Pantry item form has a *Buy from* section (only when the Home's merchants are passed in): its merchants
+- **One item:** the Pantry item form has a *Preferred merchants* section (only when the Home's merchants are passed in): its merchants
   with move up / move down / remove buttons, and a chip for each other merchant that adds it at the end. The Pantry row
-  shows *Buy from: A, B*.
+  shows a shopfront icon then *A, B*.
 - **Batch update:** long-press a Pantry row to select (taps then pick or drop rows; the top bar shows the count and a
   merchants button). The dialog offers **Add** (appended at the lowest priority, skipping merchants an item already
   has), **Remove**, or **Replace** (exactly the chosen ordered list; empty clears them). It is applied to all selected

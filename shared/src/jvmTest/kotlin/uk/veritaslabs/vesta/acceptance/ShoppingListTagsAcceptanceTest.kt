@@ -37,6 +37,8 @@ import uk.veritaslabs.vesta.ui.screens.PantryItemEditScreen
 import uk.veritaslabs.vesta.ui.screens.PantryItemEditTestTags
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemFormLabels
+import uk.veritaslabs.vesta.ui.screens.ShoppingListFilterScreen
+import uk.veritaslabs.vesta.ui.screens.ShoppingListFilterTestTags
 import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
 import uk.veritaslabs.vesta.ui.screens.ShoppingListScreen
 import uk.veritaslabs.vesta.ui.screens.ShoppingListTestTags
@@ -80,6 +82,7 @@ class ShoppingListTagsAcceptanceTest {
             val viewModel = remember { ShoppingListViewModel(source) }
             var editing by remember { mutableStateOf<ShoppingItemDetails?>(null) }
             var formOpen by remember { mutableStateOf(false) }
+            var filterOpen by remember { mutableStateOf(false) }
             val items by viewModel.uiState.collectAsState()
             VestaTheme {
                 if (formOpen) {
@@ -91,10 +94,13 @@ class ShoppingListTagsAcceptanceTest {
                         onSave = { viewModel.save(it.toShoppingDetails()); formOpen = false },
                         onCancel = { formOpen = false },
                     )
+                } else if (filterOpen) {
+                    ShoppingListFilterScreen(viewModel, onBack = { filterOpen = false })
                 } else {
                     ShoppingListScreen(
                         viewModel,
                         Modifier,
+                        onOpenFilter = { filterOpen = true },
                         onItemSelected = { item: ShoppingListItem -> editing = item.toDetails(); formOpen = true },
                         onAddItem = { editing = null; formOpen = true },
                     )
@@ -117,7 +123,12 @@ class ShoppingListTagsAcceptanceTest {
         onNodeWithTag(ShoppingListTestTags.EditItemButton).performClick()
     }
 
-    private fun ComposeUiTest.tapFilter(tag: String) = onNodeWithTag(ShoppingListTestTags.filterChip(tag)).performClick()
+    /** Opens the filter screen from the settings icon, taps the chip for [tag], and goes back to the list. */
+    private fun ComposeUiTest.tapFilter(tag: String) {
+        onNodeWithTag(ShoppingListTestTags.FilterButton).performClick()
+        onNodeWithTag(ShoppingListTestTags.filterChip(tag)).performClick()
+        onNodeWithTag(ShoppingListFilterTestTags.BackButton).performClick()
+    }
 
     @Test
     fun filteringToTheShopImStandingInShowsOnlyItemsPlannedForIt() = runComposeUiTest {

@@ -228,7 +228,7 @@ val ShoppingItemFormLabels = ItemFormLabels(
  * contains what's typed (best matches first, at most [MaxSuggestions]); picking one fills in its name, categories,
  * package size and barcode.
  *
- * When [merchants] is given (the Pantry form, with the Home's merchants) a "Buy from" section edits the item's ordered
+ * When [merchants] is given (the Pantry form, with the Home's merchants) a "Preferred merchants" section edits the item's ordered
  * merchants (ADR-026): add from the merchants not yet listed, move up or down in priority, remove. Without it the form
  * leaves the item's merchants alone.
  *

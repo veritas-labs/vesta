@@ -241,34 +241,145 @@ class ShoppingListScreenTest {
     private val farmMilk = ShoppingListItem("whole milk", "Dairy", null, "Whole Milk", 1, "", tags = listOf("Farm shop"))
     private val butcherMince = ShoppingListItem("mince", "Meat", null, "Beef Mince", 1, "", tags = listOf("Butcher"))
 
+    private val tescoBeans = ShoppingListItem("beans", "Tins", null, "Baked Beans", 1, "", merchantKeys = listOf("tesco"))
+    private val butcherSausages = ShoppingListItem("sausages", "Meat", null, "Sausages", 1, "", merchantKeys = listOf("butcher"))
+    private val merchants = listOf(Merchant(key = "tesco", name = "Tesco"), Merchant(key = "butcher", name = "Butcher"), Merchant(key = "unused", name = "Unused"))
+
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun showsAFilterChipForEachTagInUse() = runComposeUiTest {
+    fun showsAMerchantChipForEachMerchantAnItemIsBoughtFrom() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { ShoppingListScreen(items = listOf(farmMilk, butcherMince)) } }
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(tescoBeans, butcherSausages), merchants = merchants) } }
 
         // Act
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithTag(ShoppingListTestTags.filterChip("Farm shop")).assertIsDisplayed()
-        onNodeWithTag(ShoppingListTestTags.filterChip("Butcher")).assertIsDisplayed()
+        onNodeWithTag(ShoppingListTestTags.merchantChip("tesco")).assertIsDisplayed()
+        onNodeWithTag(ShoppingListTestTags.merchantChip("butcher")).assertIsDisplayed()
+        onNodeWithTag(ShoppingListTestTags.merchantChip("unused")).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun tappingAFilterChipReportsItsTag() = runComposeUiTest {
+    fun anItemShowsWhereItIsBoughtFrom() = runComposeUiTest {
+        // Arrange
+        val item = tescoBeans.copy(merchantKeys = listOf("tesco", "butcher"))
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(item), merchants = merchants) } }
+
+        // Act
+        // (no user interaction — checking the row)
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.buyFrom("beans"), useUnmergedTree = true).assertTextEquals("Tesco, Butcher")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingAMerchantChipReportsItsKey() = runComposeUiTest {
         // Arrange
         var toggled: String? = null
         setContent {
-            VestaTheme { ShoppingListScreen(items = listOf(farmMilk, butcherMince), onToggleTag = { toggled = it }) }
+            VestaTheme {
+                ShoppingListScreen(items = listOf(tescoBeans, butcherSausages), merchants = merchants, onToggleMerchant = { toggled = it })
+            }
         }
 
         // Act
+        onNodeWithTag(ShoppingListTestTags.merchantChip("butcher")).performClick()
+
+        // Assert
+        assertEquals("butcher", toggled)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aSelectedMerchantHidesItemsBoughtElsewhere() = runComposeUiTest {
+        // Arrange
+        setContent {
+            VestaTheme {
+                ShoppingListScreen(items = listOf(tescoBeans, butcherSausages), merchants = merchants, selectedMerchants = setOf("butcher"))
+            }
+        }
+
+        // Act
+        // (no user interaction — checking the filtered state)
+
+        // Assert
+        onNodeWithText("Sausages").assertIsDisplayed()
+        onNodeWithText("Baked Beans").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun hideCheckedHidesCheckedOffItems() = runComposeUiTest {
+        // Arrange
+        val done = milk.copy(got = milk.quantity)
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(done, tescoBeans), hideChecked = true) } }
+
+        // Act
+        // (no user interaction — checking the filtered state)
+
+        // Assert
+        onNodeWithText("Baked Beans").assertIsDisplayed()
+        onNodeWithText("Whole Milk").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theSettingsIconOpensTheFilterScreen() = runComposeUiTest {
+        // Arrange
+        var opened = false
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), onOpenFilter = { opened = true }) } }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.FilterButton).performClick()
+
+        // Assert
+        assertEquals(true, opened)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theFilterScreenShowsAChipForEachTagAndReportsTaps() = runComposeUiTest {
+        // Arrange
+        var toggled: String? = null
+        setContent {
+            VestaTheme {
+                ShoppingListFilterScreen(
+                    tags = listOf("Butcher", "Farm shop"), selectedTags = emptySet(), onToggleTag = { toggled = it },
+                    hideChecked = false, onHideCheckedChange = {},
+                )
+            }
+        }
+
+        // Act
+        onNodeWithTag(ShoppingListTestTags.filterChip("Farm shop")).assertIsDisplayed()
         onNodeWithTag(ShoppingListTestTags.filterChip("Butcher")).performClick()
 
         // Assert
         assertEquals("Butcher", toggled)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theFilterScreenSwitchReportsHideChecked() = runComposeUiTest {
+        // Arrange
+        var hide: Boolean? = null
+        setContent {
+            VestaTheme {
+                ShoppingListFilterScreen(
+                    tags = emptyList(), selectedTags = emptySet(), onToggleTag = {},
+                    hideChecked = false, onHideCheckedChange = { hide = it },
+                )
+            }
+        }
+
+        // Act
+        onNodeWithTag(ShoppingListFilterTestTags.HideCheckedSwitch).performClick()
+
+        // Assert
+        assertEquals(true, hide)
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -289,15 +400,15 @@ class ShoppingListScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun showsNoFilterChipsWhenNoItemHasATag() = runComposeUiTest {
+    fun showsNoMerchantChipsWhenNoItemHasAMerchant() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), merchants = merchants) } }
 
         // Act
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithTag(ShoppingListTestTags.filterChip("Farm shop")).assertDoesNotExist()
+        onNodeWithTag(ShoppingListTestTags.merchantChip("tesco")).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)

@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -35,6 +37,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_down
 import vesta.shared.generated.resources.ic_arrow_up
+import vesta.shared.generated.resources.ic_building_store
 import vesta.shared.generated.resources.ic_close
 import vesta.shared.generated.resources.pantry_buy_from_add
 import vesta.shared.generated.resources.pantry_buy_from_label
@@ -279,4 +282,24 @@ private fun MerchantLinkDialogTabletLightPreview() {
 @Composable
 private fun MerchantLinkDialogTabletDarkPreview() {
     VestaTheme(darkTheme = true) { MerchantLinkDialog(3, MerchantLinkPreviewMerchants, {}, {}) }
+}
+
+/** A row's "where to buy it" line: a shopfront icon, then the merchants' [names] (highest priority first); [textModifier] is for the names. */
+@Composable
+internal fun BuyFromLine(names: List<String>, modifier: Modifier = Modifier, textModifier: Modifier = Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+        Icon(
+            painter = painterResource(Res.drawable.ic_building_store),
+            contentDescription = stringResource(Res.string.pantry_buy_from_label),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = names.joinToString(", "),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = textModifier,
+        )
+    }
 }

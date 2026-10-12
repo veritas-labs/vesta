@@ -181,8 +181,7 @@
     <string name="pantry_stock_decrease">Decrease stock</string>
     <string name="pantry_category_empty">No items yet</string>
 
-    <string name="pantry_buy_from_label">Buy from</string>
-    <string name="pantry_buy_from_row">Buy from: %1$s</string>
+    <string name="pantry_buy_from_label">Preferred merchants</string>
     <string name="pantry_buy_from_none">No merchants yet. Add some under Marketplace, Local Merchants.</string>
     <string name="pantry_buy_from_add">Add a merchant</string>
     <string name="pantry_buy_from_move_up">Move %1$s up</string>
@@ -244,6 +243,12 @@
     <string name="shopping_delete_all_confirm">Delete all</string>
     <string name="shopping_delete_all_cancel">Cancel</string>
     <string name="shopping_filter_label">Filter by tag</string>
+    <string name="shopping_filter_merchants_label">Filter by merchant</string>
+    <string name="shopping_filter_open">Filter options</string>
+    <string name="shopping_filter_title">Filter shopping list</string>
+    <string name="shopping_filter_tags_heading">Tags</string>
+    <string name="shopping_filter_no_tags">No items have tags yet.</string>
+    <string name="shopping_filter_hide_checked">Hide checked items</string>
     <string name="shopping_tags_label">Tags</string>
     <string name="shopping_tags_hint">Add a tag, e.g. a shop</string>
     <string name="shopping_tags_add">Add tag</string>

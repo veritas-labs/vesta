@@ -55,7 +55,6 @@ import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_add_item
 import vesta.shared.generated.resources.pantry_back
-import vesta.shared.generated.resources.pantry_buy_from_row
 import vesta.shared.generated.resources.pantry_categories_title
 import vesta.shared.generated.resources.pantry_category_empty
 import vesta.shared.generated.resources.pantry_empty_subtitle
@@ -82,7 +81,7 @@ internal object PantryTestTags {
     const val SelectMerchantsButton = "pantry_select_merchants_button"
     const val SelectedCount = "pantry_selected_count"
 
-    /** Tag for the "Buy from: ..." line of the row with the given [key]. */
+    /** Tag for the merchant names of the merchants line of the row with the given [key]. */
     fun buyFrom(key: String) = "pantry_buy_from_$key"
 
     /** Tag for the row of the Pantry entry with the given [key] (its dedup key — see ADR-008). */
@@ -424,12 +423,7 @@ private fun PantryItemRow(
                 }
             }
             if (buyFrom.isNotEmpty()) {
-                Text(
-                    text = stringResource(Res.string.pantry_buy_from_row, buyFrom.joinToString(", ")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag(PantryTestTags.buyFrom(item.key)),
-                )
+                BuyFromLine(buyFrom, textModifier = Modifier.testTag(PantryTestTags.buyFrom(item.key)))
             }
         }
         Spacer(Modifier.width(12.dp))

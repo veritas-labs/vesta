@@ -66,15 +66,18 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
+import vesta.shared.generated.resources.ic_building_store
 import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
+import vesta.shared.generated.resources.ic_adjustments
 import vesta.shared.generated.resources.ic_tag
 import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.shopping_add_item
 import vesta.shared.generated.resources.shopping_empty_subtitle
-import vesta.shared.generated.resources.shopping_filter_label
+import vesta.shared.generated.resources.shopping_filter_merchants_label
+import vesta.shared.generated.resources.shopping_filter_open
 import vesta.shared.generated.resources.shopping_delete_item
 import vesta.shared.generated.resources.shopping_edit_item
 import vesta.shared.generated.resources.shopping_empty_title
@@ -104,6 +107,7 @@ internal object ShoppingListTestTags {
     const val AddItemButton = "shopping_add_item_button"
     const val RemainingCounter = "shopping_remaining_counter"
     const val OverflowButton = "shopping_overflow_button"
+    const val FilterButton = "shopping_filter_button"
     const val UncheckAllItem = "shopping_uncheck_all_item"
     const val DeleteAllItem = "shopping_delete_all_item"
     const val DeleteAllConfirmButton = "shopping_delete_all_confirm_button"
@@ -112,8 +116,14 @@ internal object ShoppingListTestTags {
     /** Tag for the swipe-to-delete wrapper of the item with the given [key]; its semantic action `Dismiss` deletes it. */
     fun swipeToDelete(key: String) = "shopping_swipe_delete_$key"
 
-    /** Tag for the filter chip of the tag [name]. */
+    /** Tag for the filter chip of the tag [name] (on the filter screen). */
     fun filterChip(name: String) = "shopping_filter_chip_$name"
+
+    /** Tag for the merchants line of the item with the given [key]. */
+    fun buyFrom(key: String) = "shopping_buy_from_$key"
+
+    /** Tag for the chip of the merchant with the given [key]. */
+    fun merchantChip(key: String) = "shopping_merchant_chip_$key"
 
     /** Tag for the row of the item with the given [key] (its dedup key — see ADR-008). */
     fun item(key: String) = "shopping_item_$key"
@@ -137,14 +147,18 @@ fun ShoppingListScreen(
     onItemSelected: (ShoppingListItem) -> Unit = {},
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
+    onOpenFilter: () -> Unit = {},
+    merchants: List<Merchant> = emptyList(),
+    pantryItems: List<PantryListItem> = emptyList(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
         Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
     } else {
         ShoppingListScreen(
-            state.items, modifier, onItemSelected, onBack, onAddItem,
-            selectedTags = state.selectedTags, onToggleTag = viewModel::toggleTag,
+            withMerchantKeys(state.items, pantryItems), modifier, onItemSelected, onBack, onAddItem,
+            selectedTags = state.selectedTags, hideChecked = state.hideChecked, onOpenFilter = onOpenFilter,
+            merchants = merchants, selectedMerchants = state.selectedMerchants, onToggleMerchant = viewModel::toggleMerchant,
             onToggleCrossedOff = viewModel::toggleCrossedOff, onSetProgress = viewModel::setProgress,
             onUncheckAll = viewModel::uncheckAll, onDeleteItem = viewModel::remove, onDeleteAll = viewModel::removeAll,
         )
@@ -167,9 +181,12 @@ fun ShoppingListScreen(
  * remaining"): crossed-off, partly got and out-of-stock items all count as checked off, and the filter does not change
  * the count.
  *
- * When any item has tags, a row of filter chips (one per tag) sits under the top bar: [selectedTags] (lower-cased) are
- * the chips switched on, [onToggleTag] is called with a chip's tag when it is tapped, and with any on, only the items
- * carrying one of them are shown (see [filterByTags]).
+ * When any item is bought from a merchant in [merchants], a row of chips (one per such merchant) sits under the top bar:
+ * [selectedMerchants] (keys) are the chips switched on, [onToggleMerchant] is called with a chip's merchant key when it
+ * is tapped, and with any on, only the items bought from one of them are shown (see [filterByMerchants]).
+ *
+ * The settings icon in the top bar calls [onOpenFilter] (the filter screen, [ShoppingListFilterScreen]); [selectedTags]
+ * (lower-cased) and [hideChecked] are what it has set, and narrow the list too (see [applyShoppingFilters]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -180,7 +197,11 @@ fun ShoppingListScreen(
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
     selectedTags: Set<String> = emptySet(),
-    onToggleTag: (String) -> Unit = {},
+    hideChecked: Boolean = false,
+    onOpenFilter: () -> Unit = {},
+    merchants: List<Merchant> = emptyList(),
+    selectedMerchants: Set<String> = emptySet(),
+    onToggleMerchant: (String) -> Unit = {},
     onToggleCrossedOff: (ShoppingListItem) -> Unit = {},
     onSetProgress: (key: String, got: Int, outOfStock: Boolean) -> Unit = { _, _, _ -> },
     onUncheckAll: () -> Unit = {},
@@ -189,7 +210,7 @@ fun ShoppingListScreen(
 ) {
     var confirmDeleteAll by remember { mutableStateOf(false) }
     var sheetKey by remember { mutableStateOf<String?>(null) }
-    val filterDescription = stringResource(Res.string.shopping_filter_label)
+    val filterDescription = stringResource(Res.string.shopping_filter_merchants_label)
     var menuOpen by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val contentPadding = if (maxWidth >= ShoppingListTabletBreakpoint) 24.dp else 16.dp
@@ -198,6 +219,12 @@ fun ShoppingListScreen(
             TopAppBar(
                 title = { Text(stringResource(Res.string.shopping_title)) },
                 actions = {
+                    IconButton(onClick = onOpenFilter, modifier = Modifier.testTag(ShoppingListTestTags.FilterButton)) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_adjustments),
+                            contentDescription = stringResource(Res.string.shopping_filter_open),
+                        )
+                    }
                     Box {
                         IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(ShoppingListTestTags.OverflowButton)) {
                             Icon(
@@ -239,22 +266,21 @@ fun ShoppingListScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
-            val tags = shoppingTags(items)
-            if (tags.isNotEmpty()) {
-                val activeTags = selectedTags.filter { selected -> tags.any { it.lowercase() == selected } }.toSet()
+            val shownMerchants = shoppingMerchants(items, merchants)
+            if (shownMerchants.isNotEmpty()) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = contentPadding),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth().semantics { contentDescription = filterDescription },
                 ) {
-                    items(tags, key = { it.lowercase() }) { tag ->
+                    items(shownMerchants, key = { it.key }) { merchant ->
                         FilterChip(
-                            selected = tag.lowercase() in activeTags,
-                            onClick = { onToggleTag(tag) },
-                            label = { Text(tag) },
+                            selected = merchant.key in selectedMerchants,
+                            onClick = { onToggleMerchant(merchant.key) },
+                            label = { Text(merchant.name) },
                             leadingIcon = {
                                 Icon(
-                                    painter = painterResource(Res.drawable.ic_tag),
+                                    painter = painterResource(Res.drawable.ic_building_store),
                                     contentDescription = null,
                                     modifier = Modifier.size(FilterChipDefaults.IconSize),
                                 )
@@ -262,7 +288,7 @@ fun ShoppingListScreen(
                             colors = FilterChipDefaults.filterChipColors(
                                 iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
-                            modifier = Modifier.testTag(ShoppingListTestTags.filterChip(tag)),
+                            modifier = Modifier.testTag(ShoppingListTestTags.merchantChip(merchant.key)),
                         )
                     }
                 }
@@ -299,7 +325,7 @@ fun ShoppingListScreen(
                         }
                     }
                 } else {
-                    val grouped = filterByTags(items, selectedTags)
+                    val grouped = applyShoppingFilters(items, selectedTags, selectedMerchants, hideChecked)
                         .sortedWith(compareBy({ it.primaryCategory }, { it.secondaryCategory }, { it.title }))
                         .groupBy { it.primaryCategory }
                     LazyColumn(
@@ -336,6 +362,7 @@ fun ShoppingListScreen(
                                                 item = item,
                                                 onClick = { onToggleCrossedOff(item) },
                                                 onLongClick = { sheetKey = item.key },
+                                                buyFrom = linkedMerchants(item.merchantKeys, merchants).map { it.name },
                                                 modifier = Modifier.testTag(ShoppingListTestTags.item(item.key)),
                                             )
                                         }
@@ -526,6 +553,7 @@ private fun ShoppingItemRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    buyFrom: List<String> = emptyList(),
 ) {
     val shape = MaterialTheme.shapes.medium
     val faded = item.isCrossedOff || item.outOfStock
@@ -565,6 +593,9 @@ private fun ShoppingItemRow(
                         textDecoration = strike,
                     )
                 }
+            }
+            if (buyFrom.isNotEmpty()) {
+                BuyFromLine(buyFrom, textModifier = Modifier.testTag(ShoppingListTestTags.buyFrom(item.key)))
             }
             if (item.tags.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -606,36 +637,42 @@ private fun ShoppingItemRow(
 }
 
 private val ShoppingPreviewItems = listOf(
-    ShoppingListItem("5000157024671", "Condiments", "Ketchup", "Heinz Ketchup", 2, "500ml", "5000157024671", listOf("Supermarket")),
-    ShoppingListItem("whole milk", "Dairy", "Milk", "Whole Milk", 4, "2 pint", tags = listOf("Farm shop"), got = 2),
-    ShoppingListItem("brie", "Dairy", "Cheese", "Brie", 1, "250g", tags = listOf("Supermarket"), got = 1),
+    ShoppingListItem("5000157024671", "Condiments", "Ketchup", "Heinz Ketchup", 2, "500ml", "5000157024671", listOf("Supermarket"), merchantKeys = listOf("tesco")),
+    ShoppingListItem("whole milk", "Dairy", "Milk", "Whole Milk", 4, "2 pint", tags = listOf("Farm shop"), got = 2, merchantKeys = listOf("farm")),
+    ShoppingListItem("brie", "Dairy", "Cheese", "Brie", 1, "250g", tags = listOf("Supermarket"), got = 1, merchantKeys = listOf("tesco")),
     ShoppingListItem("bananas", "Fruit & Vegetables", null, "Bananas", 1, "6 pack", tags = listOf("Supermarket"), got = 1),
-    ShoppingListItem("carrots", "Fruit & Vegetables", null, "Carrots", 2, "1kg", tags = listOf("Farm shop")),
-    ShoppingListItem("sausages", "Meat", null, "Sausages", 1, "8 pack", tags = listOf("Butcher"), outOfStock = true),
+    ShoppingListItem("carrots", "Fruit & Vegetables", null, "Carrots", 2, "1kg", tags = listOf("Farm shop"), merchantKeys = listOf("farm")),
+    ShoppingListItem("sausages", "Meat", null, "Sausages", 1, "8 pack", tags = listOf("Butcher"), outOfStock = true, merchantKeys = listOf("butcher")),
+)
+
+private val ShoppingPreviewMerchants = listOf(
+    Merchant(key = "tesco", name = "Tesco", type = MerchantType.NationalChain),
+    Merchant(key = "farm", name = "Farm shop"),
+    Merchant(key = "butcher", name = "Butcher"),
 )
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun ShoppingListScreenPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems) }
+    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun ShoppingListScreenPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems) }
+    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun ShoppingListScreenTabletLightPreview() {
-    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems) }
+    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun ShoppingListScreenTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems) }
+    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants) }
 }
 
 @Preview(name = "Empty Light", group = "Phone", device = Devices.PHONE)
@@ -665,23 +702,23 @@ private fun ShoppingListScreenEmptyTabletDarkPreview() {
 @Preview(name = "Filtered Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun ShoppingListScreenFilteredPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
+    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants, selectedMerchants = setOf("farm"), hideChecked = true) }
 }
 
 @Preview(name = "Filtered Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun ShoppingListScreenFilteredPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
+    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants, selectedMerchants = setOf("farm"), hideChecked = true) }
 }
 
 @Preview(name = "Filtered Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun ShoppingListScreenFilteredTabletLightPreview() {
-    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
+    VestaTheme(darkTheme = false) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants, selectedMerchants = setOf("farm"), hideChecked = true) }
 }
 
 @Preview(name = "Filtered Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun ShoppingListScreenFilteredTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, selectedTags = setOf("farm shop")) }
+    VestaTheme(darkTheme = true) { ShoppingListScreen(items = ShoppingPreviewItems, merchants = ShoppingPreviewMerchants, selectedMerchants = setOf("farm"), hideChecked = true) }
 }
