@@ -2,6 +2,8 @@
 
 ## Status
 
+Approval, per-Home scope and management are superseded by [[ADR-027]] (assistants): the `AgentAccess` table is no longer used.
+
 Accepted — 2026-09-30; implemented (see "Implementation notes"). Independent of [[ADR-005]]/[[ADR-006]]'s document sync (it uses the same x0x direct-message
 channel but a different message family, see "Routing"). Uses [[ADR-008]]'s Pantry document model as its first
 target.

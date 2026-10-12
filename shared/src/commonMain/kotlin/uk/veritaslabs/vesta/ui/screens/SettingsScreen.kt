@@ -55,6 +55,7 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_chevron_right
 import vesta.shared.generated.resources.settings_application_build
+import vesta.shared.generated.resources.settings_assistants
 import vesta.shared.generated.resources.settings_application_version
 import vesta.shared.generated.resources.settings_back
 import vesta.shared.generated.resources.settings_device_platform
@@ -98,6 +99,7 @@ internal object SettingsTestTags {
     const val VersionRow = "settings_application_version"
     const val BuildRow = "settings_application_build"
     const val SyncedDevicesRow = "settings_synced_devices"
+    const val AssistantsRow = "settings_assistants"
     const val YourNameRow = "settings_your_name"
     const val PlatformRow = "settings_device_platform"
     const val NetworkStatusRow = "settings_network_status"
@@ -130,6 +132,7 @@ fun SettingsScreen(
     onUseMobileDataChange: (Boolean) -> Unit = {},
     mobileDataAvailable: Boolean = getPlatform().hasMobileData,
     onSyncedDevicesClick: () -> Unit = {},
+    onAssistantsClick: (() -> Unit)? = null,
     onNetworkStatusClick: () -> Unit = {},
     onPeersClick: () -> Unit = {},
     onOpenSourceLicensesClick: () -> Unit = {},
@@ -186,6 +189,19 @@ fun SettingsScreen(
                 }
                 item {
                     SettingsSection(stringResource(Res.string.settings_section_application)) {
+                        onAssistantsClick?.let { onClick ->
+                            SettingsRow(
+                                label = stringResource(Res.string.settings_assistants),
+                                modifier = Modifier.testTag(SettingsTestTags.AssistantsRow),
+                                onClick = onClick,
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_chevron_right),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         InfoRow(
                             stringResource(Res.string.settings_application_version),
                             appInfo.version,

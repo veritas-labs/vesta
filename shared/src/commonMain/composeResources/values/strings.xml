@@ -298,9 +298,12 @@
     <string name="home_edit_more_options">More options</string>
     <string name="home_edit_back">Back</string>
 
-    <string name="agent_approval_title">Allow this agent to manage your home?</string>
-    <string name="agent_approval_body">The agent %1$s is trusted on your x0x network and is asking to list your homes and add items to their pantries.</string>
-    <string name="agent_approval_allow">Allow</string>
+    <string name="assistant_request_title">%1$s wants to act for your household</string>
+    <string name="assistant_request_body">It is trusted on your x0x network, but it has no access yet. Review what it may do, or deny it.</string>
+    <string name="assistant_request_review">Review…</string>
+    <string name="assistant_command_title">%1$s needs your OK</string>
+    <string name="assistant_command_body">%1$s (%2$s)</string>
+    <string name="assistant_command_allow_once">Allow once</string>
     <string name="agent_approval_deny">Deny</string>
 
     <string name="synced_devices_title">Paired devices</string>
@@ -648,4 +651,36 @@
     <string name="recipe_edit_step_remove">Remove step</string>
     <string name="recipe_edit_save">Save</string>
     <string name="recipe_edit_cancel">Cancel</string>
+    <string name="settings_assistants">Assistants</string>
+    <string name="assistants_title">Assistants</string>
+    <string name="assistants_back">Back</string>
+    <string name="assistants_add">Add assistant</string>
+    <string name="assistants_empty_title">No assistants yet</string>
+    <string name="assistants_empty_subtitle">An assistant is an AI agent you trust to do things for your household, like adding to the pantry. It never gets a copy of your data.</string>
+    <string name="assistants_pending">Waiting for review</string>
+    <string name="assistants_summary_none">No access</string>
+    <string name="assistants_summary_homes">Acts in %1$d home(s)</string>
+    <string name="assistant_edit_title_new">Add assistant</string>
+    <string name="assistant_edit_title">Assistant</string>
+    <string name="assistant_edit_agent_id">Agent ID</string>
+    <string name="assistant_edit_agent_id_hint">Paste the assistant\'s x0x agent ID</string>
+    <string name="assistant_edit_name">Name</string>
+    <string name="assistant_edit_name_hint">For example, Grok Bot</string>
+    <string name="assistant_edit_trust_title">Trust it on x0x</string>
+    <string name="assistant_edit_trust_body">Vesta only hears from agents your x0x daemon trusts, and says nothing to the rest. On the machine running Vesta, run:</string>
+    <string name="assistant_edit_trust_other_way">The assistant must also trust this device\'s agent ID, so it can hear Vesta\'s replies.</string>
+    <string name="assistant_edit_access">What it may do</string>
+    <string name="assistant_edit_no_homes">You have no homes yet.</string>
+    <string name="assistant_edit_pantry_add">Add to the pantry</string>
+    <string name="assistant_edit_ask_each_time">Ask me each time</string>
+    <string name="assistant_edit_save">Save</string>
+    <string name="assistant_edit_remove">Remove assistant</string>
+    <string name="assistant_edit_remove_title">Remove this assistant?</string>
+    <string name="assistant_edit_remove_body">%1$s will lose all access. Anything it already did stays.</string>
+    <string name="assistant_edit_remove_confirm">Remove</string>
+    <string name="assistant_edit_remove_cancel">Cancel</string>
+    <string name="assistant_activity">Activity</string>
+    <string name="assistant_activity_empty">Nothing yet.</string>
+    <string name="assistant_activity_rejected">Refused</string>
+    <string name="assistant_activity_applied">Done</string>
 </resources>

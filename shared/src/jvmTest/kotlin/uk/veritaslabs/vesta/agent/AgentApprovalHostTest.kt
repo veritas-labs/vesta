@@ -10,7 +10,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -31,16 +30,16 @@ class AgentApprovalHostTest {
     @AfterTest
     fun resetMain() = Dispatchers.resetMain()
 
-    private fun repository() = AgentAccessRepository(openInMemoryDatabase())
+    private fun repository() = AssistantRepository(openInMemoryDatabase())
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun drawsNothingWhenNoAgentIsWaiting() = runComposeUiTest {
         // Arrange
-        val access = repository()
+        val assistants = repository()
 
         // Act
-        setContent { VestaTheme { AgentApprovalHost(access) } }
+        setContent { VestaTheme { AgentApprovalHost(assistants, onReview = {}) } }
 
         // Assert
         onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
@@ -50,11 +49,11 @@ class AgentApprovalHostTest {
     @Test
     fun showsThePromptForAWaitingAgent() = runComposeUiTest {
         // Arrange
-        val access = repository()
-        runBlocking { access.requestApproval("agent-1") }
+        val assistants = repository()
+        runBlocking { assistants.requestApproval("agent-1") }
 
         // Act
-        setContent { VestaTheme { AgentApprovalHost(access) } }
+        setContent { VestaTheme { AgentApprovalHost(assistants, onReview = {}) } }
         waitForIdle()
 
         // Assert
@@ -63,58 +62,88 @@ class AgentApprovalHostTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun allowingApprovesTheAgentAndDismissesThePrompt() = runComposeUiTest {
+    fun reviewingOffersTheAgentToTheReviewScreenWithoutAllowingIt() = runComposeUiTest {
         // Arrange
-        val access = repository()
-        runBlocking { access.requestApproval("agent-1") }
-        setContent { VestaTheme { AgentApprovalHost(access) } }
+        val assistants = repository()
+        runBlocking { assistants.requestApproval("agent-1") }
+        val reviewed = mutableListOf<String>()
+        setContent { VestaTheme { AgentApprovalHost(assistants, onReview = { reviewed += it }) } }
         waitForIdle()
 
         // Act
         onNodeWithTag(AgentApprovalCardTestTags.Allow).performClick()
-        waitUntil { runBlocking { access.pending.first().isEmpty() } }
 
         // Assert
-        assertTrue(runBlocking { access.isAllowed("agent-1") })
-        onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
+        assertEquals(listOf("agent-1"), reviewed)
+        assertFalse(runBlocking { assistants.isActive("agent-1") })
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun denyingDismissesThePromptWithoutApproving() = runComposeUiTest {
         // Arrange
-        val access = repository()
-        runBlocking { access.requestApproval("agent-1") }
-        setContent { VestaTheme { AgentApprovalHost(access) } }
+        val assistants = repository()
+        runBlocking { assistants.requestApproval("agent-1") }
+        setContent { VestaTheme { AgentApprovalHost(assistants, onReview = {}) } }
         waitForIdle()
 
         // Act
         onNodeWithTag(AgentApprovalCardTestTags.Deny).performClick()
-        waitUntil { runBlocking { access.pending.first().isEmpty() } }
+        waitUntil { runBlocking { assistants.pending.first().isEmpty() } }
 
         // Assert
-        assertFalse(runBlocking { access.isAllowed("agent-1") })
+        assertFalse(runBlocking { assistants.isActive("agent-1") })
         onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun queuedAgentsAreOfferedOneAtATimeOldestFirst() = runComposeUiTest {
+    fun aHeldCommandOffersAllowOnceAndAppliesOnlyThatCommand() = runComposeUiTest {
         // Arrange
-        val access = repository()
+        val database = openInMemoryDatabase()
+        val assistants = AssistantRepository(database)
         runBlocking {
-            access.requestApproval("agent-1")
-            access.requestApproval("agent-2")
+            database.homeQueries.insert("home-1", "The Johnsons", "family", 0)
+            assistants.save("agent-1", "Grok Bot", listOf(AssistantGrant("home-1", AssistantCapability.PantryAdd, GrantPolicy.Ask)))
+            assistants.hold("agent-1", "home-1", AssistantCapability.PantryAdd, "c1", "Add 2 × Milk to the Pantry")
         }
-        setContent { VestaTheme { AgentApprovalHost(access) } }
+        setContent { VestaTheme { AgentApprovalHost(assistants, onReview = {}) } }
         waitForIdle()
 
         // Act
         onNodeWithTag(AgentApprovalCardTestTags.Allow).performClick()
-        waitUntil { runBlocking { access.pending.first().map { it.agentId } == listOf("agent-2") } }
+        waitForIdle()
 
         // Assert
-        assertEquals(true, runBlocking { access.isAllowed("agent-1") })
-        onNodeWithTag(AgentApprovalCardTestTags.Card).assertIsDisplayed()
+        onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
+        runBlocking {
+            assertEquals(AccessDecision.Allow, assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c1"))
+            assertEquals(AccessDecision.Ask, assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c1"))
+            assertEquals(AccessDecision.Ask, assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c2"))
+        }
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun denyingAHeldCommandDropsItWithoutAllowingIt() = runComposeUiTest {
+        // Arrange
+        val database = openInMemoryDatabase()
+        val assistants = AssistantRepository(database)
+        runBlocking {
+            database.homeQueries.insert("home-1", "The Johnsons", "family", 0)
+            assistants.save("agent-1", "Grok Bot", listOf(AssistantGrant("home-1", AssistantCapability.PantryAdd, GrantPolicy.Ask)))
+            assistants.hold("agent-1", "home-1", AssistantCapability.PantryAdd, "c1", "Add 2 × Milk to the Pantry")
+        }
+        setContent { VestaTheme { AgentApprovalHost(assistants, onReview = {}) } }
+        waitForIdle()
+
+        // Act
+        onNodeWithTag(AgentApprovalCardTestTags.Deny).performClick()
+        waitForIdle()
+
+        // Assert
+        onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
+        assertEquals(emptyList(), assistants.pendingCommands.value)
+        assertEquals(AccessDecision.Ask, runBlocking { assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c1") })
     }
 }

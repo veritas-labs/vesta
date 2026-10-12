@@ -25,10 +25,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.agent_approval_allow
-import vesta.shared.generated.resources.agent_approval_body
 import vesta.shared.generated.resources.agent_approval_deny
-import vesta.shared.generated.resources.agent_approval_title
 
 private val AgentApprovalCardMaxWidth = 480.dp
 
@@ -47,13 +44,15 @@ fun abbreviateAgentId(agentId: String): String =
     if (agentId.length <= 16) agentId else "${agentId.take(8)}…${agentId.takeLast(4)}"
 
 /**
- * Asks the user whether the x0x agent [agentId] — already trusted on the x0x network — may manage their home:
- * [onAllow] approves it, [onDeny] dismisses the request. Pulls colors/shapes from [VestaTheme]; meant to sit
- * over the current screen (see `AgentApprovalHost`).
+ * Asks the user about an x0x agent that is already trusted on the x0x network: [title] and [body] say what it wants,
+ * [confirmLabel] (tagged [AgentApprovalCardTestTags.Allow]) takes the offered step and [onDeny] dismisses the request.
+ * Pulls colors/shapes from [VestaTheme]; meant to sit over the current screen (see `AgentApprovalHost`).
  */
 @Composable
 fun AgentApprovalCard(
-    agentId: String,
+    title: String,
+    body: String,
+    confirmLabel: String,
     modifier: Modifier = Modifier,
     onAllow: () -> Unit = {},
     onDeny: () -> Unit = {},
@@ -67,12 +66,12 @@ fun AgentApprovalCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = stringResource(Res.string.agent_approval_title),
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = stringResource(Res.string.agent_approval_body, abbreviateAgentId(agentId)),
+                text = body,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -89,13 +88,11 @@ fun AgentApprovalCard(
                     onClick = onAllow,
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.testTag(AgentApprovalCardTestTags.Allow),
-                ) { Text(stringResource(Res.string.agent_approval_allow)) }
+                ) { Text(confirmLabel) }
             }
         }
     }
 }
-
-private const val PreviewAgentId = "63ab3172ff7b4afa6717974c9f05946481a0e9b90e9533da8d332933e781d930"
 
 @Composable
 private fun AgentApprovalCardPhoneContent() {
@@ -103,7 +100,11 @@ private fun AgentApprovalCardPhoneContent() {
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        AgentApprovalCard(agentId = PreviewAgentId)
+        AgentApprovalCard(
+            title = "63ab3172…d930 wants to act for your household",
+            body = "It is trusted on your x0x network, but it has no access yet. Review what it may do, or deny it.",
+            confirmLabel = "Review…",
+        )
     }
 }
 
@@ -113,7 +114,11 @@ private fun AgentApprovalCardTabletContent() {
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        AgentApprovalCard(agentId = PreviewAgentId)
+        AgentApprovalCard(
+            title = "63ab3172…d930 wants to act for your household",
+            body = "It is trusted on your x0x network, but it has no access yet. Review what it may do, or deny it.",
+            confirmLabel = "Review…",
+        )
     }
 }
 

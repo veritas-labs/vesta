@@ -73,7 +73,7 @@ class AgentCommandLogTest {
         log.record("agent-1", "c1", "reply")
 
         // Assert
-        assertEquals(18L, VestaDatabase.Schema.version)
+        assertEquals(19L, VestaDatabase.Schema.version)
         assertEquals("reply", log.reply("agent-1", "c1"))
         assertEquals(emptyList(), migrated.blobQueries.selectAllBlobs().awaitAsList())
         assertEquals(emptyList(), migrated.blobQueries.selectAllWants().awaitAsList())

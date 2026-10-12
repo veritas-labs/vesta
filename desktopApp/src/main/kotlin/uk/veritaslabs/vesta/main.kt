@@ -23,6 +23,7 @@ fun main() = application {
             openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
             openMerchants = { database, homeId -> agentCommands.merchants(database, homeId) },
             backgroundServices = { database -> agentCommands.run(database) },
+            assistantsFor = agentCommands::assistants,
             dataSync = { database, client, devices ->
                 DeviceDataSyncService(
                     client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),

@@ -35,8 +35,10 @@ You need all of these. If any is missing, tell the user exactly what to do
    ```
 4. **The Vesta app is running** on that machine.
 
-There is nothing to configure in Vesta itself: the first time you send a
-command, Vesta shows the user an approval card (see the outcomes below).
+The user decides what you may do in Vesta (Settings → Assistants): which Homes,
+and whether each add needs their tap. They can add you ahead of time by your
+agent id (`x0x agent`), or you can just send a command and they will be asked
+to review you (see the outcomes below). You never get a copy of their data.
 
 ## Workflow
 
@@ -67,7 +69,9 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
 | Result | Meaning | What to do |
 | --- | --- | --- |
 | exit 0, `Accepted: <item> now has <n> in stock` | Done. | Report the item and new stock count. |
-| exit 3, "not approved…" | You're trusted on x0x but the user hasn't approved you in Vesta. A card is now showing in the app. | Ask the user to open Vesta and tap **Allow**, then run the same command again. |
+| exit 3, "not approved…" | You're trusted on x0x but the user hasn't added you in Vesta. A card is now showing in the app. | Ask the user to open Vesta, tap **Review…**, choose what you may do and save, then run the same command again. |
+| exit 3, "not permitted for this home" | You're added, but have no grant to add to that Home (the Home may not exist; Vesta says the same either way). | List the Homes again (you only see Homes you may use). If it isn't there, ask the user to grant you that Home in Settings → Assistants. Don't retry unchanged. |
+| exit 3, "waiting for approval…" | The user set your access to *ask each time* and has been asked. | Tell the user to tap **Allow once** in Vesta, then re-send the **same** command (same `--id`). |
 | exit 3, "unknown home" | That Home id doesn't exist. | List the Homes again and re-ask. |
 | exit 3, anything else | Vesta says the request was malformed; the reason is printed. | Fix the request (e.g. quantity out of range, empty title). Don't retry unchanged. |
 | exit 4, no reply | Silent drop: the daemons don't trust each other (step 3), or the app isn't running. | Ask the user to check trust in **both** directions and that Vesta is open. Don't loop. |

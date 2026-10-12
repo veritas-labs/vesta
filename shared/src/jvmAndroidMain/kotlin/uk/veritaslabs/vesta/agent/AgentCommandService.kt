@@ -33,6 +33,16 @@ class AgentCommandService(
     private var currentShopping: Pair<VestaDatabase, ShoppingListSources>? = null
     private var currentCookbook: Pair<VestaDatabase, CookbookSources>? = null
     private var currentMerchants: Pair<VestaDatabase, MerchantsSources>? = null
+    private var currentAssistants: Pair<VestaDatabase, AssistantRepository>? = null
+
+    /**
+     * The one [AssistantRepository] of [database], shared by the command handler and the UI: held commands waiting
+     * for Allow once live in it, so both must see the same instance.
+     */
+    @Synchronized
+    fun assistants(database: VestaDatabase): AssistantRepository =
+        currentAssistants?.takeIf { it.first === database }?.second
+            ?: AssistantRepository(database, allowlist).also { currentAssistants = database to it }
 
     /** The shared Pantry sources of [database]. */
     @Synchronized
@@ -85,7 +95,7 @@ class AgentCommandService(
         val handler = PantryCommandHandler(
             resolveSource = sources::forHome,
             listHomes = { HomeRepository(database).homes.first().map { HomeRef(it.id, it.name) } },
-            access = AgentAccessRepository(database, allowlist),
+            access = assistants(database),
             commandLog = DatabaseCommandLog(database),
             client = client,
             newId = { "urn:uuid:${Uuid.random()}" },

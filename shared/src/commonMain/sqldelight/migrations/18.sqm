@@ -1,0 +1,36 @@
+-- Version 18 -> 19: adds Assistant, AssistantGrant and AssistantActivity (see uk/veritaslabs/vesta/db/Assistant.sq)
+-- and carries the AgentAccess rows across: an agent that was allowed becomes an active assistant with
+-- ListHomes and PantryAdd on every Home that exists now, policy 'Auto' (what it could do before).
+-- AgentAccess stays in the schema, unused.
+CREATE TABLE IF NOT EXISTS Assistant (
+    agentId TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    addedAt INTEGER NOT NULL,
+    status TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS AssistantGrant (
+    agentId TEXT NOT NULL REFERENCES Assistant(agentId) ON DELETE CASCADE,
+    homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
+    capability TEXT NOT NULL,
+    policy TEXT NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    PRIMARY KEY (agentId, homeId, capability)
+);
+CREATE TABLE IF NOT EXISTS AssistantActivity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    agentId TEXT NOT NULL REFERENCES Assistant(agentId) ON DELETE CASCADE,
+    homeId TEXT,
+    capability TEXT NOT NULL,
+    commandId TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    at INTEGER NOT NULL
+);
+INSERT OR IGNORE INTO Assistant(agentId, name, addedAt, status)
+SELECT agentId, '', updatedAt, CASE status WHEN 'allowed' THEN 'active' ELSE 'pending' END FROM AgentAccess;
+INSERT OR IGNORE INTO AssistantGrant(agentId, homeId, capability, policy, updatedAt)
+SELECT a.agentId, h.id, c.capability, 'Auto', a.updatedAt
+FROM AgentAccess a
+CROSS JOIN Home h
+CROSS JOIN (SELECT 'ListHomes' AS capability UNION ALL SELECT 'PantryAdd') c
+WHERE a.status = 'allowed';

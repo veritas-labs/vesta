@@ -32,8 +32,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import uk.veritaslabs.vesta.agent.AgentAccessRepository
+import uk.veritaslabs.vesta.agent.AssistantRepository
 import uk.veritaslabs.vesta.agent.AgentApprovalHost
+import uk.veritaslabs.vesta.agent.AssistantEditHost
+import uk.veritaslabs.vesta.agent.AssistantsListHost
 import uk.veritaslabs.vesta.db.DatabaseDriverFactory
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.createVestaDatabase
@@ -130,13 +132,16 @@ val LocalSelectedHome = compositionLocalOf<SelectedHome> { error("No SelectedHom
 private data class HomeEditTarget(val homeId: String?, val session: Int)
 
 /** The app-wide settings screens, reached from the Home picker. */
-private enum class SettingsDestination { Settings, SyncedDevices, ProfileName, Peers, NetworkDiagnostics, OpenSourceLicenses }
+/** An assistant open in the editor; a null [agentId] is a new one. */
+private data class AssistantEditTarget(val agentId: String?)
+
+private enum class SettingsDestination { Settings, Assistants, SyncedDevices, ProfileName, Peers, NetworkDiagnostics, OpenSourceLicenses }
 
 /**
  * App root. Shows the Home picker until a Home is selected, then [homeContent] for that Home's id and name, and an
  * `onEditHome` that opens the Home's editor over it.
  * [homes] is the list the picker offers. With a [homeRepository], the picker's create/edit/delete
- * actions are live; without one (previews) they do nothing. With [agentAccess], an agent waiting for the user's
+ * actions are live; without one (previews) they do nothing. With [assistants], an agent waiting for the user's
  * approval is offered over whatever screen is showing. [x0xConnectivity] says whether the device is reaching the x0x network
  * (the Home picker tells waiting join requests so); it polls the local daemon by default. With [deviceSync], the Synced devices screen (under Settings, from the Home picker) lists and
  * removes the user's real devices; without one (previews) it is always empty.
@@ -147,7 +152,7 @@ fun App(
     homes: Flow<List<HomeListItem>> = flowOf(emptyList()),
     selectedHome: SelectedHome = remember { SelectedHome() },
     homeRepository: HomeRepository? = null,
-    agentAccess: AgentAccessRepository? = null,
+    assistants: AssistantRepository? = null,
     deviceSync: DeviceSyncHost? = null,
     homeJoining: HomeJoining? = null,
     profiles: ProfileRepository? = null,
@@ -162,6 +167,8 @@ fun App(
     var editTarget by remember { mutableStateOf<HomeEditTarget?>(null) }
     var pairingSession by remember { mutableStateOf<Int?>(null) }
     var settingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
+    // The assistant being added (null id) or edited, shown over everything so a card's Review… works from inside a Home.
+    var assistantEdit by remember { mutableStateOf<AssistantEditTarget?>(null) }
     // Which opening of the screen to paste an invite link into is showing; unique so each gets a fresh view model.
     var joinSession by remember { mutableStateOf<Int?>(null) }
     var joinSessions by remember { mutableIntStateOf(0) }
@@ -228,6 +235,8 @@ fun App(
                         },
                         onBack = { afterNaming = null },
                     )
+                } else if (assistantEdit != null && assistants != null) {
+                    AssistantEditHost(assistants, assistantEdit?.agentId, homeList, onDone = { assistantEdit = null })
                 } else homeId?.takeIf { editTarget == null }?.let { id ->
                     homeContent(id, homeList.firstOrNull { it.id == id }?.name.orEmpty()) { openEditor(id) }
                 } ?: run {
@@ -270,12 +279,20 @@ fun App(
                                 scope.launch { settings?.setUseMobileData(it) }
                             },
                             onSyncedDevicesClick = { settingsDestination = SettingsDestination.SyncedDevices },
+                            onAssistantsClick = assistants?.let { { settingsDestination = SettingsDestination.Assistants } },
                             onNetworkStatusClick = { settingsDestination = SettingsDestination.NetworkDiagnostics },
                             onPeersClick = { settingsDestination = SettingsDestination.Peers },
                             onOpenSourceLicensesClick = { settingsDestination = SettingsDestination.OpenSourceLicenses },
                             profileName = profile?.displayName,
                             onProfileNameClick = { settingsDestination = SettingsDestination.ProfileName },
                             onBack = { settingsDestination = null },
+                        )
+                    } else if (settingsDestination == SettingsDestination.Assistants && assistants != null) {
+                        AssistantsListHost(
+                            assistants,
+                            onAdd = { assistantEdit = AssistantEditTarget(null) },
+                            onOpen = { assistantEdit = AssistantEditTarget(it) },
+                            onBack = { settingsDestination = SettingsDestination.Settings },
                         )
                     } else if (settingsDestination == SettingsDestination.NetworkDiagnostics) {
                         NetworkDiagnosticsScreen(
@@ -322,7 +339,15 @@ fun App(
                         )
                     }
                 }
-                agentAccess?.let { AgentApprovalHost(it, modifier = Modifier.align(Alignment.BottomCenter)) }
+                // Not over the assistant editor: the card would sit on top of its buttons.
+                assistants?.takeIf { assistantEdit == null }?.let {
+                    AgentApprovalHost(
+                        it,
+                        onReview = { agentId -> assistantEdit = AssistantEditTarget(agentId) },
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        homes = homes,
+                    )
+                }
             }
         }
     }
@@ -690,6 +715,7 @@ fun VestaApp(
     openMerchants: (suspend (VestaDatabase, homeId: String) -> MerchantsSource)? = null,
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
+    assistantsFor: ((VestaDatabase) -> AssistantRepository)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
     blobRuntime: ((VestaDatabase, X0xClient, DeviceDataSync?) -> BlobRuntime)? = null,
     recipeImporter: RecipeImporter? = null,
@@ -709,7 +735,7 @@ fun VestaApp(
     val profiles = remember { ProfileRepository(database, changes = deviceDataSync?.profileChanges) }
     val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
-    val agentAccess = remember { AgentAccessRepository(database) }
+    val assistants = remember { assistantsFor?.invoke(database) ?: AssistantRepository(database) }
     val settings = remember { AppSettingsRepository(database) }
     val deviceSync = remember {
         val service = DeviceSyncService(
@@ -744,7 +770,7 @@ fun VestaApp(
         App(
             homes = homeRepository.homes,
             homeRepository = homeRepository,
-            agentAccess = agentAccess,
+            assistants = assistants,
             deviceSync = deviceSync,
             homeJoining = deviceDataSync?.joining,
             profiles = profiles,

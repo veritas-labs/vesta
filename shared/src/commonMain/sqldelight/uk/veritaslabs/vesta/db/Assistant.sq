@@ -1,0 +1,89 @@
+-- Assistants: external AI agents the user lets act for a Home (docs/adr/ADR-027-assistants.md).
+-- Local and unsynced. `status` is 'pending' (a trusted agent sent a command and is waiting for the
+-- user to review it) or 'active'. `name` is the user's own name for it, blank until set.
+-- A grant is one capability on one Home with a policy ('Ask' or 'Auto', the GrantPolicy names); an assistant can do nothing
+-- it has no grant for. Keep in sync with migrations/18.sqm, which creates these tables (and carries
+-- the old AgentAccess rows across) for databases that predate them.
+CREATE TABLE Assistant (
+    agentId TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    addedAt INTEGER NOT NULL,
+    status TEXT NOT NULL
+);
+
+CREATE TABLE AssistantGrant (
+    agentId TEXT NOT NULL REFERENCES Assistant(agentId) ON DELETE CASCADE,
+    homeId TEXT NOT NULL REFERENCES Home(id) ON DELETE CASCADE,
+    capability TEXT NOT NULL,
+    policy TEXT NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    PRIMARY KEY (agentId, homeId, capability)
+);
+
+-- What an assistant asked for and what came of it. Capped per assistant by the repository.
+CREATE TABLE AssistantActivity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    agentId TEXT NOT NULL REFERENCES Assistant(agentId) ON DELETE CASCADE,
+    homeId TEXT,
+    capability TEXT NOT NULL,
+    commandId TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM Assistant ORDER BY addedAt, agentId;
+
+selectOne:
+SELECT * FROM Assistant WHERE agentId = ?;
+
+insertPending:
+INSERT OR IGNORE INTO Assistant(agentId, name, addedAt, status) VALUES (?, '', ?, 'pending');
+
+insertActive:
+INSERT OR IGNORE INTO Assistant(agentId, name, addedAt, status) VALUES (?, ?, ?, 'active');
+
+activate:
+UPDATE Assistant SET name = ?, status = 'active' WHERE agentId = ?;
+
+rename:
+UPDATE Assistant SET name = ? WHERE agentId = ?;
+
+deleteAssistant:
+DELETE FROM Assistant WHERE agentId = ?;
+
+deletePending:
+DELETE FROM Assistant WHERE agentId = ? AND status = 'pending';
+
+selectGrants:
+SELECT * FROM AssistantGrant ORDER BY agentId, homeId, capability;
+
+selectGrantsFor:
+SELECT * FROM AssistantGrant WHERE agentId = ?;
+
+selectGrant:
+SELECT policy FROM AssistantGrant WHERE agentId = ? AND homeId = ? AND capability = ?;
+
+selectGrantedHomeIds:
+SELECT homeId FROM AssistantGrant WHERE agentId = ? AND capability = ?;
+
+upsertGrant:
+INSERT OR REPLACE INTO AssistantGrant(agentId, homeId, capability, policy, updatedAt) VALUES (?, ?, ?, ?, ?);
+
+deleteGrantsFor:
+DELETE FROM AssistantGrant WHERE agentId = ?;
+
+insertActivity:
+INSERT INTO AssistantActivity(agentId, homeId, capability, commandId, outcome, summary, at) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectActivity:
+SELECT * FROM AssistantActivity WHERE agentId = ? ORDER BY id DESC;
+
+selectLastActivityAt:
+SELECT MAX(at) FROM AssistantActivity WHERE agentId = ?;
+
+trimActivity:
+DELETE FROM AssistantActivity WHERE agentId = ? AND id NOT IN (
+    SELECT id FROM AssistantActivity WHERE agentId = ? ORDER BY id DESC LIMIT ?
+);

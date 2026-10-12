@@ -19,6 +19,12 @@ const val UncategorizedCategory = "Uncategorized"
 /** The `Reject` summary for a command from an agent the user hasn't approved (yet). */
 const val NotApprovedSummary = "not approved: ask the user to approve this agent in the Vesta app, then retry"
 
+/** The `Reject` summary for a command the agent holds no grant for (ADR-027). */
+const val NotPermittedSummary = "not permitted for this home"
+
+/** The `Reject` summary for a command held until the user taps Allow once; the agent re-sends it afterwards. */
+const val WaitingForApprovalSummary = "waiting for approval: the user has been asked, retry once they have answered"
+
 /**
  * Acts on ADR-009 agent commands arriving as x0x direct messages: checks the daemon vouches for the sender,
  * parses, checks the user has approved that agent (or queues it for approval), then either
@@ -32,7 +38,7 @@ const val NotApprovedSummary = "not approved: ask the user to approve this agent
 class PantryCommandHandler(
     private val resolveSource: suspend (homeId: String) -> PantryDocumentSource?,
     private val listHomes: suspend () -> List<HomeRef>,
-    private val access: AgentAccess,
+    private val access: AssistantAccess,
     private val commandLog: CommandLog,
     private val client: X0xClient,
     private val newId: () -> String,
@@ -75,9 +81,9 @@ class PantryCommandHandler(
             }
         }
 
-        // Gate 2, the app's: the user must have approved this agent. Not recorded in the command log, so the
-        // same command re-sent after approval is processed normally.
-        if (!access.isAllowed(sender)) {
+        // Gate 2, the app's: the sender must be an active assistant (ADR-027). Not recorded in the command log,
+        // so the same command re-sent after approval is processed normally.
+        if (!access.isActive(sender)) {
             access.requestApproval(sender)
             log("held command $commandId from $sender: waiting for the user to approve this agent")
             send(sender, reject(commandId, NotApprovedSummary))
@@ -85,31 +91,66 @@ class PantryCommandHandler(
         }
 
         if (parsed is ParseResult.Command && parsed.command is ListHomes) {
-            send(sender, AgentReplies.homes(newId(), commandId, listHomes()))
+            val visible = access.visibleHomes(sender)
+            val homes = listHomes().filter { visible == null || it.id in visible }
+            send(sender, AgentReplies.homes(newId(), commandId, homes))
+            access.recordActivity(sender, null, AssistantCapability.ListHomes, commandId, ActivityOutcome.Applied, "Listed ${homes.size} home(s)")
             return
         }
 
+        // A repeat of a command already answered gets that answer again, whatever its grant says now: it tells the
+        // agent nothing it was not told the first time, and under Ask it must not raise a second card.
         commandLog.reply(sender, commandId)?.let { previous ->
             log("command $commandId from $sender already processed; re-sending its reply")
             send(sender, previous)
             return
         }
 
+        // Gate 3, the grant: this capability on this Home. Checked before anything is looked up, so a Home the
+        // assistant has no grant for is indistinguishable from one that doesn't exist.
+        if (parsed is ParseResult.Command && parsed.command is AddPantryItem) {
+            val command = parsed.command
+            val summary = "Add ${command.quantity} × ${command.title} to the Pantry"
+            when (access.decide(sender, command.homeId, AssistantCapability.PantryAdd, commandId)) {
+                AccessDecision.Allow -> Unit
+                AccessDecision.NotPermitted -> {
+                    log("rejected command $commandId from $sender: no PantryAdd grant for home ${command.homeId}")
+                    send(sender, reject(commandId, NotPermittedSummary))
+                    access.recordActivity(sender, command.homeId, AssistantCapability.PantryAdd, commandId, ActivityOutcome.Rejected, "$summary: $NotPermittedSummary")
+                    return
+                }
+                AccessDecision.Ask -> {
+                    log("held command $commandId from $sender: waiting for the user to allow it")
+                    access.hold(sender, command.homeId, AssistantCapability.PantryAdd, commandId, summary)
+                    send(sender, reject(commandId, WaitingForApprovalSummary))
+                    return
+                }
+            }
+        }
+
+        var rejection: String? = null
         val reply = when (parsed) {
-            is ParseResult.Invalid -> reject(commandId, parsed.reason)
+            is ParseResult.Invalid -> reject(commandId, parsed.reason).also { rejection = parsed.reason }
             is ParseResult.Command -> when (val command = parsed.command) {
-                is AddPantryItem -> apply(command)
+                is AddPantryItem -> apply(command) { rejection = it }
                 is ListHomes -> return // answered above
             }
             ParseResult.NotACommand -> return
         }
         commandLog.record(sender, commandId, reply)
         send(sender, reply)
+        val command = (parsed as? ParseResult.Command)?.command as? AddPantryItem
+        val summary = command?.let { "Add ${it.quantity} × ${it.title} to the Pantry" } ?: "Invalid command"
+        access.recordActivity(
+            sender, command?.homeId, AssistantCapability.PantryAdd, commandId,
+            if (rejection == null) ActivityOutcome.Applied else ActivityOutcome.Rejected,
+            rejection?.let { "$summary: $it" } ?: summary,
+        )
     }
 
     /** Applies [command] to its Home's Pantry and returns the reply JSON. */
-    private suspend fun apply(command: AddPantryItem): String {
-        val source = resolveSource(command.homeId) ?: return reject(command.commandId, "unknown home")
+    private suspend fun apply(command: AddPantryItem, onReject: (String) -> Unit): String {
+        val source = resolveSource(command.homeId) ?: return reject(command.commandId, "unknown home").also { onReject("unknown home") }
 
         val (key, item) = source.mutate { doc ->
             val key = pantryDedupKey(command.barcode, command.title)

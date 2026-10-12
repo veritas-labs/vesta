@@ -28,12 +28,19 @@ class PantryCommandHandlerTest {
     private class Fixture(allowed: List<String>) {
         val source = PantryDocumentSource(Document.load(newPantryDocument()))
         val client = FakeX0xClient()
-        private val database = openInMemoryDatabase()
+        val database = openInMemoryDatabase()
         val commandLog = DatabaseCommandLog(database)
-        val access = AgentAccessRepository(database, FixedAgentAllowlist(allowed))
+        val access = AssistantRepository(database, FixedAgentAllowlist(allowed))
         private var nextId = 0
         val logged = mutableListOf<String>()
         var homes = listOf(HomeRef("home-1", "The Johnsons"), HomeRef("home-2", "Flat 4"))
+        init {
+            runBlocking {
+                database.homeQueries.insert("home-1", "The Johnsons", "family", 0)
+                database.homeQueries.insert("home-2", "Flat 4", "family", 0)
+            }
+        }
+
         val handler = PantryCommandHandler(
             resolveSource = { homeId -> source.takeIf { homeId == "home-1" } },
             listHomes = { homes },
@@ -303,7 +310,7 @@ class PantryCommandHandlerTest {
         // Arrange
         val f = Fixture(emptyList())
         f.handler.handle(message(command()))
-        f.access.allow(agent)
+        f.access.save(agent, "", listOf(AssistantGrant("home-1", AssistantCapability.PantryAdd, GrantPolicy.Auto)))
 
         // Act
         f.handler.handle(message(command()))

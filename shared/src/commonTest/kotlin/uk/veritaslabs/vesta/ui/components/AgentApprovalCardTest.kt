@@ -35,7 +35,7 @@ class AgentApprovalCardTest {
     @Test
     fun showsTheCardWithBothChoices() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { AgentApprovalCard(agentId = agentId) } }
+        setContent { VestaTheme { AgentApprovalCard(title = "Title", body = "Body", confirmLabel = "Confirm") } }
 
         // Act
         // (no user interaction — checking the initial state)
@@ -52,7 +52,7 @@ class AgentApprovalCardTest {
         // Arrange
         var allowed = 0
         var denied = 0
-        setContent { VestaTheme { AgentApprovalCard(agentId, onAllow = { allowed++ }, onDeny = { denied++ }) } }
+        setContent { VestaTheme { AgentApprovalCard("Title", "Body", "Confirm", onAllow = { allowed++ }, onDeny = { denied++ }) } }
 
         // Act
         onNodeWithTag(AgentApprovalCardTestTags.Allow).performClick()
@@ -67,7 +67,7 @@ class AgentApprovalCardTest {
         // Arrange
         var allowed = 0
         var denied = 0
-        setContent { VestaTheme { AgentApprovalCard(agentId, onAllow = { allowed++ }, onDeny = { denied++ }) } }
+        setContent { VestaTheme { AgentApprovalCard("Title", "Body", "Confirm", onAllow = { allowed++ }, onDeny = { denied++ }) } }
 
         // Act
         onNodeWithTag(AgentApprovalCardTestTags.Deny).performClick()

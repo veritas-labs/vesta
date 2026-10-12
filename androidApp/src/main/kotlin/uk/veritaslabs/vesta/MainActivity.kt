@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             VestaApp(
                 openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
+                assistantsFor = agentCommands::assistants,
                 openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
                 openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
                 openMerchants = { database, homeId -> agentCommands.merchants(database, homeId) },

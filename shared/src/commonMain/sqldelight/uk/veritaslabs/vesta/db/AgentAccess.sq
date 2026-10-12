@@ -1,26 +1,8 @@
--- Which x0x agents may command this app (docs/adr/ADR-009-agent-commands-over-x0x.md,
--- behaviour rule 1). Local and unsynced. `status` is 'pending' (a trusted agent has
--- sent a command and is waiting for the user to approve it in the app) or 'allowed'.
--- A denied request simply deletes the pending row: nothing is remembered about it.
--- Keep in sync with migrations/3.sqm, which creates this table for databases that
--- predate it.
+-- LEGACY (docs/adr/ADR-027-assistants.md): superseded by Assistant.sq. Nothing reads or writes this table
+-- any more; migrations/18.sqm copies its rows into Assistant/AssistantGrant. It stays in the schema so the
+-- older migrations that create it still line up. Keep in sync with migrations/3.sqm.
 CREATE TABLE AgentAccess (
     agentId TEXT NOT NULL PRIMARY KEY,
     status TEXT NOT NULL,
     updatedAt INTEGER NOT NULL
 );
-
-selectStatus:
-SELECT status FROM AgentAccess WHERE agentId = ?;
-
-selectPending:
-SELECT agentId, updatedAt FROM AgentAccess WHERE status = 'pending' ORDER BY updatedAt, agentId;
-
-insertPending:
-INSERT OR IGNORE INTO AgentAccess(agentId, status, updatedAt) VALUES (?, 'pending', ?);
-
-upsertAllowed:
-INSERT OR REPLACE INTO AgentAccess(agentId, status, updatedAt) VALUES (?, 'allowed', ?);
-
-deletePending:
-DELETE FROM AgentAccess WHERE agentId = ? AND status = 'pending';

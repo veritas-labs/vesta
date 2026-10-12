@@ -21,7 +21,7 @@ Vesta's agent id.
  "object": {"type": "Collection", "id": "urn:vesta:homes"}}
 ```
 
-Reply — an `Accept` whose `result` lists the Homes (`schema:identifier` is the bare Home id to use below):
+Reply — an `Accept` whose `result` lists only the Homes the user has granted you (possibly none; `schema:identifier` is the bare Home id to use below):
 
 ```json
 {"@context": CONTEXT, "type": "Accept", "id": "urn:uuid:…", "inReplyTo": "<your id>", "object": "<your id>",
@@ -75,6 +75,8 @@ Reply on success:
 `{"type": "Reject", "inReplyTo": "<your id>", "summary": "<human-readable reason>", …}`. Summaries include:
 
 - `not approved: ask the user to approve this agent in the Vesta app, then retry`
+- `not permitted for this home` — you have no grant for that Home (a Home that doesn't exist looks the same)
+- `waiting for approval: the user has been asked, retry once they have answered` — re-send the **same** command id after the user taps Allow once
 - `unknown home`
 - `quantity out of range`, `title is required`, `type must be Add or Read`, `target.id must be …`, `payload too large`, …
 
