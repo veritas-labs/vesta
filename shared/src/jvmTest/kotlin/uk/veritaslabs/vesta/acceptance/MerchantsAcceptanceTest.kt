@@ -14,6 +14,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -30,6 +32,8 @@ import uk.veritaslabs.vesta.automerge.MerchantsDocumentSource
 import uk.veritaslabs.vesta.ui.flows.MerchantsFlow
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardTestTags
+import uk.veritaslabs.vesta.ui.screens.MarketplaceScreen
+import uk.veritaslabs.vesta.ui.screens.MarketplaceTestTags
 import uk.veritaslabs.vesta.ui.screens.Merchant
 import uk.veritaslabs.vesta.ui.screens.MerchantDetailTestTags
 import uk.veritaslabs.vesta.ui.screens.MerchantEditTestTags
@@ -47,7 +51,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
  * scenario, driven only through what a user can see and tap, over the real Automerge-backed merchants document, the view
  * model and the list, detail and form screens. The criteria:
  *
- *  1. The Home's dashboard offers Merchants.
+ *  1. The Home's dashboard offers the Marketplace, whose one option, Local Merchants, opens the merchants.
  *  2. I can add a merchant with a name, type, services, opening hours, location, GERS ID and x0x agent ID, and see them all
  *     on its page.
  *  3. A location needs both coordinates, within range, and a time must be a time; otherwise I can't save.
@@ -98,16 +102,28 @@ class MerchantsAcceptanceTest {
     }
 
     @Test
-    fun theDashboardOffersMerchants() = runComposeUiTest {
-        // Arrange — Given a Home's dashboard
-        var opened = false
-        setContent { VestaTheme { HomeDashboardScreen(homeName = "Maple Street", onMerchantsClick = { opened = true }) } }
+    fun theDashboardLeadsThroughTheMarketplaceToLocalMerchants() = runComposeUiTest {
+        // Arrange — Given a Home's dashboard whose Marketplace tile opens the Marketplace, and Local Merchants opens the merchants
+        var screen by androidx.compose.runtime.mutableStateOf("dashboard")
+        setContent {
+            VestaTheme {
+                when (screen) {
+                    "dashboard" -> HomeDashboardScreen(homeName = "Maple Street", onMarketplaceClick = { screen = "marketplace" })
+                    "marketplace" -> MarketplaceScreen(onBack = { screen = "dashboard" }, onLocalMerchantsClick = { screen = "merchants" })
+                    else -> MerchantsFlow(androidx.compose.runtime.remember { MerchantsViewModel(newSource()) }, onBack = { screen = "marketplace" })
+                }
+            }
+        }
 
-        // Act — When I tap the Merchants tile
-        onNodeWithTag(HomeDashboardTestTags.MerchantsTile).performClick()
+        // Act — When I tap the Marketplace tile, then Local Merchants
+        onNodeWithTag(HomeDashboardTestTags.MarketplaceTile).performClick()
+        onNodeWithText("Local Merchants").assertIsDisplayed()
+        onNodeWithTag(MarketplaceTestTags.LocalMerchants).performClick()
 
-        // Assert — Then the merchants open
-        assertEquals(true, opened)
+        // Assert — Then the merchants open, and back returns to the Marketplace
+        waitForText("No merchants yet")
+        onNodeWithTag(MerchantsTestTags.BackButton).performClick()
+        onNodeWithText("Local Merchants").assertIsDisplayed()
     }
 
     @Test

@@ -458,6 +458,9 @@
         <item>Sat</item>
         <item>Sun</item>
     </string-array>
+    <string name="marketplace_title">Marketplace</string>
+    <string name="marketplace_back">Back</string>
+    <string name="marketplace_local_merchants">Local Merchants</string>
     <string name="merchants_title">Merchants</string>
     <string name="merchants_add">Add merchant</string>
     <string name="merchants_search_label">Search merchants</string>

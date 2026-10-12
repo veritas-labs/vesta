@@ -47,11 +47,11 @@ ROOT
 - Merchants hold no blobs, so they are not part of blob transfer (ADR-023).
 
 Screens: the list (search by name, address or service; a chip per type in use), a detail page (overflow menu: Edit, and
-Delete after confirming) and a form. A dashboard tile, listed alphabetically by its label with the others.
+Delete after confirming) and a form. The dashboard tile is **Marketplace** (listed alphabetically by its label with the others); it opens the Marketplace screen, whose only option for now is **Local Merchants**, which opens the merchants. Back from the merchants returns to the Marketplace.
 
 ## Acceptance criteria
 
-1. The Home's dashboard offers Merchants.
+1. The Home's dashboard offers the Marketplace, whose one option, Local Merchants, opens the merchants.
 2. I can add a merchant with a name, type, services, opening hours, location, GERS ID and x0x agent ID, and see them all
    on its page.
 3. I can't save a location with one coordinate or one out of range, or a time that isn't a time.

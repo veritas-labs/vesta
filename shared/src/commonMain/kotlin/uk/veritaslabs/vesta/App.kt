@@ -64,6 +64,7 @@ import uk.veritaslabs.vesta.ui.screens.CalendarSettingsScreen
 import uk.veritaslabs.vesta.ui.screens.CookbookScreen
 import uk.veritaslabs.vesta.ui.screens.CookbookSource
 import uk.veritaslabs.vesta.ui.screens.CookbookViewModel
+import uk.veritaslabs.vesta.ui.screens.MarketplaceScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
 import uk.veritaslabs.vesta.ui.screens.MerchantsViewModel
@@ -396,7 +397,7 @@ private fun HomeContent(
             onShoppingClick = { destination = HomeDestination.ShoppingList },
             onCookbookClick = { destination = HomeDestination.Cookbook },
             onCalendarClick = { destination = HomeDestination.Calendar },
-            onMerchantsClick = { destination = HomeDestination.Merchants },
+            onMarketplaceClick = { destination = HomeDestination.Marketplace },
             onMembersClick = { destination = HomeDestination.Members },
             isAdmin = isAdmin,
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
@@ -502,11 +503,15 @@ private fun HomeContent(
                 CookbookScreen(recipes = emptyList(), onBack = { destination = HomeDestination.Dashboard })
             }
         }
+        HomeDestination.Marketplace -> MarketplaceScreen(
+            onBack = { destination = HomeDestination.Dashboard },
+            onLocalMerchantsClick = { destination = HomeDestination.Merchants },
+        )
         HomeDestination.Merchants -> {
             if (merchantsViewModel != null) {
-                MerchantsFlow(merchantsViewModel, onBack = { destination = HomeDestination.Dashboard })
+                MerchantsFlow(merchantsViewModel, onBack = { destination = HomeDestination.Marketplace })
             } else {
-                MerchantsScreen(merchants = emptyList(), onBack = { destination = HomeDestination.Dashboard })
+                MerchantsScreen(merchants = emptyList(), onBack = { destination = HomeDestination.Marketplace })
             }
         }
         HomeDestination.Calendar -> CalendarScreen(
@@ -641,7 +646,7 @@ class DeviceSyncHost(
 
 private enum class HomeDestination {
     Dashboard, Members, MemberDetail, InviteLinks, HubManager, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
-    ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, Merchants, Calendar, CalendarSettings,
+    ShoppingList, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, Marketplace, Merchants, Calendar, CalendarSettings,
 }
 
 internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(
