@@ -21,11 +21,12 @@ fun main() = application {
             openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
             openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
             openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
+            openMerchants = { database, homeId -> agentCommands.merchants(database, homeId) },
             backgroundServices = { database -> agentCommands.run(database) },
             dataSync = { database, client, devices ->
                 DeviceDataSyncService(
                     client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
-                    agentCommands.cookbookSources(database),
+                    agentCommands.cookbookSources(database), agentCommands.merchantsSources(database),
                 )
             },
             blobRuntime = { database, client, sync ->

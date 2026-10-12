@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.CookbookSources
+import uk.veritaslabs.vesta.automerge.MerchantsSources
+import uk.veritaslabs.vesta.ui.screens.Merchant
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
@@ -60,8 +62,9 @@ class DeviceDataSyncServiceTest {
         val pantries = PantrySources(database)
         val shopping = ShoppingListSources(database, pantries)
         val cookbook = CookbookSources(database)
+        val merchants = MerchantsSources(database)
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, shopping, cookbook, interval = interval,
+            node, database, devices, pantries, shopping, cookbook, merchants, interval = interval,
         )
         /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
         val deviceSync: DeviceSyncService by lazy {
@@ -113,6 +116,9 @@ class DeviceDataSyncServiceTest {
 
         suspend fun recipeTitles(homeId: String) =
             cookbook.forHome(homeId)!!.recipes.first().map { it.title }.sorted()
+
+        suspend fun merchantNames(homeId: String) =
+            merchants.forHome(homeId)!!.merchants.first().map { it.name }.sorted()
 
         suspend fun pantryTitles(homeId: String) =
             pantries.forHome(homeId)!!.contents.first().items.map { it.title }.sorted()
@@ -242,6 +248,25 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         eventually { a.recipeTitles(homeId) == listOf("Apple Crumble", "Shepherd's Pie") }
+        scope.cancel()
+    }
+
+    @Test
+    fun merchantsAddedOnEitherDeviceReachBoth() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        b.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames().isNotEmpty() }
+
+        // Act
+        a.merchants.forHome(homeId)!!.save(Merchant(name = "Hargreaves"))
+        eventually { b.merchantNames(homeId) == listOf("Hargreaves") }
+        b.merchants.forHome(homeId)!!.save(Merchant(name = "Aldi"))
+
+        // Assert
+        eventually { a.merchantNames(homeId) == listOf("Aldi", "Hargreaves") }
         scope.cancel()
     }
 

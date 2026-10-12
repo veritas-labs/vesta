@@ -34,7 +34,8 @@ class MailboxTest {
         val lists = ShoppingListSources(database, pantries)
         val node = network.node(agentId)
         var storeId: String? = null
-        val documents = HomeMailboxDocuments(pantries, lists, uk.veritaslabs.vesta.automerge.CookbookSources(database), rosters)
+        val merchants = uk.veritaslabs.vesta.automerge.MerchantsSources(database)
+        val documents = HomeMailboxDocuments(pantries, lists, uk.veritaslabs.vesta.automerge.CookbookSources(database), rosters, merchants)
         var writer = MailboxWriter(node, database, documents) { storeId }
         val reader = MailboxReader(node, database, documents) { storeId }
 
@@ -109,6 +110,20 @@ class MailboxTest {
         assertEquals(listOf("Milk"), home.bob.listTitles())
         assertEquals(setOf("member-ann"), home.bob.rosters.devices(homeId).keys)
         assertEquals(listOf("Milk"), home.bob.pantryTitles()) // saving a list item also puts it in the Pantry
+    }
+
+    @Test
+    fun merchantsTravelThroughTheStoreToo() = runBlocking {
+        // Arrange
+        val home = Household().open()
+        home.ann.merchants.forHome(homeId)!!.save(uk.veritaslabs.vesta.ui.screens.Merchant(name = "Dave's Veg Stall"))
+
+        // Act
+        home.ann.writer.deposit(homeId, uk.veritaslabs.vesta.automerge.merchantsDocumentId(homeId))
+        home.bob.reader.fetch(homeId)
+
+        // Assert
+        assertEquals(listOf("Dave's Veg Stall"), home.bob.merchants.forHome(homeId)!!.merchants.first().map { it.name })
     }
 
     @Test
