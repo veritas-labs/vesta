@@ -72,6 +72,7 @@ import vesta.shared.generated.resources.ic_tag
 import vesta.shared.generated.resources.pantry_stock_decrease
 import vesta.shared.generated.resources.pantry_stock_increase
 import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.pantry_buy_from_label
 import vesta.shared.generated.resources.pantry_edit_delete
 import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.pantry_edit_edit_categories
@@ -164,6 +165,11 @@ data class PantryItemDetails(
     val barcode: String? = null,
     val stockCount: Int = 0,
     val tags: List<String> = emptyList(),
+    /**
+     * The keys of the merchants the item is bought from, highest priority first (ADR-026). Null leaves the entry's
+     * merchants as they are (a saved edit that didn't touch them), an empty list clears them.
+     */
+    val merchantKeys: List<String>? = null,
 )
 
 /**
@@ -222,6 +228,10 @@ val ShoppingItemFormLabels = ItemFormLabels(
  * contains what's typed (best matches first, at most [MaxSuggestions]); picking one fills in its name, categories,
  * package size and barcode.
  *
+ * When [merchants] is given (the Pantry form, with the Home's merchants) a "Buy from" section edits the item's ordered
+ * merchants (ADR-026): add from the merchants not yet listed, move up or down in priority, remove. Without it the form
+ * leaves the item's merchants alone.
+ *
  * When [knownTags] is given (the shopping-list form) the form also edits the item's tags, offering [knownTags] as
  * one-tap additions.
  *
@@ -243,6 +253,7 @@ fun PantryItemEditScreen(
     labels: ItemFormLabels = PantryItemFormLabels,
     suggestions: List<PantryListItem> = emptyList(),
     knownTags: List<String>? = null,
+    merchants: List<Merchant>? = null,
     scanSupported: Boolean = isBarcodeScanningSupported,
     barcodeCamera: @Composable (onBarcode: (String) -> Unit, modifier: Modifier) -> Unit = { onBarcode, cameraModifier ->
         BarcodeCameraView(onBarcode, cameraModifier)
@@ -255,6 +266,7 @@ fun PantryItemEditScreen(
     var barcode by remember(item) { mutableStateOf(item?.barcode.orEmpty()) }
     var stockCount by remember(item) { mutableIntStateOf(item?.stockCount ?: labels.minCount) }
     var tags by remember(item) { mutableStateOf(item?.tags.orEmpty()) }
+    var merchantKeys by remember(item) { mutableStateOf(item?.merchantKeys.orEmpty()) }
     var scanning by remember { mutableStateOf(false) }
 
     val details = {
@@ -267,6 +279,7 @@ fun PantryItemEditScreen(
             barcode = barcode.trim().ifBlank { null },
             stockCount = stockCount,
             tags = tags,
+            merchantKeys = if (merchants != null) merchantKeys else item?.merchantKeys,
         )
     }
     val primaryOptions = (categories.map { it.name } + primaryCategory).filter { it.isNotBlank() }.distinct()
@@ -494,6 +507,16 @@ fun PantryItemEditScreen(
                     }
                 }
 
+                merchants?.let {
+                    MerchantPriorityEditor(
+                        keys = merchantKeys,
+                        merchants = it,
+                        onChange = { keys -> merchantKeys = keys },
+                        title = stringResource(Res.string.pantry_buy_from_label),
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                }
+
                 knownTags?.let {
                     TagsEditor(
                         tags = tags,
@@ -693,6 +716,7 @@ private val PantryItemEditPreviewItem = PantryItemDetails(
     packageSize = "500ml",
     barcode = "5000157024671",
     stockCount = 4,
+    merchantKeys = listOf("tesco", "butcher"),
 )
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
@@ -722,23 +746,23 @@ private fun PantryItemEditScreenAddTabletDarkPreview() {
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun PantryItemEditScreenEditPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
+    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories, merchants = MerchantLinkPreviewMerchants) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun PantryItemEditScreenEditPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
+    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories, merchants = MerchantLinkPreviewMerchants) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun PantryItemEditScreenEditTabletLightPreview() {
-    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
+    VestaTheme(darkTheme = false) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories, merchants = MerchantLinkPreviewMerchants) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun PantryItemEditScreenEditTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories) }
+    VestaTheme(darkTheme = true) { PantryItemEditScreen(item = PantryItemEditPreviewItem, categories = PantryItemEditPreviewCategories, merchants = MerchantLinkPreviewMerchants) }
 }

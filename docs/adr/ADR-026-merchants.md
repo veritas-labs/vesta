@@ -49,6 +49,29 @@ ROOT
 Screens: the list (search by name, address or service; a chip per type in use), a detail page (overflow menu: Edit, and
 Delete after confirming) and a form. The dashboard tile is **Marketplace** (listed alphabetically by its label with the others); it opens the Marketplace screen, whose only option for now is **Local Merchants**, which opens the merchants. Back from the merchants returns to the Marketplace.
 
+## Linking to the Pantry
+
+A Pantry item can be bought from many merchants, in priority order (2026-10-12).
+
+- **Stored on the Pantry item**, in the Pantry document: an optional `merchantKeys` list of merchant keys, first = highest
+  priority. Documents from before this have no list and read as empty, so nothing is seeded and there is no merge race.
+  The merchants document is untouched.
+- **A deleted merchant's key stays** in the list and is skipped when shown (no purge, no cross-document write). Editing an
+  item's merchants on its form keeps such keys and moves around them.
+- **Narrow writes.** The list is written only by the merchant operations (and by an item save that sets it), never by a
+  stock change, so a concurrent stock edit and merchant edit both survive a merge. The list as a whole is last-writer-wins.
+  A write that would not change the list writes nothing. Repeated and blank keys are dropped (first position wins).
+- **`PantryItemDetails.merchantKeys`** is null for "leave as is" (the shopping-list form, stock steppers), a list to set
+  it; renaming an item moves its merchants to the new dedup key unless the edit set them.
+- **One item:** the Pantry item form has a *Buy from* section (only when the Home's merchants are passed in): its merchants
+  with move up / move down / remove buttons, and a chip for each other merchant that adds it at the end. The Pantry row
+  shows *Buy from: A, B*.
+- **Batch update:** long-press a Pantry row to select (taps then pick or drop rows; the top bar shows the count and a
+  merchants button). The dialog offers **Add** (appended at the lowest priority, skipping merchants an item already
+  has), **Remove**, or **Replace** (exactly the chosen ordered list; empty clears them). It is applied to all selected
+  items in one Automerge transaction (`changePantryMerchants`, `MerchantLinkChange`).
+- Sync needs no change: the Pantry document already syncs.
+
 ## Acceptance criteria
 
 1. The Home's dashboard offers the Marketplace, whose one option, Local Merchants, opens the merchants.
@@ -60,11 +83,18 @@ Delete after confirming) and a form. The dashboard tile is **Marketplace** (list
 6. I can filter by type and search by name, address or service.
 7. Merchants survive an app restart and reach a paired device.
 
-See `MerchantsAcceptanceTest`.
+See `MerchantsAcceptanceTest`. For the Pantry link (`PantryMerchantsAcceptanceTest`):
+
+8. An item can be bought from several merchants in priority order, and I can reorder them on its form.
+9. The Pantry lists each item's merchants in that order.
+10. I can select several items and add merchants to all of them, after any they already have.
+11. I can select several items and remove merchants from all of them.
+12. I can select several items and replace their merchants with one ordered list.
 
 ## Not in this ADR
 
-- Linking a shopping-list item, Pantry entry or recipe to a merchant ("buy at").
+- Linking a shopping-list item or recipe to a merchant ("buy at"); Pantry items are linked, see above.
+- Dragging to reorder, or selecting from the shopping list.
 - Showing whether a merchant is open now (needs the local time zone, see ADR-025), or special / holiday hours.
 - A map, distance, or opening the location in a maps app; picking the location from the device.
 - Looking a merchant up by GERS ID, validating GERS and agent ids, or messaging the merchant's agent.

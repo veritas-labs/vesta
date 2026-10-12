@@ -31,6 +31,9 @@ interface PantrySource {
     /** Removes the entry at [key]; [contents] re-emits. */
     suspend fun delete(key: String)
 
+    /** Changes the ordered merchants of every entry in [itemKeys] by [change], in one edit; [contents] re-emits. No-op by default. */
+    suspend fun changeMerchants(itemKeys: Set<String>, change: MerchantLinkChange) {}
+
     /** The Home's category registry, or `null` if this source doesn't keep one. */
     val categoriesSource: PantryCategoriesSource? get() = null
 }
@@ -85,6 +88,11 @@ class PantryViewModel(private val source: PantrySource) : ViewModel() {
                 stockCount = stockCount,
             ),
         )
+    }
+
+    /** Changes the merchants of every Pantry entry in [itemKeys] at once (the batch update); the result arrives through [uiState]. */
+    fun changeMerchants(itemKeys: Set<String>, change: MerchantLinkChange) {
+        viewModelScope.launch { source.changeMerchants(itemKeys, change) }
     }
 
     /** Persists [item] to the Pantry; the new/updated entry then arrives through [uiState]. */

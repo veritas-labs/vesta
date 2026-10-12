@@ -373,6 +373,8 @@ private fun HomeContent(
         viewModel(key = "shopping-$homeId") { ShoppingListViewModel(source) }
     }
     var editingShoppingItem by remember { mutableStateOf<ShoppingItemDetails?>(null) }
+    val merchantList by remember(merchantsSource) { merchantsSource?.merchants ?: flowOf(emptyList()) }
+        .collectAsStateWithLifecycle(emptyList())
     val cookbookViewModel = cookbookSource?.let { source ->
         val pantryItems = pantrySource?.contents?.map { it.items } ?: flowOf(emptyList())
         viewModel(key = "cookbook-$homeId") { CookbookViewModel(source, pantryItems) }
@@ -485,6 +487,7 @@ private fun HomeContent(
                     onBack = onBack,
                     onAddItem = onAddItem,
                     onManageCategories = onManageCategories,
+                    merchants = merchantList,
                 )
             } else {
                 PantryScreen(
@@ -591,6 +594,7 @@ private fun HomeContent(
         HomeDestination.PantryItemEdit -> PantryItemEditScreen(
             item = editingItem,
             categories = categoriesState?.value?.categories.orEmpty(),
+            merchants = merchantsSource?.let { merchantList },
             onEditCategories = { draft ->
                 editingItem = draft
                 categoriesBackTo = HomeDestination.PantryItemEdit
@@ -635,6 +639,7 @@ private fun PantryListItem.toDetails() = PantryItemDetails(
     packageSize = packageSize,
     barcode = barcode,
     stockCount = stockCount,
+    merchantKeys = merchantKeys,
 )
 
 /** What the UI needs of device sync: the stored [devices], the [service] that keeps them in step, and a pairing view model factory. */

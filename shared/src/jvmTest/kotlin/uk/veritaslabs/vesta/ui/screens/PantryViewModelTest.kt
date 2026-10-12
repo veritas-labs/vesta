@@ -42,6 +42,8 @@ class PantryViewModelTest {
         val saved = mutableListOf<PantryItemDetails>()
         override suspend fun save(item: PantryItemDetails) { saved += item }
         override suspend fun delete(key: String) {}
+        val merchantChanges = mutableListOf<Pair<Set<String>, MerchantLinkChange>>()
+        override suspend fun changeMerchants(itemKeys: Set<String>, change: MerchantLinkChange) { merchantChanges += itemKeys to change }
     }
 
     private val milk = PantryListItem(
@@ -97,5 +99,20 @@ class PantryViewModelTest {
 
         // Assert
         assertEquals(0, state.items.single().stockCount)
+    }
+
+    @Test
+    fun changingMerchantsPassesTheSelectedKeysAndTheChangeToTheSource() = runBlocking {
+        // Arrange
+        Dispatchers.setMain(Dispatchers.Default)
+        val source = FakePantrySource()
+        val viewModel = viewModelOf(source)
+
+        // Act
+        viewModel.changeMerchants(setOf("whole milk"), MerchantLinkChange.Add(listOf("tesco")))
+        withTimeout(5_000) { while (source.merchantChanges.isEmpty()) kotlinx.coroutines.delay(10); Unit }
+
+        // Assert
+        assertEquals<List<Pair<Set<String>, MerchantLinkChange>>>(listOf(setOf("whole milk") to MerchantLinkChange.Add(listOf("tesco"))), source.merchantChanges)
     }
 }

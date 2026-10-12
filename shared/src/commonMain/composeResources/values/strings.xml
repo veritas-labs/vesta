@@ -181,6 +181,26 @@
     <string name="pantry_stock_decrease">Decrease stock</string>
     <string name="pantry_category_empty">No items yet</string>
 
+    <string name="pantry_buy_from_label">Buy from</string>
+    <string name="pantry_buy_from_row">Buy from: %1$s</string>
+    <string name="pantry_buy_from_none">No merchants yet. Add some under Marketplace, Local Merchants.</string>
+    <string name="pantry_buy_from_add">Add a merchant</string>
+    <string name="pantry_buy_from_move_up">Move %1$s up</string>
+    <string name="pantry_buy_from_move_down">Move %1$s down</string>
+    <string name="pantry_buy_from_remove">Remove %1$s</string>
+    <string name="pantry_select_count">%1$d selected</string>
+    <string name="pantry_select_cancel">Stop selecting</string>
+    <string name="pantry_select_merchants">Set merchants</string>
+    <string name="pantry_merchants_dialog_title">Merchants for %1$d items</string>
+    <string name="pantry_merchants_mode_add">Add</string>
+    <string name="pantry_merchants_mode_remove">Remove</string>
+    <string name="pantry_merchants_mode_replace">Replace</string>
+    <string name="pantry_merchants_mode_add_hint">Added after any merchants the items already have.</string>
+    <string name="pantry_merchants_mode_remove_hint">Taken off every selected item that has them.</string>
+    <string name="pantry_merchants_mode_replace_hint">Every selected item gets exactly this list, in this order. An empty list clears them.</string>
+    <string name="pantry_merchants_apply">Apply</string>
+    <string name="pantry_merchants_cancel">Cancel</string>
+
     <string name="pantry_categories_title">Categories</string>
     <string name="pantry_categories_empty_title">No categories</string>
     <string name="pantry_categories_empty_subtitle">Add a category to organise your pantry.</string>

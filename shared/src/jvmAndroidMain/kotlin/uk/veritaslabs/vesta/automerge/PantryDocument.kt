@@ -8,6 +8,8 @@ import org.automerge.NewValue
 import org.automerge.ObjectId
 import org.automerge.ObjectType
 import org.automerge.Read
+import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
+import uk.veritaslabs.vesta.ui.screens.normalizeMerchantKeys
 
 private const val ItemsKey = "items"
 private const val IdKey = "id"
@@ -19,6 +21,7 @@ private const val BarcodeKey = "barcode"
 private const val UseCountKey = "useCount"
 private const val LastUsedAtKey = "lastUsedAt"
 private const val StockCountKey = "stockCount"
+private const val MerchantKeysKey = "merchantKeys"
 
 /**
  * A household's shared product record — see ADR-008. One entry per distinct product, addressed by
@@ -34,6 +37,8 @@ data class PantryItem(
     val useCount: Int,
     val lastUsedAt: String,
     val stockCount: Int,
+    /** Keys of the Home's merchants (ADR-026) the item is bought from, highest priority first; absent in older documents. */
+    val merchantKeys: List<String> = emptyList(),
 )
 
 /** Builds the initial (empty) bytes for a Pantry document. */
@@ -183,6 +188,39 @@ fun correctStock(doc: Document, key: String, targetValue: Int) {
     adjustStock(doc, key, targetValue - current)
 }
 
+/**
+ * Replaces the ordered merchant keys of [key]'s entry with [merchantKeys] (blank and repeated keys dropped, first
+ * position wins), writing only that field so it never clobbers a concurrent edit of the item's other fields. No-op if
+ * [key] has no entry or already holds exactly that list.
+ */
+fun setPantryItemMerchants(doc: Document, key: String, merchantKeys: List<String>) {
+    changePantryMerchants(doc, listOf(key)) { merchantKeys }
+}
+
+/**
+ * Changes the merchant keys of every entry in [keys] by [change], all in one transaction; entries that don't exist or
+ * would not change are left alone. Returns how many entries were changed.
+ */
+fun changePantryMerchants(doc: Document, keys: Collection<String>, change: MerchantLinkChange): Int =
+    changePantryMerchants(doc, keys) { change.applyTo(it) }
+
+private fun changePantryMerchants(doc: Document, keys: Collection<String>, next: (List<String>) -> List<String>): Int {
+    val tx = doc.startTransaction()
+    var changed = 0
+    keys.distinct().forEach { key ->
+        val itemId = tx.itemsMapId()?.let { (tx.get(it, key).getOrNull() as? AmValue.Map)?.id } ?: return@forEach
+        val current = tx.stringList(itemId, MerchantKeysKey)
+        val updated = normalizeMerchantKeys(next(current))
+        if (updated != current) {
+            val listId = tx.set(itemId, MerchantKeysKey, ObjectType.LIST)
+            updated.forEachIndexed { index, merchant -> tx.insert(listId, index.toLong(), merchant) }
+            changed++
+        }
+    }
+    if (changed > 0) tx.commit() else tx.rollback()
+    return changed
+}
+
 /** Removes [key]'s entry from the Pantry. No-op if [key] has no entry. */
 fun deletePantryItem(doc: Document, key: String) {
     val tx = doc.startTransaction()
@@ -214,7 +252,13 @@ private fun Read.readPantryItemAt(itemId: ObjectId): PantryItem = PantryItem(
     useCount = counterField(itemId, UseCountKey),
     lastUsedAt = strField(itemId, LastUsedAtKey),
     stockCount = counterField(itemId, StockCountKey),
+    merchantKeys = stringList(itemId, MerchantKeysKey),
 )
+
+private fun Read.stringList(obj: ObjectId, key: String): List<String> {
+    val listId = (get(obj, key).getOrNull() as? AmValue.List)?.id ?: return emptyList()
+    return listItems(listId).getOrNull()?.mapNotNull { (it as? AmValue.Str)?.value }.orEmpty()
+}
 
 private fun Read.strField(obj: ObjectId, key: String): String =
     (get(obj, key).getOrNull() as? AmValue.Str)?.value.orEmpty()
