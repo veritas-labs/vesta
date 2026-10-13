@@ -112,25 +112,25 @@ class MealPlannerLogicTest {
     }
 
     @Test
-    fun aMealNobodyChoseIsEatenByEveryMemberAndNoGuests() {
+    fun aRecipeNobodyChoseEatersForIsEatenByEveryMemberAndNoGuests() {
         // Arrange
         val people = mealPeople(listOf(mark, sam), listOf(ella))
 
         // Act
-        val eaters = eatersOf(MealPlan(guests = listOf(ella)), dinner, MealSlot.Dinner, people)
+        val eaters = eatersOf(MealPlan(guests = listOf(ella)), dinner, MealSlot.Dinner, "pie", people)
 
         // Assert
         assertEquals(listOf("Mark", "Sam"), eaters.map { it.name })
     }
 
     @Test
-    fun aMemberWhoJoinsLaterEatsTheMealsNobodyChose() {
+    fun aMemberWhoJoinsLaterEatsTheRecipesNobodyChose() {
         // Arrange
         val plan = MealPlan()
 
         // Act
-        val before = eatersOf(plan, dinner, MealSlot.Dinner, mealPeople(listOf(mark), emptyList()))
-        val after = eatersOf(plan, dinner, MealSlot.Dinner, mealPeople(listOf(mark, sam), emptyList()))
+        val before = eatersOf(plan, dinner, MealSlot.Dinner, "pie", mealPeople(listOf(mark), emptyList()))
+        val after = eatersOf(plan, dinner, MealSlot.Dinner, "pie", mealPeople(listOf(mark, sam), emptyList()))
 
         // Assert
         assertEquals(listOf("Mark"), before.map { it.name })
@@ -138,13 +138,13 @@ class MealPlannerLogicTest {
     }
 
     @Test
-    fun aChosenMealIsEatenByJustThoseChosen() {
+    fun aChosenRecipeIsEatenByJustThoseChosen() {
         // Arrange
         val people = mealPeople(listOf(mark, sam), listOf(ella, noah))
-        val plan = MealPlan(eaters = mapOf((dinner to MealSlot.Dinner) to setOf("m:sam", "p:ella")))
+        val plan = MealPlan(eaters = mapOf(PlannedMeal(dinner, MealSlot.Dinner, "pie") to setOf("m:sam", "p:ella")))
 
         // Act
-        val eaters = eatersOf(plan, dinner, MealSlot.Dinner, people)
+        val eaters = eatersOf(plan, dinner, MealSlot.Dinner, "pie", people)
 
         // Assert
         assertEquals(listOf("Sam", "Ella"), eaters.map { it.name })
@@ -154,12 +154,25 @@ class MealPlannerLogicTest {
     fun aChosenPersonWhoHasGoneIsDropped() {
         // Arrange
         val people = mealPeople(listOf(mark), emptyList())
-        val plan = MealPlan(eaters = mapOf((dinner to MealSlot.Dinner) to setOf("m:mark", "m:gone", "p:removed")))
+        val plan = MealPlan(eaters = mapOf(PlannedMeal(dinner, MealSlot.Dinner, "pie") to setOf("m:mark", "m:gone", "p:removed")))
 
         // Act
-        val eaters = eatersOf(plan, dinner, MealSlot.Dinner, people)
+        val eaters = eatersOf(plan, dinner, MealSlot.Dinner, "pie", people)
 
         // Assert
         assertEquals(listOf("Mark"), eaters.map { it.name })
+    }
+
+    @Test
+    fun anotherRecipeInTheSameSlotKeepsTheDefault() {
+        // Arrange
+        val people = mealPeople(listOf(mark, sam), emptyList())
+        val plan = MealPlan(eaters = mapOf(PlannedMeal(dinner, MealSlot.Dinner, "pie") to setOf("m:mark")))
+
+        // Act
+        val mash = eatersOf(plan, dinner, MealSlot.Dinner, "mash", people)
+
+        // Assert
+        assertEquals(listOf("Mark", "Sam"), mash.map { it.name })
     }
 }

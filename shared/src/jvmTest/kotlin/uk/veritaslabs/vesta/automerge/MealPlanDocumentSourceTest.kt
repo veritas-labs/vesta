@@ -200,7 +200,7 @@ class MealPlanDocumentSourceTest {
     }
 
     @Test
-    fun aMealNobodyHasChosenEatersForHasNoChosenEaters() = runBlocking {
+    fun aRecipeNobodyHasChosenEatersForHasNoChosenEaters() = runBlocking {
         // Arrange
         val source = newSource()
 
@@ -208,22 +208,23 @@ class MealPlanDocumentSourceTest {
         source.add(monday, MealSlot.Dinner, "pie")
 
         // Assert
-        assertEquals(null, source.plan.first().chosenEaters(monday, MealSlot.Dinner))
+        assertEquals(null, source.plan.first().chosenEaters(monday, MealSlot.Dinner, "pie"))
     }
 
     @Test
-    fun chosenEatersArePublishedForThatMealOnly() = runBlocking {
+    fun chosenEatersArePublishedForThatRecipeOnly() = runBlocking {
         // Arrange
         val source = newSource()
 
         // Act
-        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark", "p:ella"))
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark", "p:ella"))
         val plan = source.plan.first()
 
         // Assert
-        assertEquals(setOf("m:mark", "p:ella"), plan.chosenEaters(monday, MealSlot.Dinner))
-        assertEquals(null, plan.chosenEaters(monday, MealSlot.Lunch))
-        assertEquals(null, plan.chosenEaters(tuesday, MealSlot.Dinner))
+        assertEquals(setOf("m:mark", "p:ella"), plan.chosenEaters(monday, MealSlot.Dinner, "pie"))
+        assertEquals(null, plan.chosenEaters(monday, MealSlot.Dinner, "curry"))
+        assertEquals(null, plan.chosenEaters(monday, MealSlot.Lunch, "pie"))
+        assertEquals(null, plan.chosenEaters(tuesday, MealSlot.Dinner, "pie"))
     }
 
     @Test
@@ -232,23 +233,23 @@ class MealPlanDocumentSourceTest {
         val source = newSource()
 
         // Act
-        source.setEaters(monday, MealSlot.Dinner, emptySet())
+        source.setEaters(monday, MealSlot.Dinner, "pie", emptySet())
 
         // Assert
-        assertEquals(emptySet(), source.plan.first().chosenEaters(monday, MealSlot.Dinner))
+        assertEquals(emptySet(), source.plan.first().chosenEaters(monday, MealSlot.Dinner, "pie"))
     }
 
     @Test
     fun changingTheEatersReplacesThem() = runBlocking {
         // Arrange
         val source = newSource()
-        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark", "p:ella"))
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark", "p:ella"))
 
         // Act
-        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark", "m:sam"))
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark", "m:sam"))
 
         // Assert
-        assertEquals(setOf("m:mark", "m:sam"), source.plan.first().chosenEaters(monday, MealSlot.Dinner))
+        assertEquals(setOf("m:mark", "m:sam"), source.plan.first().chosenEaters(monday, MealSlot.Dinner, "pie"))
     }
 
     @Test
@@ -256,10 +257,10 @@ class MealPlanDocumentSourceTest {
         // Arrange
         var changes = 0
         val source = newSource(onLocalChange = { changes++ })
-        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark"))
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark"))
 
         // Act
-        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark"))
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark"))
 
         // Assert
         assertEquals(1, changes)
@@ -272,7 +273,7 @@ class MealPlanDocumentSourceTest {
         source.add(monday, MealSlot.Dinner, "pie")
 
         // Act
-        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark"))
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark"))
         source.addGuest("Ella")
         val plan = source.plan.first()
 
@@ -343,5 +344,38 @@ class MealPlanDocumentSourceTest {
         // Assert
         assertEquals(listOf("Ella", "Noah"), a.plan.first().guests.map { it.name })
         assertEquals(listOf("Ella", "Noah"), b.plan.first().guests.map { it.name })
+    }
+
+    @Test
+    fun takingARecipeOutTakesItsEatersWithIt() = runBlocking {
+        // Arrange
+        val source = newSource()
+        source.add(monday, MealSlot.Dinner, "pie")
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark"))
+
+        // Act
+        source.remove(monday, MealSlot.Dinner, "pie")
+        source.add(monday, MealSlot.Dinner, "pie")
+
+        // Assert
+        assertEquals(null, source.plan.first().chosenEaters(monday, MealSlot.Dinner, "pie"))
+    }
+
+    @Test
+    fun twoRecipesInOneSlotHaveTheirOwnEaters() = runBlocking {
+        // Arrange
+        val source = newSource()
+        source.add(monday, MealSlot.Dinner, "pie")
+        source.add(monday, MealSlot.Dinner, "mash")
+
+        // Act
+        source.setEaters(monday, MealSlot.Dinner, "pie", setOf("m:mark"))
+        source.setEaters(monday, MealSlot.Dinner, "mash", setOf("p:ella"))
+        val plan = source.plan.first()
+
+        // Assert
+        assertEquals(setOf("m:mark"), plan.chosenEaters(monday, MealSlot.Dinner, "pie"))
+        assertEquals(setOf("p:ella"), plan.chosenEaters(monday, MealSlot.Dinner, "mash"))
+        assertEquals(listOf("pie", "mash"), plan.recipes(monday, MealSlot.Dinner))
     }
 }

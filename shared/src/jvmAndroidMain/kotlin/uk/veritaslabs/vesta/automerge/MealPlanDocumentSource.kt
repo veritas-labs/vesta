@@ -50,8 +50,8 @@ class MealPlanDocumentSource(
     override suspend fun remove(date: CalendarDate, slot: MealSlot, recipeKey: String) =
         edit { unplanMeal(document, date, slot, recipeKey) }
 
-    override suspend fun setEaters(date: CalendarDate, slot: MealSlot, refs: Set<String>) =
-        edit { chooseEaters(document, date, slot, refs) }
+    override suspend fun setEaters(date: CalendarDate, slot: MealSlot, recipeKey: String, refs: Set<String>) =
+        edit { chooseEaters(document, date, slot, recipeKey, refs) }
 
     override suspend fun addGuest(name: String): String? {
         val trimmed = name.trim().ifEmpty { return null }

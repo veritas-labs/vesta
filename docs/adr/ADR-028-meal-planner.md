@@ -17,8 +17,8 @@ the cookbook (ADR-013, ADR-020).
 ROOT
 └─ "<yyyy-MM-dd>|<SLOT>|<recipe key>": Timestamp      -- when it was planned; SLOT is Breakfast | Lunch | Dinner
 "guest|<id>": Str                                     -- a person who eats with the Home but isn't a member: just a name
-"eaters|<yyyy-MM-dd>|<Slot>": Bool                    -- someone has chosen this meal's eaters
-"eat|<yyyy-MM-dd>|<Slot>|<ref>": Bool                 -- <ref> is "m:<member id>" or "p:<guest id>"
+"eaters|<yyyy-MM-dd>|<Slot>|<recipe key>": Bool       -- someone has chosen this planned recipe's eaters
+"eat|<yyyy-MM-dd>|<Slot>|<recipe key>|<ref>": Bool     -- <ref> is "m:<member id>" or "p:<guest id>"
 ```
 
 - **One flat root key per planned recipe**, not days holding slots holding lists. Two devices planning the same new day
@@ -33,16 +33,18 @@ ROOT
 - **Deleting a recipe from the cookbook does not touch the plan.** The entry stays and shows greyed as "Recipe removed",
   with its cross to take it out. (Cleaning up on delete would need the cookbook to know about the plan, and could not
   reach a device that hadn't synced yet.)
-- **Who is eating (tags).** Each meal slot (not each recipe) has eaters: people tagged from the Home's members and from
-  **guests**, people who eat with the Home without being in it, such as children. A meal nobody has chosen eaters for is eaten
-  by *every Home member*, worked out when shown, so a member who joins later is included and nothing is written until someone
-  changes it. The first change writes the `eaters|` marker and a key per ticked person, so "nobody" is a real choice and differs
-  from "not chosen". Guests are kept Home-wide in the same document, so one added for Monday's dinner is there for every
-  meal; they are a name, can be renamed, and can be removed, which un-tags them everywhere (their ticks are left in the
-  document and ignored). A ref for someone who has left the Home or been removed is ignored too. Flat keys again: two devices
-  choosing the eaters of one meal at once merge to the union of what they ticked, so an untick can be undone by a concurrent
-  seed; accepted. The week shows "Everyone", "Nobody" or the names under each meal's heading; tapping it opens a **Who's
-  eating** screen (ticks apply at once; add, rename and remove guests there).
+- **Who is eating (tags).** Each *planned recipe* (a recipe in a slot on a day, not the slot as a whole) has eaters: people
+  tagged from the Home's members and from **guests**, people who eat with the Home without being in it, such as children. So
+  Tuesday's dinner can be a family stew for everyone and a child-only dish for one. A planned recipe nobody has chosen eaters
+  for is eaten by *every Home member*, worked out when shown, so a member who joins later is included and nothing is written
+  until someone changes it. The first change writes the `eaters|` marker and a key per ticked person, so "nobody" is a real
+  choice and differs from "not chosen". Taking the recipe out of its slot deletes its eaters, so planning it again starts from
+  the default. Guests are kept Home-wide in the same document, so one added while editing one recipe is there for every other;
+  they are a name, can be renamed, and can be removed, which un-tags them everywhere (their ticks are left in the document and
+  ignored). A ref for someone who has left the Home or been removed is ignored too. Flat keys again: two devices choosing the
+  eaters of one recipe at once merge to the union of what they ticked, so an untick can be undone by a concurrent seed;
+  accepted. The week shows "Everyone", "Nobody" or the names under each recipe; tapping it opens a **Who's eating** screen
+  (ticks apply at once; add, rename and remove guests there). A recipe that has left the Cookbook has no eaters line.
 - **Slots are Breakfast, Lunch and Dinner**, stored by enum name. A key this version can't read (a future slot, a
   damaged date) is skipped, not an error.
 - **The week is the Calendar's:** it starts on the Calendar's first day of the week setting (Monday, Saturday or
@@ -65,9 +67,10 @@ ROOT
 6. I can move to the next and previous week, and back to this one, and each week keeps its own plan.
 7. A recipe deleted from the cookbook shows as removed in the plan.
 8. The plan survives an app restart and reaches the Home's other devices.
-9. Each meal says who is eating it: every Home member unless I change that.
-10. I can untick a member who is not eating, and add people who are not in the Home (children) and tick them.
-11. People I add are kept for the whole Home, available on every meal, and I can rename or remove them.
+9. Each recipe planned for a meal says who is eating it: every Home member unless I change that.
+10. I can untick a member who is not eating a recipe, and add people who are not in the Home (children) and tick them; two
+    recipes in the same meal can have different eaters.
+11. People I add are kept for the whole Home, available on every recipe, and I can rename or remove them.
 
 ## Not in this ADR
 

@@ -19,11 +19,12 @@ import uk.veritaslabs.vesta.ui.screens.MealPlannerPickerScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
 import uk.veritaslabs.vesta.ui.screens.MealSlot
+import uk.veritaslabs.vesta.ui.screens.PlannedMeal
 import uk.veritaslabs.vesta.ui.screens.eatersOf
 
 /**
  * The meal planner's three screens (ADR-028) and the moves between them: the week, the recipe picker that its plus buttons open
- * for one meal of one day, and the screen for choosing who is eating that meal (tapping the names under the meal). Picking a recipe plans it and returns to the week; back returns without planning anything. Ticks on the eaters screen apply at once. [onBack]
+ * for one meal of one day, and the screen for choosing who is eating that meal (tapping the names under a planned recipe). Picking a recipe plans it and returns to the week; back returns without planning anything. Ticks on the eaters screen apply at once. [onBack]
  * leaves the planner from the week. Blank until the plan and the cookbook have loaded.
  */
 @Composable
@@ -36,7 +37,7 @@ fun MealPlannerFlow(
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
     var picking by remember { mutableStateOf<Pair<CalendarDate, MealSlot>?>(null) }
-    var choosingEaters by remember { mutableStateOf<Pair<CalendarDate, MealSlot>?>(null) }
+    var choosingEaters by remember { mutableStateOf<PlannedMeal?>(null) }
     if (state.isLoading) {
         Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
         return
@@ -44,14 +45,15 @@ fun MealPlannerFlow(
     val eatersTarget = choosingEaters
     val target = picking
     if (eatersTarget != null) {
-        val (date, slot) = eatersTarget
+        val (date, slot, recipeKey) = eatersTarget
         MealPlannerEatersScreen(
             date = date,
             slot = slot,
+            recipeTitle = state.recipes.firstOrNull { it.key == recipeKey }?.title.orEmpty(),
             people = state.people,
-            eating = eatersOf(state.plan, date, slot, state.people).map { it.ref }.toSet(),
+            eating = eatersOf(state.plan, date, slot, recipeKey, state.people).map { it.ref }.toSet(),
             modifier = modifier,
-            onSetEaters = { viewModel.setEaters(date, slot, it) },
+            onSetEaters = { viewModel.setEaters(date, slot, recipeKey, it) },
             onAddGuest = viewModel::addGuest,
             onRenameGuest = viewModel::renameGuest,
             onRemoveGuest = viewModel::removeGuest,
@@ -70,7 +72,7 @@ fun MealPlannerFlow(
             onNextWeek = viewModel::nextWeek,
             onThisWeek = viewModel::thisWeek,
             people = state.people,
-            onEditEaters = { date, slot -> choosingEaters = date to slot },
+            onEditEaters = { date, slot, recipeKey -> choosingEaters = PlannedMeal(date, slot, recipeKey) },
             onAddRecipe = { date, slot -> picking = date to slot },
             onRemove = viewModel::remove,
         )

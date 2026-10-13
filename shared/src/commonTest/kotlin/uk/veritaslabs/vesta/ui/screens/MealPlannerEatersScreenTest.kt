@@ -28,21 +28,21 @@ class MealPlannerEatersScreenTest {
     )
 
     @Test
-    fun saysWhichMealIsBeingEdited() = runComposeUiTest {
+    fun saysWhichRecipeAndMealIsBeingEdited() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people, eating = emptySet()) } }
+        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people, eating = emptySet()) } }
 
         // Act
         // (no user interaction — checking the initial state)
 
         // Assert
-        onNodeWithText("Dinner · Mon 12").assertIsDisplayed()
+        onNodeWithText("Shepherd's Pie · Dinner · Mon 12").assertIsDisplayed()
     }
 
     @Test
     fun everyoneIsListedWithTheEatersTicked() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people, eating = setOf("m:mark", "p:ella")) } }
+        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people, eating = setOf("m:mark", "p:ella")) } }
 
         // Act
         // (no user interaction — checking the initial state)
@@ -58,7 +58,7 @@ class MealPlannerEatersScreenTest {
         // Arrange
         val reported = mutableListOf<Set<String>>()
         setContent {
-            VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people, eating = setOf("m:mark"), onSetEaters = { reported += it }) }
+            VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people, eating = setOf("m:mark"), onSetEaters = { reported += it }) }
         }
 
         // Act
@@ -72,7 +72,7 @@ class MealPlannerEatersScreenTest {
     @Test
     fun withNoGuestsItExplainsWhoToAdd() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people.filter { it.isMember }, eating = emptySet()) } }
+        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people.filter { it.isMember }, eating = emptySet()) } }
 
         // Act
         // (no user interaction — checking the initial state)
@@ -85,7 +85,7 @@ class MealPlannerEatersScreenTest {
     fun addingAPersonReportsTheNameAndClearsTheField() = runComposeUiTest {
         // Arrange
         var added: String? = null
-        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people, eating = emptySet(), onAddGuest = { added = it }) } }
+        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people, eating = emptySet(), onAddGuest = { added = it }) } }
         onNodeWithTag(MealPlannerEatersTestTags.AddButton).assertIsNotEnabled()
 
         // Act
@@ -103,7 +103,7 @@ class MealPlannerEatersScreenTest {
         // Arrange
         var renamed: Pair<String, String>? = null
         setContent {
-            VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people, eating = emptySet(), onRenameGuest = { id, name -> renamed = id to name }) }
+            VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people, eating = emptySet(), onRenameGuest = { id, name -> renamed = id to name }) }
         }
 
         // Act
@@ -120,7 +120,7 @@ class MealPlannerEatersScreenTest {
     fun aGuestCanBeRemovedButAMemberCannot() = runComposeUiTest {
         // Arrange
         var removed: String? = null
-        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people, eating = emptySet(), onRemoveGuest = { removed = it }) } }
+        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people, eating = emptySet(), onRemoveGuest = { removed = it }) } }
 
         // Act
         onNodeWithTag(MealPlannerEatersTestTags.remove("p:ella")).performClick()
@@ -135,7 +135,7 @@ class MealPlannerEatersScreenTest {
     fun backReportsATap() = runComposeUiTest {
         // Arrange
         var backed = false
-        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, people, eating = emptySet(), onBack = { backed = true }) } }
+        setContent { VestaTheme { MealPlannerEatersScreen(monday, MealSlot.Dinner, "Shepherd's Pie", people, eating = emptySet(), onBack = { backed = true }) } }
 
         // Act
         onNodeWithTag(MealPlannerEatersTestTags.BackButton).performClick()

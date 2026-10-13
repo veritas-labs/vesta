@@ -50,6 +50,7 @@ import vesta.shared.generated.resources.meal_planner_day_heading
 import vesta.shared.generated.resources.meal_planner_eaters_add
 import vesta.shared.generated.resources.meal_planner_eaters_add_label
 import vesta.shared.generated.resources.meal_planner_eaters_back
+import vesta.shared.generated.resources.meal_planner_eaters_for
 import vesta.shared.generated.resources.meal_planner_eaters_guests
 import vesta.shared.generated.resources.meal_planner_eaters_members
 import vesta.shared.generated.resources.meal_planner_eaters_no_guests
@@ -81,7 +82,7 @@ internal object MealPlannerEatersTestTags {
 }
 
 /**
- * Who is eating [slot] on [date] (ADR-028): every [people] tickable, the Home's members first and then the guests (people who eat
+ * Who is eating the recipe called [recipeTitle] in [slot] on [date] (ADR-028): every [people] tickable, the Home's members first and then the guests (people who eat
  * with the Home without being in it), with [eating] (the [MealPerson.ref]s) ticked. A tick calls [onSetEaters] with the new set
  * straight away. A guest is added with the field at the bottom ([onAddGuest]), renamed by tapping their name ([onRenameGuest]) and
  * removed with the bin ([onRemoveGuest]), which un-tags them from every meal. Back calls [onBack].
@@ -91,6 +92,7 @@ internal object MealPlannerEatersTestTags {
 fun MealPlannerEatersScreen(
     date: CalendarDate,
     slot: MealSlot,
+    recipeTitle: String,
     people: List<MealPerson>,
     eating: Set<String>,
     modifier: Modifier = Modifier,
@@ -105,9 +107,13 @@ fun MealPlannerEatersScreen(
     var renameText by remember { mutableStateOf("") }
     val weekday = stringArrayResource(Res.array.calendar_weekdays)[date.dayOfWeek]
     val subtitle = stringResource(
-        Res.string.meal_planner_pick_for,
-        mealSlotLabel(slot),
-        stringResource(Res.string.meal_planner_day_heading, weekday, date.day),
+        Res.string.meal_planner_eaters_for,
+        recipeTitle,
+        stringResource(
+            Res.string.meal_planner_pick_for,
+            mealSlotLabel(slot),
+            stringResource(Res.string.meal_planner_day_heading, weekday, date.day),
+        ),
     )
     val members = people.filter { it.isMember }
     val guests = people.filter { !it.isMember }
@@ -275,23 +281,23 @@ private val PreviewPeople = listOf(
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun MealPlannerEatersPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, PreviewPeople, eating = setOf("m:mark", "p:ella")) }
+    VestaTheme(darkTheme = false) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, "Shepherd's Pie", PreviewPeople, eating = setOf("m:mark", "p:ella")) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun MealPlannerEatersPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, PreviewPeople, eating = setOf("m:mark", "p:ella")) }
+    VestaTheme(darkTheme = true) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, "Shepherd's Pie", PreviewPeople, eating = setOf("m:mark", "p:ella")) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun MealPlannerEatersTabletLightPreview() {
-    VestaTheme(darkTheme = false) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, PreviewPeople, eating = setOf("m:mark", "p:ella")) }
+    VestaTheme(darkTheme = false) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, "Shepherd's Pie", PreviewPeople, eating = setOf("m:mark", "p:ella")) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun MealPlannerEatersTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, PreviewPeople, eating = setOf("m:mark", "p:ella")) }
+    VestaTheme(darkTheme = true) { MealPlannerEatersScreen(PreviewDate, MealSlot.Dinner, "Shepherd's Pie", PreviewPeople, eating = setOf("m:mark", "p:ella")) }
 }

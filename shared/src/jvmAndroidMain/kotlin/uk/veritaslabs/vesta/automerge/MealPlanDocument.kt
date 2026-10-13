@@ -10,6 +10,7 @@ import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.ui.screens.MealGuest
 import uk.veritaslabs.vesta.ui.screens.MealPlan
 import uk.veritaslabs.vesta.ui.screens.MealSlot
+import uk.veritaslabs.vesta.ui.screens.PlannedMeal
 
 private const val Separator = '|'
 private const val KeyParts = 3
@@ -38,21 +39,22 @@ private const val ChosenPrefix = "eaters$Separator"
 private const val EaterPrefix = "eat$Separator"
 private const val EaterParts = 4
 
-private fun slotKey(date: CalendarDate, slot: MealSlot) = "${dateKey(date)}$Separator${slot.name}"
+private fun mealKey(date: CalendarDate, slot: MealSlot, recipeKey: String) = mealPlanKey(date, slot, recipeKey)
 
 /**
- * Who eats a meal, as more flat root keys (same reason as [mealPlanKey]):
+ * Who eats a planned recipe, as more flat root keys (same reason as [mealPlanKey]):
  *  - `"guest|<id>"`: a person who eats with the Home without being a member; the value is their name.
- *  - `"eaters|<date>|<Slot>"`: true once someone has chosen that meal's eaters. Without it a meal's eaters are the default, every
- *    Home member, worked out when shown so a member who joins later is included.
- *  - `"eat|<date>|<Slot>|<ref>"`: true for each chosen eater, `ref` being `m:<member id>` or `p:<guest id>`.
- * Two devices that choose the eaters of the same meal at once merge to the union of what they ticked.
+ *  - `"eaters|<date>|<Slot>|<recipe key>"`: true once someone has chosen that recipe's eaters. Without it the eaters are the default,
+ *    every Home member, worked out when shown so a member who joins later is included.
+ *  - `"eat|<date>|<Slot>|<recipe key>|<ref>"`: true for each chosen eater, `ref` being `m:<member id>` or `p:<guest id>`.
+ * Two devices that choose the eaters of the same recipe at once merge to the union of what they ticked. Taking the recipe out of
+ * its slot takes its eaters with it.
  */
 internal fun guestKey(id: String) = "$GuestPrefix$id"
 
-internal fun chosenKey(date: CalendarDate, slot: MealSlot) = "$ChosenPrefix${slotKey(date, slot)}"
+internal fun chosenKey(date: CalendarDate, slot: MealSlot, recipeKey: String) = "$ChosenPrefix${mealKey(date, slot, recipeKey)}"
 
-internal fun eaterKey(date: CalendarDate, slot: MealSlot, ref: String) = "$EaterPrefix${slotKey(date, slot)}$Separator$ref"
+internal fun eaterKey(date: CalendarDate, slot: MealSlot, recipeKey: String, ref: String) = "$EaterPrefix${mealKey(date, slot, recipeKey)}$Separator$ref"
 
 /** Reads the whole plan. A key this version can't make sense of (a future slot, a damaged date) is skipped. */
 fun Read.readMealPlan(): MealPlan {
@@ -63,19 +65,20 @@ fun Read.readMealPlan(): MealPlan {
         val name = (get(ObjectId.ROOT, key).getOrNull() as? AmValue.Str)?.value?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
         MealGuest(key.removePrefix(GuestPrefix), name)
     }.sortedBy { it.name.lowercase() }
-    fun meal(text: String): Pair<CalendarDate, MealSlot>? {
-        val parts = text.split(Separator)
-        val date = parts.getOrNull(0)?.let(::parseDate) ?: return null
-        val slot = MealSlot.entries.firstOrNull { it.name == parts.getOrNull(1) } ?: return null
-        return date to slot
+    fun meal(text: String): PlannedMeal? {
+        val parts = text.split(Separator, limit = KeyParts)
+        if (parts.size != KeyParts) return null
+        val date = parseDate(parts[0]) ?: return null
+        val slot = MealSlot.entries.firstOrNull { it.name == parts[1] } ?: return null
+        return PlannedMeal(date, slot, parts[2])
     }
     val chosen = rootKeys.filter { it.startsWith(ChosenPrefix) }.mapNotNull { meal(it.removePrefix(ChosenPrefix)) }.toSet()
     val eaters = chosen.associateWith { mutableSetOf<String>() }
     rootKeys.filter { it.startsWith(EaterPrefix) }.forEach { key ->
-        val parts = key.removePrefix(EaterPrefix).split(Separator, limit = EaterParts - 1)
-        if (parts.size != EaterParts - 1) return@forEach
-        val meal = meal("${parts[0]}$Separator${parts[1]}") ?: return@forEach
-        eaters[meal]?.add(parts[2])
+        val parts = key.removePrefix(EaterPrefix).split(Separator, limit = EaterParts)
+        if (parts.size != EaterParts) return@forEach
+        val meal = meal("${parts[0]}$Separator${parts[1]}$Separator${parts[2]}") ?: return@forEach
+        eaters[meal]?.add(parts[3])
     }
 
     val entries = rootKeys.mapNotNull { key ->
@@ -95,22 +98,22 @@ fun Read.readMealPlan(): MealPlan {
     )
 }
 
-/** Makes exactly [refs] the eaters of [slot] on [date]. Returns false, changing nothing, if that is already so. */
-fun chooseEaters(doc: Document, date: CalendarDate, slot: MealSlot, refs: Set<String>): Boolean {
+/** Makes exactly [refs] the eaters of [recipeKey] in [slot] on [date]. Returns false, changing nothing, if that is already so. */
+fun chooseEaters(doc: Document, date: CalendarDate, slot: MealSlot, recipeKey: String, refs: Set<String>): Boolean {
     val tx = doc.startTransaction()
     var changed = false
-    if (!tx.get(ObjectId.ROOT, chosenKey(date, slot)).isPresent) {
-        tx.set(ObjectId.ROOT, chosenKey(date, slot), true)
+    if (!tx.get(ObjectId.ROOT, chosenKey(date, slot, recipeKey)).isPresent) {
+        tx.set(ObjectId.ROOT, chosenKey(date, slot, recipeKey), true)
         changed = true
     }
-    val prefix = "$EaterPrefix${slotKey(date, slot)}$Separator"
+    val prefix = "$EaterPrefix${mealKey(date, slot, recipeKey)}$Separator"
     val existing = tx.keys(ObjectId.ROOT).getOrNull().orEmpty().filter { it.startsWith(prefix) }.map { it.removePrefix(prefix) }.toSet()
     (existing - refs).forEach {
-        tx.delete(ObjectId.ROOT, eaterKey(date, slot, it))
+        tx.delete(ObjectId.ROOT, eaterKey(date, slot, recipeKey, it))
         changed = true
     }
     (refs - existing).forEach {
-        tx.set(ObjectId.ROOT, eaterKey(date, slot, it), true)
+        tx.set(ObjectId.ROOT, eaterKey(date, slot, recipeKey, it), true)
         changed = true
     }
     if (changed) tx.commit() else tx.rollback()
@@ -171,6 +174,10 @@ fun unplanMeal(doc: Document, date: CalendarDate, slot: MealSlot, recipeKey: Str
         return false
     }
     tx.delete(ObjectId.ROOT, key)
+    // Its eaters go with it, so planning it again later starts from the default.
+    val eatersPrefix = "$EaterPrefix${mealKey(date, slot, recipeKey)}$Separator"
+    tx.keys(ObjectId.ROOT).getOrNull().orEmpty().filter { it.startsWith(eatersPrefix) }.forEach { tx.delete(ObjectId.ROOT, it) }
+    if (tx.get(ObjectId.ROOT, chosenKey(date, slot, recipeKey)).isPresent) tx.delete(ObjectId.ROOT, chosenKey(date, slot, recipeKey))
     tx.commit()
     return true
 }

@@ -58,9 +58,10 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
  *  6. I can move to the next and previous week, and back to this one, and each week keeps its own plan.
  *  7. A recipe deleted from the cookbook shows as removed in the plan.
  *  8. The plan survives an app restart (and reaches paired devices: see DeviceDataSyncServiceTest).
- *  9. Each meal says who is eating it: every Home member unless I change that.
- * 10. I can untick a member who is not eating, and add people who are not in the Home (children) and tick them.
- * 11. People I add are kept for the whole Home, available on every meal, and I can rename or remove them.
+ *  9. Each recipe planned for a meal says who is eating it: every Home member unless I change that.
+ * 10. I can untick a member who is not eating a recipe, and add people who are not in the Home (children) and tick them;
+ *     two recipes in the same meal can have different eaters.
+ * 11. People I add are kept for the whole Home, available on every recipe, and I can rename or remove them.
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class MealPlannerAcceptanceTest {
@@ -292,9 +293,9 @@ class MealPlannerAcceptanceTest {
         waitForNoTag(MealPlannerTestTags.entry(monday, MealSlot.Lunch, soup))
     }
 
-    private fun ComposeUiTest.openEaters(date: CalendarDate, slot: MealSlot) {
-        waitForTag(MealPlannerTestTags.eaters(date, slot))
-        onNodeWithTag(MealPlannerTestTags.eaters(date, slot)).performClick()
+    private fun ComposeUiTest.openEaters(date: CalendarDate, slot: MealSlot, recipeKey: String) {
+        waitForTag(MealPlannerTestTags.eaters(date, slot, recipeKey))
+        onNodeWithTag(MealPlannerTestTags.eaters(date, slot, recipeKey)).performClick()
         waitForTag(MealPlannerEatersTestTags.Screen)
     }
 
@@ -303,119 +304,169 @@ class MealPlannerAcceptanceTest {
         waitForTag(MealPlannerTestTags.WeekRange)
     }
 
-    private fun ComposeUiTest.waitForEaters(date: CalendarDate, slot: MealSlot, text: String) = waitUntil(timeoutMillis = 5_000) {
-        runCatching { onNodeWithTag(MealPlannerTestTags.eaters(date, slot)).assertTextEquals(text) }.isSuccess
+    private fun ComposeUiTest.waitForEaters(date: CalendarDate, slot: MealSlot, recipeKey: String, text: String) = waitUntil(timeoutMillis = 5_000) {
+        runCatching { onNodeWithTag(MealPlannerTestTags.eaters(date, slot, recipeKey)).assertTextEquals(text) }.isSuccess
+    }
+
+    /** Soup planned for Monday's dinner, shown in the planner; returns the plan and Soup's key. */
+    private fun ComposeUiTest.showPlannerWithSoupForMondayDinner(
+        persist: suspend (ByteArray) -> Unit = {},
+    ): Pair<MealPlanDocumentSource, String> {
+        val cookbook = runBlocking { cookbook("Soup") }
+        val plan = newPlan(persist = persist)
+        showPlanner(cookbook, plan)
+        val soup = runBlocking { cookbook.keyOf("Soup") }
+        plan(monday, MealSlot.Dinner, soup)
+        return plan to soup
     }
 
     @Test
-    fun aMealIsEatenByEveryMemberUntilIChangeIt() = runComposeUiTest {
-        // Arrange — Given a Home of Mark and Sam
-        showPlanner(runBlocking { cookbook("Soup") }, newPlan())
+    fun aPlannedRecipeIsEatenByEveryMemberUntilIChangeIt() = runComposeUiTest {
+        // Arrange — Given a Home of Mark and Sam, with Soup planned for Monday's dinner
+        val (_, soup) = showPlannerWithSoupForMondayDinner()
 
-        // Act — When I open the planner and look at a meal
-        waitForTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner))
+        // Act — When I look at the soup
+        waitForTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, soup))
 
         // Assert — Then it says everyone is eating, and its screen has both members ticked
-        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner)).assertTextEquals("Everyone")
-        openEaters(monday, MealSlot.Dinner)
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, soup)).assertTextEquals("Everyone")
+        openEaters(monday, MealSlot.Dinner, soup)
         onNodeWithTag(MealPlannerEatersTestTags.checkbox("m:mark")).assertIsOn()
         onNodeWithTag(MealPlannerEatersTestTags.checkbox("m:sam")).assertIsOn()
     }
 
     @Test
-    fun iCanUntickAMemberWhoIsNotEating() = runComposeUiTest {
-        // Arrange — Given a Home of Mark and Sam
-        val plan = newPlan()
-        showPlanner(runBlocking { cookbook("Soup") }, plan)
-        openEaters(monday, MealSlot.Dinner)
+    fun iCanUntickAMemberWhoIsNotEatingARecipe() = runComposeUiTest {
+        // Arrange — Given Soup planned for Monday's dinner
+        val (plan, soup) = showPlannerWithSoupForMondayDinner()
+        openEaters(monday, MealSlot.Dinner, soup)
 
         // Act — When I untick Sam and go back
         onNodeWithTag(MealPlannerEatersTestTags.checkbox("m:sam")).performClick()
         closeEaters()
 
-        // Assert — Then only Mark is eating that dinner, and the other meals are untouched
-        waitForEaters(monday, MealSlot.Dinner, "Mark")
-        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Lunch)).assertTextEquals("Everyone")
-        assertEquals(setOf("m:mark"), runBlocking { plan.plan.first() }.chosenEaters(monday, MealSlot.Dinner))
+        // Assert — Then only Mark is eating the soup
+        waitForEaters(monday, MealSlot.Dinner, soup, "Mark")
+        assertEquals(setOf("m:mark"), runBlocking { plan.plan.first() }.chosenEaters(monday, MealSlot.Dinner, soup))
     }
 
     @Test
-    fun iCanAddAChildWhoIsNotInTheHomeAndTickThem() = runComposeUiTest {
-        // Arrange — Given a Home of Mark and Sam
-        showPlanner(runBlocking { cookbook("Soup") }, newPlan())
-        openEaters(monday, MealSlot.Dinner)
+    fun twoRecipesForTheSameMealCanHaveDifferentEaters() = runComposeUiTest {
+        // Arrange — Given Soup and Bread both planned for Monday's dinner
+        val cookbook = runBlocking { cookbook("Soup", "Bread") }
+        val plan = newPlan()
+        showPlanner(cookbook, plan)
+        val soup = runBlocking { cookbook.keyOf("Soup") }
+        val bread = runBlocking { cookbook.keyOf("Bread") }
+        plan(monday, MealSlot.Dinner, soup)
+        plan(monday, MealSlot.Dinner, bread)
+
+        // Act — When I make the bread just Sam's
+        openEaters(monday, MealSlot.Dinner, bread)
+        onNodeWithTag(MealPlannerEatersTestTags.checkbox("m:mark")).performClick()
+        closeEaters()
+
+        // Assert — Then the bread is Sam's alone and the soup is still everyone's
+        waitForEaters(monday, MealSlot.Dinner, bread, "Sam")
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, soup)).assertTextEquals("Everyone")
+    }
+
+    @Test
+    fun iCanAddAChildWhoIsNotInTheHomeAndTickThemForARecipe() = runComposeUiTest {
+        // Arrange — Given Soup planned for Monday's dinner
+        val (_, soup) = showPlannerWithSoupForMondayDinner()
+        openEaters(monday, MealSlot.Dinner, soup)
 
         // Act — When I add Ella and tick her
         onNodeWithTag(MealPlannerEatersTestTags.AddField).performTextInput("Ella")
         onNodeWithTag(MealPlannerEatersTestTags.AddButton).performClick()
-        waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(MealPlannerEatersTestTags.GuestsHint).fetchSemanticsNodes().isEmpty() }
-        val ella = "p:g1"
-        onNodeWithTag(MealPlannerEatersTestTags.checkbox(ella)).performClick()
+        waitForTag(MealPlannerEatersTestTags.checkbox("p:g1"))
+        onNodeWithTag(MealPlannerEatersTestTags.checkbox("p:g1")).performClick()
         closeEaters()
 
-        // Assert — Then the dinner is eaten by Mark, Sam and Ella
-        waitForEaters(monday, MealSlot.Dinner, "Mark, Sam, Ella")
+        // Assert — Then the soup is eaten by Mark, Sam and Ella
+        waitForEaters(monday, MealSlot.Dinner, soup, "Mark, Sam, Ella")
     }
 
     @Test
-    fun aPersonIAddIsAvailableOnEveryOtherMeal() = runComposeUiTest {
-        // Arrange — Given Ella added while editing Monday's dinner
-        showPlanner(runBlocking { cookbook("Soup") }, newPlan())
-        openEaters(monday, MealSlot.Dinner)
+    fun aPersonIAddIsAvailableOnEveryOtherRecipe() = runComposeUiTest {
+        // Arrange — Given Soup and Bread planned, and Ella added while editing the soup
+        val cookbook = runBlocking { cookbook("Soup", "Bread") }
+        val plan = newPlan()
+        showPlanner(cookbook, plan)
+        val soup = runBlocking { cookbook.keyOf("Soup") }
+        val bread = runBlocking { cookbook.keyOf("Bread") }
+        plan(monday, MealSlot.Dinner, soup)
+        plan(tuesday, MealSlot.Lunch, bread)
+        openEaters(monday, MealSlot.Dinner, soup)
         onNodeWithTag(MealPlannerEatersTestTags.AddField).performTextInput("Ella")
         onNodeWithTag(MealPlannerEatersTestTags.AddButton).performClick()
         closeEaters()
 
-        // Act — When I edit Tuesday's lunch
-        openEaters(tuesday, MealSlot.Lunch)
+        // Act — When I edit the bread on Tuesday
+        openEaters(tuesday, MealSlot.Lunch, bread)
 
         // Assert — Then Ella is there, unticked, to choose
-        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Ella").fetchSemanticsNodes().isNotEmpty() }
-        val ella = "p:g1"
-        onNodeWithTag(MealPlannerEatersTestTags.checkbox(ella)).assertIsOff()
+        waitForTag(MealPlannerEatersTestTags.checkbox("p:g1"))
+        onNodeWithTag(MealPlannerEatersTestTags.checkbox("p:g1")).assertIsOff()
     }
 
     @Test
     fun iCanRenameAndRemoveAPersonIAdded() = runComposeUiTest {
-        // Arrange — Given Ella added and ticked for Monday's dinner
-        val plan = newPlan()
-        showPlanner(runBlocking { cookbook("Soup") }, plan)
+        // Arrange — Given Ella added and ticked for the soup
+        val (plan, soup) = showPlannerWithSoupForMondayDinner()
         runBlocking { plan.addGuest("Ella") }
-        openEaters(monday, MealSlot.Dinner)
-        val ella = "p:g1"
-        waitForTag(MealPlannerEatersTestTags.checkbox(ella))
-        onNodeWithTag(MealPlannerEatersTestTags.checkbox(ella)).performClick()
+        openEaters(monday, MealSlot.Dinner, soup)
+        waitForTag(MealPlannerEatersTestTags.checkbox("p:g1"))
+        onNodeWithTag(MealPlannerEatersTestTags.checkbox("p:g1")).performClick()
 
         // Act — When I rename her to Ellie
-        onNodeWithTag(MealPlannerEatersTestTags.rename(ella)).performClick()
+        onNodeWithTag(MealPlannerEatersTestTags.rename("p:g1")).performClick()
         onNodeWithTag(MealPlannerEatersTestTags.RenameField).performTextReplacement("Ellie")
         onNodeWithTag(MealPlannerEatersTestTags.RenameSave).performClick()
         closeEaters()
 
-        // Assert — Then the meal names Ellie; and when I remove her only the members are left, which reads as everyone
-        waitForEaters(monday, MealSlot.Dinner, "Mark, Sam, Ellie")
-        openEaters(monday, MealSlot.Dinner)
-        onNodeWithTag(MealPlannerEatersTestTags.remove(ella)).performClick()
+        // Assert — Then the soup names Ellie; and when I remove her only the members are left, which reads as everyone
+        waitForEaters(monday, MealSlot.Dinner, soup, "Mark, Sam, Ellie")
+        openEaters(monday, MealSlot.Dinner, soup)
+        onNodeWithTag(MealPlannerEatersTestTags.remove("p:g1")).performClick()
         closeEaters()
-        waitForEaters(monday, MealSlot.Dinner, "Everyone")
+        waitForEaters(monday, MealSlot.Dinner, soup, "Everyone")
+    }
+
+    @Test
+    fun takingARecipeOutAndPlanningItAgainStartsFromEveryone() = runComposeUiTest {
+        // Arrange — Given the soup made Mark's alone
+        val (_, soup) = showPlannerWithSoupForMondayDinner()
+        openEaters(monday, MealSlot.Dinner, soup)
+        onNodeWithTag(MealPlannerEatersTestTags.checkbox("m:sam")).performClick()
+        closeEaters()
+        waitForEaters(monday, MealSlot.Dinner, soup, "Mark")
+
+        // Act — When I take it out and plan it again
+        onNodeWithTag(MealPlannerTestTags.removeButton(monday, MealSlot.Dinner, soup)).performClick()
+        waitForNoTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, soup))
+        plan(monday, MealSlot.Dinner, soup)
+
+        // Assert — Then it is everyone's again
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, soup)).assertTextEquals("Everyone")
     }
 
     @Test
     fun theChosenEatersSurviveARestart() = runComposeUiTest {
-        // Arrange — Given a plan that is saved as it changes, with Sam unticked for Monday's dinner
+        // Arrange — Given a plan that is saved as it changes, with Sam unticked for the soup
         var saved = Document().save()
-        val plan = newPlan(persist = { saved = it })
-        showPlanner(runBlocking { cookbook("Soup") }, plan)
-        openEaters(monday, MealSlot.Dinner)
+        val (_, soup) = showPlannerWithSoupForMondayDinner(persist = { saved = it })
+        openEaters(monday, MealSlot.Dinner, soup)
         onNodeWithTag(MealPlannerEatersTestTags.checkbox("m:sam")).performClick()
         closeEaters()
-        waitForEaters(monday, MealSlot.Dinner, "Mark")
+        waitForEaters(monday, MealSlot.Dinner, soup, "Mark")
 
         // Act — When the app is restarted from what was saved
         val reopened = newPlan(saved)
 
-        // Assert — Then Monday's dinner is still Mark's alone
-        assertEquals(setOf("m:mark"), runBlocking { reopened.plan.first() }.chosenEaters(monday, MealSlot.Dinner))
+        // Assert — Then the soup is still Mark's alone
+        assertEquals(setOf("m:mark"), runBlocking { reopened.plan.first() }.chosenEaters(monday, MealSlot.Dinner, soup))
     }
 
     @Test

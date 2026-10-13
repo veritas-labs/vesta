@@ -28,15 +28,18 @@ data class MealPlan(
     val days: Map<CalendarDate, Map<MealSlot, List<String>>> = emptyMap(),
     /** People who eat with the Home but are not members of it, such as children. */
     val guests: List<MealGuest> = emptyList(),
-    /** For the meals whose eaters have been chosen, the [MealPerson.ref]s eating; a meal not in here has the default eaters. */
-    val eaters: Map<Pair<CalendarDate, MealSlot>, Set<String>> = emptyMap(),
+    /** For the planned recipes whose eaters have been chosen, the [MealPerson.ref]s eating; one not in here has the default eaters. */
+    val eaters: Map<PlannedMeal, Set<String>> = emptyMap(),
 ) {
     /** The recipe keys planned for [slot] on [date], empty for none. */
     fun recipes(date: CalendarDate, slot: MealSlot): List<String> = days[date]?.get(slot).orEmpty()
 
-    /** The refs chosen as eating [slot] on [date], or null if nobody has chosen, which means every Home member. */
-    fun chosenEaters(date: CalendarDate, slot: MealSlot): Set<String>? = eaters[date to slot]
+    /** The refs chosen as eating [recipeKey] in [slot] on [date], or null if nobody has chosen, which means every Home member. */
+    fun chosenEaters(date: CalendarDate, slot: MealSlot, recipeKey: String): Set<String>? = eaters[PlannedMeal(date, slot, recipeKey)]
 }
+
+/** One recipe planned for one slot of one day: the thing people are tagged on. */
+data class PlannedMeal(val date: CalendarDate, val slot: MealSlot, val recipeKey: String)
 
 /** A person who eats with the Home without being one of its members; just a name. */
 data class MealGuest(val id: String, val name: String)
@@ -54,11 +57,11 @@ fun mealPeople(members: List<MemberListItem>, guests: List<MealGuest>): List<Mea
         guests.sortedBy { it.name.lowercase() }.map { MealPerson(guestRef(it.id), it.name, isMember = false) }
 
 /**
- * Who is eating [slot] on [date]: when nobody has chosen, every member of [people]; otherwise those of [people] that were
+ * Who is eating [recipeKey] in [slot] on [date]: when nobody has chosen, every member of [people]; otherwise those of [people] that were
  * chosen (a chosen person who has since left the Home or been removed is dropped).
  */
-fun eatersOf(plan: MealPlan, date: CalendarDate, slot: MealSlot, people: List<MealPerson>): List<MealPerson> {
-    val chosen = plan.chosenEaters(date, slot) ?: return people.filter { it.isMember }
+fun eatersOf(plan: MealPlan, date: CalendarDate, slot: MealSlot, recipeKey: String, people: List<MealPerson>): List<MealPerson> {
+    val chosen = plan.chosenEaters(date, slot, recipeKey) ?: return people.filter { it.isMember }
     return people.filter { it.ref in chosen }
 }
 
@@ -72,8 +75,8 @@ interface MealPlanSource {
     /** Takes the recipe with [recipeKey] out of [slot] on [date]. No-op if it isn't there. */
     suspend fun remove(date: CalendarDate, slot: MealSlot, recipeKey: String)
 
-    /** Chooses exactly [refs] ([MealPerson.ref]s) as the eaters of [slot] on [date], even none. */
-    suspend fun setEaters(date: CalendarDate, slot: MealSlot, refs: Set<String>)
+    /** Chooses exactly [refs] ([MealPerson.ref]s) as the eaters of [recipeKey] in [slot] on [date], even none. */
+    suspend fun setEaters(date: CalendarDate, slot: MealSlot, recipeKey: String, refs: Set<String>)
 
     /** Adds a guest called [name] (trimmed; blank adds nothing) and returns its id, or null if nothing was added. */
     suspend fun addGuest(name: String): String?
@@ -144,8 +147,8 @@ class MealPlannerViewModel(
         viewModelScope.launch { source.remove(date, slot, recipeKey) }
     }
 
-    fun setEaters(date: CalendarDate, slot: MealSlot, refs: Set<String>) {
-        viewModelScope.launch { source.setEaters(date, slot, refs) }
+    fun setEaters(date: CalendarDate, slot: MealSlot, recipeKey: String, refs: Set<String>) {
+        viewModelScope.launch { source.setEaters(date, slot, recipeKey, refs) }
     }
 
     fun addGuest(name: String) {

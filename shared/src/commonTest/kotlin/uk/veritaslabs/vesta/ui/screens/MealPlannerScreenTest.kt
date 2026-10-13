@@ -154,70 +154,109 @@ class MealPlannerScreenTest {
         MealPerson("m:sam", "Sam", isMember = true),
         MealPerson("p:ella", "Ella", isMember = false),
     )
+    private val dinnerWithPie = mapOf(MealSlot.Dinner to listOf("pie"))
+
+    private fun plannedPie(vararg eaters: Pair<String, Set<String>>) =
+        MealPlan(days = mapOf(monday to dinnerWithPie), eaters = eaters.associate { PlannedMeal(monday, MealSlot.Dinner, it.first) to it.second })
 
     @Test
-    fun aMealNobodyChoseEatersForSaysEveryone() = runComposeUiTest {
+    fun aPlannedRecipeNobodyChoseEatersForSaysEveryone() = runComposeUiTest {
         // Arrange
-        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), people = people, today = today) } }
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie), plan = plannedPie(), people = people, today = today) } }
 
         // Act
         // (no user interaction — checking the initial state)
 
         // Assert
-        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner)).assertTextEquals("Everyone")
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "pie")).assertTextEquals("Everyone")
     }
 
     @Test
-    fun aMealWithChosenEatersNamesThem() = runComposeUiTest {
+    fun aPlannedRecipeWithChosenEatersNamesThem() = runComposeUiTest {
         // Arrange
-        val plan = MealPlan(eaters = mapOf((monday to MealSlot.Dinner) to setOf("m:sam", "p:ella")))
-        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), plan = plan, people = people, today = today) } }
+        val plan = plannedPie("pie" to setOf("m:sam", "p:ella"))
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie), plan = plan, people = people, today = today) } }
 
         // Act
         // (no user interaction — checking the initial state)
 
         // Assert
-        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner)).assertTextEquals("Sam, Ella")
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "pie")).assertTextEquals("Sam, Ella")
     }
 
     @Test
-    fun aMealWhoseEatersAreAllTheMembersAndNobodyElseSaysEveryone() = runComposeUiTest {
+    fun aRecipeWhoseEatersAreAllTheMembersAndNobodyElseSaysEveryone() = runComposeUiTest {
         // Arrange
-        val plan = MealPlan(eaters = mapOf((monday to MealSlot.Lunch) to setOf("m:mark", "m:sam")))
-        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), plan = plan, people = people, today = today) } }
+        val plan = plannedPie("pie" to setOf("m:mark", "m:sam"))
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie), plan = plan, people = people, today = today) } }
 
         // Act
         // (no user interaction — checking the initial state)
 
         // Assert
-        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Lunch)).assertTextEquals("Everyone")
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "pie")).assertTextEquals("Everyone")
     }
 
     @Test
-    fun aMealWithNoEatersChosenSaysNobody() = runComposeUiTest {
+    fun aRecipeWithNoEatersChosenSaysNobody() = runComposeUiTest {
         // Arrange
-        val plan = MealPlan(eaters = mapOf((monday to MealSlot.Breakfast) to emptySet()))
-        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), plan = plan, people = people, today = today) } }
+        val plan = plannedPie("pie" to emptySet())
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie), plan = plan, people = people, today = today) } }
 
         // Act
         // (no user interaction — checking the initial state)
 
         // Assert
-        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Breakfast)).assertTextEquals("Nobody")
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "pie")).assertTextEquals("Nobody")
     }
 
     @Test
-    fun tappingTheEatersReportsTheDayAndMeal() = runComposeUiTest {
+    fun twoRecipesInAMealShowTheirOwnEaters() = runComposeUiTest {
         // Arrange
-        var requested: Pair<CalendarDate, MealSlot>? = null
+        val plan = MealPlan(
+            days = mapOf(monday to mapOf(MealSlot.Dinner to listOf("pie", "porridge"))),
+            eaters = mapOf(PlannedMeal(monday, MealSlot.Dinner, "porridge") to setOf("p:ella")),
+        )
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie, porridge), plan = plan, people = people, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "pie")).assertTextEquals("Everyone")
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "porridge")).assertTextEquals("Ella")
+    }
+
+    @Test
+    fun aRemovedRecipeHasNoEatersToEdit() = runComposeUiTest {
+        // Arrange
+        val plan = MealPlan(days = mapOf(monday to mapOf(MealSlot.Lunch to listOf("gone"))))
+        setContent { VestaTheme { MealPlannerScreen(emptyList(), plan = plan, people = people, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Lunch, "gone")).assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingTheEatersReportsTheDayMealAndRecipe() = runComposeUiTest {
+        // Arrange
+        var requested: Triple<CalendarDate, MealSlot, String>? = null
         setContent {
-            VestaTheme { MealPlannerScreen(recipes = emptyList(), people = people, today = today, onEditEaters = { d, s -> requested = d to s }) }
+            VestaTheme {
+                MealPlannerScreen(
+                    listOf(pie), plan = plannedPie(), people = people, today = today,
+                    onEditEaters = { d, s, k -> requested = Triple(d, s, k) },
+                )
+            }
         }
 
         // Act
-        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Lunch)).performClick()
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "pie")).performClick()
 
         // Assert
-        assertEquals(monday to MealSlot.Lunch, requested)
+        assertEquals(Triple(monday, MealSlot.Dinner, "pie"), requested)
     }
 }
