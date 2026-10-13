@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -95,6 +96,7 @@ fun PantryCategoriesScreen(
     viewModel: PantryCategoriesViewModel,
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
+    accent: Color = PantryAccent,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -108,6 +110,7 @@ fun PantryCategoriesScreen(
             onDeletePrimary = viewModel::deletePrimary,
             onDeleteSecondary = viewModel::deleteSecondary,
             onBack = onBack,
+            accent = accent,
         )
     }
 }
@@ -122,6 +125,7 @@ fun PantryCategoriesScreen(
     onDeletePrimary: (String) -> Unit = {},
     onDeleteSecondary: (primary: String, name: String) -> Unit = { _, _ -> },
     onBack: () -> Unit = {},
+    accent: Color = PantryAccent,
 ) {
     var adding by remember { mutableStateOf<AddTarget?>(null) }
     var removing by remember { mutableStateOf<String?>(null) }
@@ -133,7 +137,7 @@ fun PantryCategoriesScreen(
             TopAppBar(
                 modifier = Modifier
                     .zIndex(1f)
-                    .shadow(elevation = 16.dp, ambientColor = PantryAccent, spotColor = PantryAccent),
+                    .shadow(elevation = 16.dp, ambientColor = accent, spotColor = accent),
                 title = { Text(stringResource(Res.string.pantry_categories_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(PantryCategoriesTestTags.BackButton)) {

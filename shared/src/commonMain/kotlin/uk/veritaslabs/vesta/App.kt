@@ -102,6 +102,8 @@ import uk.veritaslabs.vesta.ui.screens.PantryListItem
 import uk.veritaslabs.vesta.ui.screens.PantrySource
 import uk.veritaslabs.vesta.ui.screens.PantryViewModel
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
+import uk.veritaslabs.vesta.ui.screens.PantryAccent
+import uk.veritaslabs.vesta.ui.screens.ShoppingAccent
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemFormLabels
 import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
 import uk.veritaslabs.vesta.ui.screens.shoppingTags
@@ -669,14 +671,16 @@ private fun HomeContent(
                     backToForm()
                 },
                 onBack = backToForm,
+                accent = ShoppingAccent,
             )
         }
         HomeDestination.PantryCategories -> {
             val onBack = { destination = categoriesBackTo }
+            val accent = if (categoriesBackTo == HomeDestination.ShoppingItemEdit) ShoppingAccent else PantryAccent
             if (categoriesViewModel != null) {
-                PantryCategoriesScreen(categoriesViewModel, onBack = onBack)
+                PantryCategoriesScreen(categoriesViewModel, onBack = onBack, accent = accent)
             } else {
-                PantryCategoriesScreen(categories = emptyList(), onBack = onBack)
+                PantryCategoriesScreen(categories = emptyList(), onBack = onBack, accent = accent)
             }
         }
         HomeDestination.PantryItemEdit -> PantryItemEditScreen(

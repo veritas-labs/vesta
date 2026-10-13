@@ -208,6 +208,7 @@ val ShoppingItemFormLabels = ItemFormLabels(
     Res.string.shopping_quantity_decrease,
     Res.string.shopping_quantity_increase,
     minCount = 1,
+    accent = ShoppingAccent,
 )
 
 /**

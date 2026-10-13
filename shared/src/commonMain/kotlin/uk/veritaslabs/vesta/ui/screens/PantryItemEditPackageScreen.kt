@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -78,6 +79,7 @@ fun PantryItemEditPackageScreen(
     startLoose: Boolean = false,
     onDone: (String) -> Unit = {},
     onBack: () -> Unit = {},
+    accent: Color = PantryAccent,
 ) {
     var loose by remember(initialValue, startLoose) { mutableStateOf(initialValue.isBlank() && startLoose) }
     var packaged by remember(initialValue) { mutableStateOf(initialValue) }
@@ -91,7 +93,7 @@ fun PantryItemEditPackageScreen(
             TopAppBar(
                 modifier = Modifier
                     .zIndex(1f)
-                    .shadow(elevation = 16.dp, ambientColor = PantryAccent, spotColor = PantryAccent),
+                    .shadow(elevation = 16.dp, ambientColor = accent, spotColor = accent),
                 title = {
                     Column {
                         Text(stringResource(Res.string.pantry_edit_package_size_label))
