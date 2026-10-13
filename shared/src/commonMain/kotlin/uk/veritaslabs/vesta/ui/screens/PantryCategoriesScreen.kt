@@ -35,11 +35,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -129,6 +131,9 @@ fun PantryCategoriesScreen(
 
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
+                modifier = Modifier
+                    .zIndex(1f)
+                    .shadow(elevation = 16.dp, ambientColor = PantryAccent, spotColor = PantryAccent),
                 title = { Text(stringResource(Res.string.pantry_categories_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(PantryCategoriesTestTags.BackButton)) {
@@ -165,7 +170,7 @@ fun PantryCategoriesScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding),
-                    contentPadding = PaddingValues(top = 4.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(categories, key = { it.name }) { category ->

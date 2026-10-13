@@ -126,12 +126,15 @@ private data class DashboardTile(
     val onClick: () -> Unit,
 )
 
+/** The Pantry tile's blue, shared with the Pantry screen's app bar shadow. */
+internal val PantryAccent = Color(0xFF6F93B5)
+
 /**
  * A colour for each tile, fixed rather than from the theme (which has too few accents to tell six areas apart) and muted enough to sit
  * on both the light and the dark background. It is the bar down a tile's left side and the icon's circle.
  */
 private val TileAccents = mapOf(
-    HomeDashboardTestTags.PantryTile to Color(0xFF6F93B5), // blue
+    HomeDashboardTestTags.PantryTile to PantryAccent, // blue
     HomeDashboardTestTags.ShoppingTile to Color(0xFFC9973A), // gold
     HomeDashboardTestTags.CookbookTile to Color(0xFFD9694F), // coral
     HomeDashboardTestTags.MealPlannerTile to Color(0xFFD9743A), // terracotta

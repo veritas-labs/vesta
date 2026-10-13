@@ -26,11 +26,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -87,6 +89,9 @@ fun PantryItemEditPackageScreen(
 
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
+                modifier = Modifier
+                    .zIndex(1f)
+                    .shadow(elevation = 16.dp, ambientColor = PantryAccent, spotColor = PantryAccent),
                 title = {
                     Column {
                         Text(stringResource(Res.string.pantry_edit_package_size_label))

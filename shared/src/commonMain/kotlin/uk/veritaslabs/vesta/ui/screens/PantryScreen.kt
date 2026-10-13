@@ -36,12 +36,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -194,6 +196,9 @@ fun PantryScreen(
 
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
+                modifier = Modifier
+                    .zIndex(1f)
+                    .shadow(elevation = 16.dp, ambientColor = PantryAccent, spotColor = PantryAccent),
                 title = {
                     if (selecting) {
                         Text(
