@@ -5,6 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +20,8 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -24,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -33,7 +42,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,8 +55,6 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.ui.components.ActionCard
-import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBar
 import uk.veritaslabs.vesta.ui.components.HomeTab
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
@@ -56,6 +67,13 @@ import vesta.shared.generated.resources.cookbook_title
 import vesta.shared.generated.resources.ic_calendar
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_cookbook
+import vesta.shared.generated.resources.ic_home
+import vesta.shared.generated.resources.home_dashboard_cookbook_body
+import vesta.shared.generated.resources.home_dashboard_calendar_body
+import vesta.shared.generated.resources.home_dashboard_marketplace_body
+import vesta.shared.generated.resources.home_dashboard_meal_planner_body
+import vesta.shared.generated.resources.home_dashboard_pantry_body
+import vesta.shared.generated.resources.home_dashboard_shopping_body
 import vesta.shared.generated.resources.ic_meal_planner
 import vesta.shared.generated.resources.meal_planner_title
 import vesta.shared.generated.resources.ic_merchants
@@ -102,12 +120,27 @@ internal object HomeDashboardTestTags {
 private data class DashboardTile(
     val testTag: String,
     val label: StringResource,
+    val body: StringResource,
     val icon: DrawableResource,
+    val accent: Color,
     val onClick: () -> Unit,
 )
 
 /**
- * Landing page for a selected Home: a two-column grid of tiles, each an icon with a label, that
+ * A colour for each tile, fixed rather than from the theme (which has too few accents to tell six areas apart) and muted enough to sit
+ * on both the light and the dark background. It is the bar down a tile's left side and the icon's circle.
+ */
+private val TileAccents = mapOf(
+    HomeDashboardTestTags.PantryTile to Color(0xFF6F93B5), // blue
+    HomeDashboardTestTags.ShoppingTile to Color(0xFFC9973A), // gold
+    HomeDashboardTestTags.CookbookTile to Color(0xFFD9694F), // coral
+    HomeDashboardTestTags.MealPlannerTile to Color(0xFFD9743A), // terracotta
+    HomeDashboardTestTags.CalendarTile to Color(0xFF8FA07A), // sage
+    HomeDashboardTestTags.MarketplaceTile to Color(0xFFA89A6E), // khaki
+)
+
+/**
+ * Landing page for a selected Home: a two-column grid of coloured tiles, each a round icon with a name and a line on what it is for, that
  * open the Home's areas. The Pantry ([onPantryClick]), the shopping list ([onShoppingClick]) and the cookbook ([onCookbookClick]), the meal planner ([onMealPlannerClick]), the calendar ([onCalendarClick]) and the marketplace ([onMarketplaceClick]) so far. The app bar is titled with
  * [homeName], its back arrow calls [onBack] (to the Home picker), and its trailing indicator shows
  * [x0xConnectivity]. The bottom nav bar has Home (selected, [onHomeClick]) and Members
@@ -143,12 +176,12 @@ fun HomeDashboardScreen(
 ) {
     var confirmingLeave by remember { mutableStateOf(false) }
     val tiles = listOf(
-        DashboardTile(HomeDashboardTestTags.PantryTile, Res.string.pantry_title, Res.drawable.ic_pantry, onPantryClick),
-        DashboardTile(HomeDashboardTestTags.ShoppingTile, Res.string.shopping_title, Res.drawable.ic_shopping_cart, onShoppingClick),
-        DashboardTile(HomeDashboardTestTags.CookbookTile, Res.string.cookbook_title, Res.drawable.ic_cookbook, onCookbookClick),
-        DashboardTile(HomeDashboardTestTags.MealPlannerTile, Res.string.meal_planner_title, Res.drawable.ic_meal_planner, onMealPlannerClick),
-        DashboardTile(HomeDashboardTestTags.CalendarTile, Res.string.calendar_title, Res.drawable.ic_calendar, onCalendarClick),
-        DashboardTile(HomeDashboardTestTags.MarketplaceTile, Res.string.marketplace_title, Res.drawable.ic_merchants, onMarketplaceClick),
+        DashboardTile(HomeDashboardTestTags.PantryTile, Res.string.pantry_title, Res.string.home_dashboard_pantry_body, Res.drawable.ic_pantry, TileAccents.getValue(HomeDashboardTestTags.PantryTile), onPantryClick),
+        DashboardTile(HomeDashboardTestTags.ShoppingTile, Res.string.shopping_title, Res.string.home_dashboard_shopping_body, Res.drawable.ic_shopping_cart, TileAccents.getValue(HomeDashboardTestTags.ShoppingTile), onShoppingClick),
+        DashboardTile(HomeDashboardTestTags.CookbookTile, Res.string.cookbook_title, Res.string.home_dashboard_cookbook_body, Res.drawable.ic_cookbook, TileAccents.getValue(HomeDashboardTestTags.CookbookTile), onCookbookClick),
+        DashboardTile(HomeDashboardTestTags.MealPlannerTile, Res.string.meal_planner_title, Res.string.home_dashboard_meal_planner_body, Res.drawable.ic_meal_planner, TileAccents.getValue(HomeDashboardTestTags.MealPlannerTile), onMealPlannerClick),
+        DashboardTile(HomeDashboardTestTags.CalendarTile, Res.string.calendar_title, Res.string.home_dashboard_calendar_body, Res.drawable.ic_calendar, TileAccents.getValue(HomeDashboardTestTags.CalendarTile), onCalendarClick),
+        DashboardTile(HomeDashboardTestTags.MarketplaceTile, Res.string.marketplace_title, Res.string.home_dashboard_marketplace_body, Res.drawable.ic_merchants, TileAccents.getValue(HomeDashboardTestTags.MarketplaceTile), onMarketplaceClick),
     ).map { it to stringResource(it.label) }
         .sortedBy { (_, label) -> label.lowercase() }
         .map { (tile, _) -> tile }
@@ -166,7 +199,12 @@ fun HomeDashboardScreen(
             ),
         ) {
             TopAppBar(
-                title = { Text(homeName) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(painterResource(Res.drawable.ic_home), contentDescription = null, modifier = Modifier.size(24.dp))
+                        Text(homeName, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(HomeDashboardTestTags.BackButton)) {
                         Icon(
@@ -234,19 +272,11 @@ fun HomeDashboardScreen(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 20.dp),
             ) {
-                items(tiles, key = { it.testTag }) { tile ->
-                    ActionCard(
-                        title = stringResource(tile.label),
-                        icon = { Icon(painterResource(tile.icon), contentDescription = null) },
-                        orientation = ActionCardOrientation.Vertical,
-                        modifier = Modifier.testTag(tile.testTag),
-                        onClick = tile.onClick,
-                    )
-                }
+                items(tiles, key = { it.testTag }) { tile -> DashboardTileCard(tile) }
             }
             HomeNavigationBar(selected = HomeTab.Home, onHomeClick = onHomeClick, onMembersClick = onMembersClick, membersBadge = membersBadge)
         }
@@ -281,6 +311,45 @@ fun HomeDashboardScreen(
             },
             modifier = Modifier.testTag(HomeDashboardTestTags.BlockedDialog),
         )
+    }
+}
+
+/** One area of the Home: a card like the Meal Planner's days, with the tile's colour as a bar down its left side and a round icon in it, then the area's name and what it is for. */
+@Composable
+private fun DashboardTileCard(tile: DashboardTile, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = tile.onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceBright,
+        shadowElevation = 1.dp,
+        modifier = modifier.fillMaxWidth().testTag(tile.testTag),
+    ) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(modifier = Modifier.fillMaxHeight().width(6.dp).background(tile.accent))
+            Column(modifier = Modifier.weight(1f).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(52.dp).background(tile.accent, CircleShape)) {
+                    Icon(painterResource(tile.icon), contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                }
+                Column {
+                    Text(
+                        text = stringResource(tile.label),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = stringResource(tile.body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        minLines = 2,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
     }
 }
 

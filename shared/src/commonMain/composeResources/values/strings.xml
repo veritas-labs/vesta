@@ -50,6 +50,12 @@
 
     <string name="home_dashboard_back">Back</string>
     <string name="home_dashboard_more_options">More options</string>
+    <string name="home_dashboard_pantry_body">Track what you have</string>
+    <string name="home_dashboard_shopping_body">What you need</string>
+    <string name="home_dashboard_cookbook_body">Your recipes and favourites</string>
+    <string name="home_dashboard_meal_planner_body">Plan meals and stay on track</string>
+    <string name="home_dashboard_calendar_body">See plans and reminders</string>
+    <string name="home_dashboard_marketplace_body">Local finds and household goods</string>
     <string name="home_dashboard_nav_home">Home</string>
     <string name="home_dashboard_nav_members">Members</string>
     <string name="home_dashboard_nav_members_requests">%1$d waiting to join</string>
