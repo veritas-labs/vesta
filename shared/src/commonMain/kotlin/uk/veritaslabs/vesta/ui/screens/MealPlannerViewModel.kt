@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -145,6 +146,21 @@ class MealPlannerViewModel(
 
     fun remove(date: CalendarDate, slot: MealSlot, recipeKey: String) {
         viewModelScope.launch { source.remove(date, slot, recipeKey) }
+    }
+
+    /**
+     * Plans [meal]'s recipe for the same slot on each of [dates], with the same chosen eaters if it has any. A day that already has
+     * the recipe in that slot is left as it is.
+     */
+    fun copyTo(meal: PlannedMeal, dates: Set<CalendarDate>) {
+        viewModelScope.launch {
+            val plan = source.plan.first()
+            val eaters = plan.chosenEaters(meal.date, meal.slot, meal.recipeKey)
+            dates.sorted().filter { meal.recipeKey !in plan.recipes(it, meal.slot) }.forEach { date ->
+                source.add(date, meal.slot, meal.recipeKey)
+                eaters?.let { source.setEaters(date, meal.slot, meal.recipeKey, it) }
+            }
+        }
     }
 
     fun setEaters(date: CalendarDate, slot: MealSlot, recipeKey: String, refs: Set<String>) {

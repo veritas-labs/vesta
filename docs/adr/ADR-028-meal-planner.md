@@ -59,6 +59,13 @@ ROOT
   screen of its own** (not a dialog, so it can grow suggestions): the cookbook's recipes not already in that meal, each row showing
   the recipe's photo (if it has one), title, type and time, with a search over title and tags. Picking one plans it and returns
   to the week; back returns without planning. `MealPlannerFlow` holds the move between the screens.
+- **Tapping a planned recipe** opens a bottom sheet (as the shopping list's items do) with two options; a recipe that has left
+  the Cookbook opens nothing. **View recipe** opens the Cookbook on that recipe's page, and back from the page returns to the
+  planner (`CookbookFlow` takes an optional `initialRecipeKey`; the planner keeps the week it was on). **Copy to other days**
+  opens a screen listing the recipe's own week and the next, a checkbox per day but the source day, grouped under each week's
+  dates; a day that already has the recipe in that slot is disabled and marked "Already planned". Copy plans the recipe in the
+  *same slot* on each ticked day, with the same chosen eaters (none chosen stays the default), and leaves a day that already has
+  it untouched. Copying further ahead than the next week isn't offered; do it again from the copy.
 - Reached from a **Meal planner tile** on the Home dashboard; every member can edit.
 
 ## Acceptance criteria
@@ -75,12 +82,16 @@ ROOT
 10. I can untick a member who is not eating a recipe, and add people who are not in the Home (children) and tick them; two
     recipes in the same meal can have different eaters.
 11. People I add are kept for the whole Home, available on every recipe, and I can rename or remove them.
+12. Tapping a planned recipe opens a sheet with View recipe and Copy to other days.
+13. View recipe opens the recipe's page, and back from it returns to the planner.
+14. Copy to other days plans the recipe, with its eaters, in the same meal on the days I tick in this week and the next, and leaves
+    days that already have it alone.
 
 ## Not in this ADR
 
 - **Links to the rest of Vesta.** Standalone for now. Later: add a week's (or a meal's) missing ingredients to the
   shopping list net of Pantry stock; mark a meal cooked and take its ingredients out of the Pantry; servings per planned meal.
-- Opening a planned recipe from the plan; copying a day or a week; "what shall we have?" suggestions.
+- Copying a whole day or week; moving a recipe to another slot or day; "what shall we have?" suggestions.
 - The time zone: "today" is UTC, as in the Calendar, so around midnight the highlighted day can be a day out.
 - Agent (ADR-009) commands for the plan; Assistants grants (ADR-027) do not cover it.
 

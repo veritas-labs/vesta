@@ -296,4 +296,80 @@ class MealPlannerScreenTest {
         onNodeWithTag(MealPlannerTestTags.thumbnail(monday, MealSlot.Dinner, "pie"), useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag(MealPlannerTestTags.thumbnail(monday, MealSlot.Lunch, "soup"), useUnmergedTree = true).assertDoesNotExist()
     }
+
+    private fun plannedPieOnMonday() = MealPlan(days = mapOf(monday to mapOf(MealSlot.Dinner to listOf("pie"))))
+
+    @Test
+    fun tappingAPlannedRecipeOpensASheetOfferingTwoActions() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie), plan = plannedPieOnMonday(), today = today) } }
+
+        // Act
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, "pie")).performClick()
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.Sheet).assertIsDisplayed()
+        onNodeWithTag(MealPlannerTestTags.SheetView).assertIsDisplayed()
+        onNodeWithTag(MealPlannerTestTags.SheetCopy).assertIsDisplayed()
+    }
+
+    @Test
+    fun viewRecipeInTheSheetReportsTheRecipeAndClosesIt() = runComposeUiTest {
+        // Arrange
+        var viewed: String? = null
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie), plan = plannedPieOnMonday(), today = today, onViewRecipe = { viewed = it }) } }
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, "pie")).performClick()
+
+        // Act
+        onNodeWithTag(MealPlannerTestTags.SheetView).performClick()
+
+        // Assert
+        assertEquals("pie", viewed)
+        onNodeWithTag(MealPlannerTestTags.Sheet).assertDoesNotExist()
+    }
+
+    @Test
+    fun copyToOtherDaysInTheSheetReportsTheMealAndClosesIt() = runComposeUiTest {
+        // Arrange
+        var copied: Triple<CalendarDate, MealSlot, String>? = null
+        setContent {
+            VestaTheme {
+                MealPlannerScreen(listOf(pie), plan = plannedPieOnMonday(), today = today, onCopyRecipe = { d, s, k -> copied = Triple(d, s, k) })
+            }
+        }
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, "pie")).performClick()
+
+        // Act
+        onNodeWithTag(MealPlannerTestTags.SheetCopy).performClick()
+
+        // Assert
+        assertEquals(Triple(monday, MealSlot.Dinner, "pie"), copied)
+        onNodeWithTag(MealPlannerTestTags.Sheet).assertDoesNotExist()
+    }
+
+    @Test
+    fun aRecipeNoLongerInTheCookbookOpensNoSheet() = runComposeUiTest {
+        // Arrange
+        val plan = MealPlan(days = mapOf(monday to mapOf(MealSlot.Lunch to listOf("gone"))))
+        setContent { VestaTheme { MealPlannerScreen(emptyList(), plan = plan, today = today) } }
+
+        // Act
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Lunch, "gone")).performClick()
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.Sheet).assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingTheEatersOrTheCrossDoesNotOpenTheSheet() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie), plan = plannedPieOnMonday(), today = today) } }
+
+        // Act
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner, "pie")).performClick()
+        onNodeWithTag(MealPlannerTestTags.removeButton(monday, MealSlot.Dinner, "pie")).performClick()
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.Sheet).assertDoesNotExist()
+    }
 }

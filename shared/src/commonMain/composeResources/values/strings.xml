@@ -578,6 +578,14 @@
         <item>Saturday</item>
         <item>Sunday</item>
     </string-array>
+    <string name="meal_planner_sheet_view">View recipe</string>
+    <string name="meal_planner_sheet_view_body">Open the full recipe in the Cookbook.</string>
+    <string name="meal_planner_sheet_copy">Copy to other days</string>
+    <string name="meal_planner_sheet_copy_body">Plan it for the same meal on other days.</string>
+    <string name="meal_planner_copy_title">Copy to other days</string>
+    <string name="meal_planner_copy_already">Already planned</string>
+    <string name="meal_planner_copy_confirm">Copy</string>
+    <string name="meal_planner_copy_back">Back</string>
     <string name="meal_planner_today">Today</string>
     <string name="meal_planner_none_planned">No meals planned yet</string>
     <string name="meal_planner_one_planned">1 recipe planned</string>

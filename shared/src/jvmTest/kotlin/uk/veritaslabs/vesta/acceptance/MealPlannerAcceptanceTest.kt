@@ -4,6 +4,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -31,7 +33,11 @@ import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.WeekStart
+import uk.veritaslabs.vesta.ui.flows.CookbookFlow
 import uk.veritaslabs.vesta.ui.flows.MealPlannerFlow
+import uk.veritaslabs.vesta.ui.screens.CookbookViewModel
+import uk.veritaslabs.vesta.ui.screens.MealPlannerCopyTestTags
+import uk.veritaslabs.vesta.ui.screens.RecipeDetailTestTags
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardTestTags
 import uk.veritaslabs.vesta.ui.screens.MealPlannerEatersTestTags
@@ -62,6 +68,10 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
  * 10. I can untick a member who is not eating a recipe, and add people who are not in the Home (children) and tick them;
  *     two recipes in the same meal can have different eaters.
  * 11. People I add are kept for the whole Home, available on every recipe, and I can rename or remove them.
+ * 12. Tapping a planned recipe opens a sheet with View recipe and Copy to other days.
+ * 13. View recipe opens the recipe's page, and back from it returns to where I was.
+ * 14. Copy to other days plans the recipe, with its eaters, in the same meal on the days I tick, in this week and the next, and
+ *     leaves days that already have it alone.
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class MealPlannerAcceptanceTest {
@@ -467,6 +477,126 @@ class MealPlannerAcceptanceTest {
 
         // Assert — Then the soup is still Mark's alone
         assertEquals(setOf("m:mark"), runBlocking { reopened.plan.first() }.chosenEaters(monday, MealSlot.Dinner, soup))
+    }
+
+    @Test
+    fun tappingAPlannedRecipeOffersToViewItOrCopyIt() = runComposeUiTest {
+        // Arrange — Given Soup planned for Monday's dinner
+        val (_, soup) = showPlannerWithSoupForMondayDinner()
+
+        // Act — When I tap it
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, soup)).performClick()
+
+        // Assert — Then a sheet offers View recipe and Copy to other days
+        waitForTag(MealPlannerTestTags.Sheet)
+        onNodeWithTag(MealPlannerTestTags.SheetView).assertIsDisplayed()
+        onNodeWithTag(MealPlannerTestTags.SheetCopy).assertIsDisplayed()
+    }
+
+    @Test
+    fun copyToOtherDaysPlansTheRecipeWithItsEatersOnTheTickedDays() = runComposeUiTest {
+        // Arrange — Given Soup planned for Monday's dinner for Mark alone
+        val (plan, soup) = showPlannerWithSoupForMondayDinner()
+        openEaters(monday, MealSlot.Dinner, soup)
+        onNodeWithTag(MealPlannerEatersTestTags.checkbox("m:sam")).performClick()
+        closeEaters()
+        waitForEaters(monday, MealSlot.Dinner, soup, "Mark")
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, soup)).performClick()
+        waitForTag(MealPlannerTestTags.Sheet)
+
+        // Act — When I copy it to Wednesday and to next Monday
+        onNodeWithTag(MealPlannerTestTags.SheetCopy).performClick()
+        waitForTag(MealPlannerCopyTestTags.Screen)
+        onNodeWithTag(MealPlannerCopyTestTags.checkbox(CalendarDate(2026, 10, 14))).performClick()
+        onNodeWithTag(MealPlannerCopyTestTags.checkbox(nextMonday)).performClick()
+        onNodeWithTag(MealPlannerCopyTestTags.Confirm).performClick()
+        waitForTag(MealPlannerTestTags.WeekRange)
+
+        // Assert — Then the soup is planned for dinner on both days, for Mark alone, and Monday still has it
+        waitForTag(MealPlannerTestTags.entry(CalendarDate(2026, 10, 14), MealSlot.Dinner, soup))
+        waitForEaters(CalendarDate(2026, 10, 14), MealSlot.Dinner, soup, "Mark")
+        val saved = runBlocking { plan.plan.first() }
+        assertEquals(listOf(soup), saved.recipes(nextMonday, MealSlot.Dinner))
+        assertEquals(setOf("m:mark"), saved.chosenEaters(nextMonday, MealSlot.Dinner, soup))
+        assertEquals(listOf(soup), saved.recipes(monday, MealSlot.Dinner))
+        assertEquals(emptyList(), saved.recipes(CalendarDate(2026, 10, 14), MealSlot.Lunch))
+    }
+
+    @Test
+    fun aDayThatAlreadyHasTheRecipeIsNotOfferedForCopying() = runComposeUiTest {
+        // Arrange — Given Soup planned for dinner on both Monday and Tuesday
+        val (_, soup) = showPlannerWithSoupForMondayDinner()
+        plan(tuesday, MealSlot.Dinner, soup)
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, soup)).performClick()
+        waitForTag(MealPlannerTestTags.Sheet)
+
+        // Act — When I open Copy to other days for Monday's
+        onNodeWithTag(MealPlannerTestTags.SheetCopy).performClick()
+        waitForTag(MealPlannerCopyTestTags.Screen)
+
+        // Assert — Then Tuesday can't be ticked and Wednesday can
+        onNodeWithTag(MealPlannerCopyTestTags.checkbox(tuesday)).assertIsNotEnabled()
+        onNodeWithTag(MealPlannerCopyTestTags.checkbox(CalendarDate(2026, 10, 14))).assertIsEnabled()
+    }
+
+    @Test
+    fun backFromCopyToOtherDaysCopiesNothing() = runComposeUiTest {
+        // Arrange — Given Soup planned for Monday's dinner and the copy screen open
+        val (plan, soup) = showPlannerWithSoupForMondayDinner()
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, soup)).performClick()
+        waitForTag(MealPlannerTestTags.Sheet)
+        onNodeWithTag(MealPlannerTestTags.SheetCopy).performClick()
+        waitForTag(MealPlannerCopyTestTags.Screen)
+        onNodeWithTag(MealPlannerCopyTestTags.checkbox(tuesday)).performClick()
+
+        // Act — When I go back
+        onNodeWithTag(MealPlannerCopyTestTags.BackButton).performClick()
+        waitForTag(MealPlannerTestTags.WeekRange)
+
+        // Assert — Then Tuesday was not planned
+        assertEquals(emptyList(), runBlocking { plan.plan.first() }.recipes(tuesday, MealSlot.Dinner))
+    }
+
+    @Test
+    fun viewRecipeLeavesThePlannerForTheRecipesPage() = runComposeUiTest {
+        // Arrange — Given Soup planned for Monday's dinner, in the planner wired to the cookbook as the app does
+        val cookbook = runBlocking { cookbook("Soup") }
+        val soup = runBlocking { cookbook.keyOf("Soup") }
+        var viewing: String? = null
+        setContent {
+            val viewModel = remember { MealPlannerViewModel(newPlan(), cookbook.recipes, flowOf(members)) }
+            VestaTheme { MealPlannerFlow(viewModel, today = today, weekStart = WeekStart.Monday, onViewRecipe = { viewing = it }) }
+        }
+        waitForTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner))
+        plan(monday, MealSlot.Dinner, soup)
+
+        // Act — When I tap the recipe and choose View recipe
+        onNodeWithTag(MealPlannerTestTags.entry(monday, MealSlot.Dinner, soup)).performClick()
+        waitForTag(MealPlannerTestTags.Sheet)
+        onNodeWithTag(MealPlannerTestTags.SheetView).performClick()
+
+        // Assert — Then the planner asks to open that recipe
+        assertEquals(soup, viewing)
+    }
+
+    @Test
+    fun theCookbookCanOpenStraightOnARecipeAndBackLeavesIt() = runComposeUiTest {
+        // Arrange — Given a cookbook with Soup
+        val cookbook = runBlocking { cookbook("Soup") }
+        val soup = runBlocking { cookbook.keyOf("Soup") }
+        var left = false
+        setContent {
+            val viewModel = remember { CookbookViewModel(cookbook, flowOf(emptyList())) }
+            VestaTheme { CookbookFlow(viewModel, onBack = { left = true }, initialRecipeKey = soup) }
+        }
+
+        // Act — When it opens
+        waitForTag(RecipeDetailTestTags.BackButton)
+
+        // Assert — Then I am on Soup's page, and back leaves the cookbook rather than showing its list
+        onNodeWithTag(RecipeDetailTestTags.Title).assertTextEquals("Soup")
+        onNodeWithTag(RecipeDetailTestTags.BackButton).performClick()
+        assertEquals(true, left)
     }
 
     @Test

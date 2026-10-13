@@ -398,6 +398,8 @@ private fun HomeContent(
     // Opening a Home or its Pantry asks for a sync now (ADR-020), rather than showing what the next timer round brings.
     LaunchedEffect(homeId, destination == HomeDestination.Pantry) { onOpened() }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
+    // The recipe a cookbook visit opens on, when it was opened from somewhere with a recipe in hand (the meal planner), and where back goes.
+    var cookbookRecipeKey by remember { mutableStateOf<String?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
         viewModel(key = "pantry-$homeId") { PantryViewModel(source) }
     }
@@ -539,14 +541,28 @@ private fun HomeContent(
         }
         HomeDestination.Cookbook -> {
             if (cookbookViewModel != null) {
-                CookbookFlow(cookbookViewModel, onBack = { destination = HomeDestination.Dashboard })
+                CookbookFlow(
+                    cookbookViewModel,
+                    initialRecipeKey = cookbookRecipeKey,
+                    onBack = {
+                        destination = if (cookbookRecipeKey != null) HomeDestination.MealPlanner else HomeDestination.Dashboard
+                        cookbookRecipeKey = null
+                    },
+                )
             } else {
                 CookbookScreen(recipes = emptyList(), onBack = { destination = HomeDestination.Dashboard })
             }
         }
         HomeDestination.MealPlanner -> {
             if (mealPlannerViewModel != null) {
-                MealPlannerFlow(mealPlannerViewModel, onBack = { destination = HomeDestination.Dashboard })
+                MealPlannerFlow(
+                    mealPlannerViewModel,
+                    onViewRecipe = {
+                        cookbookRecipeKey = it
+                        destination = HomeDestination.Cookbook
+                    },
+                    onBack = { destination = HomeDestination.Dashboard },
+                )
             } else {
                 MealPlannerScreen(recipes = emptyList(), onBack = { destination = HomeDestination.Dashboard })
             }

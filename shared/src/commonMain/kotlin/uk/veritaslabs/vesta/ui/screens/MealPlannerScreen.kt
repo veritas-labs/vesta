@@ -29,13 +29,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +59,8 @@ import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.WeekStart
+import uk.veritaslabs.vesta.ui.components.ActionCard
+import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
 import uk.veritaslabs.vesta.ui.components.BlobImage
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
@@ -62,6 +69,7 @@ import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_chevron_right
 import vesta.shared.generated.resources.ic_close
 import vesta.shared.generated.resources.ic_cookbook
+import vesta.shared.generated.resources.ic_copy
 import vesta.shared.generated.resources.ic_meal_breakfast
 import vesta.shared.generated.resources.ic_meal_dinner
 import vesta.shared.generated.resources.ic_meal_lunch
@@ -80,6 +88,10 @@ import vesta.shared.generated.resources.meal_planner_one_planned
 import vesta.shared.generated.resources.meal_planner_previous_week
 import vesta.shared.generated.resources.meal_planner_recipe_removed
 import vesta.shared.generated.resources.meal_planner_remove_recipe
+import vesta.shared.generated.resources.meal_planner_sheet_copy
+import vesta.shared.generated.resources.meal_planner_sheet_copy_body
+import vesta.shared.generated.resources.meal_planner_sheet_view
+import vesta.shared.generated.resources.meal_planner_sheet_view_body
 import vesta.shared.generated.resources.meal_planner_slot_breakfast
 import vesta.shared.generated.resources.meal_planner_slot_dinner
 import vesta.shared.generated.resources.meal_planner_slot_lunch
@@ -118,6 +130,9 @@ internal object MealPlannerTestTags {
     const val NextWeek = "meal_planner_next_week"
     const val ThisWeek = "meal_planner_this_week"
     const val WeekRange = "meal_planner_week_range"
+    const val Sheet = "meal_planner_sheet"
+    const val SheetView = "meal_planner_sheet_view"
+    const val SheetCopy = "meal_planner_sheet_copy"
 
     private fun dateTag(date: CalendarDate) = "${date.year}-${date.month}-${date.day}"
 
@@ -170,7 +185,10 @@ fun MealPlannerScreen(
     people: List<MealPerson> = emptyList(),
     onEditEaters: (CalendarDate, MealSlot, recipeKey: String) -> Unit = { _, _, _ -> },
     onRemove: (CalendarDate, MealSlot, String) -> Unit = { _, _, _ -> },
+    onViewRecipe: (recipeKey: String) -> Unit = {},
+    onCopyRecipe: (CalendarDate, MealSlot, recipeKey: String) -> Unit = { _, _, _ -> },
 ) {
+    var sheet by remember { mutableStateOf<PlannedMeal?>(null) }
     val days = weekDays(today.plusDays(weekOffset * WeeklyShift), weekStart)
     val recipesByKey = remember(recipes) { recipes.associateBy { it.key } }
 
@@ -214,11 +232,63 @@ fun MealPlannerScreen(
                             onEditEaters = { slot, key -> onEditEaters(date, slot, key) },
                             onAdd = { slot -> onAddRecipe(date, slot) },
                             onRemove = onRemove,
+                            onOpen = { slot, key -> sheet = PlannedMeal(date, slot, key) },
                         )
                     }
                 }
             }
         }
+    }
+
+    // Looked up in the cookbook so the sheet closes if the recipe goes away (a removed recipe has nothing to view).
+    sheet?.let { meal -> recipesByKey[meal.recipeKey]?.let { it to meal } }?.let { (recipe, meal) ->
+        ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = rememberModalBottomSheetState()) {
+            PlannedRecipeSheetContent(
+                title = recipe.title,
+                onView = {
+                    sheet = null
+                    onViewRecipe(meal.recipeKey)
+                },
+                onCopy = {
+                    sheet = null
+                    onCopyRecipe(meal.date, meal.slot, meal.recipeKey)
+                },
+            )
+        }
+    }
+}
+
+/** What can be done with a recipe planned in a meal: look at it, or copy it to other days; two action cards, one above the other. */
+@Composable
+private fun PlannedRecipeSheetContent(title: String, onView: () -> Unit, onCopy: () -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp).testTag(MealPlannerTestTags.Sheet),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+        )
+        ActionCard(
+            title = stringResource(Res.string.meal_planner_sheet_view),
+            body = stringResource(Res.string.meal_planner_sheet_view_body),
+            icon = { Icon(painterResource(Res.drawable.ic_cookbook), contentDescription = null) },
+            orientation = ActionCardOrientation.Horizontal,
+            onClick = onView,
+            modifier = Modifier.testTag(MealPlannerTestTags.SheetView),
+        )
+        ActionCard(
+            title = stringResource(Res.string.meal_planner_sheet_copy),
+            body = stringResource(Res.string.meal_planner_sheet_copy_body),
+            icon = { Icon(painterResource(Res.drawable.ic_copy), contentDescription = null) },
+            orientation = ActionCardOrientation.Horizontal,
+            onClick = onCopy,
+            modifier = Modifier.testTag(MealPlannerTestTags.SheetCopy),
+        )
     }
 }
 
@@ -234,6 +304,19 @@ internal fun eaterSummary(plan: MealPlan, date: CalendarDate, slot: MealSlot, re
     }
 }
 
+/** A week's dates in words, like "12 Oct – 18 Oct 2026". */
+@Composable
+internal fun weekRangeText(days: List<CalendarDate>): String {
+    val months = stringArrayResource(Res.array.calendar_months)
+    val first = days.first()
+    val last = days.last()
+    return stringResource(
+        Res.string.meal_planner_week_range,
+        stringResource(Res.string.meal_planner_day_month, first.day, months[first.month - 1].take(3)),
+        stringResource(Res.string.meal_planner_day_month_year, last.day, months[last.month - 1].take(3), last.year),
+    )
+}
+
 @Composable
 private fun WeekHeader(
     days: List<CalendarDate>,
@@ -243,14 +326,7 @@ private fun WeekHeader(
     onThisWeek: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val months = stringArrayResource(Res.array.calendar_months)
-    val first = days.first()
-    val last = days.last()
-    val range = stringResource(
-        Res.string.meal_planner_week_range,
-        stringResource(Res.string.meal_planner_day_month, first.day, months[first.month - 1].take(3)),
-        stringResource(Res.string.meal_planner_day_month_year, last.day, months[last.month - 1].take(3), last.year),
-    )
+    val range = weekRangeText(days)
     Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onPreviousWeek, modifier = Modifier.testTag(MealPlannerTestTags.PreviousWeek)) {
@@ -304,6 +380,7 @@ private fun DayCard(
     onEditEaters: (MealSlot, recipeKey: String) -> Unit,
     onAdd: (MealSlot) -> Unit,
     onRemove: (CalendarDate, MealSlot, String) -> Unit,
+    onOpen: (MealSlot, recipeKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val months = stringArrayResource(Res.array.calendar_months)
@@ -357,6 +434,7 @@ private fun DayCard(
                         onEditEaters = { onEditEaters(slot, it) },
                         onAdd = { onAdd(slot) },
                         onRemove = { onRemove(date, slot, it) },
+                        onOpen = { onOpen(slot, it) },
                     )
                 }
             }
@@ -386,6 +464,7 @@ private fun SlotRow(
     onEditEaters: (recipeKey: String) -> Unit,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
+    onOpen: (String) -> Unit,
 ) {
     val slotLabel = mealSlotLabel(slot)
     Row(
@@ -412,6 +491,7 @@ private fun SlotRow(
                     eaters = eaterSummary(key),
                     onEditEaters = { onEditEaters(key) },
                     onRemove = { onRemove(key) },
+                    onOpen = { onOpen(key) },
                 )
             }
         }
@@ -435,15 +515,14 @@ private fun PlannedRecipeCard(
     eaters: String,
     onEditEaters: () -> Unit,
     onRemove: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     val title = recipe?.title
     val removedLabel = stringResource(Res.string.meal_planner_recipe_removed)
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth().testTag(MealPlannerTestTags.entry(date, slot, recipeKey)),
-    ) {
+    val cardModifier = Modifier.fillMaxWidth().testTag(MealPlannerTestTags.entry(date, slot, recipeKey))
+    val cardShape = RoundedCornerShape(10.dp)
+    val cardColor = MaterialTheme.colorScheme.surfaceContainerLowest
+    val content: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(start = 6.dp, top = 6.dp, bottom = 6.dp)) {
             val photo = recipe?.media?.firstNotNullOfOrNull { if (it.kind == MediaKind.Photo) it.blob else null }
             val thumbnail = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
@@ -488,6 +567,12 @@ private fun PlannedRecipeCard(
                 )
             }
         }
+    }
+    // A recipe still in the cookbook opens the sheet when tapped; a removed one has nothing to offer.
+    if (recipe != null) {
+        Surface(onClick = onOpen, shape = cardShape, color = cardColor, shadowElevation = 1.dp, modifier = cardModifier) { content() }
+    } else {
+        Surface(shape = cardShape, color = cardColor, shadowElevation = 1.dp, modifier = cardModifier) { content() }
     }
 }
 
