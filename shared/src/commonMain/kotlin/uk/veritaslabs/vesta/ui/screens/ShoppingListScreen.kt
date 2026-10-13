@@ -644,12 +644,13 @@ private fun ShoppingItemRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.Bottom) {
+            Row {
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = contentColor,
                     textDecoration = strike,
+                    modifier = Modifier.alignByBaseline(),
                 )
                 if (item.packageSize.isNotBlank()) {
                     Text(
@@ -657,6 +658,7 @@ private fun ShoppingItemRow(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textDecoration = strike,
+                        modifier = Modifier.alignByBaseline(),
                     )
                 }
             }
