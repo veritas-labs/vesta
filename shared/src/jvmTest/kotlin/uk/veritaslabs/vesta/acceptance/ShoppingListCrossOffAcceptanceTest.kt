@@ -3,8 +3,10 @@ package uk.veritaslabs.vesta.acceptance
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -139,14 +141,14 @@ class ShoppingListCrossOffAcceptanceTest {
             }
         }
         show(source)
-        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertTextEquals("3 of 3 items remaining")
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertContentDescriptionEquals("3 of 3 items remaining")
 
         // Act — When I get one of the milk, then mark the eggs out of stock, then tap the bread
         openSheet()
         onNodeWithTag(ShoppingListTestTags.GotIncrease).performClick()
         onNodeWithTag(ShoppingListTestTags.GotCount).assertTextEquals("1 of 4")
         waitUntil(timeoutMillis = 5_000) {
-            onAllNodesWithText("2 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
+            onAllNodesWithContentDescription("2 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
         }
         onNodeWithTag(ShoppingListTestTags.ItemSheet).performTouchInput { swipeDown() }
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(ShoppingListTestTags.ItemSheet).fetchSemanticsNodes().isEmpty() }
@@ -157,7 +159,7 @@ class ShoppingListCrossOffAcceptanceTest {
 
         // Assert — Then the counter reads 0 of 3 items remaining
         waitUntil(timeoutMillis = 5_000) {
-            onAllNodesWithText("0 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
+            onAllNodesWithContentDescription("0 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -175,7 +177,7 @@ class ShoppingListCrossOffAcceptanceTest {
             }
         }
         show(source)
-        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertTextEquals("0 of 3 items remaining")
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertContentDescriptionEquals("0 of 3 items remaining")
 
         // Act — When I open the overflow menu and tap "Uncheck all items"
         onNodeWithTag(ShoppingListTestTags.OverflowButton).performClick()
@@ -183,7 +185,7 @@ class ShoppingListCrossOffAcceptanceTest {
 
         // Assert — Then every item is unchecked and the counter reads 3 of 3
         waitUntil(timeoutMillis = 5_000) {
-            onAllNodesWithText("3 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
+            onAllNodesWithContentDescription("3 of 3 items remaining").fetchSemanticsNodes().isNotEmpty()
         }
         assertEquals(false, runBlocking { source.items.first().any { it.isCheckedOff } })
     }

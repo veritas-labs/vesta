@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.longClick
@@ -36,7 +37,35 @@ class ShoppingListScreenTest {
         // (no user interaction — checking the screen's initial state)
 
         // Assert
-        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertTextEquals("1 of 4 items remaining")
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertContentDescriptionEquals("1 of 4 items remaining")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theProgressBarSaysHowManyItemsTheFiltersHide() = runComposeUiTest {
+        // Arrange
+        val items = listOf(milk.copy(key = "a"), milk.copy(key = "b", got = 4), milk.copy(key = "c", got = 4))
+        setContent { VestaTheme { ShoppingListScreen(items = items, hideChecked = true) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert — all three items still count, and the two hidden ones are noted
+        onNodeWithTag(ShoppingListTestTags.RemainingCounter).assertContentDescriptionEquals("1 of 3 items remaining")
+        onNodeWithTag(ShoppingListTestTags.HiddenNote).assertTextEquals("2 hidden by filters")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theProgressBarShowsNoHiddenNoteWhenNothingIsFiltered() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk)) } }
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(ShoppingListTestTags.HiddenNote).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)

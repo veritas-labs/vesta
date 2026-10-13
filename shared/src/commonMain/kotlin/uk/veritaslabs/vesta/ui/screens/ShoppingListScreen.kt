@@ -89,6 +89,7 @@ import vesta.shared.generated.resources.shopping_mark_in_stock
 import vesta.shared.generated.resources.shopping_mark_out_of_stock
 import vesta.shared.generated.resources.shopping_out_of_stock
 import vesta.shared.generated.resources.shopping_quantity
+import vesta.shared.generated.resources.shopping_hidden_by_filters
 import vesta.shared.generated.resources.shopping_remaining
 import vesta.shared.generated.resources.shopping_more_options
 import vesta.shared.generated.resources.shopping_title
@@ -107,6 +108,7 @@ internal object ShoppingListTestTags {
     const val BackButton = "shopping_back_button"
     const val AddItemButton = "shopping_add_item_button"
     const val RemainingCounter = "shopping_remaining_counter"
+    const val HiddenNote = "shopping_hidden_note"
     const val OverflowButton = "shopping_overflow_button"
     const val FilterButton = "shopping_filter_button"
     const val AddCheckedToPantryItem = "shopping_add_checked_to_pantry_item"
@@ -183,9 +185,10 @@ fun ShoppingListScreen(
  * items were added, for the app to show [AddedToPantryScreen]), "Uncheck all items", which calls [onUncheckAll], and
  * "Delete all items", which asks for confirmation and then calls [onDeleteAll].
  *
- * Under the top bar (and under the filter chips, when shown) a line counts the items still to do ("4 of 12 items
- * remaining"): crossed-off, partly got and out-of-stock items all count as checked off, and the filter does not change
- * the count.
+ * Under the top bar (and under the filter chips, when shown) a stepped progress bar has one step per item on the
+ * list, filled for each one checked off (crossed-off, partly got and out-of-stock items all count) and described to
+ * accessibility as "4 of 12 items remaining". The filters do not change the bar; when they hide items, a note under it
+ * says how many.
  *
  * When any item is bought from a merchant in [merchants], a row of chips (one per such merchant) sits under the top bar:
  * [selectedMerchants] (keys) are the chips switched on, [onToggleMerchant] is called with a chip's merchant key when it
@@ -309,16 +312,16 @@ fun ShoppingListScreen(
                     }
                 }
             }
+            val visibleItems = applyShoppingFilters(items, selectedTags, selectedMerchants, hideChecked)
             if (items.isNotEmpty()) {
-                Text(
-                    text = stringResource(Res.string.shopping_remaining, shoppingRemaining(items), items.size),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ShoppingProgress(
+                    total = items.size,
+                    remaining = shoppingRemaining(items),
+                    hidden = items.size - visibleItems.size,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = contentPadding)
-                        .padding(top = 8.dp, bottom = 4.dp)
-                        .testTag(ShoppingListTestTags.RemainingCounter),
+                        .padding(top = 8.dp, bottom = 4.dp),
                 )
             }
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding)) {
@@ -341,7 +344,7 @@ fun ShoppingListScreen(
                         }
                     }
                 } else {
-                    val grouped = applyShoppingFilters(items, selectedTags, selectedMerchants, hideChecked)
+                    val grouped = visibleItems
                         .sortedWith(compareBy({ it.primaryCategory }, { it.secondaryCategory }, { it.title }))
                         .groupBy { it.primaryCategory }
                     LazyColumn(
@@ -444,6 +447,53 @@ fun ShoppingListScreen(
                     onItemSelected(sheetItem)
                 },
                 onOutOfStockMarked = { sheetKey = null },
+            )
+        }
+    }
+}
+
+/**
+ * A stepped progress bar with one step per item on the list ([total], whatever the filters), filled for each item
+ * checked off ([total] - [remaining]). When filters hide [hidden] items, a note under the bar says so. Its
+ * accessibility description is the "x of y items remaining" count.
+ */
+@Composable
+private fun ShoppingProgress(total: Int, remaining: Int, hidden: Int, modifier: Modifier = Modifier) {
+    val description = stringResource(Res.string.shopping_remaining, remaining, total)
+    val gap = when {
+        total > 100 -> 0.dp
+        total > 40 -> 1.dp
+        else -> 3.dp
+    }
+    val checked = total - remaining
+    Column(modifier = modifier) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .semantics { contentDescription = description }
+                .testTag(ShoppingListTestTags.RemainingCounter),
+        ) {
+            repeat(total) { index ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(
+                            if (index < checked) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                )
+            }
+        }
+        if (hidden > 0) {
+            Text(
+                text = stringResource(Res.string.shopping_hidden_by_filters, hidden),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp).testTag(ShoppingListTestTags.HiddenNote),
             )
         }
     }
