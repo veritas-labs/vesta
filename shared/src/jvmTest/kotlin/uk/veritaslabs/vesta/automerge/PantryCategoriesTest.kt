@@ -22,7 +22,7 @@ class PantryCategoriesTest {
 
         // Assert
         assertEquals(DefaultPantryCategories.map { it.name }.sortedBy { it.lowercase() }, categories.map { it.name })
-        assertTrue("Ketchup" in doc.category("Condiments")!!.secondary)
+        assertTrue("Ketchup" in doc.category("Condiments & Spreads")!!.secondary)
     }
 
     @Test
@@ -49,7 +49,7 @@ class PantryCategoriesTest {
         addPrimaryCategory(doc, "pet food")
 
         // Assert
-        assertEquals(listOf(PantryCategory("Pet Food", emptyList())), doc.readPantryCategories().filter { it.name.contains("Pet", true) })
+        assertEquals(listOf(PantryCategory("Pet Food", emptyList())), doc.readPantryCategories().filter { it.name == "Pet Food" })
     }
 
     @Test
@@ -58,11 +58,11 @@ class PantryCategoriesTest {
         val doc = newDoc()
 
         // Act
-        addSecondaryCategory(doc, "Dairy", "Oat Milk")
+        addSecondaryCategory(doc, "Dairy & Eggs", "Oat Milk")
         addSecondaryCategory(doc, "Pet Food", "Cat")
 
         // Assert
-        assertTrue("Oat Milk" in doc.category("Dairy")!!.secondary)
+        assertTrue("Oat Milk" in doc.category("Dairy & Eggs")!!.secondary)
         assertEquals(listOf("Cat"), doc.category("Pet Food")!!.secondary)
     }
 
@@ -72,10 +72,10 @@ class PantryCategoriesTest {
         val doc = newDoc()
 
         // Act
-        deleteSecondaryCategory(doc, "Dairy", "milk")
+        deleteSecondaryCategory(doc, "Dairy & Eggs", "milk")
 
         // Assert
-        val secondary = doc.category("Dairy")!!.secondary
+        val secondary = doc.category("Dairy & Eggs")!!.secondary
         assertFalse("Milk" in secondary)
         assertTrue("Cheese" in secondary)
     }
@@ -86,11 +86,11 @@ class PantryCategoriesTest {
         val doc = newDoc()
 
         // Act
-        deletePrimaryCategory(doc, "Dairy")
+        deletePrimaryCategory(doc, "Dairy & Eggs")
 
         // Assert
-        assertEquals(null, doc.category("Dairy"))
-        assertTrue(doc.category("Meat") != null)
+        assertEquals(null, doc.category("Dairy & Eggs"))
+        assertTrue(doc.category("Meat & Fish") != null)
     }
 
     @Test
@@ -100,7 +100,7 @@ class PantryCategoriesTest {
         legacy.startTransaction().also { it.set(org.automerge.ObjectId.ROOT, "items", org.automerge.ObjectType.MAP) }.commit()
 
         // Act
-        deletePrimaryCategory(legacy, "Dairy")
+        deletePrimaryCategory(legacy, "Dairy & Eggs")
 
         // Assert
         assertEquals(DefaultPantryCategories.size - 1, legacy.readPantryCategories().size)
@@ -116,12 +116,12 @@ class PantryCategoriesTest {
         addPrimaryCategory(a, "Pet Food")
         addPrimaryCategory(b, "Pet Food")
         addSecondaryCategory(a, "Pet Food", "Cat")
-        addSecondaryCategory(b, "Dairy", "Oat Milk")
+        addSecondaryCategory(b, "Dairy & Eggs", "Oat Milk")
         a.merge(b)
 
         // Assert
         assertEquals(1, a.readPantryCategories().count { it.name == "Pet Food" })
-        assertTrue("Oat Milk" in a.category("Dairy")!!.secondary)
+        assertTrue("Oat Milk" in a.category("Dairy & Eggs")!!.secondary)
     }
 
     @Test
@@ -130,12 +130,45 @@ class PantryCategoriesTest {
         val doc = newDoc()
 
         // Act
-        ensurePantryCategories(doc, "Condiments", "Ketchup")
+        ensurePantryCategories(doc, "Condiments & Spreads", "Ketchup")
         ensurePantryCategories(doc, "Pet Food", "Cat")
 
         // Assert
         assertEquals(DefaultPantryCategories.size + 1, doc.readPantryCategories().size)
-        assertEquals(1, doc.category("Condiments")!!.secondary.count { it == "Ketchup" })
+        assertEquals(1, doc.category("Condiments & Spreads")!!.secondary.count { it == "Ketchup" })
         assertEquals(listOf("Cat"), doc.category("Pet Food")!!.secondary)
+    }
+
+    @Test
+    fun migrationReplacesAnOlderSeededRegistryWithTheCurrentDefaultsOnce() {
+        // Arrange
+        val doc = Document()
+        doc.startTransaction().also {
+            val categories = it.set(org.automerge.ObjectId.ROOT, "categories", org.automerge.ObjectType.MAP)
+            val old = it.set(categories, "meat", org.automerge.ObjectType.MAP)
+            it.set(old, "name", "Meat")
+        }.commit()
+
+        // Act
+        migratePantryCategories(doc)
+        addPrimaryCategory(doc, "Custom")
+        migratePantryCategories(doc)
+
+        // Assert
+        assertEquals(null, doc.category("Meat"))
+        assertTrue(doc.category("Meat & Fish") != null)
+        assertTrue(doc.category("Custom") != null)
+    }
+
+    @Test
+    fun migrationLeavesADocumentWithoutARegistryAlone() {
+        // Arrange
+        val doc = Document()
+
+        // Act
+        migratePantryCategories(doc)
+
+        // Assert
+        assertEquals(0, doc.heads.size)
     }
 }

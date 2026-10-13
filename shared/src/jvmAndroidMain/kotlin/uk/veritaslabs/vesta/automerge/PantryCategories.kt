@@ -11,27 +11,37 @@ import org.automerge.Transaction
 private const val CategoriesKey = "categories"
 private const val NameKey = "name"
 private const val SecondaryKey = "secondary"
+private const val CategoriesVersionKey = "categoriesVersion"
+
+/** Bumped whenever [DefaultPantryCategories] changes; a document seeded with an older set is reset to the new one. */
+private const val CategoriesVersion = 2
 
 /** A primary category and its secondary categories, as registered in the Pantry document — see ADR-010. */
 data class PantryCategory(val name: String, val secondary: List<String>)
 
 /** The set a new Pantry document is seeded with; after that the document is the source of truth. */
 val DefaultPantryCategories: List<PantryCategory> = listOf(
-    PantryCategory("Fruit & Vegetables", listOf("Fruit", "Vegetables", "Salad", "Herbs")),
-    PantryCategory("Meat", listOf("Beef", "Pork", "Poultry", "Lamb", "Sausages & Bacon")),
-    PantryCategory("Fish", listOf("Fresh Fish", "Frozen Fish", "Tinned Fish")),
-    PantryCategory("Dairy", listOf("Milk", "Cheese", "Yoghurt", "Butter & Spreads", "Eggs", "Cream")),
-    PantryCategory("Bakery", listOf("Bread", "Rolls & Wraps", "Cakes & Pastries")),
-    PantryCategory("Condiments", listOf("Ketchup", "Brown Sauce", "Mayonnaise", "Mustard", "Pickles")),
-    PantryCategory("Cooking Sauces", listOf("Pasta Sauce", "Curry Sauce", "Stock & Gravy")),
-    PantryCategory("Tins & Jars", listOf("Tinned Vegetables", "Tinned Tomatoes", "Beans & Pulses", "Soup")),
-    PantryCategory("Pasta, Rice & Grains", listOf("Pasta", "Rice", "Noodles", "Cereal", "Oats")),
-    PantryCategory("Baking", listOf("Flour", "Sugar", "Baking Ingredients")),
-    PantryCategory("Herbs & Spices", listOf("Herbs", "Spices", "Salt & Pepper")),
-    PantryCategory("Snacks", listOf("Crisps", "Biscuits", "Chocolate & Sweets", "Nuts")),
-    PantryCategory("Frozen", listOf("Frozen Meals", "Frozen Vegetables", "Ice Cream", "Frozen Chips")),
+    PantryCategory("Fruit & Vegetables", listOf("Fruit", "Vegetables", "Salad & Leaves", "Potatoes & Roots", "Fresh Herbs")),
+    PantryCategory("Bakery", listOf("Bread", "Rolls & Wraps", "Flatbreads & Tortillas", "Cakes & Pastries", "Breakfast Bakery")),
+    PantryCategory("Meat & Fish", listOf("Beef", "Pork", "Poultry", "Lamb", "Sausages & Bacon", "Fresh Fish", "Minced & Diced")),
+    PantryCategory("Deli & Chilled Ready", listOf("Cold Cuts & Cooked Meat", "Cheese (deli)", "Hummus & Dips", "Ready Meals", "Pies & Quiches")),
+    PantryCategory("Dairy & Eggs", listOf("Milk", "Cheese", "Yoghurt", "Butter & Spreads", "Eggs", "Cream", "Dairy Alternatives")),
+    PantryCategory("Frozen", listOf("Frozen Meals", "Frozen Vegetables & Fruit", "Frozen Fish & Seafood", "Ice Cream", "Frozen Chips & Potatoes", "Frozen Bakery")),
+    PantryCategory("Pasta, Rice & Grains", listOf("Pasta", "Rice", "Noodles", "Other Grains", "Dried Pulses")),
+    PantryCategory("Tins & Jars", listOf("Tinned Tomatoes", "Tinned Vegetables", "Beans & Pulses", "Soup", "Tinned Fish")),
+    PantryCategory("Cooking Ingredients", listOf("Oils & Vinegars", "Cooking Sauces", "Stock & Gravy", "Pasta Sauce", "Curry & World Sauces")),
+    PantryCategory("Condiments & Spreads", listOf("Ketchup", "Mayonnaise", "Mustard", "Pickles & Chutneys", "Salad Dressings", "Spreads")),
+    PantryCategory("Herbs & Spices", listOf("Dried Herbs", "Spices", "Salt & Pepper", "Seasoning Mixes")),
+    PantryCategory("Baking", listOf("Flour", "Sugar", "Baking Ingredients", "Mixes & Decorations")),
+    PantryCategory("Breakfast", listOf("Cereal", "Oats & Hot Cereals", "Granola & Muesli", "Breakfast Bars")),
+    PantryCategory("Snacks", listOf("Crisps", "Biscuits & Crackers", "Chocolate & Sweets", "Nuts & Seeds", "Dried Fruit")),
     PantryCategory("Drinks", listOf("Tea & Coffee", "Juice", "Soft Drinks", "Water", "Alcohol")),
-    PantryCategory("Household", listOf("Cleaning", "Laundry", "Paper Goods", "Toiletries")),
+    PantryCategory("World Foods", listOf("Asian", "Indian", "Mexican & Latin", "Middle Eastern", "Italian Specialties")),
+    PantryCategory("Household", listOf("Cleaning", "Laundry", "Paper Goods", "Kitchen Foil & Bags")),
+    PantryCategory("Health & Beauty", listOf("Toiletries", "Hair & Body", "Oral Care", "First Aid & Vitamins")),
+    PantryCategory("Baby", listOf("Nappies", "Formula & Food", "Wipes & Toiletries")),
+    PantryCategory("Pets", listOf("Dog Food", "Cat Food", "Other Pet")),
+    PantryCategory("Other / Uncategorised", listOf()),
 )
 
 /**
@@ -115,7 +125,20 @@ internal fun Transaction.seedCategories(): ObjectId {
         val secondaryId = set(categoryId, SecondaryKey, ObjectType.MAP)
         category.secondary.forEach { set(secondaryId, categoryKey(it), it) }
     }
+    set(ObjectId.ROOT, CategoriesVersionKey, CategoriesVersion)
     return categoriesId
+}
+
+/**
+ * Replaces the registered categories with [DefaultPantryCategories] if they were seeded from an older set (ADR-010
+ * amendment). Destructive by design: custom categories are dropped, though items keep their category text. A
+ * document with no registry yet — an empty one waiting to be filled from another device — is left alone.
+ */
+fun migratePantryCategories(doc: Document) {
+    val tx = doc.startTransaction()
+    val version = (tx.get(ObjectId.ROOT, CategoriesVersionKey).getOrNull() as? AmValue.Int)?.value?.toInt() ?: 0
+    if (tx.categoriesMapId() != null && version < CategoriesVersion) tx.seedCategories()
+    tx.commit()
 }
 
 /** The `categories` map, first seeding the defaults if this document predates the registry. */

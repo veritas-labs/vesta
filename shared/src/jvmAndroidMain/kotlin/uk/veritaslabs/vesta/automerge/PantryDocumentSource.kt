@@ -183,6 +183,7 @@ suspend fun openPantryDocumentSource(
     val queries = database.automergeDocumentQueries
     val stored = queries.selectById(documentId).awaitAsOneOrNull()
     val document = Document.load(stored?.bytes ?: newPantryDocument())
+    migratePantryCategories(document)
     val source = PantryDocumentSource(
         document,
         persist = { bytes -> queries.upsert(documentId, homeId, PantryFeature, bytes, nowMillis()) },

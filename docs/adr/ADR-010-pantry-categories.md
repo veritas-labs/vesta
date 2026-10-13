@@ -1,6 +1,6 @@
 # ADR-010: Pantry categories in the Pantry document
 
-**Status:** Accepted (2026-09-30)
+**Status:** Accepted (2026-09-30); default set replaced 2026-10-13 (see Amendment)
 
 ## Context
 
@@ -40,3 +40,24 @@ ROOT
   drops writes into a deleted object).
 - `PantryContents.emptyCategories` is still empty; registered-but-unused categories appear only on
   `PantryCategoriesScreen`, not the Pantry.
+
+## Amendment (2026-10-13): new default set, reset on open
+
+`DefaultPantryCategories` was replaced with a supermarket-aisle-oriented set of 21 primaries (Fruit & Vegetables,
+Bakery, Meat & Fish, Deli & Chilled Ready, Dairy & Eggs, Frozen, Pasta, Rice & Grains, Tins & Jars, Cooking
+Ingredients, Condiments & Spreads, Herbs & Spices, Baking, Breakfast, Snacks, Drinks, World Foods, Household,
+Health & Beauty, Baby, Pets, Other / Uncategorised) and their secondaries. Changes from the first set: Meat and Fish
+merged; Dairy became Dairy & Eggs; Cooking Sauces merged into Cooking Ingredients; Condiments split into Condiments &
+Spreads; cereal and oats moved to Breakfast; toiletries moved to Health & Beauty.
+
+Existing Pantries are reset to the new set, destructively (decided by the user; custom categories are dropped):
+
+- The document root gets a `categoriesVersion` integer, written whenever the defaults are seeded (currently `2`).
+- `migratePantryCategories` runs in `openPantryDocumentSource`. If a document has a `categories` map but a missing
+  or older `categoriesVersion`, it re-seeds the map from the defaults. Categories added afterwards survive, because
+  the version now matches.
+- A document with no `categories` map (an empty one waiting for its creator's content) is left alone, so it takes
+  the creator's registry on sync instead of racing it.
+- Items are not rewritten: an item tagged with a category that is no longer registered (e.g. "Meat") keeps its text.
+- Two devices migrating before they sync each write an identical registry; Automerge keeps one, nothing is lost.
+- Changing the defaults again means bumping `CategoriesVersion` in `PantryCategories.kt`.
