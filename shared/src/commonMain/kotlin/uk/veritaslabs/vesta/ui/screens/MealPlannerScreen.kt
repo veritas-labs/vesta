@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -69,6 +71,7 @@ import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_chevron_right
 import vesta.shared.generated.resources.ic_close
 import vesta.shared.generated.resources.ic_cookbook
+import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_copy
 import vesta.shared.generated.resources.ic_meal_breakfast
 import vesta.shared.generated.resources.ic_meal_dinner
@@ -82,6 +85,8 @@ import vesta.shared.generated.resources.meal_planner_eaters_edit
 import vesta.shared.generated.resources.meal_planner_eaters_everyone
 import vesta.shared.generated.resources.meal_planner_eaters_nobody
 import vesta.shared.generated.resources.meal_planner_many_planned
+import vesta.shared.generated.resources.meal_planner_more_options
+import vesta.shared.generated.resources.meal_planner_view_required_items
 import vesta.shared.generated.resources.meal_planner_next_week
 import vesta.shared.generated.resources.meal_planner_none_planned
 import vesta.shared.generated.resources.meal_planner_one_planned
@@ -131,6 +136,8 @@ internal object MealPlannerTestTags {
     const val ThisWeek = "meal_planner_this_week"
     const val WeekRange = "meal_planner_week_range"
     const val Sheet = "meal_planner_sheet"
+    const val MoreOptions = "meal_planner_more_options"
+    const val ViewRequiredItems = "meal_planner_view_required_items"
     const val SheetView = "meal_planner_sheet_view"
     const val SheetCopy = "meal_planner_sheet_copy"
 
@@ -187,7 +194,9 @@ fun MealPlannerScreen(
     onRemove: (CalendarDate, MealSlot, String) -> Unit = { _, _, _ -> },
     onViewRecipe: (recipeKey: String) -> Unit = {},
     onCopyRecipe: (CalendarDate, MealSlot, recipeKey: String) -> Unit = { _, _, _ -> },
+    onViewRequiredItems: () -> Unit = {},
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf<PlannedMeal?>(null) }
     val days = weekDays(today.plusDays(weekOffset * WeeklyShift), weekStart)
     val recipesByKey = remember(recipes) { recipes.associateBy { it.key } }
@@ -200,10 +209,28 @@ fun MealPlannerScreen(
                     Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
                 }
             },
+            actions = {
+                Box {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(MealPlannerTestTags.MoreOptions)) {
+                        Icon(painterResource(Res.drawable.ic_dots_vertical), contentDescription = stringResource(Res.string.meal_planner_more_options))
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.meal_planner_view_required_items)) },
+                            onClick = {
+                                menuOpen = false
+                                onViewRequiredItems()
+                            },
+                            modifier = Modifier.testTag(MealPlannerTestTags.ViewRequiredItems),
+                        )
+                    }
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background,
                 titleContentColor = MaterialTheme.colorScheme.onBackground,
                 navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                actionIconContentColor = MaterialTheme.colorScheme.onBackground,
             ),
         )
         // Only what is under the app bar is held to a readable width, so the bar spans the window like every other screen's.

@@ -17,12 +17,16 @@ import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.vesta.ui.screens.MealPlannerCopyScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerEatersScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerPickerScreen
+import uk.veritaslabs.vesta.ui.screens.MealPlannerRequiredItemsScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
 import uk.veritaslabs.vesta.ui.screens.MealSlot
 import uk.veritaslabs.vesta.ui.screens.PlannedMeal
 import uk.veritaslabs.vesta.ui.screens.copyTargetWeeks
 import uk.veritaslabs.vesta.ui.screens.eatersOf
+import uk.veritaslabs.vesta.ui.screens.requiredIngredients
+import uk.veritaslabs.vesta.ui.screens.weekDays
+import uk.veritaslabs.vesta.ui.screens.weekRangeText
 
 /**
  * The meal planner's four screens (ADR-028) and the moves between them: the week, the recipe picker that its plus buttons open
@@ -42,6 +46,7 @@ fun MealPlannerFlow(
     var picking by remember { mutableStateOf<Pair<CalendarDate, MealSlot>?>(null) }
     var choosingEaters by remember { mutableStateOf<PlannedMeal?>(null) }
     var copying by remember { mutableStateOf<PlannedMeal?>(null) }
+    var viewingRequired by remember { mutableStateOf(false) }
     if (state.isLoading) {
         Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
         return
@@ -49,7 +54,15 @@ fun MealPlannerFlow(
     val eatersTarget = choosingEaters
     val copyTarget = copying
     val target = picking
-    if (copyTarget != null) {
+    if (viewingRequired) {
+        val days = weekDays(today.plusDays(state.weekOffset * 7), weekStart)
+        MealPlannerRequiredItemsScreen(
+            items = requiredIngredients(days, state.plan, state.recipes),
+            weekRange = weekRangeText(days),
+            modifier = modifier,
+            onBack = { viewingRequired = false },
+        )
+    } else if (copyTarget != null) {
         MealPlannerCopyScreen(
             recipeTitle = state.recipes.firstOrNull { it.key == copyTarget.recipeKey }?.title.orEmpty(),
             date = copyTarget.date,
@@ -97,6 +110,7 @@ fun MealPlannerFlow(
             onViewRecipe = onViewRecipe,
             onCopyRecipe = { date, slot, recipeKey -> copying = PlannedMeal(date, slot, recipeKey) },
             onRemove = viewModel::remove,
+            onViewRequiredItems = { viewingRequired = true },
         )
     } else {
         val (date, slot) = target

@@ -565,6 +565,10 @@
     <string name="merchant_edit_save">Save</string>
     <string name="merchant_edit_cancel">Cancel</string>
     <string name="meal_planner_title">Meal planner</string>
+    <string name="meal_planner_more_options">More options</string>
+    <string name="meal_planner_view_required_items">View required items for current week</string>
+    <string name="meal_planner_required_title">Required items</string>
+    <string name="meal_planner_required_empty">No meals are planned this week, so nothing is needed.</string>
     <string name="meal_planner_previous_week">Previous week</string>
     <string name="meal_planner_next_week">Next week</string>
     <string name="meal_planner_this_week">This week</string>
