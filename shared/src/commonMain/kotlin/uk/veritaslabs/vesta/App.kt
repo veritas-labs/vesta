@@ -61,6 +61,7 @@ import uk.veritaslabs.vesta.ui.flows.MerchantsFlow
 import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.CalendarSettingsController
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
+import uk.veritaslabs.vesta.ui.screens.AddedToPantryScreen
 import uk.veritaslabs.vesta.ui.screens.CalendarScreen
 import uk.veritaslabs.vesta.ui.screens.CalendarSettingsScreen
 import uk.veritaslabs.vesta.ui.screens.CookbookScreen
@@ -399,6 +400,7 @@ private fun HomeContent(
         viewModel(key = "shopping-$homeId") { ShoppingListViewModel(source) }
     }
     var editingShoppingItem by remember { mutableStateOf<ShoppingItemDetails?>(null) }
+    var addedToPantryCount by remember { mutableStateOf(0) }
     val merchantList by remember(merchantsSource) { merchantsSource?.merchants ?: flowOf(emptyList()) }
         .collectAsStateWithLifecycle(emptyList())
     val cookbookViewModel = cookbookSource?.let { source ->
@@ -570,11 +572,19 @@ private fun HomeContent(
                     onOpenFilter = { destination = HomeDestination.ShoppingListFilter },
                     merchants = merchantList,
                     pantryItems = pantryState?.value?.items.orEmpty(),
+                    onAddedToPantry = { count ->
+                        addedToPantryCount = count
+                        destination = HomeDestination.ShoppingAddedToPantry
+                    },
                 )
             } else {
                 ShoppingListScreen(items = emptyList(), onItemSelected = onItemSelected, onBack = onBack, onAddItem = onAddItem)
             }
         }
+        HomeDestination.ShoppingAddedToPantry -> AddedToPantryScreen(
+            addedCount = addedToPantryCount,
+            onClose = { destination = HomeDestination.ShoppingList },
+        )
         HomeDestination.ShoppingListFilter -> {
             val onBack = { destination = HomeDestination.ShoppingList }
             if (shoppingViewModel != null) {
@@ -696,7 +706,7 @@ class DeviceSyncHost(
 
 private enum class HomeDestination {
     Dashboard, Members, MemberDetail, InviteLinks, HubManager, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
-    ShoppingList, ShoppingListFilter, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, Marketplace, Merchants, Calendar, CalendarSettings,
+    ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, Marketplace, Merchants, Calendar, CalendarSettings,
 }
 
 internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(

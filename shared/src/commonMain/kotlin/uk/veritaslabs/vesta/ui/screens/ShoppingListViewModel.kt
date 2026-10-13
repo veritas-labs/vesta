@@ -38,6 +38,9 @@ data class ShoppingListItem(
 
     /** Checked off in any way: crossed off, partly got or out of stock. */
     val isCheckedOff: Boolean get() = outOfStock || got > 0
+
+    /** Something has been picked up (so it can go to the Pantry): crossed off or partly got, but not out of stock. */
+    val isBought: Boolean get() = !outOfStock && got > 0
 }
 
 /** How many of [items] are still to be dealt with: not crossed off, partly got or out of stock. */
@@ -69,6 +72,13 @@ interface ShoppingListSource {
 
     /** Records that [got] of the item at [key] are picked up, or that the shop is [outOfStock] of it. */
     suspend fun setProgress(key: String, got: Int, outOfStock: Boolean)
+
+    /**
+     * Puts what has been picked up into the Pantry: each [ShoppingListItem.isBought] item adds its [ShoppingListItem.got]
+     * (at most its quantity) to its Pantry stock count, and leaves the list if that was all of it, or stays, wanting
+     * the rest and unchecked, if it was only part. Returns how many items were added; 0 by default, for a source with no Pantry.
+     */
+    suspend fun addCheckedToPantry(): Int = 0
 }
 
 /**
@@ -186,6 +196,11 @@ class ShoppingListViewModel(private val source: ShoppingListSource) : ViewModel(
         viewModelScope.launch {
             uiState.value.items.filter { it.isCheckedOff }.forEach { source.setProgress(it.key, 0, false) }
         }
+    }
+
+    /** Adds what has been picked up to the Pantry (see [ShoppingListSource.addCheckedToPantry]), then calls [onDone] with how many items that was. */
+    fun addCheckedToPantry(onDone: (addedCount: Int) -> Unit) {
+        viewModelScope.launch { onDone(source.addCheckedToPantry()) }
     }
 
     /** Removes every item from the list. */

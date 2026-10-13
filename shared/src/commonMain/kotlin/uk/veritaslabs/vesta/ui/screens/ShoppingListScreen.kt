@@ -98,6 +98,7 @@ import vesta.shared.generated.resources.shopping_delete_all_confirm
 import vesta.shared.generated.resources.shopping_delete_all_message
 import vesta.shared.generated.resources.shopping_delete_all_title
 import vesta.shared.generated.resources.shopping_uncheck_all
+import vesta.shared.generated.resources.shopping_add_checked_to_pantry
 
 private val ShoppingListTabletBreakpoint = 600.dp
 
@@ -108,6 +109,7 @@ internal object ShoppingListTestTags {
     const val RemainingCounter = "shopping_remaining_counter"
     const val OverflowButton = "shopping_overflow_button"
     const val FilterButton = "shopping_filter_button"
+    const val AddCheckedToPantryItem = "shopping_add_checked_to_pantry_item"
     const val UncheckAllItem = "shopping_uncheck_all_item"
     const val DeleteAllItem = "shopping_delete_all_item"
     const val DeleteAllConfirmButton = "shopping_delete_all_confirm_button"
@@ -150,6 +152,7 @@ fun ShoppingListScreen(
     onOpenFilter: () -> Unit = {},
     merchants: List<Merchant> = emptyList(),
     pantryItems: List<PantryListItem> = emptyList(),
+    onAddedToPantry: (addedCount: Int) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -160,6 +163,7 @@ fun ShoppingListScreen(
             selectedTags = state.selectedTags, hideChecked = state.hideChecked, onOpenFilter = onOpenFilter,
             merchants = merchants, selectedMerchants = state.selectedMerchants, onToggleMerchant = viewModel::toggleMerchant,
             onToggleCrossedOff = viewModel::toggleCrossedOff, onSetProgress = viewModel::setProgress,
+            onAddCheckedToPantry = { viewModel.addCheckedToPantry(onAddedToPantry) },
             onUncheckAll = viewModel::uncheckAll, onDeleteItem = viewModel::remove, onDeleteAll = viewModel::removeAll,
         )
     }
@@ -174,8 +178,10 @@ fun ShoppingListScreen(
  *
  * Swiping a row either way (partway reveals a red background with a trash can) deletes the item via [onDeleteItem].
  *
- * The top bar's overflow menu has two entries: "Uncheck all items", which calls [onUncheckAll], and "Delete all items",
- * which asks for confirmation and then calls [onDeleteAll].
+ * The top bar's overflow menu has three entries: "Add checked items to Pantry", which calls [onAddCheckedToPantry]
+ * (enabled while some item is [ShoppingListItem.isBought]; the wired screen then calls [onAddedToPantry] with how many
+ * items were added, for the app to show [AddedToPantryScreen]), "Uncheck all items", which calls [onUncheckAll], and
+ * "Delete all items", which asks for confirmation and then calls [onDeleteAll].
  *
  * Under the top bar (and under the filter chips, when shown) a line counts the items still to do ("4 of 12 items
  * remaining"): crossed-off, partly got and out-of-stock items all count as checked off, and the filter does not change
@@ -204,6 +210,7 @@ fun ShoppingListScreen(
     onToggleMerchant: (String) -> Unit = {},
     onToggleCrossedOff: (ShoppingListItem) -> Unit = {},
     onSetProgress: (key: String, got: Int, outOfStock: Boolean) -> Unit = { _, _, _ -> },
+    onAddCheckedToPantry: () -> Unit = {},
     onUncheckAll: () -> Unit = {},
     onDeleteItem: (key: String) -> Unit = {},
     onDeleteAll: () -> Unit = {},
@@ -233,6 +240,15 @@ fun ShoppingListScreen(
                             )
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.shopping_add_checked_to_pantry)) },
+                                enabled = items.any { it.isBought },
+                                onClick = {
+                                    menuOpen = false
+                                    onAddCheckedToPantry()
+                                },
+                                modifier = Modifier.testTag(ShoppingListTestTags.AddCheckedToPantryItem),
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.shopping_uncheck_all)) },
                                 onClick = {

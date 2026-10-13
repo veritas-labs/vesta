@@ -236,6 +236,14 @@
     <string name="shopping_remaining">%1$d of %2$d items remaining</string>
     <string name="shopping_more_options">More options</string>
     <string name="shopping_delete_item">Delete item</string>
+    <string name="shopping_add_checked_to_pantry">Add checked items to Pantry</string>
+    <string name="added_to_pantry_title">Added to your Pantry</string>
+    <plurals name="added_to_pantry_message">
+        <item quantity="one">%1$d item is now in your Pantry.</item>
+        <item quantity="other">%1$d items are now in your Pantry.</item>
+    </plurals>
+    <string name="added_to_pantry_close">Close</string>
+    <string name="added_to_pantry_animation_description">Items dropping into a Pantry box, then a check mark</string>
     <string name="shopping_uncheck_all">Uncheck all items</string>
     <string name="shopping_delete_all">Delete all items</string>
     <string name="shopping_delete_all_title">Delete all items?</string>

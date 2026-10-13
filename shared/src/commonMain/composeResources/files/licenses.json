@@ -1009,6 +1009,14 @@
         "url": "http://code.google.com/p/bridj/"
     },
     {
+        "name": "com.squareup.okio:okio",
+        "version": "3.16.4",
+        "licenses": [
+            "Apache License, Version 2.0"
+        ],
+        "url": "https://github.com/square/okio/"
+    },
+    {
         "name": "crates.io:adler2",
         "version": "2.0.1",
         "licenses": [
@@ -4329,6 +4337,38 @@
         "url": "https://github.com/gyscos/zstd-rs"
     },
     {
+        "name": "io.github.alexzhirkevich:compottie",
+        "version": "2.3.3",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/compottie"
+    },
+    {
+        "name": "io.github.alexzhirkevich:compottie-core",
+        "version": "2.3.3",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/compottie"
+    },
+    {
+        "name": "io.github.alexzhirkevich:keight",
+        "version": "0.0.07",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/keight"
+    },
+    {
+        "name": "io.github.alexzhirkevich:keight-core",
+        "version": "0.0.07",
+        "licenses": [
+            "MIT License"
+        ],
+        "url": "https://github.com/alexzhirkevich/keight"
+    },
+    {
         "name": "io.github.alexzhirkevich:qrose",
         "version": "1.3.0",
         "licenses": [
@@ -4782,7 +4822,7 @@
     },
     {
         "name": "org.jetbrains:annotations",
-        "version": "23.0.0",
+        "version": "26.1.0",
         "licenses": [
             "Apache License, Version 2.0"
         ],

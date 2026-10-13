@@ -96,6 +96,33 @@ class ShoppingListDocumentSource(
         onLocalChange()
     }
 
+    override suspend fun addCheckedToPantry(): Int {
+        val bought = lock.withLock {
+            if (document.isShoppingListSeeded()) readItems().filter { it.isBought } else emptyList()
+        }
+        if (bought.isEmpty()) return 0
+        // The Pantry is written first: a crash in between leaves the items checked, to be added again, rather than
+        // taking them off the list without their stock ever arriving.
+        pantry.edit { doc -> bought.forEach { adjustStock(doc, it.key, it.got.coerceAtMost(it.quantity)) } }
+        lock.withLock {
+            bought.forEach { item ->
+                val got = item.got.coerceAtMost(item.quantity)
+                if (got >= item.quantity) {
+                    removeShoppingItem(document, item.key)
+                } else {
+                    updateShoppingItem(
+                        document, item.key, item.primaryCategory, item.secondaryCategory, item.title,
+                        item.quantity - got, item.packageSize, item.barcode, item.tags,
+                    )
+                    setShoppingItemProgress(document, item.key, 0, false)
+                }
+            }
+            publishAndPersist()
+        }
+        onLocalChange()
+        return bought.size
+    }
+
     /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
     suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
         document.generateSyncMessage(state).orElse(null)
