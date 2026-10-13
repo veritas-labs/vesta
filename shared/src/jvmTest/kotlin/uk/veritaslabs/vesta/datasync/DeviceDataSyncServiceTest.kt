@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.CookbookSources
+import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsSources
 import uk.veritaslabs.vesta.ui.screens.Merchant
 import uk.veritaslabs.vesta.automerge.PantrySources
@@ -47,6 +48,8 @@ import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
+import uk.veritaslabs.vesta.calendar.CalendarDate
+import uk.veritaslabs.vesta.ui.screens.MealSlot
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
 class DeviceDataSyncServiceTest {
@@ -63,8 +66,9 @@ class DeviceDataSyncServiceTest {
         val shopping = ShoppingListSources(database, pantries)
         val cookbook = CookbookSources(database)
         val merchants = MerchantsSources(database)
+        val mealPlans = MealPlanSources(database)
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, shopping, cookbook, merchants, interval = interval,
+            node, database, devices, pantries, shopping, cookbook, merchants, mealPlans, interval = interval,
         )
         /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
         val deviceSync: DeviceSyncService by lazy {
@@ -116,6 +120,9 @@ class DeviceDataSyncServiceTest {
 
         suspend fun recipeTitles(homeId: String) =
             cookbook.forHome(homeId)!!.recipes.first().map { it.title }.sorted()
+
+        suspend fun plannedDinners(homeId: String, date: CalendarDate) =
+            mealPlans.forHome(homeId)!!.plan.first().recipes(date, MealSlot.Dinner).sorted()
 
         suspend fun merchantNames(homeId: String) =
             merchants.forHome(homeId)!!.merchants.first().map { it.name }.sorted()
@@ -248,6 +255,26 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         eventually { a.recipeTitles(homeId) == listOf("Apple Crumble", "Shepherd's Pie") }
+        scope.cancel()
+    }
+
+    @Test
+    fun plannedMealsAddedOnEitherDeviceReachBoth() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        b.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames().isNotEmpty() }
+        val tuesday = CalendarDate(2026, 10, 13)
+
+        // Act
+        a.mealPlans.forHome(homeId)!!.add(tuesday, MealSlot.Dinner, "pie")
+        eventually { b.plannedDinners(homeId, tuesday) == listOf("pie") }
+        b.mealPlans.forHome(homeId)!!.add(tuesday, MealSlot.Dinner, "curry")
+
+        // Assert
+        eventually { a.plannedDinners(homeId, tuesday) == listOf("curry", "pie") }
         scope.cancel()
     }
 

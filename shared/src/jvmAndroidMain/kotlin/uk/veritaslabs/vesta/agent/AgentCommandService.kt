@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.CookbookSources
+import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
+import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsDocumentSource
 import uk.veritaslabs.vesta.automerge.MerchantsSources
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
@@ -32,6 +34,7 @@ class AgentCommandService(
     private var current: Pair<VestaDatabase, PantrySources>? = null
     private var currentShopping: Pair<VestaDatabase, ShoppingListSources>? = null
     private var currentCookbook: Pair<VestaDatabase, CookbookSources>? = null
+    private var currentMealPlans: Pair<VestaDatabase, MealPlanSources>? = null
     private var currentMerchants: Pair<VestaDatabase, MerchantsSources>? = null
     private var currentAssistants: Pair<VestaDatabase, AssistantRepository>? = null
 
@@ -86,6 +89,16 @@ class AgentCommandService(
     /** [homeId]'s shared merchants source, for the UI; the Home must exist. */
     suspend fun merchants(database: VestaDatabase, homeId: String): MerchantsDocumentSource =
         checkNotNull(merchantsSources(database).forHome(homeId)) { "no Home with id $homeId" }
+
+    /** The shared meal plan sources of [database]. */
+    @Synchronized
+    fun mealPlanSources(database: VestaDatabase): MealPlanSources =
+        currentMealPlans?.takeIf { it.first === database }?.second
+            ?: MealPlanSources(database).also { currentMealPlans = database to it }
+
+    /** [homeId]'s shared meal plan source, for the UI; the Home must exist. */
+    suspend fun mealPlan(database: VestaDatabase, homeId: String): MealPlanDocumentSource =
+        checkNotNull(mealPlanSources(database).forHome(homeId)) { "no Home with id $homeId" }
 
     /** Handles agent commands arriving on x0x until cancelled; never returns normally. */
     @OptIn(ExperimentalUuidApi::class)

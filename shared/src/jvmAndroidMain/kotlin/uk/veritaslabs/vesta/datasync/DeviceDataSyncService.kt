@@ -17,7 +17,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.CookbookSources
+import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsSources
+import uk.veritaslabs.vesta.automerge.mealPlanDocumentId
 import uk.veritaslabs.vesta.automerge.merchantsDocumentId
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.PantrySources
@@ -49,6 +51,7 @@ private const val RosterSuffix = ":roster"
 private const val ShoppingListSuffix = ":shopping-list"
 private const val CookbookSuffix = ":cookbook"
 private const val MerchantsSuffix = ":merchants"
+private const val MealPlanSuffix = ":mealplan"
 private const val MaxBufferedPerHome = 64
 
 /**
@@ -74,6 +77,7 @@ class DeviceDataSyncService(
     private val shoppingSources: ShoppingListSources = ShoppingListSources(database, pantrySources),
     private val cookbookSources: CookbookSources = CookbookSources(database),
     private val merchantsSources: MerchantsSources = MerchantsSources(database),
+    private val mealPlanSources: MealPlanSources = MealPlanSources(database),
     private val interval: Duration = 30.seconds,
     private val peerBackoff: Duration = 2.minutes,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
@@ -85,7 +89,7 @@ class DeviceDataSyncService(
     private val rosters = HomeRosters(database, profiles)
     private val join = HomeJoinService(client, database, rosters, registry, profiles)
     private val groups = HomeGroups(client, database, rosters, profiles)
-    private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources)
+    private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources, mealPlanSources)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
     private val mailboxReader = MailboxReader(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
 
@@ -157,6 +161,7 @@ class DeviceDataSyncService(
                 attempt { syncDocument(shoppingListDocumentId(homeId)) }
                 attempt { syncDocument(cookbookDocumentId(homeId)) }
                 attempt { syncDocument(merchantsDocumentId(homeId)) }
+                attempt { syncDocument(mealPlanDocumentId(homeId)) }
             }
         }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
@@ -182,6 +187,12 @@ class DeviceDataSyncService(
             merchantsSources.localChanges.collect { homeId ->
                 launch { attempt { mailboxWriter.deposit(homeId, merchantsDocumentId(homeId)) } }
                 attempt { syncDocument(merchantsDocumentId(homeId)) }
+            }
+        }
+        launch {
+            mealPlanSources.localChanges.collect { homeId ->
+                launch { attempt { mailboxWriter.deposit(homeId, mealPlanDocumentId(homeId)) } }
+                attempt { syncDocument(mealPlanDocumentId(homeId)) }
             }
         }
         // A newly paired device, or one that has gone, changes who there is to sync with.
@@ -288,6 +299,7 @@ class DeviceDataSyncService(
         documentId.endsWith(ShoppingListSuffix) -> documentId.removeSuffix(ShoppingListSuffix)
         documentId.endsWith(CookbookSuffix) -> documentId.removeSuffix(CookbookSuffix)
         documentId.endsWith(MerchantsSuffix) -> documentId.removeSuffix(MerchantsSuffix)
+        documentId.endsWith(MealPlanSuffix) -> documentId.removeSuffix(MealPlanSuffix)
         else -> null
     }
 
@@ -332,7 +344,7 @@ class DeviceDataSyncService(
 
     private suspend fun documentIds(): List<String> =
         listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
-            .flatMap { listOf(pantryDocumentId(it.id), shoppingListDocumentId(it.id), cookbookDocumentId(it.id), merchantsDocumentId(it.id), rosterDocumentId(it.id)) }
+            .flatMap { listOf(pantryDocumentId(it.id), shoppingListDocumentId(it.id), cookbookDocumentId(it.id), merchantsDocumentId(it.id), mealPlanDocumentId(it.id), rosterDocumentId(it.id)) }
 
     private suspend fun receive(sender: String, documentId: String, message: ByteArray) {
         if (documentId == HomeRegistryDocumentId) {
@@ -365,7 +377,7 @@ class DeviceDataSyncService(
         peersFor(documentId).forEach { pump(documentId, it) }
     }
 
-    /** Applies a Pantry, shopping-list, cookbook, merchants or roster message; false when this device has no such Home yet. */
+    /** Applies a Pantry, shopping-list, cookbook, merchants, meal plan or roster message; false when this device has no such Home yet. */
     private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
         if (documentId.endsWith(RosterSuffix)) {
             val homeId = documentId.removeSuffix(RosterSuffix)
@@ -383,6 +395,11 @@ class DeviceDataSyncService(
         }
         if (documentId.endsWith(MerchantsSuffix)) {
             val source = merchantsSources.forHome(documentId.removeSuffix(MerchantsSuffix)) ?: return false
+            source.receiveSync(stateFor(documentId, sender), message)
+            return true
+        }
+        if (documentId.endsWith(MealPlanSuffix)) {
+            val source = mealPlanSources.forHome(documentId.removeSuffix(MealPlanSuffix)) ?: return false
             source.receiveSync(stateFor(documentId, sender), message)
             return true
         }
@@ -418,6 +435,8 @@ class DeviceDataSyncService(
                         cookbookSources.forHome(documentId.removeSuffix(CookbookSuffix))?.generateSync(state)
                     } else if (documentId.endsWith(MerchantsSuffix)) {
                         merchantsSources.forHome(documentId.removeSuffix(MerchantsSuffix))?.generateSync(state)
+                    } else if (documentId.endsWith(MealPlanSuffix)) {
+                        mealPlanSources.forHome(documentId.removeSuffix(MealPlanSuffix))?.generateSync(state)
                     } else pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())

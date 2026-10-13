@@ -34,10 +34,12 @@ class MainActivity : ComponentActivity() {
                 openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
                 openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
                 openMerchants = { database, homeId -> agentCommands.merchants(database, homeId) },
+                openMealPlan = { database, homeId -> agentCommands.mealPlan(database, homeId) },
                 dataSync = { database, client, devices ->
                     DeviceDataSyncService(
                         client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
                         agentCommands.cookbookSources(database), agentCommands.merchantsSources(database),
+                        agentCommands.mealPlanSources(database),
                     )
                 },
                 blobRuntime = { database, client, sync ->
