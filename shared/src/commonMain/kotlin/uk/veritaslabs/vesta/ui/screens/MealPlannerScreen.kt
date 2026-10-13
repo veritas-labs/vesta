@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -151,8 +149,7 @@ fun MealPlannerScreen(
 
 /**
  * One week of meals: a card per day of the week containing [today] shifted by [weekOffset] weeks, starting on [weekStart],
- * each with Breakfast, Lunch and Dinner and the cookbook [recipes] [plan]ned in them. A phone shows the days as a list, a tablet as
- * seven columns. The plus on a slot opens a list of the recipes not yet in it and calls [onAdd] with the one chosen; the cross
+ * each with Breakfast, Lunch and Dinner and the cookbook [recipes] [plan]ned in them. The days are a vertical list, and each day's meals a vertical list inside it. The plus on a slot opens a list of the recipes not yet in it and calls [onAdd] with the one chosen; the cross
  * on a planned recipe calls [onRemove]. A planned recipe that is no longer in [recipes] shows as removed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -201,31 +198,20 @@ fun MealPlannerScreen(
                 onThisWeek = onThisWeek,
                 modifier = Modifier.padding(horizontal = contentPadding),
             )
-            val dayCard: @Composable (CalendarDate, Modifier) -> Unit = { date, cardModifier ->
-                DayCard(
-                    date = date,
-                    isToday = date == today,
-                    plan = plan,
-                    titles = titles,
-                    onAdd = { slot -> picking = date to slot },
-                    onRemove = onRemove,
-                    modifier = cardModifier,
-                )
-            }
-            if (tablet) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = contentPadding, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    days.forEach { date -> dayCard(date, Modifier.weight(1f)) }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = contentPadding, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(days, key = { it.epochDay }) { date -> dayCard(date, Modifier) }
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = contentPadding, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(days, key = { it.epochDay }) { date ->
+                    DayCard(
+                        date = date,
+                        isToday = date == today,
+                        plan = plan,
+                        titles = titles,
+                        onAdd = { slot -> picking = date to slot },
+                        onRemove = onRemove,
+                    )
                 }
             }
         }

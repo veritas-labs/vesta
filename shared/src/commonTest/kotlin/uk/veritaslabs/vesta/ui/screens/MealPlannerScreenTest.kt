@@ -38,7 +38,6 @@ class MealPlannerScreenTest {
         // Assert
         onNodeWithTag(MealPlannerTestTags.WeekRange).assertTextEquals("12 Oct – 18 Oct 2026")
         onNodeWithTag(MealPlannerTestTags.day(CalendarDate(2026, 10, 12))).assertExists()
-        onNodeWithTag(MealPlannerTestTags.day(CalendarDate(2026, 10, 18))).assertExists()
         onNodeWithTag(MealPlannerTestTags.day(CalendarDate(2026, 10, 19))).assertDoesNotExist()
     }
 

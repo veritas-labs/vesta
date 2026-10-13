@@ -35,8 +35,8 @@ ROOT
 - **The week is the Calendar's:** it starts on the Calendar's first day of the week setting (Monday, Saturday or
   Sunday; ADR-025), and "today" is the Calendar's (`CalendarDate.todayUtc()`). Previous/next arrows move a week at a
   time with no limit either way; "This week" appears when away from the current one.
-- **Layout:** on a phone, a vertical list of seven day cards; from 600 dp wide, seven columns. Each day card has the three
-  meals, each with a plus that opens the recipe picker (a dialog with a search over title and tags) and the recipes
+- **Layout:** a vertical list of seven day cards on phone and tablet alike. Each day card has the three
+  meals stacked vertically, each with a plus that opens the recipe picker (a dialog with a search over title and tags) and the recipes
   planned in it, each with a cross.
 - Reached from a **Meal planner tile** on the Home dashboard; every member can edit.
 
