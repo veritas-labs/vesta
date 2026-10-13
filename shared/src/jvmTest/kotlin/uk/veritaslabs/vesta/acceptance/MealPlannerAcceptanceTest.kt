@@ -26,9 +26,10 @@ import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.WeekStart
+import uk.veritaslabs.vesta.ui.flows.MealPlannerFlow
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardTestTags
-import uk.veritaslabs.vesta.ui.screens.MealPlannerScreen
+import uk.veritaslabs.vesta.ui.screens.MealPlannerPickerTestTags
 import uk.veritaslabs.vesta.ui.screens.MealPlannerTestTags
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
 import uk.veritaslabs.vesta.ui.screens.MealSlot
@@ -44,7 +45,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
  *  1. The Home's dashboard opens the meal planner.
  *  2. The planner shows a week, a day at a time, each day with breakfast, lunch and dinner.
  *  3. I can set a recipe for any meal of any day, and see it there.
- *  4. Only recipes from the cookbook can be added.
+ *  4. Only recipes from the cookbook can be added, chosen on a screen of their own that I can leave without choosing.
  *  5. A meal can hold several recipes, and I can take any out.
  *  6. I can move to the next and previous week, and back to this one, and each week keeps its own plan.
  *  7. A recipe deleted from the cookbook shows as removed in the plan.
@@ -77,7 +78,7 @@ class MealPlannerAcceptanceTest {
     private fun ComposeUiTest.showPlanner(cookbook: CookbookDocumentSource, plan: MealPlanDocumentSource) {
         setContent {
             val viewModel = remember { MealPlannerViewModel(plan, cookbook.recipes) }
-            VestaTheme { MealPlannerScreen(viewModel, today = today, weekStart = WeekStart.Monday) }
+            VestaTheme { MealPlannerFlow(viewModel, today = today, weekStart = WeekStart.Monday) }
         }
     }
 
@@ -91,8 +92,8 @@ class MealPlannerAcceptanceTest {
     private fun ComposeUiTest.plan(date: CalendarDate, slot: MealSlot, recipeKey: String) {
         waitForTag(MealPlannerTestTags.addButton(date, slot))
         onNodeWithTag(MealPlannerTestTags.addButton(date, slot)).performClick()
-        waitForTag(MealPlannerTestTags.pickerRecipe(recipeKey))
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe(recipeKey)).performClick()
+        waitForTag(MealPlannerPickerTestTags.recipe(recipeKey))
+        onNodeWithTag(MealPlannerPickerTestTags.recipe(recipeKey)).performClick()
         waitForTag(MealPlannerTestTags.entry(date, slot, recipeKey))
     }
 
@@ -155,12 +156,12 @@ class MealPlannerAcceptanceTest {
         // Act — When I open the picker for Monday's dinner
         waitForTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner))
         onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner)).performClick()
-        waitForTag(MealPlannerTestTags.PickerDialog)
+        waitForTag(MealPlannerPickerTestTags.Screen)
 
         // Assert — Then it lists exactly those two, and has no field for a dish of my own
         val keys = runBlocking { cookbook.recipes.first().map { it.key } }
-        keys.forEach { onNodeWithTag(MealPlannerTestTags.pickerRecipe(it)).assertIsDisplayed() }
-        onNodeWithTag(MealPlannerTestTags.PickerSearch).assertIsDisplayed()
+        keys.forEach { onNodeWithTag(MealPlannerPickerTestTags.recipe(it)).assertIsDisplayed() }
+        onNodeWithTag(MealPlannerPickerTestTags.Search).assertIsDisplayed()
     }
 
     @Test
@@ -183,6 +184,25 @@ class MealPlannerAcceptanceTest {
     }
 
     @Test
+    fun theRecipePickerIsAScreenOfItsOwnThatBackLeavesWithoutPlanningAnything() = runComposeUiTest {
+        // Arrange — Given a cookbook with Soup and the planner showing the week
+        val cookbook = runBlocking { cookbook("Soup") }
+        val plan = newPlan()
+        showPlanner(cookbook, plan)
+        waitForTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner))
+
+        // Act — When I tap plus on Monday's dinner, then back
+        onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner)).performClick()
+        waitForTag(MealPlannerPickerTestTags.Screen)
+        onNodeWithTag(MealPlannerTestTags.WeekRange).assertDoesNotExist()
+        onNodeWithTag(MealPlannerPickerTestTags.BackButton).performClick()
+
+        // Assert — Then the week is back and nothing was planned
+        waitForTag(MealPlannerTestTags.WeekRange)
+        assertEquals(emptyList(), runBlocking { plan.plan.first() }.recipes(monday, MealSlot.Dinner))
+    }
+
+    @Test
     fun aRecipeAlreadyInAMealIsNotOfferedAgainForIt() = runComposeUiTest {
         // Arrange — Given Monday's lunch already has Soup
         val cookbook = runBlocking { cookbook("Soup", "Salad") }
@@ -193,11 +213,11 @@ class MealPlannerAcceptanceTest {
 
         // Act — When I open the picker for that lunch again
         onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Lunch)).performClick()
-        waitForTag(MealPlannerTestTags.PickerDialog)
+        waitForTag(MealPlannerPickerTestTags.Screen)
 
         // Assert — Then only Salad is offered
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe(salad)).assertIsDisplayed()
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe(soup)).assertDoesNotExist()
+        onNodeWithTag(MealPlannerPickerTestTags.recipe(salad)).assertIsDisplayed()
+        onNodeWithTag(MealPlannerPickerTestTags.recipe(soup)).assertDoesNotExist()
     }
 
     @Test

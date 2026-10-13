@@ -6,7 +6,6 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -123,79 +122,18 @@ class MealPlannerScreenTest {
     }
 
     @Test
-    fun tappingPlusOpensThePickerListingTheCookbookAndPickingReportsTheRecipe() = runComposeUiTest {
+    fun tappingPlusReportsTheDayAndMealToAddTo() = runComposeUiTest {
         // Arrange
-        var added: Triple<CalendarDate, MealSlot, String>? = null
+        var requested: Pair<CalendarDate, MealSlot>? = null
         setContent {
-            VestaTheme {
-                MealPlannerScreen(recipes = listOf(pie, porridge), today = today, onAdd = { d, s, k -> added = Triple(d, s, k) })
-            }
+            VestaTheme { MealPlannerScreen(recipes = listOf(pie), today = today, onAddRecipe = { d, s -> requested = d to s }) }
         }
 
         // Act
         onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Breakfast)).performClick()
-        onNodeWithTag(MealPlannerTestTags.PickerDialog).assertIsDisplayed()
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe("porridge")).performClick()
 
         // Assert
-        assertEquals(Triple(monday, MealSlot.Breakfast, "porridge"), added)
-        onNodeWithTag(MealPlannerTestTags.PickerDialog).assertDoesNotExist()
-    }
-
-    @Test
-    fun thePickerOffersOnlyRecipesNotAlreadyInTheSlot() = runComposeUiTest {
-        // Arrange
-        val plan = planOf(Triple(monday, MealSlot.Dinner, listOf("pie")))
-        setContent { VestaTheme { MealPlannerScreen(recipes = listOf(pie, soup), plan = plan, today = today) } }
-
-        // Act
-        onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner)).performClick()
-
-        // Assert
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe("soup")).assertIsDisplayed()
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe("pie")).assertDoesNotExist()
-    }
-
-    @Test
-    fun thePickerSearchNarrowsTheList() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { MealPlannerScreen(recipes = listOf(pie, porridge, soup), today = today) } }
-        onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner)).performClick()
-
-        // Act
-        onNodeWithTag(MealPlannerTestTags.PickerSearch).performTextInput("quick")
-
-        // Assert
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe("soup")).assertIsDisplayed()
-        onNodeWithTag(MealPlannerTestTags.pickerRecipe("pie")).assertDoesNotExist()
-    }
-
-    @Test
-    fun anEmptyCookbookExplainsThereIsNothingToPick() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), today = today) } }
-
-        // Act
-        onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner)).performClick()
-
-        // Assert
-        onNodeWithTag(MealPlannerTestTags.PickerEmpty).assertIsDisplayed()
-        onNodeWithTag(MealPlannerTestTags.PickerSearch).assertDoesNotExist()
-    }
-
-    @Test
-    fun cancellingThePickerAddsNothing() = runComposeUiTest {
-        // Arrange
-        var added = false
-        setContent { VestaTheme { MealPlannerScreen(recipes = listOf(pie), today = today, onAdd = { _, _, _ -> added = true }) } }
-        onNodeWithTag(MealPlannerTestTags.addButton(monday, MealSlot.Dinner)).performClick()
-
-        // Act
-        onNodeWithTag(MealPlannerTestTags.PickerCancel).performClick()
-
-        // Assert
-        assertEquals(false, added)
-        onNodeWithTag(MealPlannerTestTags.PickerDialog).assertDoesNotExist()
+        assertEquals(monday to MealSlot.Breakfast, requested)
     }
 
     @Test

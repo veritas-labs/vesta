@@ -70,6 +70,7 @@ import uk.veritaslabs.vesta.ui.screens.CookbookViewModel
 import uk.veritaslabs.vesta.ui.screens.MealPlanSource
 import uk.veritaslabs.vesta.ui.screens.MealPlannerScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
+import uk.veritaslabs.vesta.ui.flows.MealPlannerFlow
 import uk.veritaslabs.vesta.ui.screens.MarketplaceScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
@@ -545,7 +546,7 @@ private fun HomeContent(
         }
         HomeDestination.MealPlanner -> {
             if (mealPlannerViewModel != null) {
-                MealPlannerScreen(mealPlannerViewModel, onBack = { destination = HomeDestination.Dashboard })
+                MealPlannerFlow(mealPlannerViewModel, onBack = { destination = HomeDestination.Dashboard })
             } else {
                 MealPlannerScreen(recipes = emptyList(), onBack = { destination = HomeDestination.Dashboard })
             }

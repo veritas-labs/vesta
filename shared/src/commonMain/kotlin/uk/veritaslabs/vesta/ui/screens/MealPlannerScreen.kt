@@ -1,37 +1,29 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -43,12 +35,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.calendar.CalendarDate
-import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
 import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
@@ -63,11 +53,6 @@ import vesta.shared.generated.resources.meal_planner_day_heading
 import vesta.shared.generated.resources.meal_planner_day_month
 import vesta.shared.generated.resources.meal_planner_day_month_year
 import vesta.shared.generated.resources.meal_planner_next_week
-import vesta.shared.generated.resources.meal_planner_pick_cancel
-import vesta.shared.generated.resources.meal_planner_pick_empty_cookbook
-import vesta.shared.generated.resources.meal_planner_pick_no_matches
-import vesta.shared.generated.resources.meal_planner_pick_search
-import vesta.shared.generated.resources.meal_planner_pick_title
 import vesta.shared.generated.resources.meal_planner_previous_week
 import vesta.shared.generated.resources.meal_planner_recipe_removed
 import vesta.shared.generated.resources.meal_planner_remove_recipe
@@ -89,10 +74,6 @@ internal object MealPlannerTestTags {
     const val NextWeek = "meal_planner_next_week"
     const val ThisWeek = "meal_planner_this_week"
     const val WeekRange = "meal_planner_week_range"
-    const val PickerDialog = "meal_planner_picker"
-    const val PickerSearch = "meal_planner_picker_search"
-    const val PickerCancel = "meal_planner_picker_cancel"
-    const val PickerEmpty = "meal_planner_picker_empty"
 
     private fun dateTag(date: CalendarDate) = "${date.year}-${date.month}-${date.day}"
 
@@ -105,7 +86,6 @@ internal object MealPlannerTestTags {
 
     fun removeButton(date: CalendarDate, slot: MealSlot, recipeKey: String) = "meal_planner_remove_${dateTag(date)}_${slot.name}_$recipeKey"
 
-    fun pickerRecipe(key: String) = "meal_planner_picker_recipe_$key"
 }
 
 @Composable
@@ -117,39 +97,9 @@ internal fun mealSlotLabel(slot: MealSlot): String = stringResource(
     },
 )
 
-/** The meal planner (ADR-028) wired to [viewModel]; blank until the plan and the cookbook have loaded. */
-@Composable
-fun MealPlannerScreen(
-    viewModel: MealPlannerViewModel,
-    modifier: Modifier = Modifier,
-    today: CalendarDate = remember { CalendarDate.todayUtc() },
-    weekStart: WeekStart = LocalCalendarSettings.current.settings.weekStart,
-    onBack: () -> Unit = {},
-) {
-    val state = viewModel.uiState.collectAsStateWithLifecycle().value
-    if (state.isLoading) {
-        Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-    } else {
-        MealPlannerScreen(
-            recipes = state.recipes,
-            plan = state.plan,
-            modifier = modifier,
-            today = today,
-            weekStart = weekStart,
-            weekOffset = state.weekOffset,
-            onBack = onBack,
-            onPreviousWeek = viewModel::previousWeek,
-            onNextWeek = viewModel::nextWeek,
-            onThisWeek = viewModel::thisWeek,
-            onAdd = viewModel::add,
-            onRemove = viewModel::remove,
-        )
-    }
-}
-
 /**
  * One week of meals: a card per day of the week containing [today] shifted by [weekOffset] weeks, starting on [weekStart],
- * each with Breakfast, Lunch and Dinner and the cookbook [recipes] [plan]ned in them. The days are a vertical list, and each day's meals a vertical list inside it. The plus on a slot opens a list of the recipes not yet in it and calls [onAdd] with the one chosen; the cross
+ * each with Breakfast, Lunch and Dinner and the cookbook [recipes] [plan]ned in them. The days are a vertical list, and each day's meals a vertical list inside it. The plus on a slot calls [onAddRecipe] (the app opens the recipe picker); the cross
  * on a planned recipe calls [onRemove]. A planned recipe that is no longer in [recipes] shows as removed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -165,11 +115,10 @@ fun MealPlannerScreen(
     onPreviousWeek: () -> Unit = {},
     onNextWeek: () -> Unit = {},
     onThisWeek: () -> Unit = {},
-    onAdd: (CalendarDate, MealSlot, String) -> Unit = { _, _, _ -> },
+    onAddRecipe: (CalendarDate, MealSlot) -> Unit = { _, _ -> },
     onRemove: (CalendarDate, MealSlot, String) -> Unit = { _, _, _ -> },
 ) {
     val days = weekDays(today.plusDays(weekOffset * WeeklyShift), weekStart)
-    var picking by remember { mutableStateOf<Pair<CalendarDate, MealSlot>?>(null) }
     val titles = remember(recipes) { recipes.associate { it.key to it.title } }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -209,24 +158,12 @@ fun MealPlannerScreen(
                         isToday = date == today,
                         plan = plan,
                         titles = titles,
-                        onAdd = { slot -> picking = date to slot },
+                        onAdd = { slot -> onAddRecipe(date, slot) },
                         onRemove = onRemove,
                     )
                 }
             }
         }
-    }
-
-    picking?.let { (date, slot) ->
-        RecipePickerDialog(
-            recipes = recipes,
-            planned = plan.recipes(date, slot),
-            onPick = { recipe ->
-                onAdd(date, slot, recipe.key)
-                picking = null
-            },
-            onDismiss = { picking = null },
-        )
     }
 }
 
@@ -353,67 +290,6 @@ private fun SlotSection(
             }
         }
     }
-}
-
-/** A dialog listing the [recipes] not in [planned], narrowed by a search field; a tap on one calls [onPick]. */
-@Composable
-private fun RecipePickerDialog(recipes: List<Recipe>, planned: List<String>, onPick: (Recipe) -> Unit, onDismiss: () -> Unit) {
-    var query by remember { mutableStateOf("") }
-    val pickable = pickableRecipes(recipes, planned, query)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.testTag(MealPlannerTestTags.PickerDialog),
-        title = { Text(stringResource(Res.string.meal_planner_pick_title)) },
-        text = {
-            Column {
-                if (recipes.isEmpty()) {
-                    Text(
-                        stringResource(Res.string.meal_planner_pick_empty_cookbook),
-                        modifier = Modifier.testTag(MealPlannerTestTags.PickerEmpty),
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        label = { Text(stringResource(Res.string.meal_planner_pick_search)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag(MealPlannerTestTags.PickerSearch),
-                    )
-                    if (pickable.isEmpty()) {
-                        Text(
-                            stringResource(Res.string.meal_planner_pick_no_matches),
-                            modifier = Modifier.padding(top = 12.dp).testTag(MealPlannerTestTags.PickerEmpty),
-                        )
-                    } else {
-                        LazyColumn(modifier = Modifier.heightIn(max = 360.dp).padding(top = 8.dp)) {
-                            items(pickable, key = { it.key }) { recipe ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onPick(recipe) }
-                                        .padding(vertical = 10.dp)
-                                        .testTag(MealPlannerTestTags.pickerRecipe(recipe.key)),
-                                ) {
-                                    Text(recipe.title, style = MaterialTheme.typography.bodyLarge)
-                                    Text(
-                                        recipeTypeLabel(recipe.type),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag(MealPlannerTestTags.PickerCancel)) {
-                Text(stringResource(Res.string.meal_planner_pick_cancel))
-            }
-        },
-    )
 }
 
 private val PreviewToday = CalendarDate(2026, 10, 14)

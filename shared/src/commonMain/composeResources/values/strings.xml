@@ -582,7 +582,8 @@
     <string name="meal_planner_pick_search">Search recipes</string>
     <string name="meal_planner_pick_empty_cookbook">The cookbook has no recipes yet. Add some in the Cookbook first.</string>
     <string name="meal_planner_pick_no_matches">No recipes to add</string>
-    <string name="meal_planner_pick_cancel">Cancel</string>
+    <string name="meal_planner_pick_for">%1$s · %2$s</string>
+    <string name="meal_planner_pick_back">Back</string>
     <string name="cookbook_title">Cookbook</string>
     <string name="cookbook_add_recipe">Add recipe</string>
     <string name="cookbook_search_label">Search recipes</string>

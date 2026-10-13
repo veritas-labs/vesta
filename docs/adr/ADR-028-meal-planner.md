@@ -36,8 +36,10 @@ ROOT
   Sunday; ADR-025), and "today" is the Calendar's (`CalendarDate.todayUtc()`). Previous/next arrows move a week at a
   time with no limit either way; "This week" appears when away from the current one.
 - **Layout:** a vertical list of seven day cards on phone and tablet alike. Each day card has the three
-  meals stacked vertically, each with a plus that opens the recipe picker (a dialog with a search over title and tags) and the recipes
-  planned in it, each with a cross.
+  meals stacked vertically, each with a plus and the recipes planned in it, each with a cross. The plus opens the **recipe picker, a screen of its
+  own** (not a dialog, so it can grow suggestions): the cookbook's recipes not already in that meal, each row showing the
+  recipe's photo (if it has one), title, type and time, with a search over title and tags. Picking one plans it and returns
+  to the week; back returns without planning. `MealPlannerFlow` holds the move between the two.
 - Reached from a **Meal planner tile** on the Home dashboard; every member can edit.
 
 ## Acceptance criteria
@@ -45,7 +47,7 @@ ROOT
 1. The Home's dashboard opens the meal planner.
 2. The planner shows a week, a day at a time, each day with breakfast, lunch and dinner.
 3. I can set a recipe for any meal of any day, and see it there.
-4. Only recipes from the cookbook can be added.
+4. Only recipes from the cookbook can be added, chosen on a screen of their own that I can leave without choosing.
 5. A meal can hold several recipes, and I can take any out.
 6. I can move to the next and previous week, and back to this one, and each week keeps its own plan.
 7. A recipe deleted from the cookbook shows as removed in the plan.
