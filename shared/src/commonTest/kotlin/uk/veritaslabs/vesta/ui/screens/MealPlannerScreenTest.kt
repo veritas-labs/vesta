@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import uk.veritaslabs.vesta.blobs.BlobReference
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
@@ -258,5 +259,41 @@ class MealPlannerScreenTest {
 
         // Assert
         assertEquals(Triple(monday, MealSlot.Dinner, "pie"), requested)
+    }
+
+    @Test
+    fun eachDaySaysHowManyRecipesItHas() = runComposeUiTest {
+        // Arrange
+        val plan = MealPlan(
+            days = mapOf(
+                monday to mapOf(MealSlot.Dinner to listOf("pie")),
+                monday.plusDays(1) to mapOf(MealSlot.Lunch to listOf("soup"), MealSlot.Dinner to listOf("pie")),
+            ),
+        )
+        setContent { VestaTheme { MealPlannerScreen(listOf(pie, soup), plan = plan, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithText("1 recipe planned").assertIsDisplayed()
+        onNodeWithText("2 recipes planned").assertIsDisplayed()
+        onNodeWithText("No meals planned yet", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun aPlannedRecipeShowsItsPhotoWhenItHasOne() = runComposeUiTest {
+        // Arrange
+        val photo = BlobReference(hash = "a".repeat(64), size = 1_000, mime = "image/webp", kind = MediaKind.Photo, w = 4, h = 3, blur = "")
+        val withPhoto = pie.copy(media = listOf(RecipeMedia("", MediaKind.Photo, blob = photo)))
+        val plan = MealPlan(days = mapOf(monday to mapOf(MealSlot.Dinner to listOf("pie"), MealSlot.Lunch to listOf("soup"))))
+        setContent { VestaTheme { MealPlannerScreen(listOf(withPhoto, soup), plan = plan, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.thumbnail(monday, MealSlot.Dinner, "pie"), useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag(MealPlannerTestTags.thumbnail(monday, MealSlot.Lunch, "soup"), useUnmergedTree = true).assertDoesNotExist()
     }
 }

@@ -569,6 +569,19 @@
     <string name="meal_planner_next_week">Next week</string>
     <string name="meal_planner_this_week">This week</string>
     <string name="meal_planner_week_range">%1$s – %2$s</string>
+    <string-array name="meal_planner_weekdays">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+    <string name="meal_planner_today">Today</string>
+    <string name="meal_planner_none_planned">No meals planned yet</string>
+    <string name="meal_planner_one_planned">1 recipe planned</string>
+    <string name="meal_planner_many_planned">%1$d recipes planned</string>
     <string name="meal_planner_day_heading">%1$s %2$d</string>
     <string name="meal_planner_day_month">%1$d %2$s</string>
     <string name="meal_planner_day_month_year">%1$d %2$s %3$d</string>

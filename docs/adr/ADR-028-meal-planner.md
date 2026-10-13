@@ -50,11 +50,15 @@ ROOT
 - **The week is the Calendar's:** it starts on the Calendar's first day of the week setting (Monday, Saturday or
   Sunday; ADR-025), and "today" is the Calendar's (`CalendarDate.todayUtc()`). Previous/next arrows move a week at a
   time with no limit either way; "This week" appears when away from the current one.
-- **Layout:** a vertical list of seven day cards on phone and tablet alike. Each day card has the three
-  meals stacked vertically, each with a plus and the recipes planned in it, each with a cross. The plus opens the **recipe picker, a screen of its
-  own** (not a dialog, so it can grow suggestions): the cookbook's recipes not already in that meal, each row showing the
-  recipe's photo (if it has one), title, type and time, with a search over title and tags. Picking one plans it and returns
-  to the week; back returns without planning. `MealPlannerFlow` holds the move between the two.
+- **Layout:** a vertical list of seven day cards on phone and tablet alike (the list is centred and at most 720 dp wide). A
+  card has a coloured bar down its left edge (a fixed colour per weekday, Monday first whichever day the week starts on), the day's
+  name in the serif headline face with its date (marked "Today"), and a line saying how many recipes it has ("No meals planned
+  yet"). Under it, a row each for Breakfast, Lunch and Dinner: a round icon (sunrise, basket, cloche), then the meal's label while it
+  is empty or its recipes as small cards (photo or the Cookbook icon, title, who is eating, a cross), and a round plus. The header
+  is a round back button, the title, and round week arrows around the week's date range. The plus opens the **recipe picker, a
+  screen of its own** (not a dialog, so it can grow suggestions): the cookbook's recipes not already in that meal, each row showing
+  the recipe's photo (if it has one), title, type and time, with a search over title and tags. Picking one plans it and returns
+  to the week; back returns without planning. `MealPlannerFlow` holds the move between the screens.
 - Reached from a **Meal planner tile** on the Home dashboard; every member can edit.
 
 ## Acceptance criteria
