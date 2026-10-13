@@ -148,4 +148,76 @@ class MealPlannerScreenTest {
         // Assert
         assertEquals(true, backed)
     }
+
+    private val people = listOf(
+        MealPerson("m:mark", "Mark", isMember = true),
+        MealPerson("m:sam", "Sam", isMember = true),
+        MealPerson("p:ella", "Ella", isMember = false),
+    )
+
+    @Test
+    fun aMealNobodyChoseEatersForSaysEveryone() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), people = people, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner)).assertTextEquals("Everyone")
+    }
+
+    @Test
+    fun aMealWithChosenEatersNamesThem() = runComposeUiTest {
+        // Arrange
+        val plan = MealPlan(eaters = mapOf((monday to MealSlot.Dinner) to setOf("m:sam", "p:ella")))
+        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), plan = plan, people = people, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Dinner)).assertTextEquals("Sam, Ella")
+    }
+
+    @Test
+    fun aMealWhoseEatersAreAllTheMembersAndNobodyElseSaysEveryone() = runComposeUiTest {
+        // Arrange
+        val plan = MealPlan(eaters = mapOf((monday to MealSlot.Lunch) to setOf("m:mark", "m:sam")))
+        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), plan = plan, people = people, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Lunch)).assertTextEquals("Everyone")
+    }
+
+    @Test
+    fun aMealWithNoEatersChosenSaysNobody() = runComposeUiTest {
+        // Arrange
+        val plan = MealPlan(eaters = mapOf((monday to MealSlot.Breakfast) to emptySet()))
+        setContent { VestaTheme { MealPlannerScreen(recipes = emptyList(), plan = plan, people = people, today = today) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Breakfast)).assertTextEquals("Nobody")
+    }
+
+    @Test
+    fun tappingTheEatersReportsTheDayAndMeal() = runComposeUiTest {
+        // Arrange
+        var requested: Pair<CalendarDate, MealSlot>? = null
+        setContent {
+            VestaTheme { MealPlannerScreen(recipes = emptyList(), people = people, today = today, onEditEaters = { d, s -> requested = d to s }) }
+        }
+
+        // Act
+        onNodeWithTag(MealPlannerTestTags.eaters(monday, MealSlot.Lunch)).performClick()
+
+        // Assert
+        assertEquals(monday to MealSlot.Lunch, requested)
+    }
 }

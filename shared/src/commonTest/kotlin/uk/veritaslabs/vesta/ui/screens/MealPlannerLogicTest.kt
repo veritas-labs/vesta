@@ -91,4 +91,75 @@ class MealPlannerLogicTest {
         assertEquals(listOf("crumble"), byTitle.map { it.key })
         assertEquals(listOf("soup"), byTag.map { it.key })
     }
+
+    private val mark = MemberListItem("mark", "Mark", MemberRole.Admin)
+    private val sam = MemberListItem("sam", "Sam", MemberRole.Member)
+    private val ella = MealGuest("ella", "Ella")
+    private val noah = MealGuest("noah", "Noah")
+    private val dinner = CalendarDate(2026, 10, 12)
+
+    @Test
+    fun peopleAreTheMembersInOrderThenTheGuestsByName() {
+        // Arrange
+        val members = listOf(sam, mark)
+
+        // Act
+        val people = mealPeople(members, listOf(noah, ella))
+
+        // Assert
+        assertEquals(listOf("m:sam", "m:mark", "p:ella", "p:noah"), people.map { it.ref })
+        assertEquals(listOf(true, true, false, false), people.map { it.isMember })
+    }
+
+    @Test
+    fun aMealNobodyChoseIsEatenByEveryMemberAndNoGuests() {
+        // Arrange
+        val people = mealPeople(listOf(mark, sam), listOf(ella))
+
+        // Act
+        val eaters = eatersOf(MealPlan(guests = listOf(ella)), dinner, MealSlot.Dinner, people)
+
+        // Assert
+        assertEquals(listOf("Mark", "Sam"), eaters.map { it.name })
+    }
+
+    @Test
+    fun aMemberWhoJoinsLaterEatsTheMealsNobodyChose() {
+        // Arrange
+        val plan = MealPlan()
+
+        // Act
+        val before = eatersOf(plan, dinner, MealSlot.Dinner, mealPeople(listOf(mark), emptyList()))
+        val after = eatersOf(plan, dinner, MealSlot.Dinner, mealPeople(listOf(mark, sam), emptyList()))
+
+        // Assert
+        assertEquals(listOf("Mark"), before.map { it.name })
+        assertEquals(listOf("Mark", "Sam"), after.map { it.name })
+    }
+
+    @Test
+    fun aChosenMealIsEatenByJustThoseChosen() {
+        // Arrange
+        val people = mealPeople(listOf(mark, sam), listOf(ella, noah))
+        val plan = MealPlan(eaters = mapOf((dinner to MealSlot.Dinner) to setOf("m:sam", "p:ella")))
+
+        // Act
+        val eaters = eatersOf(plan, dinner, MealSlot.Dinner, people)
+
+        // Assert
+        assertEquals(listOf("Sam", "Ella"), eaters.map { it.name })
+    }
+
+    @Test
+    fun aChosenPersonWhoHasGoneIsDropped() {
+        // Arrange
+        val people = mealPeople(listOf(mark), emptyList())
+        val plan = MealPlan(eaters = mapOf((dinner to MealSlot.Dinner) to setOf("m:mark", "m:gone", "p:removed")))
+
+        // Act
+        val eaters = eatersOf(plan, dinner, MealSlot.Dinner, people)
+
+        // Assert
+        assertEquals(listOf("Mark"), eaters.map { it.name })
+    }
 }

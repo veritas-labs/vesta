@@ -198,4 +198,150 @@ class MealPlanDocumentSourceTest {
         // Assert
         assertTrue(database.automergeDocumentQueries.selectById("home-1:mealplan").awaitAsOneOrNull() != null)
     }
+
+    @Test
+    fun aMealNobodyHasChosenEatersForHasNoChosenEaters() = runBlocking {
+        // Arrange
+        val source = newSource()
+
+        // Act
+        source.add(monday, MealSlot.Dinner, "pie")
+
+        // Assert
+        assertEquals(null, source.plan.first().chosenEaters(monday, MealSlot.Dinner))
+    }
+
+    @Test
+    fun chosenEatersArePublishedForThatMealOnly() = runBlocking {
+        // Arrange
+        val source = newSource()
+
+        // Act
+        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark", "p:ella"))
+        val plan = source.plan.first()
+
+        // Assert
+        assertEquals(setOf("m:mark", "p:ella"), plan.chosenEaters(monday, MealSlot.Dinner))
+        assertEquals(null, plan.chosenEaters(monday, MealSlot.Lunch))
+        assertEquals(null, plan.chosenEaters(tuesday, MealSlot.Dinner))
+    }
+
+    @Test
+    fun choosingNobodyIsDifferentFromNotHavingChosen() = runBlocking {
+        // Arrange
+        val source = newSource()
+
+        // Act
+        source.setEaters(monday, MealSlot.Dinner, emptySet())
+
+        // Assert
+        assertEquals(emptySet(), source.plan.first().chosenEaters(monday, MealSlot.Dinner))
+    }
+
+    @Test
+    fun changingTheEatersReplacesThem() = runBlocking {
+        // Arrange
+        val source = newSource()
+        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark", "p:ella"))
+
+        // Act
+        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark", "m:sam"))
+
+        // Assert
+        assertEquals(setOf("m:mark", "m:sam"), source.plan.first().chosenEaters(monday, MealSlot.Dinner))
+    }
+
+    @Test
+    fun choosingTheSameEatersAgainIsNotReportedAsAChange() = runBlocking {
+        // Arrange
+        var changes = 0
+        val source = newSource(onLocalChange = { changes++ })
+        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark"))
+
+        // Act
+        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark"))
+
+        // Assert
+        assertEquals(1, changes)
+    }
+
+    @Test
+    fun eatersDoNotDisturbThePlannedRecipes() = runBlocking {
+        // Arrange
+        val source = newSource()
+        source.add(monday, MealSlot.Dinner, "pie")
+
+        // Act
+        source.setEaters(monday, MealSlot.Dinner, setOf("m:mark"))
+        source.addGuest("Ella")
+        val plan = source.plan.first()
+
+        // Assert
+        assertEquals(mapOf(monday to mapOf(MealSlot.Dinner to listOf("pie"))), plan.days)
+    }
+
+    @Test
+    fun aGuestIsAddedRenamedAndRemoved() = runBlocking {
+        // Arrange
+        val source = newSource()
+
+        // Act
+        val id = source.addGuest("  Ella ")!!
+        val added = source.plan.first().guests
+        source.renameGuest(id, "Ellie")
+        val renamed = source.plan.first().guests
+        source.removeGuest(id)
+        val removed = source.plan.first().guests
+
+        // Assert
+        assertEquals(listOf("Ella"), added.map { it.name })
+        assertEquals(listOf(id to "Ellie"), renamed.map { it.id to it.name })
+        assertEquals(emptyList(), removed)
+    }
+
+    @Test
+    fun aBlankGuestNameAddsNothing() = runBlocking {
+        // Arrange
+        var changes = 0
+        val source = newSource(onLocalChange = { changes++ })
+
+        // Act
+        val id = source.addGuest("   ")
+
+        // Assert
+        assertEquals(null, id)
+        assertEquals(0, changes)
+        assertEquals(emptyList(), source.plan.first().guests)
+    }
+
+    @Test
+    fun guestsAreListedByName() = runBlocking {
+        // Arrange
+        val source = newSource()
+
+        // Act
+        source.addGuest("noah")
+        source.addGuest("Ella")
+
+        // Assert
+        assertEquals(listOf("Ella", "noah"), source.plan.first().guests.map { it.name })
+    }
+
+    @Test
+    fun twoDevicesAddingGuestsAtOnceKeepBoth() = runBlocking {
+        // Arrange
+        val base = Document().save()
+        val a = newSource(Document.load(base))
+        val b = newSource(Document.load(base))
+
+        // Act
+        a.addGuest("Ella")
+        b.addGuest("Noah")
+        a.applyChanges(b.changesSince(ByteArray(0)))
+        b.applyChanges(a.changesSince(ByteArray(0)))
+
+        // Assert
+        assertEquals(listOf("Ella", "Noah"), a.plan.first().guests.map { it.name })
+        assertEquals(listOf("Ella", "Noah"), b.plan.first().guests.map { it.name })
+    }
 }

@@ -2,6 +2,8 @@ package uk.veritaslabs.vesta.automerge
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -28,11 +30,13 @@ fun mealPlanDocumentId(homeId: String): String = "$homeId:$MealPlanFeature"
  *
  * Use [openMealPlanDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
  */
+@OptIn(ExperimentalUuidApi::class)
 class MealPlanDocumentSource(
     private val document: Document,
     private val persist: suspend (ByteArray) -> Unit = {},
     private val onLocalChange: () -> Unit = {},
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    private val newGuestId: () -> String = { Uuid.random().toString() },
 ) : MealPlanSource {
 
     private val lock = Mutex()
@@ -45,6 +49,23 @@ class MealPlanDocumentSource(
 
     override suspend fun remove(date: CalendarDate, slot: MealSlot, recipeKey: String) =
         edit { unplanMeal(document, date, slot, recipeKey) }
+
+    override suspend fun setEaters(date: CalendarDate, slot: MealSlot, refs: Set<String>) =
+        edit { chooseEaters(document, date, slot, refs) }
+
+    override suspend fun addGuest(name: String): String? {
+        val trimmed = name.trim().ifEmpty { return null }
+        val id = newGuestId()
+        edit { addMealGuest(document, id, trimmed); true }
+        return id
+    }
+
+    override suspend fun renameGuest(id: String, name: String) {
+        val trimmed = name.trim().ifEmpty { return }
+        edit { renameMealGuest(document, id, trimmed) }
+    }
+
+    override suspend fun removeGuest(id: String) = edit { removeMealGuest(document, id) }
 
     private suspend fun edit(change: () -> Boolean) {
         val changed = lock.withLock {

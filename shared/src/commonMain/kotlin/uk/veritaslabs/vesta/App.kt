@@ -414,7 +414,7 @@ private fun HomeContent(
     }
     val mealPlannerViewModel = mealPlanSource?.let { source ->
         val recipes = cookbookSource?.recipes ?: flowOf(emptyList())
-        viewModel(key = "meal-planner-$homeId") { MealPlannerViewModel(source, recipes) }
+        viewModel(key = "meal-planner-$homeId") { MealPlannerViewModel(source, recipes, members) }
     }
     val merchantsViewModel = merchantsSource?.let { source ->
         viewModel(key = "merchants-$homeId") { MerchantsViewModel(source) }

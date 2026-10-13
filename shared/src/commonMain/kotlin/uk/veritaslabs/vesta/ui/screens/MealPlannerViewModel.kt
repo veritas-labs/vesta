@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -23,9 +24,42 @@ enum class MealSlot { Breakfast, Lunch, Dinner }
  * What the Home plans to eat: for each day, the keys of the cookbook recipes in each [MealSlot], in the order they were
  * added. A key may name a recipe that has since left the cookbook; the planner shows it as removed.
  */
-data class MealPlan(val days: Map<CalendarDate, Map<MealSlot, List<String>>> = emptyMap()) {
+data class MealPlan(
+    val days: Map<CalendarDate, Map<MealSlot, List<String>>> = emptyMap(),
+    /** People who eat with the Home but are not members of it, such as children. */
+    val guests: List<MealGuest> = emptyList(),
+    /** For the meals whose eaters have been chosen, the [MealPerson.ref]s eating; a meal not in here has the default eaters. */
+    val eaters: Map<Pair<CalendarDate, MealSlot>, Set<String>> = emptyMap(),
+) {
     /** The recipe keys planned for [slot] on [date], empty for none. */
     fun recipes(date: CalendarDate, slot: MealSlot): List<String> = days[date]?.get(slot).orEmpty()
+
+    /** The refs chosen as eating [slot] on [date], or null if nobody has chosen, which means every Home member. */
+    fun chosenEaters(date: CalendarDate, slot: MealSlot): Set<String>? = eaters[date to slot]
+}
+
+/** A person who eats with the Home without being one of its members; just a name. */
+data class MealGuest(val id: String, val name: String)
+
+/** Someone who can be tagged on a meal: a Home member or a [MealGuest]. [ref] is what the plan stores for them. */
+data class MealPerson(val ref: String, val name: String, val isMember: Boolean)
+
+fun memberRef(memberId: String): String = "m:$memberId"
+
+fun guestRef(guestId: String): String = "p:$guestId"
+
+/** Everyone who can be tagged: the Home's [members] in their order, then the plan's guests by name. */
+fun mealPeople(members: List<MemberListItem>, guests: List<MealGuest>): List<MealPerson> =
+    members.map { MealPerson(memberRef(it.memberId), it.name, isMember = true) } +
+        guests.sortedBy { it.name.lowercase() }.map { MealPerson(guestRef(it.id), it.name, isMember = false) }
+
+/**
+ * Who is eating [slot] on [date]: when nobody has chosen, every member of [people]; otherwise those of [people] that were
+ * chosen (a chosen person who has since left the Home or been removed is dropped).
+ */
+fun eatersOf(plan: MealPlan, date: CalendarDate, slot: MealSlot, people: List<MealPerson>): List<MealPerson> {
+    val chosen = plan.chosenEaters(date, slot) ?: return people.filter { it.isMember }
+    return people.filter { it.ref in chosen }
 }
 
 /** Where [MealPlannerViewModel] gets a Home's meal plan from; implemented over the meal plan Automerge document (ADR-028). */
@@ -37,6 +71,18 @@ interface MealPlanSource {
 
     /** Takes the recipe with [recipeKey] out of [slot] on [date]. No-op if it isn't there. */
     suspend fun remove(date: CalendarDate, slot: MealSlot, recipeKey: String)
+
+    /** Chooses exactly [refs] ([MealPerson.ref]s) as the eaters of [slot] on [date], even none. */
+    suspend fun setEaters(date: CalendarDate, slot: MealSlot, refs: Set<String>)
+
+    /** Adds a guest called [name] (trimmed; blank adds nothing) and returns its id, or null if nothing was added. */
+    suspend fun addGuest(name: String): String?
+
+    /** Renames the guest with [id] to [name] (trimmed; blank changes nothing). */
+    suspend fun renameGuest(id: String, name: String)
+
+    /** Removes the guest with [id], which un-tags them from every meal. */
+    suspend fun removeGuest(id: String)
 }
 
 /** The seven days of the week containing [anchor], starting on [weekStart]. */
@@ -62,18 +108,24 @@ data class MealPlannerUiState(
     val plan: MealPlan = MealPlan(),
     /** Every recipe in the cookbook: the only things that can be planned. */
     val recipes: List<Recipe> = emptyList(),
+    /** Everyone who can be tagged on a meal: the Home's members, then the guests. */
+    val people: List<MealPerson> = emptyList(),
     /** Weeks from the current one: 0 is this week, -1 last week, 1 next week. */
     val weekOffset: Int = 0,
     val isLoading: Boolean = true,
 )
 
 /** Backs the meal planner: exposes the plan from [source], the cookbook's [recipes], and which week is on show. */
-class MealPlannerViewModel(private val source: MealPlanSource, recipes: Flow<List<Recipe>>) : ViewModel() {
+class MealPlannerViewModel(
+    private val source: MealPlanSource,
+    recipes: Flow<List<Recipe>>,
+    members: Flow<List<MemberListItem>> = flowOf(emptyList()),
+) : ViewModel() {
 
     private val weekOffset = MutableStateFlow(0)
 
-    val uiState: StateFlow<MealPlannerUiState> = combine(source.plan, recipes, weekOffset) { plan, cookbook, offset ->
-        MealPlannerUiState(plan = plan, recipes = cookbook, weekOffset = offset, isLoading = false)
+    val uiState: StateFlow<MealPlannerUiState> = combine(source.plan, recipes, members, weekOffset) { plan, cookbook, homeMembers, offset ->
+        MealPlannerUiState(plan = plan, recipes = cookbook, people = mealPeople(homeMembers, plan.guests), weekOffset = offset, isLoading = false)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), MealPlannerUiState())
 
     fun previousWeek() = weekOffset.update { it - 1 }
@@ -90,5 +142,21 @@ class MealPlannerViewModel(private val source: MealPlanSource, recipes: Flow<Lis
 
     fun remove(date: CalendarDate, slot: MealSlot, recipeKey: String) {
         viewModelScope.launch { source.remove(date, slot, recipeKey) }
+    }
+
+    fun setEaters(date: CalendarDate, slot: MealSlot, refs: Set<String>) {
+        viewModelScope.launch { source.setEaters(date, slot, refs) }
+    }
+
+    fun addGuest(name: String) {
+        viewModelScope.launch { source.addGuest(name) }
+    }
+
+    fun renameGuest(id: String, name: String) {
+        viewModelScope.launch { source.renameGuest(id, name) }
+    }
+
+    fun removeGuest(id: String) {
+        viewModelScope.launch { source.removeGuest(id) }
     }
 }

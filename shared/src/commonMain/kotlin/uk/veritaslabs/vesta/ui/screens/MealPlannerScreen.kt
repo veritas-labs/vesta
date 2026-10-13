@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,9 @@ import vesta.shared.generated.resources.meal_planner_add_recipe
 import vesta.shared.generated.resources.meal_planner_day_heading
 import vesta.shared.generated.resources.meal_planner_day_month
 import vesta.shared.generated.resources.meal_planner_day_month_year
+import vesta.shared.generated.resources.meal_planner_eaters_edit
+import vesta.shared.generated.resources.meal_planner_eaters_everyone
+import vesta.shared.generated.resources.meal_planner_eaters_nobody
 import vesta.shared.generated.resources.meal_planner_next_week
 import vesta.shared.generated.resources.meal_planner_previous_week
 import vesta.shared.generated.resources.meal_planner_recipe_removed
@@ -83,6 +87,9 @@ internal object MealPlannerTestTags {
 
     /** The row for [recipeKey] in a slot, whether or not the cookbook still has the recipe. */
     fun entry(date: CalendarDate, slot: MealSlot, recipeKey: String) = "meal_planner_entry_${dateTag(date)}_${slot.name}_$recipeKey"
+
+    /** The line saying who is eating a meal; tapping it edits them. */
+    fun eaters(date: CalendarDate, slot: MealSlot) = "meal_planner_eaters_${dateTag(date)}_${slot.name}"
 
     fun removeButton(date: CalendarDate, slot: MealSlot, recipeKey: String) = "meal_planner_remove_${dateTag(date)}_${slot.name}_$recipeKey"
 
@@ -116,6 +123,8 @@ fun MealPlannerScreen(
     onNextWeek: () -> Unit = {},
     onThisWeek: () -> Unit = {},
     onAddRecipe: (CalendarDate, MealSlot) -> Unit = { _, _ -> },
+    people: List<MealPerson> = emptyList(),
+    onEditEaters: (CalendarDate, MealSlot) -> Unit = { _, _ -> },
     onRemove: (CalendarDate, MealSlot, String) -> Unit = { _, _, _ -> },
 ) {
     val days = weekDays(today.plusDays(weekOffset * WeeklyShift), weekStart)
@@ -158,12 +167,26 @@ fun MealPlannerScreen(
                         isToday = date == today,
                         plan = plan,
                         titles = titles,
+                        people = people,
+                        onEditEaters = { slot -> onEditEaters(date, slot) },
                         onAdd = { slot -> onAddRecipe(date, slot) },
                         onRemove = onRemove,
                     )
                 }
             }
         }
+    }
+}
+
+/** Who is eating [slot] on [date] in words: "Everyone" for all the members and nobody else, "Nobody", or their names. */
+@Composable
+internal fun eaterSummary(plan: MealPlan, date: CalendarDate, slot: MealSlot, people: List<MealPerson>): String {
+    val eaters = eatersOf(plan, date, slot, people)
+    val members = people.filter { it.isMember }
+    return when {
+        eaters.isEmpty() && plan.chosenEaters(date, slot) != null -> stringResource(Res.string.meal_planner_eaters_nobody)
+        plan.chosenEaters(date, slot) == null || eaters == members -> stringResource(Res.string.meal_planner_eaters_everyone)
+        else -> eaters.joinToString(", ") { it.name }
     }
 }
 
@@ -217,6 +240,8 @@ private fun DayCard(
     isToday: Boolean,
     plan: MealPlan,
     titles: Map<String, String>,
+    people: List<MealPerson>,
+    onEditEaters: (MealSlot) -> Unit,
     onAdd: (MealSlot) -> Unit,
     onRemove: (CalendarDate, MealSlot, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -232,7 +257,13 @@ private fun DayCard(
                 color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
             MealSlot.entries.forEach { slot ->
-                SlotSection(date, slot, heading, plan.recipes(date, slot), titles, onAdd = { onAdd(slot) }, onRemove = { onRemove(date, slot, it) })
+                SlotSection(
+                    date, slot, heading, plan.recipes(date, slot), titles,
+                    eaters = eaterSummary(plan, date, slot, people),
+                    onEditEaters = { onEditEaters(slot) },
+                    onAdd = { onAdd(slot) },
+                    onRemove = { onRemove(date, slot, it) },
+                )
             }
         }
     }
@@ -245,6 +276,8 @@ private fun SlotSection(
     dayHeading: String,
     recipeKeys: List<String>,
     titles: Map<String, String>,
+    eaters: String,
+    onEditEaters: () -> Unit,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
 ) {
@@ -265,6 +298,18 @@ private fun SlotSection(
                 )
             }
         }
+        Text(
+            text = eaters,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .clickable(
+                    onClickLabel = stringResource(Res.string.meal_planner_eaters_edit, slotLabel, dayHeading),
+                    onClick = onEditEaters,
+                )
+                .padding(vertical = 4.dp)
+                .testTag(MealPlannerTestTags.eaters(date, slot)),
+        )
         recipeKeys.forEach { key ->
             val title = titles[key]
             Row(
