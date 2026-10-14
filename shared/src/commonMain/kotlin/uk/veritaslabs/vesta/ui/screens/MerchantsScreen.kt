@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.components.EmptyState
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
@@ -221,23 +223,12 @@ fun MerchantsScreen(
             }
             if (visible.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.testTag(MerchantsTestTags.EmptyMessage)) {
-                        Text(
-                            text = stringResource(if (merchants.isEmpty()) Res.string.merchants_empty_title else Res.string.merchants_no_matches),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                        )
-                        if (merchants.isEmpty()) {
-                            Text(
-                                text = stringResource(Res.string.merchants_empty_subtitle),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        }
-                    }
+                    EmptyState(
+                        if (merchants.isEmpty()) EmptyStateArt.Merchants else EmptyStateArt.NoResults,
+                        title = stringResource(if (merchants.isEmpty()) Res.string.merchants_empty_title else Res.string.merchants_no_matches),
+                        body = if (merchants.isEmpty()) stringResource(Res.string.merchants_empty_subtitle) else null,
+                        modifier = Modifier.testTag(MerchantsTestTags.EmptyMessage),
+                    )
                 }
             } else {
                 LazyColumn(

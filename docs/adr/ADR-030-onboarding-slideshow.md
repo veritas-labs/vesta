@@ -70,6 +70,22 @@ A square illustration above the text on a phone; beside the text on a screen wid
 text capped at 480dp otherwise. Content is top-aligned so the text does not shift between slides. The page dots are a shared
 `PageDots` component, also used by the hub tutorial.
 
+### Empty-state illustrations (added the same day)
+
+The same pipeline draws a picture for each empty state, shown by the shared `EmptyState` / `EmptyStateIllustration` (`ui/components`), which pick the
+light or dark drawable and sit it on the paper colour (`ui/theme/ArtPaper.kt`, also used by the tour and the Home picker):
+
+| Screen | Art | Notes |
+|---|---|---|
+| Pantry, Pantry categories, Shopping list, Cookbook, Merchants, Assistants | `empty_<name>` | above the existing title and subtitle |
+| Paired devices, Hubs | `empty_synced_devices`, `empty_hubs` | replace the icon tile that stood there |
+| Cookbook, Merchants, Meal planner recipe picker | `empty_no_results` | when a search or filter finds nothing, as opposed to nothing existing |
+| Meal planner recipe picker | `empty_cookbook` | when the cookbook has no recipes at all |
+| Calendar | `empty_quiet_day` | small, beside "No events" for a day with none |
+
+Mid greys in the art (a plate's shadow) are shading, so the script now maps any neutral grey onto the ink-to-paper ramp in every file,
+not just the goddess. This slightly changed `onboarding_pantry`.
+
 ## Acceptance criteria
 
 See `OnboardingAcceptanceTest` (`docs/testing/acceptance-tests.md`):
@@ -86,3 +102,4 @@ See `OnboardingAcceptanceTest` (`docs/testing/acceptance-tests.md`):
 - The copy is a first draft.
 - The assistants slide has its art and copy but is off.
 - The Hub tutorial's art and the older `onboarding_*` Home picker strings are unchanged.
+- Empty states are styled like a tour slide (picture up to 420dp wide, headline, body) by the shared `EmptyState`; the exceptions are the Hubs picture (280dp, to leave room for its buttons), the Calendar's quiet day (96dp, inline). Only rendered to images, not seen on a device.

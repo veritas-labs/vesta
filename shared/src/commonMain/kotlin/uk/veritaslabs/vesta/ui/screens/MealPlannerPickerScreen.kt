@@ -43,6 +43,8 @@ import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.ui.components.BlobImage
+import uk.veritaslabs.vesta.ui.components.EmptyState
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.calendar_weekdays
@@ -125,10 +127,9 @@ fun MealPlannerPickerScreen(
             )
             if (recipes.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding), contentAlignment = Alignment.Center) {
-                    Text(
-                        stringResource(Res.string.meal_planner_pick_empty_cookbook),
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
+                    EmptyState(
+                        EmptyStateArt.Cookbook,
+                        title = stringResource(Res.string.meal_planner_pick_empty_cookbook),
                         modifier = Modifier.testTag(MealPlannerPickerTestTags.Empty),
                     )
                 }
@@ -142,9 +143,9 @@ fun MealPlannerPickerScreen(
                 )
                 if (pickable.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding), contentAlignment = Alignment.Center) {
-                        Text(
-                            stringResource(Res.string.meal_planner_pick_no_matches),
-                            style = MaterialTheme.typography.titleMedium,
+                        EmptyState(
+                            EmptyStateArt.NoResults,
+                            title = stringResource(Res.string.meal_planner_pick_no_matches),
                             modifier = Modifier.testTag(MealPlannerPickerTestTags.Empty),
                         )
                     }

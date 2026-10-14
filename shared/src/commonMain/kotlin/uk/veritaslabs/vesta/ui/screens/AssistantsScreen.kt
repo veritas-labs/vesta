@@ -34,6 +34,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.components.EmptyState
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.assistants_add
@@ -104,21 +106,11 @@ fun AssistantsScreen(
                         .testTag(AssistantsTestTags.EmptyState),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(Res.string.assistants_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                        )
-                        Text(
-                            text = stringResource(Res.string.assistants_empty_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
+                    EmptyState(
+                        EmptyStateArt.Assistants,
+                        title = stringResource(Res.string.assistants_empty_title),
+                        body = stringResource(Res.string.assistants_empty_subtitle),
+                    )
                 }
             } else {
                 LazyColumn(

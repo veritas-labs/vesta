@@ -42,10 +42,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.components.EmptyState
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
-import vesta.shared.generated.resources.ic_devices
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.synced_devices_add
@@ -121,36 +122,11 @@ fun SettingsSyncedDevicesScreen(
                         .testTag(SyncedDevicesTestTags.EmptyState),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(MaterialTheme.shapes.large)
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_devices),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(36.dp),
-                            )
-                        }
-                        Text(
-                            text = stringResource(Res.string.synced_devices_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 16.dp),
-                        )
-                        Text(
-                            text = stringResource(Res.string.synced_devices_empty_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
+                    EmptyState(
+                        EmptyStateArt.SyncedDevices,
+                        title = stringResource(Res.string.synced_devices_empty_title),
+                        body = stringResource(Res.string.synced_devices_empty_subtitle),
+                    )
                 }
             } else {
                 LazyColumn(

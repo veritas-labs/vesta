@@ -47,6 +47,8 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.components.EmptyState
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
@@ -272,21 +274,11 @@ fun PantryScreen(
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding)) {
             if (items.isEmpty() && emptyCategories.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(Res.string.pantry_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                        )
-                        Text(
-                            text = stringResource(Res.string.pantry_empty_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
+                    EmptyState(
+                        EmptyStateArt.Pantry,
+                        title = stringResource(Res.string.pantry_empty_title),
+                        body = stringResource(Res.string.pantry_empty_subtitle),
+                    )
                 }
             } else {
                 val grouped = items

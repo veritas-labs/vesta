@@ -74,6 +74,8 @@ import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
 import uk.veritaslabs.vesta.calendar.monthGrid
 import uk.veritaslabs.vesta.calendar.weekNumber
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
+import uk.veritaslabs.vesta.ui.components.EmptyStateIllustration
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.calendar_add_event
@@ -300,12 +302,15 @@ fun CalendarScreen(
                 modifier = Modifier.testTag(CalendarTestTags.SelectedDay),
             )
             if (dayEvents.isEmpty()) {
-                Text(
-                    stringResource(Res.string.calendar_no_events),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp).testTag(CalendarTestTags.NoEvents),
-                )
+                Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    EmptyStateIllustration(EmptyStateArt.QuietDay, size = 96.dp)
+                    Text(
+                        stringResource(Res.string.calendar_no_events),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag(CalendarTestTags.NoEvents),
+                    )
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.widthIn(max = MaxGridWidth * 1.5f),

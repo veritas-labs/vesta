@@ -45,6 +45,8 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.blobs.BlobReference
 import uk.veritaslabs.vesta.blobs.Placeholder
 import uk.veritaslabs.vesta.ui.components.BlobImage
+import uk.veritaslabs.vesta.ui.components.EmptyState
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.cookbook_add_recipe
@@ -266,23 +268,12 @@ fun CookbookScreen(
             }
             if (visible.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.testTag(CookbookTestTags.EmptyMessage)) {
-                        Text(
-                            text = stringResource(if (recipes.isEmpty()) Res.string.cookbook_empty_title else Res.string.cookbook_no_matches),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                        )
-                        if (recipes.isEmpty()) {
-                            Text(
-                                text = stringResource(Res.string.cookbook_empty_subtitle),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        }
-                    }
+                    EmptyState(
+                        if (recipes.isEmpty()) EmptyStateArt.Cookbook else EmptyStateArt.NoResults,
+                        title = stringResource(if (recipes.isEmpty()) Res.string.cookbook_empty_title else Res.string.cookbook_no_matches),
+                        body = if (recipes.isEmpty()) stringResource(Res.string.cookbook_empty_subtitle) else null,
+                        modifier = Modifier.testTag(CookbookTestTags.EmptyMessage),
+                    )
                 }
             } else {
                 LazyColumn(
