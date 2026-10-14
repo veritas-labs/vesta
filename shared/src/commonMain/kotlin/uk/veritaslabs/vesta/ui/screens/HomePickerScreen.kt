@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -37,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
@@ -60,7 +61,8 @@ import vesta.shared.generated.resources.ic_link
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_settings
 import vesta.shared.generated.resources.home_picker_settings
-import vesta.shared.generated.resources.img_vesta
+import vesta.shared.generated.resources.img_vesta_line
+import vesta.shared.generated.resources.img_vesta_line_dark
 import vesta.shared.generated.resources.onboarding_create_home
 import vesta.shared.generated.resources.pending_join_cancel
 import vesta.shared.generated.resources.pending_join_denied_declined
@@ -224,10 +226,13 @@ fun HomePickerScreen(
 
             if (homes.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    // Line art on its own paper colour (see scripts/slides-to-vectors.py), light or dark to match the theme.
+                    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
                     Image(
-                        painter = painterResource(Res.drawable.img_vesta),
+                        painter = painterResource(if (dark) Res.drawable.img_vesta_line_dark else Res.drawable.img_vesta_line),
                         contentDescription = null,
-                        modifier = if (isTablet) Modifier.width(480.dp) else Modifier.fillMaxWidth(),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().padding(vertical = 8.dp),
                     )
                 }
             } else {
