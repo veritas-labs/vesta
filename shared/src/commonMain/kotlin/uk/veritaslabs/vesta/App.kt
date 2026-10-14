@@ -8,6 +8,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import uk.veritaslabs.vesta.blobs.LocalBlobs
 import uk.veritaslabs.vesta.files.FileExporter
+import uk.veritaslabs.vesta.files.FileImporter
+import uk.veritaslabs.vesta.files.LocalFileImporter
 import uk.veritaslabs.vesta.files.LocalFileExporter
 import uk.veritaslabs.vesta.recipes.LocalRecipeImporter
 import uk.veritaslabs.vesta.recipes.RecipeImporter
@@ -613,6 +615,7 @@ private fun HomeContent(
                 calendarSettings.onChange,
                 events = calendarState?.value?.events.orEmpty(),
                 homeName = homeName,
+                onImport = { calendar, imported -> calendarViewModel?.import(calendar, imported) },
                 onBack = { destination = HomeDestination.Calendar },
             )
         }
@@ -799,6 +802,7 @@ internal fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
  * database, the x0x client and the device list; it is fed Home changes and run for as long as the app is shown.
  * [blobRuntime], if given, builds the storage and transfer of photos from the same three; screens get it through [LocalBlobs].
  * [fileExporter], if given, lets screens save a file the user chooses a place for (an event as iCal); screens get it through [LocalFileExporter].
+ * [fileImporter], if given, lets screens read a file the user chooses (iCal events into the calendar); through [LocalFileImporter].
  * [recipeImporter], if given, lets the add-recipe form fill itself from a web link; screens get it through [LocalRecipeImporter].
  * [ownDeviceCanBeHub] lets a user make this device an always-on hub of a Home (docs/adr/ADR-020, several-hubs amendment): true where
  * the x0x daemon keeps running when the app is closed, as on the desktop, not where it is embedded and stops with the app.
@@ -819,6 +823,7 @@ fun VestaApp(
     blobRuntime: ((VestaDatabase, X0xClient, DeviceDataSync?) -> BlobRuntime)? = null,
     recipeImporter: RecipeImporter? = null,
     fileExporter: FileExporter? = null,
+    fileImporter: FileImporter? = null,
     ownDeviceCanBeHub: Boolean = false,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
@@ -866,6 +871,7 @@ fun VestaApp(
         LocalBlobs provides blobs?.blobs,
         LocalRecipeImporter provides recipeImporter,
         LocalFileExporter provides fileExporter,
+        LocalFileImporter provides fileImporter,
         LocalCalendarSettings provides calendarController,
     ) {
         App(

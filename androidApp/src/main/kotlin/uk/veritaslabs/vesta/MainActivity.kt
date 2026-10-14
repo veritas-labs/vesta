@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
         // (and decide how the allowlist is configured on a phone, where there is no environment variable).
         val agentCommands = AgentCommandService()
         val fileExporter = AndroidFileExporter(this)
+        val fileImporter = AndroidFileImporter(this)
         setContent {
             VestaApp(
                 openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
                 },
                 recipeImporter = HttpRecipeImporter(),
                 fileExporter = fileExporter,
+                fileImporter = fileImporter,
             )
         }
     }

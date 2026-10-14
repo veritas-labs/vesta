@@ -11,6 +11,11 @@ import uk.veritaslabs.vesta.calendar.CalendarEvent
 import uk.veritaslabs.vesta.calendar.EventCalendar
 import uk.veritaslabs.vesta.calendar.allDayMillis
 import uk.veritaslabs.vesta.files.FileExporter
+import uk.veritaslabs.vesta.files.FileImporter
+import uk.veritaslabs.vesta.files.LocalFileImporter
+import uk.veritaslabs.vesta.files.PickedFile
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import uk.veritaslabs.vesta.files.LocalFileExporter
 import kotlin.test.assertTrue
 import uk.veritaslabs.vesta.calendar.CalendarDate
@@ -160,5 +165,121 @@ class CalendarSettingsScreenTest {
 
         // Assert
         onNodeWithTag(CalendarSettingsTestTags.ExportSection).assertDoesNotExist()
+    }
+
+    private fun ics(vararg events: String) = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + events.joinToString("") {
+        "BEGIN:VEVENT\r\n$it\r\nEND:VEVENT\r\n"
+    } + "END:VCALENDAR\r\n"
+
+    private fun importer(text: String?) = FileImporter { text?.let { PickedFile("cal.ics", it.encodeToByteArray()) } }
+
+    @Test
+    fun importReadsTheChosenFileIntoTheHomeCalendarAndSaysHowManyEvents() = runComposeUiTest {
+        // Arrange
+        val imported = mutableListOf<Pair<EventCalendar, List<CalendarEvent>>>()
+        val file = ics("UID:a\r\nDTSTART;VALUE=DATE:20261014\r\nSUMMARY:Bins", "UID:b\r\nDTSTART:20261015T090000Z\r\nSUMMARY:Dentist")
+        setContent {
+            VestaTheme {
+                CompositionLocalProvider(LocalFileImporter provides importer(file)) {
+                    CalendarSettingsScreen(CalendarSettings(), onChange = {}, onImport = { calendar, events -> imported += calendar to events })
+                }
+            }
+        }
+
+        // Act
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitForIdle()
+
+        // Assert
+        onNodeWithTag(CalendarSettingsTestTags.ImportResult).assertTextContains("Imported 2 events.", substring = true)
+        assertEquals(EventCalendar.Home, imported.single().first)
+        assertEquals(listOf("Bins", "Dentist"), imported.single().second.map { it.title })
+    }
+
+    @Test
+    fun theEventsCanBeImportedIntoThePrivateCalendarInstead() = runComposeUiTest {
+        // Arrange
+        val imported = mutableListOf<Pair<EventCalendar, List<CalendarEvent>>>()
+        setContent {
+            VestaTheme {
+                CompositionLocalProvider(LocalFileImporter provides importer(ics("UID:a\r\nDTSTART;VALUE=DATE:20261014\r\nSUMMARY:Gym"))) {
+                    CalendarSettingsScreen(CalendarSettings(), onChange = {}, onImport = { calendar, events -> imported += calendar to events })
+                }
+            }
+        }
+
+        // Act
+        onNodeWithTag(CalendarSettingsTestTags.importInto(EventCalendar.Private)).performClick()
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitForIdle()
+
+        // Assert
+        assertEquals(EventCalendar.Private, imported.single().first)
+        assertEquals(EventCalendar.Private, imported.single().second.single().calendar)
+        onNodeWithTag(CalendarSettingsTestTags.ImportResult).assertTextContains("Imported 1 event.", substring = true)
+    }
+
+    @Test
+    fun aFileWithNoEventsSaysSoAndImportsNothing() = runComposeUiTest {
+        // Arrange
+        var calls = 0
+        setContent {
+            VestaTheme {
+                CompositionLocalProvider(LocalFileImporter provides importer("not a calendar")) {
+                    CalendarSettingsScreen(CalendarSettings(), onChange = {}, onImport = { _, _ -> calls++ })
+                }
+            }
+        }
+
+        // Act
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitForIdle()
+
+        // Assert
+        onNodeWithTag(CalendarSettingsTestTags.ImportResult).assertTextContains("No events found", substring = true)
+        assertEquals(0, calls)
+    }
+
+    @Test
+    fun skippedEventsAndSimplifiedRepeatsAreReported() = runComposeUiTest {
+        // Arrange
+        val file = ics("SUMMARY:No start", "DTSTART:20261014T090000Z\r\nRRULE:FREQ=WEEKLY;COUNT=3\r\nSUMMARY:Bins")
+        setContent {
+            VestaTheme { CompositionLocalProvider(LocalFileImporter provides importer(file)) { CalendarSettingsScreen(CalendarSettings(), onChange = {}) } }
+        }
+
+        // Act
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitForIdle()
+
+        // Assert
+        onNodeWithTag(CalendarSettingsTestTags.ImportResult).assertTextContains("1 could not be read", substring = true)
+        onNodeWithTag(CalendarSettingsTestTags.ImportResult).assertTextContains("1 repeats were simplified", substring = true)
+    }
+
+    @Test
+    fun backingOutOfTheFileChooserChangesNothing() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { CompositionLocalProvider(LocalFileImporter provides importer(null)) { CalendarSettingsScreen(CalendarSettings(), onChange = {}) } } } 
+
+        // Act
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitForIdle()
+
+        // Assert
+        onNodeWithTag(CalendarSettingsTestTags.ImportResult).assertDoesNotExist()
+        onNodeWithTag(CalendarSettingsTestTags.ImportSection).assertIsDisplayed()
+    }
+
+    @Test
+    fun withNoImporterThereIsNoImportSection() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { CalendarSettingsScreen(CalendarSettings(), onChange = {}) } }
+
+        // Act
+        // (no user interaction)
+
+        // Assert
+        onNodeWithTag(CalendarSettingsTestTags.ImportSection).assertDoesNotExist()
     }
 }

@@ -45,6 +45,7 @@ fun main() = application {
             },
             recipeImporter = HttpRecipeImporter(),
             fileExporter = remember { DesktopFileExporter(window) },
+            fileImporter = remember { DesktopFileImporter(window) },
             ownDeviceCanBeHub = true,
         )
     }

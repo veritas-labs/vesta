@@ -62,6 +62,13 @@ class CalendarViewModel(
         }
     }
 
+    /** Saves [events], read from a file, on [calendar]. One with the id of an event already there replaces it. */
+    fun import(calendar: EventCalendar, events: List<CalendarEvent>) {
+        viewModelScope.launch {
+            events.forEach { source(calendar).save(it.copy(calendar = calendar, participants = emptySet())) }
+        }
+    }
+
     fun delete(event: CalendarEvent) {
         viewModelScope.launch { source(event.calendar).delete(event.id) }
     }

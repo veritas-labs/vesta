@@ -471,6 +471,14 @@
     <string name="calendar_export_count">%1$d events</string>
     <string name="calendar_export_count_one">1 event</string>
     <string name="calendar_export_button">Export as iCal</string>
+    <string name="calendar_import_title">Import</string>
+    <string name="calendar_import_into">Add the events to</string>
+    <string name="calendar_import_button">Import iCal file</string>
+    <string name="calendar_import_done">Imported %1$d events.</string>
+    <string name="calendar_import_done_one">Imported 1 event.</string>
+    <string name="calendar_import_none">No events found in that file.</string>
+    <string name="calendar_import_skipped">%1$d could not be read and were skipped.</string>
+    <string name="calendar_import_simplified">%1$d repeats were simplified: Vesta repeats every day, week, month or year, with no end.</string>
     <string name="calendar_week_number">w%1$d</string>
     <string name="calendar_previous_week">Previous week</string>
     <string name="calendar_next_week">Next week</string>

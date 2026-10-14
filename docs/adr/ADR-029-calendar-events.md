@@ -98,6 +98,24 @@ calendars hold at least one event. It writes one `.ics` (`icalCalendar`: a VEVEN
 regardless of date, with repeating events as a single repeating VEVENT. Exporting the private calendar writes its events to a file the
 user chooses, outside Vesta's control from then on, which is the point.
 
+### Import iCal events
+
+The Settings screen's **Import** section (shown where there is a `FileImporter`, an open dialog on desktop and the document picker on Android)
+has a choice of calendar to add to (the Home's or the private one) and **Import iCal file**. The file is read by `parseIcal`, which
+understands what Proton, Google, Apple and Outlook write and Vesta's own export:
+
+- **Times:** UTC (`Z`), in a named zone (`TZID=Europe/London`, converted with the device's zone data through the `zoneOffsetMillis` hook; a name it does not know,
+  such as Outlook's "Customized Time Zone", is read in the device's zone) or floating (device zone). Dates make an all-day event, one day shorter than
+  iCalendar's exclusive end. No end means `DURATION`, or an instant (a day for all-day).
+- **Repeats:** the `FREQ` of the `RRULE` when it is daily, weekly, monthly or yearly. Intervals, counts, end dates and `BYDAY` cannot be kept, so such an
+  event repeats plainly forever and the screen says how many repeats were simplified. An override of one occurrence (`RECURRENCE-ID`) and an event with no readable start
+  are skipped and counted; tasks, alarms, attendees and the rest are ignored. Colour is the calendar's default.
+- **Ids:** an event's id is its UID with Vesta's `@vesta` removed, so importing a Vesta export updates those events (in the same calendar) instead of
+  duplicating them; another program's UID becomes `ics-<UID>`, so importing the same file again updates rather than duplicates. Importing into the other calendar makes
+  separate copies (ids are per document). Imported events overwrite an existing event with the same id.
+- The screen then says "Imported N events" with the skipped and simplified counts, or that none were found. Files over 8 MB are refused. Private imports
+  stay on the user's devices like any private event.
+
 ### The calendar screen
 
 A plus button (bottom end) opens the form for the selected day. Under the grid, the selected day's events are a list: a bar in

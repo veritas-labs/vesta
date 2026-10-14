@@ -32,6 +32,16 @@ import uk.veritaslabs.vesta.calendar.IcalMimeType
 import uk.veritaslabs.vesta.calendar.icalCalendar
 import uk.veritaslabs.vesta.calendar.icalFileName
 import uk.veritaslabs.vesta.files.LocalFileExporter
+import uk.veritaslabs.vesta.files.LocalFileImporter
+import uk.veritaslabs.vesta.calendar.parseIcal
+import vesta.shared.generated.resources.calendar_import_button
+import vesta.shared.generated.resources.calendar_import_done
+import vesta.shared.generated.resources.calendar_import_done_one
+import vesta.shared.generated.resources.calendar_import_into
+import vesta.shared.generated.resources.calendar_import_none
+import vesta.shared.generated.resources.calendar_import_simplified
+import vesta.shared.generated.resources.calendar_import_skipped
+import vesta.shared.generated.resources.calendar_import_title
 import vesta.shared.generated.resources.calendar_export_button
 import vesta.shared.generated.resources.calendar_export_count
 import vesta.shared.generated.resources.calendar_export_count_one
@@ -51,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -80,6 +91,11 @@ internal object CalendarSettingsTestTags {
     const val StartCollapsed = "calendar_settings_start_collapsed"
     const val ExportSection = "calendar_settings_export_section"
     const val ExportButton = "calendar_settings_export_button"
+    const val ImportSection = "calendar_settings_import_section"
+    const val ImportButton = "calendar_settings_import_button"
+    const val ImportResult = "calendar_settings_import_result"
+
+    fun importInto(calendar: EventCalendar) = "calendar_settings_import_into_${calendar.name}"
 
     fun exportCalendar(calendar: EventCalendar) = "calendar_settings_export_${calendar.name}"
     fun weekStart(start: WeekStart) = "calendar_settings_week_start_${start.name}"
@@ -89,7 +105,8 @@ internal object CalendarSettingsTestTags {
  * The calendar's settings: the day the week starts on, whether to show week numbers and the days of neighbouring months,
  * and whether the month grid opens collapsed. Every change calls [onChange] with the new [settings] straight away. Where the app can
  * save files, an Export section lists the Home's calendar ([homeName]) and the user's private one, each with how many of [events] are on it;
- * ticking either or both and tapping Export as iCal saves those events as one `.ics` file.
+ * ticking either or both and tapping Export as iCal saves those events as one `.ics` file. Where the app can open files, an Import section
+ * chooses which calendar the events go on and then a `.ics` file; its events are passed to [onImport] and the screen says how many it read.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +116,7 @@ fun CalendarSettingsScreen(
     modifier: Modifier = Modifier,
     events: List<CalendarEvent> = emptyList(),
     homeName: String = "",
+    onImport: (EventCalendar, List<CalendarEvent>) -> Unit = { _, _ -> },
     onBack: () -> Unit = {},
 ) {
     Column(
@@ -152,6 +170,60 @@ fun CalendarSettingsScreen(
             SwitchRow(Res.string.calendar_setting_start_collapsed, settings.startCollapsed, CalendarSettingsTestTags.StartCollapsed) {
                 onChange(settings.copy(startCollapsed = it))
             }
+            LocalFileImporter.current?.let { importer ->
+                var target by remember { mutableStateOf(EventCalendar.Home) }
+                var result by remember { mutableStateOf<ImportOutcome?>(null) }
+                val scope = rememberCoroutineScope()
+                Column(modifier = Modifier.testTag(CalendarSettingsTestTags.ImportSection), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        stringResource(Res.string.calendar_import_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                    )
+                    Text(stringResource(Res.string.calendar_import_into), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(modifier = Modifier.selectableGroup()) {
+                        EventCalendar.entries.forEach { calendar ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(selected = target == calendar, role = Role.RadioButton, onClick = { target = calendar })
+                                    .testTag(CalendarSettingsTestTags.importInto(calendar)),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(selected = target == calendar, onClick = null, modifier = Modifier.padding(end = 12.dp, top = 8.dp, bottom = 8.dp))
+                                Text(
+                                    if (calendar == EventCalendar.Home) stringResource(Res.string.calendar_export_home, homeName).trim()
+                                    else stringResource(Res.string.calendar_export_private),
+                                )
+                            }
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val file = importer.pick() ?: return@launch
+                                val read = parseIcal(file.bytes.decodeToString(), target)
+                                if (read.events.isNotEmpty()) onImport(target, read.events)
+                                result = ImportOutcome(read.events.size, read.skipped, read.simplifiedRepeats)
+                            }
+                        },
+                        modifier = Modifier.padding(top = 8.dp).testTag(CalendarSettingsTestTags.ImportButton),
+                    ) { Text(stringResource(Res.string.calendar_import_button)) }
+                    result?.let { outcome ->
+                        Column(modifier = Modifier.padding(top = 4.dp).semantics(mergeDescendants = true) {}.testTag(CalendarSettingsTestTags.ImportResult)) {
+                            Text(
+                                when (outcome.imported) {
+                                    0 -> stringResource(Res.string.calendar_import_none)
+                                    1 -> stringResource(Res.string.calendar_import_done_one)
+                                    else -> stringResource(Res.string.calendar_import_done, outcome.imported)
+                                },
+                            )
+                            if (outcome.skipped > 0) Text(stringResource(Res.string.calendar_import_skipped, outcome.skipped), style = MaterialTheme.typography.bodySmall)
+                            if (outcome.simplified > 0) Text(stringResource(Res.string.calendar_import_simplified, outcome.simplified), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
             LocalFileExporter.current?.let { exporter ->
                 var chosen by remember { mutableStateOf(EventCalendar.entries.toSet()) }
                 val scope = rememberCoroutineScope()
@@ -203,6 +275,9 @@ fun CalendarSettingsScreen(
         }
     }
 }
+
+/** What the last import found, for the line under its button. */
+private class ImportOutcome(val imported: Int, val skipped: Int, val simplified: Int)
 
 /** `<Home> calendar.ics` for the Home's calendar, `<Home> private calendar.ics` for the private one, `<Home> all events.ics` for both. */
 private fun exportFileName(chosen: Set<EventCalendar>, homeName: String): String {

@@ -3,6 +3,10 @@ package uk.veritaslabs.vesta.acceptance
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import uk.veritaslabs.vesta.files.FileExporter
+import uk.veritaslabs.vesta.files.FileImporter
+import uk.veritaslabs.vesta.files.LocalFileImporter
+import uk.veritaslabs.vesta.files.PickedFile
+import uk.veritaslabs.vesta.calendar.icalCalendar
 import uk.veritaslabs.vesta.files.LocalFileExporter
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -64,6 +68,8 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
  *     DeviceDataSyncServiceTest).
  *  9. Events survive an app restart.
  * 10. An open event's overflow menu has "Export as iCal event", which offers the event as an .ics file.
+ * 12. The calendar settings have an Import section: I choose a calendar and a .ics file, its events are added there, and importing a file
+ *     again (or one Vesta exported) updates them instead of duplicating.
  * 11. The calendar settings have an Export section: I choose the Home calendar, my private one or both, and export them as one .ics file.
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
@@ -408,5 +414,67 @@ class CalendarEventsAcceptanceTest {
         assertEquals("text/calendar", type)
         assertEquals(2, "BEGIN:VEVENT".toRegex().findAll(text).count())
         assertTrue("SUMMARY:Gym" in text && "SUMMARY:Surprise party" in text && "Bins" !in text)
+    }
+
+    @Test
+    fun anImportedFileAddsItsEventsToTheChosenCalendarAndImportingItAgainDoesNotDuplicate() = runComposeUiTest {
+        // Arrange — Given a calendar file from another program with a dentist appointment today, and the settings screen
+        val calendars = Calendars()
+        val file = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:abc-123@example.com\r\nDTSTART;VALUE=DATE:20261014\r\n" +
+            "SUMMARY:Dentist\r\nLOCATION:High Street\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+        val importer = FileImporter { PickedFile("dentist.ics", file.encodeToByteArray()) }
+        setContent {
+            val viewModel = remember { CalendarViewModel(calendars.home, calendars.private, flowOf(members)) }
+            VestaTheme {
+                CompositionLocalProvider(LocalFileImporter provides importer) {
+                    CalendarSettingsScreen(CalendarSettings(), onChange = {}, homeName = "Maple Street", onImport = { calendar, events -> viewModel.import(calendar, events) })
+                }
+            }
+        }
+
+        // Act — When I import it into my private calendar, twice
+        onNodeWithTag(CalendarSettingsTestTags.importInto(EventCalendar.Private)).performClick()
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitUntil(timeoutMillis = 5_000) { calendars.privateEvents().isNotEmpty() }
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitForIdle()
+
+        // Assert — Then my private calendar has the one event, with its location, and the Home's has none
+        onNodeWithTag(CalendarSettingsTestTags.ImportResult).assertTextContains("Imported 1 event.", substring = true)
+        val event = calendars.privateEvents().single()
+        assertEquals("Dentist", event.title)
+        assertEquals("High Street", event.location)
+        assertEquals(allDayMillis(today), event.startMillis)
+        assertEquals(emptyList(), calendars.homeEvents())
+    }
+
+    @Test
+    fun aCalendarExportedFromVestaCanBeImportedBackIntoAnotherCalendar() = runComposeUiTest {
+        // Arrange — Given an exported file of two Home events, and an empty calendar to import it into
+        val source = Calendars()
+        runBlocking {
+            source.home.save(CalendarEvent("e1", EventCalendar.Home, "Bins", true, allDayMillis(today), allDayMillis(today), EventRepeat.Weekly))
+            source.home.save(CalendarEvent("e2", EventCalendar.Home, "Dentist", false, 1_700_000_000_000L, 1_700_001_800_000L))
+        }
+        val file = icalCalendar(source.homeEvents())
+        val target = Calendars()
+        setContent {
+            val viewModel = remember { CalendarViewModel(target.home, target.private, flowOf(members)) }
+            VestaTheme {
+                CompositionLocalProvider(LocalFileImporter provides FileImporter { PickedFile("export.ics", file.encodeToByteArray()) }) {
+                    CalendarSettingsScreen(CalendarSettings(), onChange = {}, onImport = { calendar, events -> viewModel.import(calendar, events) })
+                }
+            }
+        }
+
+        // Act — When I import it into the Home calendar
+        onNodeWithTag(CalendarSettingsTestTags.ImportButton).performClick()
+        waitUntil(timeoutMillis = 5_000) { target.homeEvents().size == 2 }
+
+        // Assert — Then the same two events, with their repeat and times, are there
+        val byId = target.homeEvents().associateBy { it.id }
+        assertEquals(EventRepeat.Weekly, byId.getValue("e1").repeat)
+        assertEquals(1_700_000_000_000L, byId.getValue("e2").startMillis)
+        assertEquals(1_700_001_800_000L, byId.getValue("e2").endMillis)
     }
 }

@@ -9,6 +9,9 @@ internal const val MinutesPerDay = 1_440
 /** The device time zone's offset from UTC at the UTC instant [utcMillis], in milliseconds, daylight saving included. */
 expect fun deviceOffsetMillis(utcMillis: Long): Long
 
+/** The offset from UTC at the UTC instant [utcMillis] of the named time zone [zoneId] (such as `Europe/London`), or null if the device doesn't know that zone. */
+expect fun zoneOffsetMillis(zoneId: String, utcMillis: Long): Long?
+
 /** A wall-clock moment: the [date] and the [minute] of that day (0..1439). */
 data class LocalMoment(val date: CalendarDate, val minute: Int)
 
