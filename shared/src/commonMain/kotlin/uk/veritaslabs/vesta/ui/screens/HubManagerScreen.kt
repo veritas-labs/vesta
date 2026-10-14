@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.NarrowContentMaxWidth
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,8 +60,6 @@ import vesta.shared.generated.resources.hub_unavailable
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_clipboard_text
 import vesta.shared.generated.resources.ic_plus
-
-private val HubManagerContentMaxWidth = 560.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object HubManagerTestTags {
@@ -139,7 +138,7 @@ fun HubManagerScreen(
                 // Not width-capped, so the empty state can put its words beside the picture on a wide screen.
                 HubEmptyState(state, onHowHubsWork, onSetUpHub, modifier = Modifier.fillMaxSize())
             } else {
-                Column(modifier = Modifier.widthIn(max = HubManagerContentMaxWidth).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.widthIn(max = NarrowContentMaxWidth).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     HowHubsWorkButton(onHowHubsWork)
                     if (state.loading) {
                         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

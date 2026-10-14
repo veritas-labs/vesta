@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
 import vesta.shared.generated.resources.ic_arrow_left
 import org.jetbrains.compose.resources.painterResource
@@ -114,6 +116,7 @@ fun DevicePairingPasteScreen(
                     placeholder = { Text(stringResource(Res.string.device_pairing_paste_field_placeholder)) },
                     singleLine = true,
                     isError = errorMessage != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false),
                     modifier = Modifier.fillMaxWidth().testTag(DevicePairingPasteTestTags.LinkField),
                 )
                 if (errorMessage != null) {

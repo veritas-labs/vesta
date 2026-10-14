@@ -1,5 +1,8 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
@@ -155,6 +158,7 @@ fun AssistantEditScreen(
                     label = { Text(stringResource(Res.string.assistant_edit_agent_id)) },
                     placeholder = { Text(stringResource(Res.string.assistant_edit_agent_id_hint)) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrectEnabled = false),
                     modifier = Modifier.fillMaxWidth().testTag(AssistantEditTestTags.AgentIdField),
                 )
                 OutlinedTextField(
@@ -163,6 +167,7 @@ fun AssistantEditScreen(
                     label = { Text(stringResource(Res.string.assistant_edit_name)) },
                     placeholder = { Text(stringResource(Res.string.assistant_edit_name_hint)) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.fillMaxWidth().testTag(AssistantEditTestTags.NameField),
                 )
                 if (effectiveId.isNotEmpty()) {

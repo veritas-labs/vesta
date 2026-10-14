@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.flows
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.background
 import uk.veritaslabs.vesta.ui.components.LocalUndo
 import org.jetbrains.compose.resources.stringResource
 import vesta.shared.generated.resources.Res
@@ -44,6 +46,11 @@ fun CalendarFlow(
     var editing by remember { mutableStateOf<EventTarget?>(null) }
     val undo = LocalUndo.current
     val deletedMessage = stringResource(Res.string.event_deleted)
+    // Until both lists have been read, a blank page rather than a flash of the empty state.
+    if (state.isLoading) {
+        Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        return
+    }
     Box(modifier = modifier.fillMaxSize()) {
         CalendarScreen(
             today = today,

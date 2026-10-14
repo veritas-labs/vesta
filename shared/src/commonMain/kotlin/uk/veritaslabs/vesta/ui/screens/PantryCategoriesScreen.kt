@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -313,6 +315,7 @@ private fun CategoryNameDialog(title: String, onConfirm: (String) -> Unit, onDis
                 onValueChange = { name = it },
                 label = { Text(stringResource(Res.string.pantry_categories_name_label)) },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.testTag(PantryCategoriesTestTags.NameField),
             )
         },

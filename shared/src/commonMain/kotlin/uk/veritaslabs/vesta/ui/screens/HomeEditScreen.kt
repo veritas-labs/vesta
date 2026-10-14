@@ -1,5 +1,8 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
+import uk.veritaslabs.vesta.ui.components.NarrowContentMaxWidth
 import uk.veritaslabs.vesta.ui.components.ConfirmDeleteDialog
 import vesta.shared.generated.resources.home_delete_confirm_title
 import vesta.shared.generated.resources.home_delete_confirm_body
@@ -52,9 +55,9 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.home_edit_create_title
 import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.ic_close
+import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.home_edit_delete
 import vesta.shared.generated.resources.home_edit_edit_title
-import vesta.shared.generated.resources.home_edit_more_options
 import vesta.shared.generated.resources.home_edit_name_error
 import vesta.shared.generated.resources.home_edit_name_helper
 import vesta.shared.generated.resources.home_edit_name_label
@@ -72,7 +75,6 @@ import vesta.shared.generated.resources.home_edit_shape_single_support_descripti
 import vesta.shared.generated.resources.ic_dots_vertical
 
 private val HomeEditTabletBreakpoint = 600.dp
-private val HomeEditFormMaxWidth = 560.dp
 private const val HomeNameMinLength = 2
 private const val HomeNameMaxLength = 50
 
@@ -80,8 +82,7 @@ private const val HomeNameMaxLength = 50
 internal object HomeEditTestTags {
     const val NameField = "home_edit_name_field"
     const val SaveButton = "home_edit_save_button"
-    const val OverflowButton = "home_edit_overflow_button"
-    const val DeleteMenuItem = "home_edit_delete_menu_item"
+    const val DeleteButton = "home_edit_delete_button"
     const val BackButton = "home_edit_back_button"
 
     /** Tag for the option of the given [shape], independent of its displayed label. */
@@ -201,27 +202,8 @@ fun HomeEditScreen(
                 },
                 actions = {
                     home?.id?.let { id ->
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(
-                                onClick = { menuExpanded = true },
-                                modifier = Modifier.testTag(HomeEditTestTags.OverflowButton),
-                            ) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_dots_vertical),
-                                    contentDescription = stringResource(Res.string.home_edit_more_options),
-                                )
-                            }
-                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.home_edit_delete)) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        confirmingDelete = true
-                                    },
-                                    modifier = Modifier.testTag(HomeEditTestTags.DeleteMenuItem),
-                                )
-                            }
+                        IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.testTag(HomeEditTestTags.DeleteButton)) {
+                            Icon(painterResource(Res.drawable.ic_trash), contentDescription = stringResource(Res.string.home_edit_delete))
                         }
                     }
                 },
@@ -234,7 +216,7 @@ fun HomeEditScreen(
             )
 
             Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
-                Column(modifier = Modifier.widthIn(max = HomeEditFormMaxWidth).fillMaxWidth().padding(contentPadding)) {
+                Column(modifier = Modifier.widthIn(max = NarrowContentMaxWidth).fillMaxWidth().padding(contentPadding)) {
                     val showNameError = nameTouched && !isNameValid
                     OutlinedTextField(
                         value = name,
@@ -252,6 +234,7 @@ fun HomeEditScreen(
                         },
                         isError = showNameError,
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         modifier = Modifier.fillMaxWidth().padding(top = 24.dp).testTag(HomeEditTestTags.NameField),
                     )
 

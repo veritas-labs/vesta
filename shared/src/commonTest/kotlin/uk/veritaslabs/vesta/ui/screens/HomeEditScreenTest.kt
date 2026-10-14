@@ -30,7 +30,7 @@ class HomeEditScreenTest {
         onNodeWithTag(HomeEditTestTags.NameField).performTextInput("A")
 
         // Assert
-        onAllNodesWithTag(HomeEditTestTags.OverflowButton).assertCountEquals(0)
+        onAllNodesWithTag(HomeEditTestTags.DeleteButton).assertCountEquals(0)
         onNodeWithTag(HomeEditTestTags.SaveButton).assertIsDisplayed().assertIsNotEnabled()
     }
 
@@ -72,8 +72,7 @@ class HomeEditScreenTest {
         setContent { VestaTheme { HomeEditScreen(home = existingHome, onDelete = { deletedId = it }) } }
 
         // Act
-        onNodeWithTag(HomeEditTestTags.OverflowButton).performClick()
-        onNodeWithTag(HomeEditTestTags.DeleteMenuItem).performClick()
+        onNodeWithTag(HomeEditTestTags.DeleteButton).performClick()
         onNodeWithTag(ConfirmDeleteTestTags.Confirm).performClick()
 
         // Assert

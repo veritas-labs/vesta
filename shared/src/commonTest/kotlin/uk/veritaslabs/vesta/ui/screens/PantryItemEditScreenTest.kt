@@ -48,7 +48,7 @@ class PantryItemEditScreenTest {
         // (no user interaction yet — checking the screen's initial state)
 
         // Assert
-        onAllNodesWithTag(PantryItemEditTestTags.OverflowButton).assertCountEquals(0)
+        onAllNodesWithTag(PantryItemEditTestTags.DeleteButton).assertCountEquals(0)
         onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().assertIsDisplayed().assertIsNotEnabled()
     }
 
@@ -87,7 +87,7 @@ class PantryItemEditScreenTest {
         // (no user interaction — checking the screen's initial, pre-filled state)
 
         // Assert
-        onNodeWithTag(PantryItemEditTestTags.OverflowButton).assertIsDisplayed()
+        onNodeWithTag(PantryItemEditTestTags.DeleteButton).assertIsDisplayed()
         onNodeWithTag(PantryItemEditTestTags.SaveButton).performScrollTo().assertIsDisplayed()
     }
 
@@ -101,8 +101,7 @@ class PantryItemEditScreenTest {
         }
 
         // Act
-        onNodeWithTag(PantryItemEditTestTags.OverflowButton).performClick()
-        onNodeWithTag(PantryItemEditTestTags.DeleteMenuItem).performClick()
+        onNodeWithTag(PantryItemEditTestTags.DeleteButton).performClick()
 
         // Assert
         assertEquals("5000157024671", deletedKey)

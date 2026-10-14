@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,8 +64,6 @@ import vesta.shared.generated.resources.merchant_more_options
 import vesta.shared.generated.resources.common_back
 
 private val MerchantDetailTabletBreakpoint = 600.dp
-private val MerchantDetailMaxContentWidth = 720.dp
-
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object MerchantDetailTestTags {
     const val BackButton = "merchant_detail_back_button"
@@ -156,7 +155,7 @@ fun MerchantDetailScreen(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = contentPadding, vertical = 8.dp)
-                    .widthIn(max = MerchantDetailMaxContentWidth),
+                    .widthIn(max = ContentMaxWidth),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (merchant.services.isNotEmpty() || merchant.customServices.isNotEmpty()) {

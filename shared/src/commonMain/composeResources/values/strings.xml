@@ -288,7 +288,6 @@
     <string name="pantry_edit_stock_count_label">Stock count</string>
     <string name="pantry_edit_save">Save</string>
     <string name="pantry_edit_delete">Delete</string>
-    <string name="pantry_edit_more_options">More options</string>
     <string name="home_edit_create_title">Create a Home</string>
     <string name="home_edit_edit_title">Edit Home</string>
     <string name="home_edit_name_label">Home name</string>
@@ -306,7 +305,6 @@
     <string name="home_edit_save_create">Create Home</string>
     <string name="home_edit_save">Save</string>
     <string name="home_edit_delete">Delete Home</string>
-    <string name="home_edit_more_options">More options</string>
 
     <string name="assistant_request_title">%1$s wants to act for your household</string>
     <string name="assistant_request_body">It is trusted on your x0x network, but it has no access yet. Review what it may do, or deny it.</string>

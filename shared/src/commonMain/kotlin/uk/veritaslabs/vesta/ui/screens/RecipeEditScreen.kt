@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -115,8 +116,6 @@ import vesta.shared.generated.resources.recipe_servings_decrease
 import vesta.shared.generated.resources.recipe_servings_increase
 
 private val RecipeEditTabletBreakpoint = 600.dp
-private val RecipeEditMaxContentWidth = 720.dp
-
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object RecipeEditTestTags {
     const val CancelButton = "recipe_edit_cancel_button"
@@ -347,7 +346,7 @@ fun RecipeEditScreen(
                     .padding(horizontal = contentPadding)
                     .padding(bottom = 32.dp),
             ) {
-                Column(modifier = Modifier.widthIn(max = RecipeEditMaxContentWidth), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.widthIn(max = ContentMaxWidth), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },

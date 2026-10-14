@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -70,7 +71,6 @@ import vesta.shared.generated.resources.merchant_edit_time_hint
 import vesta.shared.generated.resources.merchant_edit_type_label
 
 private val MerchantEditTabletBreakpoint = 600.dp
-private val MerchantEditMaxContentWidth = 720.dp
 private const val MaxLatitude = 90.0
 private const val MaxLongitude = 180.0
 
@@ -174,7 +174,7 @@ fun MerchantEditScreen(
                     .padding(horizontal = contentPadding)
                     .padding(bottom = 32.dp),
             ) {
-                Column(modifier = Modifier.widthIn(max = MerchantEditMaxContentWidth), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.widthIn(max = ContentMaxWidth), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },

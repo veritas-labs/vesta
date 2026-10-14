@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -243,6 +245,7 @@ fun CalendarEventEditScreen(
                         onValueChange = { draft = draft.copy(title = it) },
                         placeholder = { Text(stringResource(Res.string.event_edit_title_hint)) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag(EventEditTestTags.TitleField),
                     )
 
@@ -368,6 +371,7 @@ fun CalendarEventEditScreen(
                             onValueChange = { draft = draft.copy(location = it) },
                             placeholder = { Text(stringResource(Res.string.event_edit_location)) },
                             singleLine = true,
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                             modifier = Modifier.fillMaxWidth().testTag(EventEditTestTags.LocationField),
                         )
                     }

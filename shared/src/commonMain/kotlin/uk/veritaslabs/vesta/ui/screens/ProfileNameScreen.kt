@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -115,6 +117,7 @@ fun ProfileNameScreen(
                 label = { Text(stringResource(Res.string.profile_name_field_label)) },
                 singleLine = true,
                 isError = triedToSave && invalid,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth().testTag(ProfileNameTestTags.NameField),
             )
             Text(

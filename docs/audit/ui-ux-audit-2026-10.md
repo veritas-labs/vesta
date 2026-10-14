@@ -21,6 +21,14 @@ conclusions I could not confirm. File and line references are as of commit `e6a3
 - **M5 partly done:** the profile picker sheet opens fully expanded (it is not wired into the app). Date/time pickers, member pickers and meal-planner screens still differ.
 - **Not done, needs a design call or a look at the running app:** M1 (top-bar title treatments and the Shopping glow), M4 (Save button spacing, a pinned Save on long forms and an unsaved-changes warning).
 
+## Status of the low items
+
+- **L2 done:** `ContentMaxWidth` (720dp) and `NarrowContentMaxWidth` (560dp) in `ui/components/ContentWidth.kt` replace the per-screen copies.
+- **L6 partly done:** names now capitalise (Home, profile, category, event title and location, eaters, assistant) and invite/link fields use the URL keyboard with autocorrect off; the agent id uses an ASCII keyboard. Search fields and the Merchant/Recipe/Pantry forms were left alone (they already set options, or the default is right). Enter-to-advance between fields was not added.
+- **L7 corrected and fixed:** most screens already show a blank page while loading, but the Tasks and Calendar flows ignored `isLoading` and flashed their empty state; they now show a blank page too. There is still no spinner anywhere.
+- **L9 done:** the Home and Pantry/Shopping item forms show a trash icon in the bar instead of a one-item overflow menu, like Task and Event.
+- **Not done:** L1 (safe-area handling), L3 (one content-padding helper; the breakpoints differ per screen), L4 (plain-text empty states), L5 (shared list-row container), L8 (dashboard grouping and badges), L10 (day-card implementations). They are refactors or design choices that need a look at the running app.
+
 ## Summary
 
 The app has a coherent visual language: theme tokens, the art-paper illustrations, one `EmptyState` component, shared

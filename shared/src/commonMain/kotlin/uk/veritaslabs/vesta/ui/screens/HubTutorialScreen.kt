@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.NarrowContentMaxWidth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,7 +95,6 @@ import vesta.shared.generated.resources.ic_settings
 import vesta.shared.generated.resources.ic_topology_star_ring_2
 import vesta.shared.generated.resources.ic_users
 
-private val HubTutorialContentMaxWidth = 560.dp
 private val HubTutorialIconSize = 96.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
@@ -248,7 +248,7 @@ private fun HubTutorialPageContent(page: HubTutorialPage, modifier: Modifier = M
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier = Modifier
-                .widthIn(max = HubTutorialContentMaxWidth)
+                .widthIn(max = NarrowContentMaxWidth)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 8.dp),

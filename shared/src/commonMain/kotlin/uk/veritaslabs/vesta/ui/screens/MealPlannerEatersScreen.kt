@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -178,6 +180,7 @@ fun MealPlannerEatersScreen(
                                 onValueChange = { renameText = it },
                                 label = { Text(stringResource(Res.string.meal_planner_eaters_rename_label)) },
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 modifier = Modifier.weight(1f).testTag(MealPlannerEatersTestTags.RenameField),
                             )
                             TextButton(
@@ -212,6 +215,7 @@ fun MealPlannerEatersScreen(
                             onValueChange = { newName = it },
                             label = { Text(stringResource(Res.string.meal_planner_eaters_add_label)) },
                             singleLine = true,
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                             modifier = Modifier.weight(1f).testTag(MealPlannerEatersTestTags.AddField),
                         )
                         Button(

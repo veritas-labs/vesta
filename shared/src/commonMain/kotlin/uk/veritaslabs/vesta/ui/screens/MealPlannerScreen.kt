@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -109,7 +110,6 @@ import vesta.shared.generated.resources.meal_planner_week_range
 import vesta.shared.generated.resources.meal_planner_weekdays
 import vesta.shared.generated.resources.common_back
 
-private val MaxContentWidth = 720.dp
 private val ContentPadding = 16.dp
 private val ChipSize = 40.dp
 private val ListEdgeSpacing = 24.dp
@@ -237,7 +237,7 @@ fun MealPlannerScreen(
         )
         // Only what is under the app bar is held to a readable width, so the bar spans the window like every other screen's.
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            Column(modifier = Modifier.fillMaxHeight().widthIn(max = MaxContentWidth).fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxHeight().widthIn(max = ContentMaxWidth).fillMaxWidth()) {
                 WeekHeader(
                     days = days,
                     showThisWeek = weekOffset != 0,

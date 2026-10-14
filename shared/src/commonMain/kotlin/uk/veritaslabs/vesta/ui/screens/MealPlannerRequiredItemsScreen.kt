@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,7 +116,7 @@ fun MealPlannerRequiredItemsScreen(
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier.widthIn(max = 720.dp).fillMaxSize(),
+                    modifier = Modifier.widthIn(max = ContentMaxWidth).fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 ) {
                     items(items, key = { ingredientKey(it.name) + "|" + it.unit.lowercase() }) { item ->

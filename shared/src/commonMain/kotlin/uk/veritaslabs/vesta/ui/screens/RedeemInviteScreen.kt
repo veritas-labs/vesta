@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -155,6 +157,7 @@ fun RedeemInviteScreen(
                     singleLine = true,
                     enabled = !redeeming,
                     isError = state is RedeemInviteUiState.Failed,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false),
                     modifier = Modifier.weight(1f).testTag(RedeemInviteTestTags.LinkField),
                 )
                 if (scanSupported) {

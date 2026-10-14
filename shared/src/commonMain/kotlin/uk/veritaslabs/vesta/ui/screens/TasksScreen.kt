@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
@@ -143,7 +144,6 @@ import vesta.shared.generated.resources.tasks_view_list
 import vesta.shared.generated.resources.tasks_view_week
 import vesta.shared.generated.resources.tasks_week_day_heading
 
-private val MaxContentWidth = 720.dp
 private val ContentPadding = 16.dp
 private val TickSize = 28.dp
 
@@ -258,7 +258,7 @@ fun TasksScreen(
     ) { innerPadding ->
         // Only what is under the app bar is held to a readable width, so the bar spans the window like every other screen's.
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-            Column(modifier = Modifier.fillMaxHeight().widthIn(max = MaxContentWidth).fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxHeight().widthIn(max = ContentMaxWidth).fillMaxWidth()) {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = ContentPadding, vertical = 4.dp)) {
                     SegmentedButton(
                         selected = currentView == TasksView.Week,

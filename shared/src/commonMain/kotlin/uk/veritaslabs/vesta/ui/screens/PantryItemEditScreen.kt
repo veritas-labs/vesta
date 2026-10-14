@@ -79,7 +79,6 @@ import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.pantry_edit_edit_categories
 import vesta.shared.generated.resources.pantry_edit_edit_title
 import vesta.shared.generated.resources.pantry_edit_no_subcategory
-import vesta.shared.generated.resources.pantry_edit_more_options
 import vesta.shared.generated.resources.pantry_edit_name_label
 import vesta.shared.generated.resources.pantry_edit_package_loose
 import vesta.shared.generated.resources.pantry_edit_package_size_label
@@ -98,6 +97,7 @@ import vesta.shared.generated.resources.shopping_tags_hint
 import vesta.shared.generated.resources.shopping_tags_label
 import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.ic_close
+import vesta.shared.generated.resources.ic_trash
 
 private val PantryItemEditTabletBreakpoint = 600.dp
 
@@ -113,8 +113,7 @@ internal object PantryItemEditTestTags {
     const val StockDecreaseButton = "pantry_item_edit_stock_decrease_button"
     const val StockIncreaseButton = "pantry_item_edit_stock_increase_button"
     const val SaveButton = "pantry_item_edit_save_button"
-    const val OverflowButton = "pantry_item_edit_overflow_button"
-    const val DeleteMenuItem = "pantry_item_edit_delete_menu_item"
+    const val DeleteButton = "pantry_item_edit_delete_button"
     const val BackButton = "pantry_item_edit_back_button"
     const val EditCategoriesMenuItem = "pantry_item_edit_edit_categories_menu_item"
     const val NoSecondaryOption = "pantry_item_edit_no_secondary_option"
@@ -335,27 +334,8 @@ fun PantryItemEditScreen(
                 },
                 actions = {
                     item?.key?.let { key ->
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(
-                                onClick = { menuExpanded = true },
-                                modifier = Modifier.testTag(PantryItemEditTestTags.OverflowButton),
-                            ) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_dots_vertical),
-                                    contentDescription = stringResource(Res.string.pantry_edit_more_options),
-                                )
-                            }
-                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.pantry_edit_delete)) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onDelete(key)
-                                    },
-                                    modifier = Modifier.testTag(PantryItemEditTestTags.DeleteMenuItem),
-                                )
-                            }
+                        IconButton(onClick = { onDelete(key) }, modifier = Modifier.testTag(PantryItemEditTestTags.DeleteButton)) {
+                            Icon(painterResource(Res.drawable.ic_trash), contentDescription = stringResource(Res.string.pantry_edit_delete))
                         }
                     }
                 },
