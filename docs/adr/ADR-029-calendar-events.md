@@ -89,6 +89,15 @@ duplicates), UTC `DTSTART`/`DTEND` for timed events, date values for all-day one
 repeat, escaped and 75-octet-folded text, CRLF lines. Participants are not written (Home members have no e-mail address). A repeating
 timed event is anchored to UTC, so across a daylight saving change the importing calendar may show it an hour off the wall-clock time Vesta keeps.
 
+### Export a whole calendar
+
+The calendar's Settings screen has an **Export** section (shown where there is a `FileExporter`): a tick box for the Home's calendar and one
+for the user's private calendar in that Home, each with its event count, both ticked at first, and **Export as iCal**, enabled while the ticked
+calendars hold at least one event. It writes one `.ics` (`icalCalendar`: a VEVENT per event, same format as the single export) named
+`<Home> calendar.ics`, `<Home> private calendar.ics` or `<Home> all events.ics`. It exports what the calendar holds now, every event
+regardless of date, with repeating events as a single repeating VEVENT. Exporting the private calendar writes its events to a file the
+user chooses, outside Vesta's control from then on, which is the point.
+
 ### The calendar screen
 
 A plus button (bottom end) opens the form for the selected day. Under the grid, the selected day's events are a list: a bar in

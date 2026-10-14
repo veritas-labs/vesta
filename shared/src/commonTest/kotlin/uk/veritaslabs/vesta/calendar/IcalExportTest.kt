@@ -111,4 +111,28 @@ class IcalExportTest {
         assertEquals("___.ics", timed("///").icalFileName())
         assertEquals("event.ics", timed("").icalFileName())
     }
+
+    @Test
+    fun aWholeCalendarIsOneFileWithAVeventEach() {
+        // Arrange
+        val events = listOf(timed("Dentist"), timed("Bins").copy(id = "e2"))
+
+        // Act
+        val ical = icalCalendar(events, stamp).split("\r\n").filter { it.isNotEmpty() }
+
+        // Assert
+        assertEquals(1, ical.count { it == "BEGIN:VCALENDAR" })
+        assertEquals(2, ical.count { it == "BEGIN:VEVENT" })
+        assertEquals(listOf("UID:e1@vesta", "UID:e2@vesta"), ical.filter { it.startsWith("UID") })
+        assertEquals("END:VCALENDAR", ical.last())
+    }
+
+    @Test
+    fun anEmptyCalendarIsStillAValidFile() {
+        // Arrange / Act
+        val ical = icalCalendar(emptyList(), stamp).split("\r\n").filter { it.isNotEmpty() }
+
+        // Assert
+        assertEquals(listOf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Veritas Labs//Vesta//EN", "CALSCALE:GREGORIAN", "END:VCALENDAR"), ical)
+    }
 }

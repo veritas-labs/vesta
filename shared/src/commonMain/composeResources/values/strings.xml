@@ -465,6 +465,12 @@
     <string name="calendar_setting_week_numbers">Show week numbers</string>
     <string name="calendar_setting_other_months">Show days from other months</string>
     <string name="calendar_setting_start_collapsed">Open with the month collapsed</string>
+    <string name="calendar_export_title">Export</string>
+    <string name="calendar_export_home">%1$s calendar</string>
+    <string name="calendar_export_private">My private calendar</string>
+    <string name="calendar_export_count">%1$d events</string>
+    <string name="calendar_export_count_one">1 event</string>
+    <string name="calendar_export_button">Export as iCal</string>
     <string name="calendar_week_number">w%1$d</string>
     <string name="calendar_previous_week">Previous week</string>
     <string name="calendar_next_week">Next week</string>

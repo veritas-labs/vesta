@@ -15,7 +15,29 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.calendar.CalendarEvent
+import uk.veritaslabs.vesta.calendar.EventCalendar
+import uk.veritaslabs.vesta.calendar.IcalMimeType
+import uk.veritaslabs.vesta.calendar.icalCalendar
+import uk.veritaslabs.vesta.calendar.icalFileName
+import uk.veritaslabs.vesta.files.LocalFileExporter
+import vesta.shared.generated.resources.calendar_export_button
+import vesta.shared.generated.resources.calendar_export_count
+import vesta.shared.generated.resources.calendar_export_count_one
+import vesta.shared.generated.resources.calendar_export_home
+import vesta.shared.generated.resources.calendar_export_private
+import vesta.shared.generated.resources.calendar_export_title
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,12 +78,18 @@ internal object CalendarSettingsTestTags {
     const val WeekNumbers = "calendar_settings_week_numbers"
     const val OtherMonths = "calendar_settings_other_months"
     const val StartCollapsed = "calendar_settings_start_collapsed"
+    const val ExportSection = "calendar_settings_export_section"
+    const val ExportButton = "calendar_settings_export_button"
+
+    fun exportCalendar(calendar: EventCalendar) = "calendar_settings_export_${calendar.name}"
     fun weekStart(start: WeekStart) = "calendar_settings_week_start_${start.name}"
 }
 
 /**
  * The calendar's settings: the day the week starts on, whether to show week numbers and the days of neighbouring months,
- * and whether the month grid opens collapsed. Every change calls [onChange] with the new [settings] straight away.
+ * and whether the month grid opens collapsed. Every change calls [onChange] with the new [settings] straight away. Where the app can
+ * save files, an Export section lists the Home's calendar ([homeName]) and the user's private one, each with how many of [events] are on it;
+ * ticking either or both and tapping Export as iCal saves those events as one `.ics` file.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +97,8 @@ fun CalendarSettingsScreen(
     settings: CalendarSettings,
     onChange: (CalendarSettings) -> Unit,
     modifier: Modifier = Modifier,
+    events: List<CalendarEvent> = emptyList(),
+    homeName: String = "",
     onBack: () -> Unit = {},
 ) {
     Column(
@@ -90,7 +120,10 @@ fun CalendarSettingsScreen(
                 navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
             ),
         )
-        Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Text(
                 stringResource(Res.string.calendar_setting_week_start),
                 style = MaterialTheme.typography.titleSmall,
@@ -119,7 +152,65 @@ fun CalendarSettingsScreen(
             SwitchRow(Res.string.calendar_setting_start_collapsed, settings.startCollapsed, CalendarSettingsTestTags.StartCollapsed) {
                 onChange(settings.copy(startCollapsed = it))
             }
+            LocalFileExporter.current?.let { exporter ->
+                var chosen by remember { mutableStateOf(EventCalendar.entries.toSet()) }
+                val scope = rememberCoroutineScope()
+                val toExport = events.filter { it.calendar in chosen }
+                Column(modifier = Modifier.testTag(CalendarSettingsTestTags.ExportSection), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        stringResource(Res.string.calendar_export_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                    )
+                    EventCalendar.entries.forEach { calendar ->
+                        val count = events.count { it.calendar == calendar }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .toggleable(
+                                    value = calendar in chosen,
+                                    role = Role.Checkbox,
+                                    onValueChange = { chosen = if (it) chosen + calendar else chosen - calendar },
+                                )
+                                .padding(vertical = 4.dp)
+                                .testTag(CalendarSettingsTestTags.exportCalendar(calendar)),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = calendar in chosen, onCheckedChange = null, modifier = Modifier.padding(end = 12.dp))
+                            Column {
+                                Text(
+                                    if (calendar == EventCalendar.Home) stringResource(Res.string.calendar_export_home, homeName).trim()
+                                    else stringResource(Res.string.calendar_export_private),
+                                )
+                                Text(
+                                    if (count == 1) stringResource(Res.string.calendar_export_count_one) else stringResource(Res.string.calendar_export_count, count),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            val name = exportFileName(chosen, homeName)
+                            scope.launch { exporter.export(name, IcalMimeType, icalCalendar(toExport).encodeToByteArray()) }
+                        },
+                        enabled = toExport.isNotEmpty(),
+                        modifier = Modifier.padding(top = 8.dp).testTag(CalendarSettingsTestTags.ExportButton),
+                    ) { Text(stringResource(Res.string.calendar_export_button)) }
+                }
+            }
         }
+    }
+}
+
+/** `<Home> calendar.ics` for the Home's calendar, `<Home> private calendar.ics` for the private one, `<Home> all events.ics` for both. */
+private fun exportFileName(chosen: Set<EventCalendar>, homeName: String): String {
+    val home = homeName.trim().ifEmpty { "Vesta" }
+    return when (chosen) {
+        setOf(EventCalendar.Home) -> icalFileName("$home calendar", "calendar")
+        setOf(EventCalendar.Private) -> icalFileName("$home private calendar", "private calendar")
+        else -> icalFileName("$home all events", "calendar")
     }
 }
 

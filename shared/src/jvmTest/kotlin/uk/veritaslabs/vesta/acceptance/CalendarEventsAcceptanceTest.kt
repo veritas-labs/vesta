@@ -38,7 +38,10 @@ import uk.veritaslabs.vesta.calendar.EventRepeat
 import uk.veritaslabs.vesta.calendar.allDayMillis
 import uk.veritaslabs.vesta.ui.flows.CalendarFlow
 import uk.veritaslabs.vesta.ui.screens.CalendarTestTags
+import uk.veritaslabs.vesta.ui.screens.CalendarSettingsScreen
+import uk.veritaslabs.vesta.ui.screens.CalendarSettingsTestTags
 import uk.veritaslabs.vesta.ui.screens.CalendarViewModel
+import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.ui.screens.EventEditTestTags
 import uk.veritaslabs.vesta.ui.screens.MemberListItem
 import uk.veritaslabs.vesta.ui.screens.MemberRole
@@ -61,6 +64,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
  *     DeviceDataSyncServiceTest).
  *  9. Events survive an app restart.
  * 10. An open event's overflow menu has "Export as iCal event", which offers the event as an .ics file.
+ * 11. The calendar settings have an Export section: I choose the Home calendar, my private one or both, and export them as one .ics file.
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class CalendarEventsAcceptanceTest {
@@ -372,5 +376,37 @@ class CalendarEventsAcceptanceTest {
         assertEquals("Bin day.ics", name)
         assertEquals("text/calendar", type)
         assertTrue("SUMMARY:Bin day" in text && "RRULE:FREQ=WEEKLY" in text && "LOCATION:Front gate" in text)
+    }
+
+    @Test
+    fun theWholePrivateCalendarCanBeExportedFromTheSettings() = runComposeUiTest {
+        // Arrange — Given a Home event and two private events, and an app that can save files
+        val calendars = Calendars()
+        runBlocking {
+            calendars.home.save(CalendarEvent("h", EventCalendar.Home, "Bins", true, allDayMillis(today), allDayMillis(today)))
+            calendars.private.save(CalendarEvent("p1", EventCalendar.Private, "Gym", true, allDayMillis(today), allDayMillis(today)))
+            calendars.private.save(CalendarEvent("p2", EventCalendar.Private, "Surprise party", true, allDayMillis(today.plusDays(9)), allDayMillis(today.plusDays(9))))
+        }
+        val exported = mutableListOf<Triple<String, String, String>>()
+        val exporter = FileExporter { name, type, bytes -> exported += Triple(name, type, bytes.decodeToString()); true }
+        setContent {
+            VestaTheme {
+                CompositionLocalProvider(LocalFileExporter provides exporter) {
+                    CalendarSettingsScreen(CalendarSettings(), onChange = {}, events = calendars.homeEvents() + calendars.privateEvents(), homeName = "Maple Street")
+                }
+            }
+        }
+
+        // Act — When I untick the Home calendar and tap Export as iCal
+        onNodeWithTag(CalendarSettingsTestTags.exportCalendar(EventCalendar.Home)).performClick()
+        onNodeWithTag(CalendarSettingsTestTags.ExportButton).performClick()
+        waitUntil(timeoutMillis = 5_000) { exported.isNotEmpty() }
+
+        // Assert — Then one .ics file holds just my two private events
+        val (name, type, text) = exported.single()
+        assertEquals("Maple Street private calendar.ics", name)
+        assertEquals("text/calendar", type)
+        assertEquals(2, "BEGIN:VEVENT".toRegex().findAll(text).count())
+        assertTrue("SUMMARY:Gym" in text && "SUMMARY:Surprise party" in text && "Bins" !in text)
     }
 }

@@ -9,9 +9,12 @@ private const val MaxLineOctets = 75
 const val IcalMimeType = "text/calendar"
 
 /** A file name for [this] event's `.ics` export: its title with anything a file system dislikes replaced, or "event" for none. */
-fun CalendarEvent.icalFileName(): String {
-    val name = title.map { if (it.isLetterOrDigit() || it in " -_.()") it else '_' }.joinToString("").trim().trim('.').ifEmpty { "event" }
-    return "$name.ics"
+fun CalendarEvent.icalFileName(): String = icalFileName(title, "event")
+
+/** `<name>.ics` with anything a file system dislikes in [name] replaced, or [fallback] for a blank name. */
+fun icalFileName(name: String, fallback: String): String {
+    val safe = name.map { if (it.isLetterOrDigit() || it in " -_.()") it else '_' }.joinToString("").trim().trim('.').ifEmpty { fallback }
+    return "$safe.ics"
 }
 
 /**
@@ -20,8 +23,18 @@ fun CalendarEvent.icalFileName(): String {
  * RRULE with no end. The UID is the event's id, so importing it again updates the event instead of duplicating it. Participants are
  * not written: they are Home members, with no e-mail address to name. [nowMillis] stamps it.
  */
-fun CalendarEvent.toIcal(nowMillis: Long = Clock.System.now().toEpochMilliseconds()): String {
-    val lines = mutableListOf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Veritas Labs//Vesta//EN", "CALSCALE:GREGORIAN", "BEGIN:VEVENT")
+fun CalendarEvent.toIcal(nowMillis: Long = Clock.System.now().toEpochMilliseconds()): String = icalCalendar(listOf(this), nowMillis)
+
+/** [events] as one iCalendar file with a VEVENT each (see [toIcal]); a file with no events is a valid, empty calendar. */
+fun icalCalendar(events: List<CalendarEvent>, nowMillis: Long = Clock.System.now().toEpochMilliseconds()): String {
+    val lines = mutableListOf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Veritas Labs//Vesta//EN", "CALSCALE:GREGORIAN")
+    events.forEach { lines += it.veventLines(nowMillis) }
+    lines += "END:VCALENDAR"
+    return lines.joinToString("") { fold(it) + "\r\n" }
+}
+
+private fun CalendarEvent.veventLines(nowMillis: Long): List<String> {
+    val lines = mutableListOf("BEGIN:VEVENT")
     lines += "UID:$id@vesta"
     lines += "DTSTAMP:${utcStamp(nowMillis)}"
     if (allDay) {
@@ -42,8 +55,7 @@ fun CalendarEvent.toIcal(nowMillis: Long = Clock.System.now().toEpochMillisecond
     if (location.isNotBlank()) lines += "LOCATION:${escapeText(location)}"
     if (description.isNotBlank()) lines += "DESCRIPTION:${escapeText(description)}"
     lines += "END:VEVENT"
-    lines += "END:VCALENDAR"
-    return lines.joinToString("") { fold(it) + "\r\n" }
+    return lines
 }
 
 private fun two(n: Int) = n.toString().padStart(2, '0')

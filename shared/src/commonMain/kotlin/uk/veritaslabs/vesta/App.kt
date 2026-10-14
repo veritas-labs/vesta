@@ -441,6 +441,7 @@ private fun HomeContent(
     val pantryState = pantryViewModel?.uiState?.collectAsStateWithLifecycle()
     val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
     val shoppingState = shoppingViewModel?.uiState?.collectAsStateWithLifecycle()
+    val calendarState = calendarViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
     when (destination) {
@@ -607,7 +608,13 @@ private fun HomeContent(
         }
         HomeDestination.CalendarSettings -> {
             val calendarSettings = LocalCalendarSettings.current
-            CalendarSettingsScreen(calendarSettings.settings, calendarSettings.onChange, onBack = { destination = HomeDestination.Calendar })
+            CalendarSettingsScreen(
+                calendarSettings.settings,
+                calendarSettings.onChange,
+                events = calendarState?.value?.events.orEmpty(),
+                homeName = homeName,
+                onBack = { destination = HomeDestination.Calendar },
+            )
         }
         HomeDestination.ShoppingList -> {
             val onItemSelected = { item: ShoppingListItem ->
