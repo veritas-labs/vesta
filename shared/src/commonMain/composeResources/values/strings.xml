@@ -821,4 +821,26 @@
     <string name="assistant_activity_empty">Nothing yet.</string>
     <string name="assistant_activity_rejected">Refused</string>
     <string name="assistant_activity_applied">Done</string>
+
+    <string name="tour_home_title">One place for home life</string>
+    <string name="tour_home_body">Create a Home for your family, your flat or your holiday house, and invite everyone in with a link. Everything your household shares lives there.</string>
+    <string name="tour_pantry_title">Never run out. Never double-buy.</string>
+    <string name="tour_pantry_body">Keep track of what is in the cupboard and build the shopping list as you go. Tick items off and they move straight into your Pantry.</string>
+    <string name="tour_cookbook_title">Settle “what’s for dinner?”</string>
+    <string name="tour_cookbook_body">Keep the recipes you love, photos and all, and plan the week’s breakfasts, lunches and dinners in one view.</string>
+    <string name="tour_calendar_title">Everyone on the same page</string>
+    <string name="tour_calendar_body">Share a calendar with your household, and keep a private one that stays on your own devices.</string>
+    <string name="tour_assistants_title">Let your assistant help</string>
+    <string name="tour_assistants_body">Ask your AI assistant to add milk to the Pantry. You choose what it may do in each Home, and you approve what it asks for.</string>
+    <string name="tour_privacy_title">Yours, and only yours</string>
+    <string name="tour_privacy_body">No account and no cloud. Your devices and your household sync directly with each other, privately and securely.</string>
+    <string name="tour_done_title">You’re all set</string>
+    <string name="tour_done_body">Create your first Home, or join one with an invite link.</string>
+    <string name="tour_next">Next</string>
+    <string name="tour_back">Back</string>
+    <string name="tour_get_started">Get started</string>
+    <string name="tour_close">Close</string>
+    <string name="tour_page_of">Page %1$d of %2$d</string>
+    <string name="settings_welcome_tour">Welcome tour</string>
+    <string name="settings_welcome_tour_show">Show the welcome tour again</string>
 </resources>

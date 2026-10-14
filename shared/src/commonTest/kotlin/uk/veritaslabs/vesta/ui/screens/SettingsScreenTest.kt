@@ -88,6 +88,21 @@ class SettingsScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun welcomeTourRowOpensTheWelcomeTour() = runComposeUiTest {
+        // Arrange
+        var opened = 0
+        setContent { VestaTheme { SettingsScreen(onWelcomeTourClick = { opened++ }) } }
+        onNodeWithTag(SettingsTestTags.List).performScrollToNode(hasTestTag(SettingsTestTags.WelcomeTourRow))
+
+        // Act
+        onNodeWithTag(SettingsTestTags.WelcomeTourRow).performClick()
+
+        // Assert
+        assertEquals(1, opened)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun x0xStatusRowOpensNetworkDiagnostics() = runComposeUiTest {
         // Arrange
         var opened = 0

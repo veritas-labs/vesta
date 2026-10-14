@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.settings
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.theme.AppTheme
@@ -64,5 +65,30 @@ class AppSettingsRepositoryTest {
 
         // Assert
         assertEquals(listOf(true, false, true), listOf(initial, afterOff, afterOn))
+    }
+
+    @Test
+    fun theWelcomeTourIsNeitherSeenNorSkippedOnAFreshInstall() = runTest {
+        // Arrange
+        val repository = AppSettingsRepository(openInMemoryDatabase())
+
+        // Act
+        val seen = repository.onboardingSeen()
+
+        // Assert
+        assertNull(seen)
+    }
+
+    @Test
+    fun remembersThatTheWelcomeTourWasSeenForALaterRepositoryOverTheSameDatabase() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+
+        // Act
+        AppSettingsRepository(db).setOnboardingSeen(true)
+        val seen = AppSettingsRepository(db).onboardingSeen()
+
+        // Assert
+        assertEquals(true, seen)
     }
 }

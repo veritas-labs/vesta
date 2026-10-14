@@ -17,7 +17,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,8 +29,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,6 +38,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.components.PageDots
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
@@ -98,8 +96,6 @@ import vesta.shared.generated.resources.ic_users
 
 private val HubTutorialContentMaxWidth = 560.dp
 private val HubTutorialIconSize = 96.dp
-private val HubTutorialDotSize = 8.dp
-private val HubTutorialActiveDotWidth = 24.dp
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object HubTutorialTestTags {
@@ -215,7 +211,12 @@ fun HubTutorialScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            PageDots(count = pages.size, current = current)
+            PageDots(
+                count = pages.size,
+                current = current,
+                description = stringResource(Res.string.hub_tutorial_page_of, current + 1, pages.size),
+                modifier = Modifier.testTag(HubTutorialTestTags.Dots),
+            )
             if (isLast) {
                 PrimaryButton(
                     label = stringResource(Res.string.hub_tutorial_finish),
@@ -294,29 +295,6 @@ private fun PointCard(text: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).testTag(HubTutorialTestTags.Point),
         )
-    }
-}
-
-/** One dot per page, the current one stretched into a pill. */
-@Composable
-private fun PageDots(count: Int, current: Int) {
-    val description = stringResource(Res.string.hub_tutorial_page_of, current + 1, count)
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.semantics { contentDescription = description }.testTag(HubTutorialTestTags.Dots),
-    ) {
-        repeat(count) { index ->
-            val active = index == current
-            Box(
-                modifier = Modifier
-                    .size(width = if (active) HubTutorialActiveDotWidth else HubTutorialDotSize, height = HubTutorialDotSize)
-                    .background(
-                        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                        shape = RoundedCornerShape(percent = 50),
-                    ),
-            )
-        }
     }
 }
 

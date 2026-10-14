@@ -44,6 +44,11 @@ class AppSettingsRepository(private val database: VestaDatabase) {
         database.appSettingQueries.upsert(CalendarStartCollapsedKey, settings.startCollapsed.toString())
     }
 
+    /** Whether the welcome tour has been shown or deliberately skipped for this install; null until one or the other has happened. */
+    suspend fun onboardingSeen(): Boolean? = read(OnboardingSeenKey)?.toBooleanStrictOrNull()
+
+    suspend fun setOnboardingSeen(seen: Boolean) = database.appSettingQueries.upsert(OnboardingSeenKey, seen.toString())
+
     private suspend fun read(key: String): String? = database.appSettingQueries.selectValue(key).awaitAsOneOrNull()
 
     private companion object {
@@ -54,5 +59,6 @@ class AppSettingsRepository(private val database: VestaDatabase) {
         const val CalendarWeekNumbersKey = "calendarShowWeekNumbers"
         const val CalendarOtherMonthsKey = "calendarShowOtherMonthDays"
         const val CalendarStartCollapsedKey = "calendarStartCollapsed"
+        const val OnboardingSeenKey = "onboardingSeen"
     }
 }

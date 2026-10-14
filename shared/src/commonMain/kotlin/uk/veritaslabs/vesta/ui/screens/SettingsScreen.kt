@@ -84,6 +84,8 @@ import vesta.shared.generated.resources.settings_theme_mode_system
 import vesta.shared.generated.resources.settings_theme_halloween
 import vesta.shared.generated.resources.settings_theme_vesta
 import vesta.shared.generated.resources.settings_title
+import vesta.shared.generated.resources.settings_welcome_tour
+import vesta.shared.generated.resources.settings_welcome_tour_show
 
 private val SettingsTabletBreakpoint = 600.dp
 private const val DisabledRowAlpha = 0.38f
@@ -106,6 +108,7 @@ internal object SettingsTestTags {
     const val NetworkPeersRow = "settings_network_peers"
     const val MobileDataRow = "settings_network_mobile_data"
     const val OpenSourceLicensesRow = "settings_open_source_licenses"
+    const val WelcomeTourRow = "settings_welcome_tour"
 }
 
 /**
@@ -113,7 +116,7 @@ internal object SettingsTestTags {
  * ([platformName]) and Network ([x0xConnectivity], with the peer count once connected) information; the Network section also has a
  * "Use mobile data" switch ([useMobileData], [onUseMobileDataChange]), on by default and disabled when
  * the device has no mobile data ([mobileDataAvailable], false on desktop).
- * The Open source licences row in Application calls [onOpenSourceLicensesClick].
+ * The Open source licences row in Application calls [onOpenSourceLicensesClick], and the Welcome tour row [onWelcomeTourClick].
  * The Synced devices row calls [onSyncedDevicesClick], the x0x status row [onNetworkStatusClick] to show network diagnostics, and the Peers row [onPeersClick] to show them as a graph; with a [profileName], a Profile section shows it and its row calls
  * [onProfileNameClick] to change it; the back arrow calls [onBack].
  */
@@ -136,6 +139,7 @@ fun SettingsScreen(
     onNetworkStatusClick: () -> Unit = {},
     onPeersClick: () -> Unit = {},
     onOpenSourceLicensesClick: () -> Unit = {},
+    onWelcomeTourClick: () -> Unit = {},
     profileName: String? = null,
     onProfileNameClick: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -201,6 +205,17 @@ fun SettingsScreen(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
+                        }
+                        SettingsRow(
+                            label = stringResource(Res.string.settings_welcome_tour),
+                            modifier = Modifier.testTag(SettingsTestTags.WelcomeTourRow),
+                            onClick = onWelcomeTourClick,
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_chevron_right),
+                                contentDescription = stringResource(Res.string.settings_welcome_tour_show),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         InfoRow(
                             stringResource(Res.string.settings_application_version),

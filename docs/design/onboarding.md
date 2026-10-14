@@ -1,5 +1,10 @@
 # Onboarding — Welcome, Profile Setup, Empty Home
 
+> **Update 2026-10-14:** a new install now opens on the welcome tour, a benefit-led slideshow
+> ([ADR-030](../adr/ADR-030-onboarding-slideshow.md)), before anything below. Profile naming is no longer a step in this path: the
+> name is asked for when the user first creates or joins a Home, so `S2` is reached from `S3`'s Create / Join, not before it.
+> `S1` Welcome is effectively replaced by the tour.
+
 > Visual/interaction design layer for the mandatory first-run path. Behavioral contract lives in CORE-EXPERIENCE.md
 > §1–§2 and §6 State Model. This file describes how it looks and feels, not what it does.
 

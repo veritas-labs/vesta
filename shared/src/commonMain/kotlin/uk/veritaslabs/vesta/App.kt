@@ -33,6 +33,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -88,6 +90,8 @@ import uk.veritaslabs.vesta.ui.screens.HubTutorialScreen
 import uk.veritaslabs.vesta.ui.screens.MemberAgent
 import uk.veritaslabs.vesta.ui.screens.NetworkDiagnosticsScreen
 import uk.veritaslabs.vesta.ui.screens.NetworkPeersScreen
+import uk.veritaslabs.vesta.ui.screens.OnboardingMode
+import uk.veritaslabs.vesta.ui.screens.OnboardingScreen
 import uk.veritaslabs.vesta.ui.screens.OpenSourceLicensesScreen
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteScreen
@@ -213,11 +217,18 @@ fun App(
     var useMobileData by remember { mutableStateOf(X0xNetworkPolicy.useMobileData.value) }
     // Until the saved settings have been read there is nothing to draw, rather than a flash of the default theme.
     var settingsLoaded by remember(settings) { mutableStateOf(settings == null) }
+    // The welcome tour, when it is showing: FirstLaunch until it has been finished once, Revisit when opened again from Settings.
+    var onboarding by remember { mutableStateOf<OnboardingMode?>(null) }
     LaunchedEffect(settings) {
         settings?.appearance()?.let { saved ->
             themeMode = saved.themeMode
             appTheme = saved.appTheme
             useMobileData = settings.useMobileData()
+            if (settings.onboardingSeen() == null) {
+                // Only new installs get the tour: anyone who already has a Home or a chosen name was here before it existed.
+                val existingInstall = homes.first().isNotEmpty() || profiles?.observe()?.filterNotNull()?.first()?.named == true
+                if (existingInstall) settings.setOnboardingSeen(true) else onboarding = OnboardingMode.FirstLaunch
+            }
             settingsLoaded = true
         }
     }
@@ -233,7 +244,16 @@ fun App(
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 val currentProfile = profile
-                if (profiles != null && currentProfile == null) {
+                val tourMode = onboarding
+                if (tourMode != null) {
+                    OnboardingScreen(
+                        mode = tourMode,
+                        onFinish = {
+                            onboarding = null
+                            scope.launch { settings?.setOnboardingSeen(true) }
+                        },
+                    )
+                } else if (profiles != null && currentProfile == null) {
                     // The Profile is still loading: nothing to show yet, rather than a flash of the Home picker.
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
                 } else if (profiles != null && currentProfile != null && !currentProfile.named && afterNaming != null) {
@@ -298,6 +318,7 @@ fun App(
                             onNetworkStatusClick = { settingsDestination = SettingsDestination.NetworkDiagnostics },
                             onPeersClick = { settingsDestination = SettingsDestination.Peers },
                             onOpenSourceLicensesClick = { settingsDestination = SettingsDestination.OpenSourceLicenses },
+                            onWelcomeTourClick = { onboarding = OnboardingMode.Revisit },
                             profileName = profile?.displayName,
                             onProfileNameClick = { settingsDestination = SettingsDestination.ProfileName },
                             onBack = { settingsDestination = null },
