@@ -34,6 +34,10 @@ home to work in a **shared workspace**. The term "home" replaces "household" in 
 | FR-13 | Recurring tasks can be created with configurable frequency (daily, weekly, custom)   | Must     |
 | FR-14 | A household dashboard shows outstanding tasks, overdue items, and recent completions | Must     |
 | FR-15 | Task history is retained and visible (who did what, when)                            | Should   |
+| FR-16 | A task with a due time can remind its assignees with a local notification (ADR-032)  | Should   |
+
+> **Amended 2026-10-14 (ADR-031):** rotation (FR-11's second half) is deferred past the first Tasks release, and FR-12 is
+> widened: any Home member may mark any task complete, with who did it recorded.
 
 #### Shared Lists
 
@@ -51,7 +55,8 @@ home to work in a **shared workspace**. The term "home" replaces "household" in 
 | FR-30 | Users can post messages/notes visible to the household | Should   |
 | FR-31 | Users can leave comments on tasks or lists             | Should   |
 
-> **Note:** Notifications are **out of scope for v1** (confirmed by CEO). See NFR section.
+> **Note:** Push notifications are out of scope. **Local task reminders are in scope** (amended 2026-10-14, ADR-032): each
+> device schedules its own, with no server. See NFR section.
 
 ### User Identity
 
@@ -157,7 +162,8 @@ can do via Skills / MCP servers.
 - **Multi-home:** Supported from day one. User identities join multiple homes. Not considered complex given the P2P
   architecture.
 - **Data residency:** Non-issue — no central servers by design.
-- **Notifications:** Out of scope for v1 entirely.
+- **Notifications:** No push or server-sent notifications. Local task reminders are in scope (ADR-032), planned and shown by
+  each device from its own copy of the data. *(Amended 2026-10-14; previously "out of scope for v1 entirely".)*
 - **Accounts:** No mandatory sign-up / account to use the app.
 - **AI agent access:** Required from day one. Feature parity between GUI and agent interfaces (Skills / MCP servers). An
   agent always acts with the permissions of its human operator — never more.
@@ -169,5 +175,5 @@ can do via Skills / MCP servers.
 
 ## Open Questions
 
-- [ ] **Only-visible-when-online comms:** Since notifications are out for v1, how do task assignments/recurrences
+- [ ] **Only-visible-when-online comms:** Local reminders (ADR-032) cover due times, but how do task assignments/recurrences
   surface to members in an offline-first model (e.g., an in-app "inbox" or activity feed)? Needs UX thinking.

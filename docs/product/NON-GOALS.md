@@ -53,4 +53,6 @@ doesn't belong in Vesta's core. It might belong in a module eventually, but the 
 
 - **No mandatory account / sign-up to use the app.** The app is local-first; using it must not require creating an
   account or surrendering data.
-- **No notifications (v1).** In-app notifications are out of scope for v1 entirely.
+- **No push notifications or notification servers.** Vesta has no server to send them. *(Amended 2026-10-14: the earlier
+  blanket "no notifications (v1)" was reversed for **local** task reminders, which each device schedules for itself with no
+  account and no network; see ADR-032. Alerts that need a server remain out.)*

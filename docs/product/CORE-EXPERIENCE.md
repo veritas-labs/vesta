@@ -449,7 +449,7 @@ This spec deliberately does NOT cover:
 | Home shape editing after creation                         | Supported in the data model but not specified here.                                            |
 | Profile editing after Profile setup                       | Out of scope. Name/avatar/theme can be changed — the settings flow is not specified here.      |
 | Multi-device sync of Profiles                             | How identity propagates across devices is an architecture concern, not a product spec concern. |
-| Notifications / alerts of any kind                        | Out of scope for v1 (locked decision).                                                         |
+| Notifications / alerts of any kind                        | Out of scope for this spec. Local task reminders were later added (ADR-032).                   |
 | Onboarding tours, tooltips, or guided walkthroughs        | The flow IS the onboarding. No overlay tutorials.                                              |
 | Error states not related to join codes                    | Network errors, storage errors, sync conflicts — architecture concerns.                        |
 
