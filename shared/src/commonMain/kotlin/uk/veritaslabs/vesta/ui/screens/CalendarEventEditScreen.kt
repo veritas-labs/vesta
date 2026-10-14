@@ -248,27 +248,31 @@ fun CalendarEventEditScreen(
 
                     // When: two rows of a date and a time, as Proton's form has.
                     FormRow(Res.drawable.ic_clock) {
+                        DateTimeRow(
+                            label = stringResource(Res.string.event_edit_starts),
+                            dateText = dateText(draft.startDate, months),
+                            timeText = formatMinute(draft.startMinute),
+                            showTime = !draft.allDay,
+                            onDateClick = { picking = DateTimeField.StartDate },
+                            onTimeClick = { picking = DateTimeField.StartTime },
+                            dateTag = EventEditTestTags.StartDate,
+                            timeTag = EventEditTestTags.StartTime,
+                        )
+                    }
+                    FormRow(Res.drawable.ic_clock) {
+                        DateTimeRow(
+                            label = stringResource(Res.string.event_edit_ends),
+                            dateText = dateText(draft.endDate, months),
+                            timeText = formatMinute(draft.endMinute),
+                            showTime = !draft.allDay,
+                            onDateClick = { picking = DateTimeField.EndDate },
+                            onTimeClick = { picking = DateTimeField.EndTime },
+                            dateTag = EventEditTestTags.EndDate,
+                            timeTag = EventEditTestTags.EndTime,
+                        )
+                    }
+                    FormRow(null) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            DateTimeRow(
-                                label = stringResource(Res.string.event_edit_starts),
-                                dateText = dateText(draft.startDate, months),
-                                timeText = formatMinute(draft.startMinute),
-                                showTime = !draft.allDay,
-                                onDateClick = { picking = DateTimeField.StartDate },
-                                onTimeClick = { picking = DateTimeField.StartTime },
-                                dateTag = EventEditTestTags.StartDate,
-                                timeTag = EventEditTestTags.StartTime,
-                            )
-                            DateTimeRow(
-                                label = stringResource(Res.string.event_edit_ends),
-                                dateText = dateText(draft.endDate, months),
-                                timeText = formatMinute(draft.endMinute),
-                                showTime = !draft.allDay,
-                                onDateClick = { picking = DateTimeField.EndDate },
-                                onTimeClick = { picking = DateTimeField.EndTime },
-                                dateTag = EventEditTestTags.EndDate,
-                                timeTag = EventEditTestTags.EndTime,
-                            )
                             if (endsBeforeStart) {
                                 Text(
                                     stringResource(Res.string.event_edit_ends_before_start),
@@ -335,19 +339,15 @@ fun CalendarEventEditScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
+                                IconButton(onClick = { choosingParticipants = true }, modifier = Modifier.testTag(EventEditTestTags.ParticipantsField)) {
+                                    Icon(painterResource(Res.drawable.ic_plus), contentDescription = stringResource(Res.string.event_edit_add_participants))
+                                }
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
                                 ) {
                                     val chosen = members.filter { memberRef(it.memberId) in draft.participants }
-                                    if (chosen.isEmpty()) {
-                                        Text(
-                                            stringResource(Res.string.event_edit_add_participants),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.clickable { choosingParticipants = true },
-                                        )
-                                    }
                                     chosen.forEach { member ->
                                         InputChip(
                                             selected = true,
@@ -357,9 +357,6 @@ fun CalendarEventEditScreen(
                                             modifier = Modifier.testTag(EventEditTestTags.participantChip(memberRef(member.memberId))),
                                         )
                                     }
-                                }
-                                IconButton(onClick = { choosingParticipants = true }, modifier = Modifier.testTag(EventEditTestTags.ParticipantsField)) {
-                                    Icon(painterResource(Res.drawable.ic_plus), contentDescription = stringResource(Res.string.event_edit_add_participants))
                                 }
                             }
                         }
@@ -374,7 +371,7 @@ fun CalendarEventEditScreen(
                             modifier = Modifier.fillMaxWidth().testTag(EventEditTestTags.LocationField),
                         )
                     }
-                    FormRow(Res.drawable.ic_align_left) {
+                    FormRow(Res.drawable.ic_align_left, topAligned = true) {
                         OutlinedTextField(
                             value = draft.description,
                             onValueChange = { draft = draft.copy(description = it) },
@@ -445,14 +442,20 @@ private fun calendarLabel(calendar: EventCalendar, homeName: String) =
 
 /** A form line: an icon in the left margin and its [content] beside it. */
 @Composable
-private fun FormRow(icon: DrawableResource, content: @Composable () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
-        Icon(
-            painterResource(icon),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 10.dp).size(20.dp),
-        )
+private fun FormRow(icon: DrawableResource?, topAligned: Boolean = false, content: @Composable () -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = if (topAligned) Alignment.Top else Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        icon?.let {
+            Icon(
+                painterResource(it),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.then(if (topAligned) Modifier.padding(top = 10.dp) else Modifier).size(20.dp),
+            )
+        } ?: Spacer(Modifier.size(20.dp))
         Box(modifier = Modifier.weight(1f)) { content() }
     }
 }
