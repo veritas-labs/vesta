@@ -48,6 +48,7 @@ import vesta.shared.generated.resources.calendar_export_count_one
 import vesta.shared.generated.resources.calendar_export_home
 import vesta.shared.generated.resources.calendar_export_private
 import vesta.shared.generated.resources.calendar_export_title
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -144,7 +145,7 @@ fun CalendarSettingsScreen(
         ) {
             Text(
                 stringResource(Res.string.calendar_setting_week_start),
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
             )
             Column(modifier = Modifier.selectableGroup()) {
@@ -161,6 +162,7 @@ fun CalendarSettingsScreen(
                     }
                 }
             }
+            SectionDivider()
             SwitchRow(Res.string.calendar_setting_week_numbers, settings.showWeekNumbers, CalendarSettingsTestTags.WeekNumbers) {
                 onChange(settings.copy(showWeekNumbers = it))
             }
@@ -174,11 +176,12 @@ fun CalendarSettingsScreen(
                 var target by remember { mutableStateOf(EventCalendar.Home) }
                 var result by remember { mutableStateOf<ImportOutcome?>(null) }
                 val scope = rememberCoroutineScope()
+                SectionDivider()
                 Column(modifier = Modifier.testTag(CalendarSettingsTestTags.ImportSection), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         stringResource(Res.string.calendar_import_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                     )
                     Text(stringResource(Res.string.calendar_import_into), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Column(modifier = Modifier.selectableGroup()) {
@@ -228,11 +231,12 @@ fun CalendarSettingsScreen(
                 var chosen by remember { mutableStateOf(EventCalendar.entries.toSet()) }
                 val scope = rememberCoroutineScope()
                 val toExport = events.filter { it.calendar in chosen }
+                SectionDivider()
                 Column(modifier = Modifier.testTag(CalendarSettingsTestTags.ExportSection), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         stringResource(Res.string.calendar_export_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                     )
                     EventCalendar.entries.forEach { calendar ->
                         val count = events.count { it.calendar == calendar }
@@ -293,6 +297,12 @@ private fun WeekStart.label(): StringResource = when (this) {
     WeekStart.Monday -> Res.string.calendar_week_start_monday
     WeekStart.Saturday -> Res.string.calendar_week_start_saturday
     WeekStart.Sunday -> Res.string.calendar_week_start_sunday
+}
+
+/** A rule between two logical sections of the screen. */
+@Composable
+private fun SectionDivider() {
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable

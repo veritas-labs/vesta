@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -302,14 +303,18 @@ fun CalendarScreen(
                 modifier = Modifier.testTag(CalendarTestTags.SelectedDay),
             )
             if (dayEvents.isEmpty()) {
-                Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EmptyStateIllustration(EmptyStateArt.QuietDay, size = 96.dp)
-                    Text(
-                        stringResource(Res.string.calendar_no_events),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag(CalendarTestTags.NoEvents),
-                    )
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    // As big as fits above the words, up to 200dp.
+                    val pictureSize = (maxHeight - 48.dp).coerceIn(0.dp, 200.dp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (pictureSize >= 48.dp) EmptyStateIllustration(EmptyStateArt.QuietDay, size = pictureSize)
+                        Text(
+                            stringResource(Res.string.calendar_no_events),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag(CalendarTestTags.NoEvents),
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
@@ -461,7 +466,7 @@ private fun DayCell(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).testTag(CalendarTestTags.dots(date)),
             ) {
                 colours.take(MaxDots).forEach { colour ->
-                    Box(Modifier.size(5.dp).clip(CircleShape).background(eventColour(colour)).border(0.5.dp, scheme.background, CircleShape))
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(eventColour(colour)))
                 }
             }
         }

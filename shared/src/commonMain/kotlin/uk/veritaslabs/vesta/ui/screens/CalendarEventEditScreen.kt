@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -36,7 +34,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerLayoutType
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
@@ -63,6 +63,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringArrayResource
@@ -75,6 +77,7 @@ import uk.veritaslabs.vesta.calendar.EventDraft
 import uk.veritaslabs.vesta.calendar.EventRepeat
 import uk.veritaslabs.vesta.calendar.allDayMillis
 import uk.veritaslabs.vesta.calendar.formatMinute
+import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.event_colours
@@ -111,12 +114,12 @@ import vesta.shared.generated.resources.ic_clock
 import vesta.shared.generated.resources.ic_close
 import vesta.shared.generated.resources.ic_lock
 import vesta.shared.generated.resources.ic_map_pin
+import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_repeat
 import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.ic_users
 
 private val EventEditTabletBreakpoint = 600.dp
-private val EventEditMaxContentWidth = 560.dp
 private const val MillisPerDay = 86_400_000L
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
@@ -161,7 +164,7 @@ internal object EventEditTestTags {
  * colour; participants chosen from the Home's [members] (Home calendar only); location; description. Save is enabled once there is a
  * title and the end is not before the start. Editing also shows Delete. [homeName] names the Home calendar.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarEventEditScreen(
     event: CalendarEvent?,
@@ -219,11 +222,6 @@ fun CalendarEventEditScreen(
                             }
                         }
                     }
-                    TextButton(
-                        onClick = { onSave(draft.toEvent(event?.id ?: newId())) },
-                        enabled = draft.isValid(),
-                        modifier = Modifier.testTag(EventEditTestTags.SaveButton),
-                    ) { Text(stringResource(Res.string.event_edit_save)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -239,7 +237,7 @@ fun CalendarEventEditScreen(
                     .padding(horizontal = contentPadding)
                     .padding(bottom = 32.dp),
             ) {
-                Column(modifier = Modifier.widthIn(max = EventEditMaxContentWidth), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = draft.title,
                         onValueChange = { draft = draft.copy(title = it) },
@@ -332,13 +330,25 @@ fun CalendarEventEditScreen(
                         }
                     } else {
                         FormRow(Res.drawable.ic_users) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(
-                                    onClick = { choosingParticipants = true },
-                                    modifier = Modifier.fillMaxWidth().testTag(EventEditTestTags.ParticipantsField),
-                                ) { Text(stringResource(Res.string.event_edit_add_participants)) }
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    members.filter { memberRef(it.memberId) in draft.participants }.forEach { member ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                                ) {
+                                    val chosen = members.filter { memberRef(it.memberId) in draft.participants }
+                                    if (chosen.isEmpty()) {
+                                        Text(
+                                            stringResource(Res.string.event_edit_add_participants),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.clickable { choosingParticipants = true },
+                                        )
+                                    }
+                                    chosen.forEach { member ->
                                         InputChip(
                                             selected = true,
                                             onClick = { draft = draft.copy(participants = draft.participants - memberRef(member.memberId)) },
@@ -347,6 +357,9 @@ fun CalendarEventEditScreen(
                                             modifier = Modifier.testTag(EventEditTestTags.participantChip(memberRef(member.memberId))),
                                         )
                                     }
+                                }
+                                IconButton(onClick = { choosingParticipants = true }, modifier = Modifier.testTag(EventEditTestTags.ParticipantsField)) {
+                                    Icon(painterResource(Res.drawable.ic_plus), contentDescription = stringResource(Res.string.event_edit_add_participants))
                                 }
                             }
                         }
@@ -370,6 +383,12 @@ fun CalendarEventEditScreen(
                             modifier = Modifier.fillMaxWidth().testTag(EventEditTestTags.DescriptionField),
                         )
                     }
+                    PrimaryButton(
+                        label = stringResource(Res.string.event_edit_save),
+                        enabled = draft.isValid(),
+                        onClick = { onSave(draft.toEvent(event?.id ?: newId())) },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag(EventEditTestTags.SaveButton),
+                    )
                 }
             }
         }
@@ -539,16 +558,20 @@ private fun DatePickerPopup(initial: CalendarDate, onPick: (CalendarDate) -> Uni
 @Composable
 private fun TimePickerPopup(initial: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     val state = rememberTimePickerState(initialHour = initial / 60, initialMinute = initial % 60, is24Hour = true)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        text = { TimePicker(state = state) },
-        confirmButton = {
-            TextButton(onClick = { onPick(state.hour * 60 + state.minute) }, modifier = Modifier.testTag(EventEditTestTags.PickerOk)) {
-                Text(stringResource(Res.string.event_edit_pick_ok))
+    // The vertical layout always: the automatic one goes horizontal on a short window and the dial then overlaps the digits in a dialog this narrow.
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 6.dp) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                TimePicker(state = state, layoutType = TimePickerLayoutType.Vertical)
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                    TextButton(onClick = onDismiss) { Text(stringResource(Res.string.event_edit_cancel)) }
+                    TextButton(onClick = { onPick(state.hour * 60 + state.minute) }, modifier = Modifier.testTag(EventEditTestTags.PickerOk)) {
+                        Text(stringResource(Res.string.event_edit_pick_ok))
+                    }
+                }
             }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.event_edit_cancel)) } },
-    )
+        }
+    }
 }
 
 @Composable
