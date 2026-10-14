@@ -5,7 +5,7 @@ Illustro exports flat SVGs: the line work is black filled shapes, the paper is a
 "knockout" shapes that hide the blobs behind the lines, and the blobs are muted earth tones. A drawable cannot follow the
 theme, so this script recolours by role instead:
 
-  ink    -> the theme's text colour (black in light, warm white in dark)
+  ink    -> the theme's text colour (black in light, warm white in dark); mid greys (shading) sit on the ramp between ink and paper
   paper  -> the theme's background colour (so the picture sits on the screen with no visible square)
   blobs  -> left alone
 
@@ -31,6 +31,20 @@ SLIDES = {
     "a-speech-bubble": "assistants",
     "two-devices": "privacy",
     "an-open-door": "done",
+}
+
+# Illustrations for the empty states (output is empty_<slug>). Prefixes are long enough to be unique among branding/slides/*.svg.
+EMPTY_STATES = {
+    "an-empty-shelf-with-one": "pantry",
+    "three-empty-crates": "pantry_categories",
+    "an-empty-shopping-basket": "shopping",
+    "a-closed-or-half-open": "cookbook",
+    "a-small-market-stall": "merchants",
+    "a-phone-and-a-tablet-side": "synced_devices",
+    "a-small-desktop-computer": "hubs",
+    "a-small-sparkling-helper": "assistants",
+    "a-magnifying-glass": "no_results",
+    "a-calendar-page-with": "quiet_day",
 }
 
 # The goddess for the empty home picker: her line work is shaded in many greys, so instead of one ink colour every neutral grey is
@@ -94,7 +108,11 @@ def convert(svg: str, theme: dict, name: str, ramped: bool = False) -> tuple[str
         else:
             role = classify(r, g, b) if not ramped else "blob"
             counts[role] += 1
-            colour = theme[role] if role in theme else f"#{r:02X}{g:02X}{b:02X}"
+            if role == "blob" and max(r, g, b) - min(r, g, b) <= 10:
+                # A grey that is not ink or paper is shading on the line work (a plate's shadow, say): follow the same ramp.
+                colour = ramp(theme, r, g, b)
+            else:
+                colour = theme[role] if role in theme else f"#{r:02X}{g:02X}{b:02X}"
         paths.append(f'    <path android:fillColor="{colour}" android:pathData="{" ".join(d.split())}"/>')
     # The very first shape is the full-canvas background; it must have been classified as paper.
     if counts["paper"] == 0:
@@ -119,6 +137,7 @@ def link(target: Path, link_path: Path) -> None:
 def main() -> None:
     BRANDING_OUT.mkdir(parents=True, exist_ok=True)
     jobs = [(prefix, f"onboarding_{slug}", False) for prefix, slug in SLIDES.items()]
+    jobs += [(prefix, f"empty_{slug}", False) for prefix, slug in EMPTY_STATES.items()]
     jobs += [(prefix, name, True) for prefix, name in RAMPED.items()]
     for prefix, base, ramped in jobs:
         sources = sorted(SOURCE.glob(f"{prefix}*.svg"))

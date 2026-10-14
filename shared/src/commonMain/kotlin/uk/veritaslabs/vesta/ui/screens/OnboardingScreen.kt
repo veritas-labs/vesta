@@ -32,8 +32,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -46,6 +44,8 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.PageDots
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
+import uk.veritaslabs.vesta.ui.theme.artPaper
+import uk.veritaslabs.vesta.ui.theme.isDarkArt
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_close
 import vesta.shared.generated.resources.tour_back
@@ -58,11 +58,6 @@ private val OnboardingContentMaxWidth = 480.dp
 private val OnboardingWideBreakpoint = 720.dp
 private val OnboardingIllustrationMaxSize = 420.dp
 private val OnboardingIllustrationShape = RoundedCornerShape(24.dp)
-
-// The paper colours the illustrations were recoloured to; keep in step with the backgrounds in VestaTheme.kt and with THEMES in
-// scripts/slides-to-vectors.py. Behind the picture, so a theme whose background differs (Halloween) still looks like a framed card.
-private val OnboardingLightPaper = Color(0xFFF5F4ED)
-private val OnboardingDarkPaper = Color(0xFF15130F)
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object OnboardingTestTags {
@@ -194,14 +189,14 @@ private fun OnboardingPage(slide: OnboardingSlide, modifier: Modifier = Modifier
 
 @Composable
 private fun OnboardingIllustration(slide: OnboardingSlide, modifier: Modifier = Modifier) {
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val dark = isDarkArt()
     Image(
         painter = painterResource(if (dark) slide.illustrationDark else slide.illustration),
         contentDescription = null,
         contentScale = ContentScale.Fit,
         modifier = modifier
             .clip(OnboardingIllustrationShape)
-            .background(if (dark) OnboardingDarkPaper else OnboardingLightPaper)
+            .background(artPaper(dark))
             .testTag(OnboardingTestTags.Illustration),
     )
 }

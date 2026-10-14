@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +54,7 @@ import uk.veritaslabs.vesta.ui.components.AvatarButtonOrientation
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.ProfileAvatar
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
+import uk.veritaslabs.vesta.ui.theme.isDarkArt
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_devices
 import vesta.shared.generated.resources.ic_link
@@ -227,7 +227,7 @@ fun HomePickerScreen(
             if (homes.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     // Line art on its own paper colour (see scripts/slides-to-vectors.py), light or dark to match the theme.
-                    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                    val dark = isDarkArt()
                     Image(
                         painter = painterResource(if (dark) Res.drawable.img_vesta_line_dark else Res.drawable.img_vesta_line),
                         contentDescription = null,
