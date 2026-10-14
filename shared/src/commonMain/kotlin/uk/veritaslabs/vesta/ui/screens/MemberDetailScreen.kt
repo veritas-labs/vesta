@@ -54,9 +54,9 @@ import vesta.shared.generated.resources.member_detail_agent_machine
 import vesta.shared.generated.resources.member_detail_agents_empty
 import vesta.shared.generated.resources.member_detail_agents_title
 import vesta.shared.generated.resources.member_detail_device_unnamed
-import vesta.shared.generated.resources.member_detail_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.member_detail_manage
-import vesta.shared.generated.resources.members_leave_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.members_manage_make_admin
 import vesta.shared.generated.resources.members_manage_make_admin_body
 import vesta.shared.generated.resources.members_manage_remove_admin
@@ -145,7 +145,7 @@ fun MemberDetailScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(MemberDetailTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.member_detail_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -240,7 +240,7 @@ fun MemberDetailScreen(
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.testTag(MemberDetailTestTags.RemoveMember),
                     ) { Text(stringResource(Res.string.members_remove)) }
-                    TextButton(onClick = { managing = false }) { Text(stringResource(Res.string.members_leave_cancel)) }
+                    TextButton(onClick = { managing = false }) { Text(stringResource(Res.string.common_cancel)) }
                 }
             },
         )
@@ -260,7 +260,7 @@ fun MemberDetailScreen(
                     modifier = Modifier.testTag(MemberDetailTestTags.ConfirmRemove),
                 ) { Text(stringResource(Res.string.members_remove)) }
             },
-            dismissButton = { TextButton(onClick = { removing = false }) { Text(stringResource(Res.string.members_leave_cancel)) } },
+            dismissButton = { TextButton(onClick = { removing = false }) { Text(stringResource(Res.string.common_cancel)) } },
         )
     }
 }

@@ -38,7 +38,7 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.barcode_scanner_hint
 import vesta.shared.generated.resources.barcode_scanner_title
 import vesta.shared.generated.resources.ic_arrow_left
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.qr_scanner_hint
 import vesta.shared.generated.resources.qr_scanner_title
 
@@ -78,7 +78,7 @@ fun BarcodeScannerScreen(
                 IconButton(onClick = onBack, modifier = Modifier.testTag(BarcodeScannerTestTags.BackButton)) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_arrow_left),
-                        contentDescription = stringResource(Res.string.pantry_back),
+                        contentDescription = stringResource(Res.string.common_back),
                     )
                 }
             },

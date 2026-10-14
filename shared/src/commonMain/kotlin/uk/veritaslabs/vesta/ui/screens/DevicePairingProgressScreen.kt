@@ -36,7 +36,7 @@ import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.device_pairing_progress_failed_title
 import vesta.shared.generated.resources.device_pairing_progress_retry
 import vesta.shared.generated.resources.device_pairing_progress_title
@@ -128,7 +128,7 @@ fun DevicePairingProgressScreen(
                     modifier = Modifier.padding(top = 24.dp).testTag(DevicePairingProgressTestTags.RetryButton),
                 )
                 SecondaryButton(
-                    label = stringResource(Res.string.device_pairing_back),
+                    label = stringResource(Res.string.common_back),
                     onClick = onCancel,
                     modifier = Modifier.padding(top = 8.dp).testTag(DevicePairingProgressTestTags.BackButton),
                 )

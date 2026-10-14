@@ -77,7 +77,7 @@ import vesta.shared.generated.resources.task_edit_assign
 import vesta.shared.generated.resources.task_edit_assign_done
 import vesta.shared.generated.resources.task_edit_assign_hint
 import vesta.shared.generated.resources.task_edit_assign_title
-import vesta.shared.generated.resources.task_edit_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.task_edit_clear_date
 import vesta.shared.generated.resources.task_edit_clear_time
 import vesta.shared.generated.resources.task_edit_delete
@@ -166,7 +166,7 @@ fun TaskEditScreen(
                 title = { Text(stringResource(if (task == null) Res.string.task_edit_add_title else Res.string.task_edit_edit_title)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel, modifier = Modifier.testTag(TaskEditTestTags.CancelButton)) {
-                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.task_edit_cancel))
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.common_cancel))
                     }
                 },
                 actions = {

@@ -171,7 +171,7 @@ fun ProfilePickerScreen(
     }
 
     profileForActions?.let { actionsTarget ->
-        val sheetState = rememberModalBottomSheetState()
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = { profileForActions = null },
             sheetState = sheetState,

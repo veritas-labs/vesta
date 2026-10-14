@@ -45,7 +45,7 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.calendar_months
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.meal_planner_copy_already
-import vesta.shared.generated.resources.meal_planner_copy_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.meal_planner_copy_confirm
 import vesta.shared.generated.resources.meal_planner_copy_title
 import vesta.shared.generated.resources.meal_planner_day_heading
@@ -57,7 +57,7 @@ import vesta.shared.generated.resources.meal_planner_weekdays
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object MealPlannerCopyTestTags {
     const val Screen = "meal_planner_copy_screen"
-    const val BackButton = "meal_planner_copy_back"
+    const val BackButton = "common_back"
     const val Confirm = "meal_planner_copy_confirm"
 
     private fun dateTag(date: CalendarDate) = "${date.year}-${date.month}-${date.day}"
@@ -121,7 +121,7 @@ fun MealPlannerCopyScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(MealPlannerCopyTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.meal_planner_copy_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

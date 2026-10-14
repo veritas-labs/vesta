@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,11 +54,11 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.pantry_categories_add_category
 import vesta.shared.generated.resources.pantry_categories_add_confirm
 import vesta.shared.generated.resources.pantry_categories_add_subcategory
-import vesta.shared.generated.resources.pantry_categories_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.pantry_categories_empty_subtitle
 import vesta.shared.generated.resources.pantry_categories_empty_title
 import vesta.shared.generated.resources.pantry_categories_name_label
@@ -145,7 +146,7 @@ fun PantryCategoriesScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(PantryCategoriesTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.pantry_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -166,7 +167,7 @@ fun PantryCategoriesScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = FabClearance),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(categories, key = { it.name }) { category ->
@@ -294,7 +295,7 @@ fun PantryCategoriesScreen(
                 ) { Text(stringResource(Res.string.pantry_categories_remove_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { removing = null }) { Text(stringResource(Res.string.pantry_categories_cancel)) }
+                TextButton(onClick = { removing = null }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -323,7 +324,7 @@ private fun CategoryNameDialog(title: String, onConfirm: (String) -> Unit, onDis
             ) { Text(stringResource(Res.string.pantry_categories_add_confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.pantry_categories_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) }
         },
     )
 }

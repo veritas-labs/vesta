@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,7 +51,7 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.calendar_weekdays
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.meal_planner_day_heading
-import vesta.shared.generated.resources.meal_planner_pick_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.meal_planner_pick_empty_cookbook
 import vesta.shared.generated.resources.meal_planner_pick_for
 import vesta.shared.generated.resources.meal_planner_pick_no_matches
@@ -116,7 +117,7 @@ fun MealPlannerPickerScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(MealPlannerPickerTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.meal_planner_pick_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -167,7 +168,7 @@ fun MealPlannerPickerScreen(
 
 @Composable
 private fun PickableRecipeRow(recipe: Recipe, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    OutlinedCard(modifier = modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)) {
         Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             recipe.media.firstNotNullOfOrNull { if (it.kind == MediaKind.Photo) it.blob else null }?.let { photo ->
                 BlobImage(photo, Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).testTag(MealPlannerPickerTestTags.thumbnail(recipe.key)))

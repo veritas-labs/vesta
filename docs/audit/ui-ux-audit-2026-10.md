@@ -10,6 +10,17 @@ conclusions I could not confirm. File and line references are as of commit `e6a3
 - **H1 fixed:** Delete Home asks first, from both the dashboard menu and the Edit Home menu.
 - **H2 and H3 fixed with undo:** deleting a task, calendar event, pantry item, shopping item (including swipe-to-delete) now shows an "… deleted" snackbar with Undo (`ui/components/Undo.kt`, host in `App.kt`). Undo puts the task or event back with the same id, a pantry item back with its stock, and a shopping item back with how much was picked up (from the list; the edit form restores the item without progress). Only the latest delete can be undone. Recipe, merchant, member, hub and other deletes keep their confirm dialogs. Profile delete is not wired into the app, so it was left alone.
 
+## Status of the medium items
+
+- **M7 done:** one `common_back` and `common_cancel` replace 32 duplicate strings; "home" is now "Home" throughout the app's own wording. Create/Add and Delete/Remove/Leave wording was left as is (each is used consistently within its own area).
+- **M9 done:** every plain `.clickable` row or tile now has `role = Button`.
+- **M6 done:** the Meal planner remove button is back to the 48dp minimum. The chip trailing X icons and colour swatches are inside chips whose whole surface is the tap target, so they were not a problem.
+- **M8 done:** the Shopping, Calendar, Tasks and Marketplace tile colours are darkened so their white icons reach 3:1; the Meal planner tile is now lavender, so it no longer matches the Cookbook's coral; the duplicated status green is one `ConnectedGreen`.
+- **M2 done:** the Home, Pantry/Shopping item and Assistant edit screens now use the close (X) icon like the other forms.
+- **M3 done:** the 88dp FAB clearance is one `FabClearance` constant (it was already the same everywhere).
+- **M5 partly done:** the profile picker sheet opens fully expanded (it is not wired into the app). Date/time pickers, member pickers and meal-planner screens still differ.
+- **Not done, needs a design call or a look at the running app:** M1 (top-bar title treatments and the Shopping glow), M4 (Save button spacing, a pinned Save on long forms and an unsaved-changes warning).
+
 ## Summary
 
 The app has a coherent visual language: theme tokens, the art-paper illustrations, one `EmptyState` component, shared

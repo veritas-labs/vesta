@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -58,7 +59,7 @@ import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.pantry_add_item
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.pantry_categories_title
 import vesta.shared.generated.resources.pantry_category_empty
 import vesta.shared.generated.resources.pantry_empty_subtitle
@@ -223,7 +224,7 @@ fun PantryScreen(
                         IconButton(onClick = onBack, modifier = Modifier.testTag(PantryTestTags.BackButton)) {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_arrow_left),
-                                contentDescription = stringResource(Res.string.pantry_back),
+                                contentDescription = stringResource(Res.string.common_back),
                             )
                         }
                     }
@@ -288,7 +289,7 @@ fun PantryScreen(
 
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(top = 4.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = FabClearance),
                 ) {
                     categories.forEach { category ->
                         item(key = "header_$category") {

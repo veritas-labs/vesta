@@ -26,7 +26,7 @@ import uk.veritaslabs.vesta.ui.components.ActionCard
 import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.device_pairing_generate_body
 import vesta.shared.generated.resources.device_pairing_generate_title
 import vesta.shared.generated.resources.device_pairing_paste_body
@@ -76,7 +76,7 @@ fun DevicePairingScreen(
             ) {
                 Icon(
                     painter = painterResource(Res.drawable.ic_arrow_left),
-                    contentDescription = stringResource(Res.string.device_pairing_back),
+                    contentDescription = stringResource(Res.string.common_back),
                 )
             }
         }

@@ -43,7 +43,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_tag
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.shopping_filter_hide_checked
 import vesta.shared.generated.resources.shopping_filter_label
 import vesta.shared.generated.resources.shopping_filter_no_tags
@@ -106,7 +106,7 @@ fun ShoppingListFilterScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(ShoppingListFilterTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.pantry_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },

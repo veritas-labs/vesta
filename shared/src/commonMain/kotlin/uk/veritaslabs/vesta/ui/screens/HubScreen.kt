@@ -47,10 +47,10 @@ import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.hub_add_another
 import vesta.shared.generated.resources.hub_body
-import vesta.shared.generated.resources.hub_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.hub_candidates_body
 import vesta.shared.generated.resources.hub_candidates_title
 import vesta.shared.generated.resources.hub_connected
@@ -192,7 +192,7 @@ fun HubScreen(
             onClick = onBack,
             modifier = Modifier.align(Alignment.TopStart).safeDrawingPadding().testTag(HubTestTags.BackButton),
         ) {
-            Icon(painter = painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.device_pairing_back))
+            Icon(painter = painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
         }
     }
 }
@@ -343,7 +343,7 @@ internal fun RecordedHub(hub: HubItem, onRemove: () -> Unit) {
                     modifier = Modifier.testTag(HubTestTags.ConfirmRemove),
                 ) { Text(stringResource(Res.string.hub_remove)) }
             },
-            dismissButton = { TextButton(onClick = { confirming = false }) { Text(stringResource(Res.string.hub_cancel)) } },
+            dismissButton = { TextButton(onClick = { confirming = false }) { Text(stringResource(Res.string.common_cancel)) } },
         )
     }
 }

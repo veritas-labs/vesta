@@ -7,17 +7,17 @@
     <string name="profile_picker_edit_profile">Edit profile</string>
     <string name="profile_picker_delete_profile">Delete profile</string>
 
-    <string name="onboarding_title">Choose a home</string>
+    <string name="onboarding_title">Choose a Home</string>
     <string name="onboarding_empty_title">Welcome to Vesta</string>
     <string name="onboarding_empty_subtitle">Organise your home</string>
-    <string name="onboarding_create_home">Create a home</string>
+    <string name="onboarding_create_home">Create a Home</string>
     <string name="onboarding_pair_device">Pair device</string>
-    <string name="onboarding_join_home">Join a home</string>
+    <string name="onboarding_join_home">Join a Home</string>
     <string name="onboarding_pair_device_description">Pair this device with your other devices.</string>
     <string name="onboarding_join_home_description">Use an invite link from an admin.</string>
     <string name="onboarding_get_started">Get started</string>
-    <string name="onboarding_edit_home">Edit home</string>
-    <string name="onboarding_delete_home">Delete home</string>
+    <string name="onboarding_edit_home">Edit Home</string>
+    <string name="onboarding_delete_home">Delete Home</string>
 
     <string name="device_pairing_generate_title">This is the new device</string>
     <string name="device_pairing_generate_body">Show a pairing link that a device you already use can read to pair with this one.</string>
@@ -32,7 +32,6 @@
     <string name="device_pairing_paste_submit">Pair device</string>
     <string name="device_pairing_paste_error_invalid">That doesn't look like a pairing link.</string>
     <string name="device_pairing_paste_error_expired">This pairing link has expired.</string>
-    <string name="device_pairing_back">Back</string>
     <string name="device_pairing_progress_title">Pairing device</string>
     <string name="device_pairing_progress_failed_title">Pairing didn't finish</string>
     <string name="device_pairing_progress_retry">Try again</string>
@@ -48,7 +47,6 @@
     <string name="device_pairing_redeemed_body">Your devices are now paired and will keep your Homes up to date.</string>
     <string name="device_pairing_done">Done</string>
 
-    <string name="home_dashboard_back">Back</string>
     <string name="home_dashboard_more_options">More options</string>
     <string name="home_dashboard_pantry_body">Track what you have</string>
     <string name="home_dashboard_shopping_body">What you need</string>
@@ -69,12 +67,11 @@
     <string name="members_role_member">Member</string>
     <string name="members_remove">Remove</string>
     <string name="members_remove_confirm_title">Remove %1$s?</string>
-    <string name="members_remove_confirm_body">They will lose access to this home on all their devices.</string>
+    <string name="members_remove_confirm_body">They will lose access to this Home on all their devices.</string>
     <string name="members_manage_make_admin">Make admin</string>
     <string name="members_manage_make_admin_body">%1$s will be able to invite people and change roles.</string>
     <string name="members_manage_remove_admin">Remove admin</string>
     <string name="members_manage_remove_admin_body">%1$s will become an ordinary member.</string>
-    <string name="member_detail_back">Back</string>
     <string name="member_detail_manage">Manage member</string>
     <string name="member_detail_agents_title">Devices</string>
     <string name="member_detail_agent_id">Agent</string>
@@ -87,13 +84,11 @@
     <string name="members_leave_confirm_title">Leave this Home?</string>
     <string name="members_leave_confirm_body">You will lose access to this Home on all your devices.</string>
     <string name="members_leave_confirm">Leave</string>
-    <string name="members_leave_cancel">Cancel</string>
     <string name="members_leave_blocked_title">You are the only admin</string>
     <string name="members_leave_blocked_body">Make someone else an admin before you leave this Home.</string>
     <string name="members_leave_blocked_ok">OK</string>
     <string name="home_picker_settings">Settings</string>
     <string name="settings_title">Settings</string>
-    <string name="settings_back">Back</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_vesta">Vesta</string>
@@ -109,7 +104,6 @@
     <string name="settings_open_source_licenses">Open source licences</string>
     <string name="settings_open_source_licenses_open">Show open source licences</string>
     <string name="licenses_title">Open source licences</string>
-    <string name="licenses_back">Back</string>
     <string name="licenses_intro">Vesta is free software under the Apache License 2.0; the name and logo are trademarks of Veritas Labs. It is built with these open source libraries.</string>
     <string name="licenses_empty">No licence information is available.</string>
     <string name="settings_synced_devices">Paired devices</string>
@@ -120,7 +114,6 @@
     <string name="settings_network_peers">Peers</string>
     <string name="settings_network_peers_open">Show peers</string>
     <string name="network_peers_title">Peers</string>
-    <string name="network_peers_back">Back</string>
     <string name="network_peers_you">You</string>
     <string name="network_peers_count">%1$d peers</string>
     <string name="network_peers_loading">Looking for peers…</string>
@@ -149,7 +142,6 @@
     <string name="network_peers_ago_hours">%1$d h ago</string>
     <string name="settings_network_status_open">Show network diagnostics</string>
     <string name="network_diagnostics_title">Network diagnostics</string>
-    <string name="network_diagnostics_back">Back</string>
     <string name="network_diagnostics_section_connection">Connection</string>
     <string name="network_diagnostics_section_traffic">Traffic</string>
     <string name="network_diagnostics_section_log">Activity</string>
@@ -179,7 +171,6 @@
     <string name="x0x_label">x0x</string>
     <string name="x0x_connectivity_offline">Not connected to the x0x network</string>
     <string name="pantry_title">Pantry</string>
-    <string name="pantry_back">Back</string>
     <string name="pantry_more_options">More options</string>
     <string name="pantry_add_item">Add pantry item</string>
     <string name="pantry_empty_title">Your pantry is empty</string>
@@ -207,7 +198,6 @@
     <string name="pantry_merchants_mode_remove_hint">Taken off every selected item that has them.</string>
     <string name="pantry_merchants_mode_replace_hint">Every selected item gets exactly this list, in this order. An empty list clears them.</string>
     <string name="pantry_merchants_apply">Apply</string>
-    <string name="pantry_merchants_cancel">Cancel</string>
 
     <string name="pantry_categories_title">Categories</string>
     <string name="pantry_categories_empty_title">No categories</string>
@@ -217,7 +207,6 @@
     <string name="pantry_categories_add_subcategory">Add subcategory</string>
     <string name="pantry_categories_name_label">Name</string>
     <string name="pantry_categories_add_confirm">Add</string>
-    <string name="pantry_categories_cancel">Cancel</string>
     <string name="pantry_categories_remove_category">Remove %1$s</string>
     <string name="pantry_categories_remove_subcategory">Remove %1$s</string>
     <string name="pantry_categories_remove_confirm_title">Remove %1$s?</string>
@@ -259,7 +248,6 @@
     <string name="shopping_delete_all_title">Delete all items?</string>
     <string name="shopping_delete_all_message">Every item will be removed from the shopping list.</string>
     <string name="shopping_delete_all_confirm">Delete all</string>
-    <string name="shopping_delete_all_cancel">Cancel</string>
     <string name="shopping_filter_label">Filter by tag</string>
     <string name="shopping_filter_merchants_label">Filter by merchant</string>
     <string name="shopping_filter_open">Filter options</string>
@@ -301,8 +289,8 @@
     <string name="pantry_edit_save">Save</string>
     <string name="pantry_edit_delete">Delete</string>
     <string name="pantry_edit_more_options">More options</string>
-    <string name="home_edit_create_title">Create a home</string>
-    <string name="home_edit_edit_title">Edit home</string>
+    <string name="home_edit_create_title">Create a Home</string>
+    <string name="home_edit_edit_title">Edit Home</string>
     <string name="home_edit_name_label">Home name</string>
     <string name="home_edit_name_helper">e.g. The Johnsons, Flat 4B, Mum's Place</string>
     <string name="home_edit_name_error">Name must be 2–50 characters</string>
@@ -315,11 +303,10 @@
     <string name="home_edit_shape_single_support_description">Living on your own, with people helping out</string>
     <string name="home_edit_shape_other">Other</string>
     <string name="home_edit_shape_other_description">Something else entirely</string>
-    <string name="home_edit_save_create">Create home</string>
+    <string name="home_edit_save_create">Create Home</string>
     <string name="home_edit_save">Save</string>
-    <string name="home_edit_delete">Delete home</string>
+    <string name="home_edit_delete">Delete Home</string>
     <string name="home_edit_more_options">More options</string>
-    <string name="home_edit_back">Back</string>
 
     <string name="assistant_request_title">%1$s wants to act for your household</string>
     <string name="assistant_request_body">It is trusted on your x0x network, but it has no access yet. Review what it may do, or deny it.</string>
@@ -330,7 +317,6 @@
     <string name="agent_approval_deny">Deny</string>
 
     <string name="synced_devices_title">Paired devices</string>
-    <string name="synced_devices_back">Back</string>
     <string name="synced_devices_empty_title">No paired devices</string>
     <string name="synced_devices_empty_subtitle">Pair another phone, tablet or computer so your Homes stay up to date across all your devices.</string>
     <string name="synced_devices_add">Pair device</string>
@@ -338,11 +324,10 @@
     <string name="synced_devices_remove_confirm_title">Remove device?</string>
     <string name="synced_devices_remove_confirm_body">%1$s will no longer be paired with this device. You can pair it again later.</string>
     <string name="synced_devices_remove_confirm">Remove</string>
-    <string name="synced_devices_remove_cancel">Cancel</string>
     <string name="profile_name_title_setup">What should we call you?</string>
-    <string name="profile_name_body_setup">This is how other people see you in a home. You can change it later in Settings.</string>
+    <string name="profile_name_body_setup">This is how other people see you in a Home. You can change it later in Settings.</string>
     <string name="profile_name_title_rename">Your name</string>
-    <string name="profile_name_body_rename">This is how other people see you in a home.</string>
+    <string name="profile_name_body_rename">This is how other people see you in a Home.</string>
     <string name="profile_name_field_label">Display name</string>
     <string name="profile_name_counter">%1$d/%2$d</string>
     <string name="profile_name_error">Use %1$d to %2$d characters.</string>
@@ -356,7 +341,7 @@
     <string name="members_request_approve">Approve</string>
     <string name="members_request_decline">Decline</string>
     <string name="invite_links_title">Manage links</string>
-    <string name="invite_links_body">Anyone with a link can ask to join this home. You approve each request.</string>
+    <string name="invite_links_body">Anyone with a link can ask to join this Home. You approve each request.</string>
     <string name="invite_links_manage">Manage links</string>
     <string name="invite_links_create_failed">The invite link could not be made. Only an admin can make one.</string>
     <string name="invite_links_active_title">Active links</string>
@@ -368,28 +353,27 @@
     <string name="invite_links_created_body">Show this to the person joining, or send them the link. When they open it you will be asked to approve them.</string>
     <string name="hub_menu_item">Manage hubs</string>
     <string name="hub_title">Always-on hub</string>
-    <string name="hub_body">A computer that is nearly always on keeps this home in sync when nobody has the app open at the same time. It runs the plain x0x program, not Vesta.</string>
-    <string name="hub_unavailable">An admin can set up a hub once this home's group is ready on this device. Try again in a moment.</string>
+    <string name="hub_body">A computer that is nearly always on keeps this Home in sync when nobody has the app open at the same time. It runs the plain x0x program, not Vesta.</string>
+    <string name="hub_unavailable">An admin can set up a hub once this Home's group is ready on this device. Try again in a moment.</string>
     <string name="hub_requirement">On that computer, install x0x version 0.46.3 or newer, then run these two commands:</string>
     <string name="hub_copy_commands">Copy commands</string>
-    <string name="hub_trust_note">The hub can read everything in this home, like any member. Use a computer you trust.</string>
+    <string name="hub_trust_note">The hub can read everything in this Home, like any member. Use a computer you trust.</string>
     <string name="hub_waiting">Waiting for the hub to join…</string>
     <string name="hub_candidates_title">Joined the group</string>
     <string name="hub_candidates_body">Only choose a computer you have just set up.</string>
     <string name="hub_use_candidate">Use as hub</string>
-    <string name="hub_connected">In this home's group</string>
+    <string name="hub_connected">In this Home's group</string>
     <string name="hub_not_connected">Not in the group right now</string>
     <string name="hub_remove">Remove hub</string>
     <string name="hub_remove_confirm_title">Remove hub %1$s?</string>
-    <string name="hub_remove_confirm_body">It leaves this home's group and cannot read anything new. What it already has stays on that computer.</string>
+    <string name="hub_remove_confirm_body">It leaves this Home's group and cannot read anything new. What it already has stays on that computer.</string>
     <string name="hub_failed">That did not work. Try again.</string>
-    <string name="hub_cancel">Cancel</string>
     <string name="hub_add_another">Add another hub</string>
-    <string name="hub_device_note">This is one of your own devices. Removing it as a hub keeps it in this home.</string>
-    <string name="hub_remove_device_confirm_body">It stops being a hub but stays in this home's group as your device.</string>
+    <string name="hub_device_note">This is one of your own devices. Removing it as a hub keeps it in this Home.</string>
+    <string name="hub_remove_device_confirm_body">It stops being a hub but stays in this Home's group as your device.</string>
     <string name="hub_own_title">Your devices</string>
-    <string name="hub_own_body">A computer of yours that runs Vesta can be a hub too, and keeps this home in sync while Vesta is closed.</string>
-    <string name="redeem_invite_title">Join a home</string>
+    <string name="hub_own_body">A computer of yours that runs Vesta can be a hub too, and keeps this Home in sync while Vesta is closed.</string>
+    <string name="redeem_invite_title">Join a Home</string>
     <string name="redeem_invite_body">Paste the invite link an admin sent you, or scan its QR code. An admin then approves your request.</string>
     <string name="redeem_invite_field_label">Invite link</string>
     <string name="redeem_invite_scan">Scan QR code</string>
@@ -397,7 +381,7 @@
     <string name="redeem_invite_progress">Sending your request…</string>
     <string name="redeem_invite_error_invalid">That is not a Vesta invite link.</string>
     <string name="redeem_invite_error_expired">That link has expired. Ask the admin for a new one.</string>
-    <string name="redeem_invite_error_already_in_home">You are already in this home.</string>
+    <string name="redeem_invite_error_already_in_home">You are already in this Home.</string>
     <string name="redeem_invite_error_failed">The request could not be sent. Try again.</string>
     <string name="pending_join_no_network">Waiting for a network connection…</string>
     <string name="pending_join_waiting">Waiting for an admin to approve you…</string>
@@ -405,7 +389,6 @@
     <string name="pending_join_denied_revoked">That invite link was cancelled.</string>
     <string name="pending_join_denied_used">That invite link has already been used.</string>
     <string name="pending_join_denied_declined">An admin declined your request.</string>
-    <string name="pending_join_cancel">Cancel</string>
     <string name="pending_join_dismiss">Dismiss</string>
 
     <!-- Hub manager -->
@@ -413,7 +396,7 @@
     <string name="hub_manager_how_title">How do hubs work?</string>
     <string name="hub_manager_setup_title">Set up a hub</string>
     <string name="hub_manager_empty_title">No hubs yet</string>
-    <string name="hub_manager_empty_body">A hub keeps this home in sync when nobody has the app open at the same time. Set one up on a computer that is nearly always on.</string>
+    <string name="hub_manager_empty_body">A hub keeps this Home in sync when nobody has the app open at the same time. Set one up on a computer that is nearly always on.</string>
 
     <!-- Hub tutorial -->
     <string name="hub_tutorial_skip">Skip</string>
@@ -422,7 +405,7 @@
     <string name="hub_tutorial_finish">Set up a hub</string>
     <string name="hub_tutorial_page_of">Page %1$d of %2$d</string>
     <string name="hub_tutorial_what_title">What is a hub?</string>
-    <string name="hub_tutorial_what_body">A hub is a computer that stays on and keeps a copy of this home's shared data, so there is always something there to hand changes over.</string>
+    <string name="hub_tutorial_what_body">A hub is a computer that stays on and keeps a copy of this Home's shared data, so there is always something there to hand changes over.</string>
     <string name="hub_tutorial_what_point_1">It runs a plain x0x daemon.</string>
     <string name="hub_tutorial_what_point_2">It needs no app, no account and no settings of its own.</string>
     <string name="hub_tutorial_why_title">Why is it useful?</string>
@@ -430,7 +413,7 @@
     <string name="hub_tutorial_why_point_1">Add milk at the shops and everyone sees it later.</string>
     <string name="hub_tutorial_why_point_2">Changes wait at the hub until someone collects them.</string>
     <string name="hub_tutorial_how_title">How does it work?</string>
-    <string name="hub_tutorial_how_body">The hub is an ordinary member of this home's private group. Other devices leave their changes with it and pick up other people's from it.</string>
+    <string name="hub_tutorial_how_body">The hub is an ordinary member of this Home's private group. Other devices leave their changes with it and pick up other people's from it.</string>
     <string name="hub_tutorial_how_point_1">Your device passes changes to the hub whenever it is online.</string>
     <string name="hub_tutorial_how_point_2">Everyone else collects them the next time they open Vesta.</string>
     <string name="hub_tutorial_how_point_3">Vesta must still be open on each device: a closed or sleeping device does not sync.</string>
@@ -445,7 +428,7 @@
     <string name="hub_tutorial_poor_point_2">A laptop that sleeps or travels with you.</string>
     <string name="hub_tutorial_poor_point_3">A computer on weak Wi-Fi, or one that is often off.</string>
     <string name="hub_tutorial_trust_title">Can I trust it?</string>
-    <string name="hub_tutorial_trust_body">A hub can read everything in this home, like any member. Choose a computer you trust and look after it as you would a phone that has this home on it.</string>
+    <string name="hub_tutorial_trust_body">A hub can read everything in this Home, like any member. Choose a computer you trust and look after it as you would a phone that has this Home on it.</string>
     <string name="hub_tutorial_trust_point_1">It cannot approve anyone: that still needs an admin's phone.</string>
     <string name="hub_tutorial_trust_point_2">It cannot run Vesta code.</string>
     <string name="hub_tutorial_trust_point_3">Remove it at any time and it cannot read anything new.</string>
@@ -487,12 +470,10 @@
     <string name="calendar_next_week">Next week</string>
     <string name="calendar_previous_month">Previous month</string>
     <string name="calendar_next_month">Next month</string>
-    <string name="calendar_back">Back</string>
     <string name="calendar_collapse">Collapse month</string>
     <string name="calendar_expand">Expand month</string>
     <string name="calendar_no_events">No events</string>
     <string name="calendar_pick_title">Go to month</string>
-    <string name="calendar_pick_cancel">Cancel</string>
     <string name="calendar_previous_year">Previous year</string>
     <string name="calendar_next_year">Next year</string>
     <string-array name="calendar_months">
@@ -545,7 +526,6 @@
     <string name="event_edit_participants_done">Done</string>
     <string name="event_edit_location">Add location</string>
     <string name="event_edit_description">Add description</string>
-    <string name="event_edit_cancel">Cancel</string>
     <string name="event_edit_save">Save</string>
     <string name="event_edit_delete">Delete</string>
     <string name="event_edit_pick_ok">OK</string>
@@ -563,7 +543,6 @@
         <item>Grey</item>
     </string-array>
     <string name="marketplace_title">Marketplace</string>
-    <string name="marketplace_back">Back</string>
     <string name="marketplace_local_merchants">Local Merchants</string>
     <string name="merchants_title">Merchants</string>
     <string name="merchants_add">Add merchant</string>
@@ -607,7 +586,6 @@
     <string name="merchant_delete_confirm_title">Delete this merchant?</string>
     <string name="merchant_delete_confirm_body">It will be removed from the Home on every device.</string>
     <string name="merchant_delete_confirm">Delete</string>
-    <string name="merchant_delete_cancel">Cancel</string>
     <string name="merchant_edit_add_title">Add merchant</string>
     <string name="merchant_edit_edit_title">Edit merchant</string>
     <string name="merchant_edit_name_label">Name</string>
@@ -630,7 +608,6 @@
     <string name="merchant_edit_agent_id_label">x0x agent ID</string>
     <string name="merchant_edit_hours_error">Enter times as HH:MM, opening before closing</string>
     <string name="merchant_edit_save">Save</string>
-    <string name="merchant_edit_cancel">Cancel</string>
     <string name="meal_planner_title">Meal planner</string>
     <string name="meal_planner_more_options">More options</string>
     <string name="meal_planner_view_required_items">View required items for current week</string>
@@ -656,7 +633,6 @@
     <string name="meal_planner_copy_title">Copy to other days</string>
     <string name="meal_planner_copy_already">Already planned</string>
     <string name="meal_planner_copy_confirm">Copy</string>
-    <string name="meal_planner_copy_back">Back</string>
     <string name="meal_planner_today">Today</string>
     <string name="meal_planner_none_planned">No meals planned yet</string>
     <string name="meal_planner_one_planned">1 recipe planned</string>
@@ -675,7 +651,6 @@
     <string name="meal_planner_pick_empty_cookbook">The cookbook has no recipes yet. Add some in the Cookbook first.</string>
     <string name="meal_planner_pick_no_matches">No recipes to add</string>
     <string name="meal_planner_pick_for">%1$s · %2$s</string>
-    <string name="meal_planner_pick_back">Back</string>
     <string name="meal_planner_eaters_everyone">Everyone</string>
     <string name="meal_planner_eaters_nobody">Nobody</string>
     <string name="meal_planner_eaters_edit">Change who is eating %1$s</string>
@@ -689,7 +664,6 @@
     <string name="meal_planner_eaters_rename_label">Name</string>
     <string name="meal_planner_eaters_save">Save</string>
     <string name="meal_planner_eaters_remove">Remove %1$s</string>
-    <string name="meal_planner_eaters_back">Back</string>
     <string name="meal_planner_eaters_for">%1$s · %2$s</string>
     <string name="cookbook_title">Cookbook</string>
     <string name="cookbook_add_recipe">Add recipe</string>
@@ -720,7 +694,6 @@
     <string name="recipe_delete_confirm_title">Delete this recipe?</string>
     <string name="recipe_delete_confirm_body">It will be removed from the cookbook on every device.</string>
     <string name="recipe_delete_confirm">Delete</string>
-    <string name="recipe_delete_cancel">Cancel</string>
     <string name="recipe_more_options">More options</string>
     <string name="recipe_time_prep">Prep</string>
     <string name="recipe_time_cook">Cook</string>
@@ -791,10 +764,8 @@
     <string name="recipe_edit_step_add">Add step</string>
     <string name="recipe_edit_step_remove">Remove step</string>
     <string name="recipe_edit_save">Save</string>
-    <string name="recipe_edit_cancel">Cancel</string>
     <string name="settings_assistants">Assistants</string>
     <string name="assistants_title">Assistants</string>
-    <string name="assistants_back">Back</string>
     <string name="assistants_add">Add assistant</string>
     <string name="assistants_empty_title">No assistants yet</string>
     <string name="assistants_empty_subtitle">An assistant is an AI agent you trust to do things for your household, like adding to the pantry. It never gets a copy of your data.</string>
@@ -819,7 +790,6 @@
     <string name="assistant_edit_remove_title">Remove this assistant?</string>
     <string name="assistant_edit_remove_body">%1$s will lose all access. Anything it already did stays.</string>
     <string name="assistant_edit_remove_confirm">Remove</string>
-    <string name="assistant_edit_remove_cancel">Cancel</string>
     <string name="assistant_activity">Activity</string>
     <string name="assistant_activity_empty">Nothing yet.</string>
     <string name="assistant_activity_rejected">Refused</string>
@@ -840,7 +810,6 @@
     <string name="tour_done_title">You’re all set</string>
     <string name="tour_done_body">Create your first Home, or join one with an invite link.</string>
     <string name="tour_next">Next</string>
-    <string name="tour_back">Back</string>
     <string name="tour_get_started">Get started</string>
     <string name="tour_close">Close</string>
     <string name="tour_page_of">Page %1$d of %2$d</string>
@@ -882,7 +851,6 @@
 
     <string name="task_edit_add_title">Add task</string>
     <string name="task_edit_edit_title">Edit task</string>
-    <string name="task_edit_cancel">Cancel</string>
     <string name="task_edit_delete">Delete task</string>
     <string name="task_edit_title_hint">What needs doing?</string>
     <string name="task_edit_description_hint">Notes</string>
@@ -906,6 +874,7 @@
     <string name="task_edit_assign_done">Done</string>
     <string name="task_edit_save">Save</string>
     <string name="task_edit_pick_ok">OK</string>
+    <string name="common_back">Back</string>
     <string name="common_cancel">Cancel</string>
     <string name="home_delete_confirm_title">Delete this Home?</string>
     <string name="home_delete_confirm_body">It and everything in it will be removed from this device, and for every member. This cannot be undone.</string>

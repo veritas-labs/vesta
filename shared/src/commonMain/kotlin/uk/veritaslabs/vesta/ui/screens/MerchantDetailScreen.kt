@@ -46,7 +46,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_dots_vertical
-import vesta.shared.generated.resources.merchant_delete_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.merchant_delete_confirm
 import vesta.shared.generated.resources.merchant_delete_confirm_body
 import vesta.shared.generated.resources.merchant_delete_confirm_title
@@ -60,7 +60,7 @@ import vesta.shared.generated.resources.merchant_detail_services
 import vesta.shared.generated.resources.merchant_edit_menu
 import vesta.shared.generated.resources.merchant_hours_closed
 import vesta.shared.generated.resources.merchant_more_options
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 
 private val MerchantDetailTabletBreakpoint = 600.dp
 private val MerchantDetailMaxContentWidth = 720.dp
@@ -122,7 +122,7 @@ fun MerchantDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(MerchantDetailTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 actions = {
@@ -234,7 +234,7 @@ fun MerchantDetailScreen(
                     Text(stringResource(Res.string.merchant_delete_confirm))
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmingDelete = false }) { Text(stringResource(Res.string.merchant_delete_cancel)) } },
+            dismissButton = { TextButton(onClick = { confirmingDelete = false }) { Text(stringResource(Res.string.common_cancel)) } },
         )
     }
 }

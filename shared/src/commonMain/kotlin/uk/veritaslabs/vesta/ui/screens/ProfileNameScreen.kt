@@ -41,7 +41,7 @@ import vesta.shared.generated.resources.profile_name_save
 import vesta.shared.generated.resources.profile_name_setup_continue
 import vesta.shared.generated.resources.profile_name_title_rename
 import vesta.shared.generated.resources.profile_name_title_setup
-import vesta.shared.generated.resources.settings_back
+import vesta.shared.generated.resources.common_back
 
 private val ProfileNameTabletBreakpoint = 600.dp
 
@@ -83,7 +83,7 @@ fun ProfileNameScreen(
         ) {
             Icon(
                 painter = painterResource(Res.drawable.ic_arrow_left),
-                contentDescription = stringResource(Res.string.settings_back),
+                contentDescription = stringResource(Res.string.common_back),
             )
         }
 

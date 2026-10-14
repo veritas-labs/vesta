@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -33,7 +34,7 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_chevron_right
 import vesta.shared.generated.resources.ic_merchants
-import vesta.shared.generated.resources.marketplace_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.marketplace_local_merchants
 import vesta.shared.generated.resources.marketplace_title
 
@@ -64,7 +65,7 @@ fun MarketplaceScreen(
             title = { Text(stringResource(Res.string.marketplace_title)) },
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(MarketplaceTestTags.BackButton)) {
-                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.marketplace_back))
+                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -76,7 +77,7 @@ fun MarketplaceScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onLocalMerchantsClick)
+                .clickable(role = Role.Button, onClick = onLocalMerchantsClick)
                 .padding(horizontal = 16.dp, vertical = 16.dp)
                 .testTag(MarketplaceTestTags.LocalMerchants),
             verticalAlignment = Alignment.CenterVertically,

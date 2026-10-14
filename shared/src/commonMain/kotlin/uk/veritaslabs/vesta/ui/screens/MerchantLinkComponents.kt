@@ -46,7 +46,7 @@ import vesta.shared.generated.resources.pantry_buy_from_move_up
 import vesta.shared.generated.resources.pantry_buy_from_none
 import vesta.shared.generated.resources.pantry_buy_from_remove
 import vesta.shared.generated.resources.pantry_merchants_apply
-import vesta.shared.generated.resources.pantry_merchants_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.pantry_merchants_dialog_title
 import vesta.shared.generated.resources.pantry_merchants_mode_add
 import vesta.shared.generated.resources.pantry_merchants_mode_add_hint
@@ -214,7 +214,7 @@ fun MerchantLinkDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss, modifier = Modifier.testTag(MerchantLinkTestTags.Cancel)) {
-                Text(stringResource(Res.string.pantry_merchants_cancel))
+                Text(stringResource(Res.string.common_cancel))
             }
         },
     )

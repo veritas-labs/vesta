@@ -76,7 +76,7 @@ import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.recipe_edit_add_title
-import vesta.shared.generated.resources.recipe_edit_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.recipe_edit_cook_label
 import vesta.shared.generated.resources.recipe_edit_description_label
 import vesta.shared.generated.resources.recipe_edit_edit_title
@@ -296,7 +296,7 @@ fun RecipeEditScreen(
                     onClick = { importOpen = false },
                     enabled = !importing,
                     modifier = Modifier.testTag(RecipeEditTestTags.ImportCancelButton),
-                ) { Text(stringResource(Res.string.recipe_edit_cancel)) }
+                ) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -308,7 +308,7 @@ fun RecipeEditScreen(
                 title = { Text(stringResource(if (recipe == null) Res.string.recipe_edit_add_title else Res.string.recipe_edit_edit_title)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel, modifier = Modifier.testTag(RecipeEditTestTags.CancelButton)) {
-                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.recipe_edit_cancel))
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.common_cancel))
                     }
                 },
                 actions = {

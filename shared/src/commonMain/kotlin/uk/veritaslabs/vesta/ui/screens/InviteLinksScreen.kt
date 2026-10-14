@@ -39,7 +39,7 @@ import uk.veritaslabs.vesta.homejoin.InviteLinksUiState
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.invite_links_active_title
 import vesta.shared.generated.resources.invite_links_body
@@ -145,7 +145,7 @@ private fun BackArrow(onBack: () -> Unit, modifier: Modifier) {
     IconButton(onClick = onBack, modifier = modifier.safeDrawingPadding().testTag(InviteLinksTestTags.BackButton)) {
         Icon(
             painter = painterResource(Res.drawable.ic_arrow_left),
-            contentDescription = stringResource(Res.string.device_pairing_back),
+            contentDescription = stringResource(Res.string.common_back),
         )
     }
 }

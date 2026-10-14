@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,11 +51,11 @@ import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.synced_devices_add
-import vesta.shared.generated.resources.synced_devices_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.synced_devices_empty_subtitle
 import vesta.shared.generated.resources.synced_devices_empty_title
 import vesta.shared.generated.resources.synced_devices_remove
-import vesta.shared.generated.resources.synced_devices_remove_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.synced_devices_remove_confirm
 import vesta.shared.generated.resources.synced_devices_remove_confirm_body
 import vesta.shared.generated.resources.synced_devices_remove_confirm_title
@@ -103,7 +104,7 @@ fun SettingsSyncedDevicesScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(SyncedDevicesTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.synced_devices_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -131,7 +132,7 @@ fun SettingsSyncedDevicesScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding),
-                    contentPadding = PaddingValues(top = 4.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = FabClearance),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(devices, key = { it.agentId }) { device ->
@@ -174,7 +175,7 @@ fun SettingsSyncedDevicesScreen(
                 ) { Text(stringResource(Res.string.synced_devices_remove_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { removing = null }) { Text(stringResource(Res.string.synced_devices_remove_cancel)) }
+                TextButton(onClick = { removing = null }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }

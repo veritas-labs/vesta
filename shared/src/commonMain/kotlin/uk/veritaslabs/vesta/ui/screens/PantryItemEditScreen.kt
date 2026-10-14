@@ -67,14 +67,12 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.pantry_edit_add_title
 import vesta.shared.generated.resources.pantry_edit_barcode_label
 import vesta.shared.generated.resources.pantry_edit_barcode_scan
-import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_scan
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_tag
 import vesta.shared.generated.resources.pantry_stock_decrease
 import vesta.shared.generated.resources.pantry_stock_increase
-import vesta.shared.generated.resources.pantry_back
 import vesta.shared.generated.resources.pantry_buy_from_label
 import vesta.shared.generated.resources.pantry_edit_delete
 import vesta.shared.generated.resources.ic_dots_vertical
@@ -98,6 +96,7 @@ import vesta.shared.generated.resources.shopping_tag_remove
 import vesta.shared.generated.resources.shopping_tags_add
 import vesta.shared.generated.resources.shopping_tags_hint
 import vesta.shared.generated.resources.shopping_tags_label
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.ic_close
 
 private val PantryItemEditTabletBreakpoint = 600.dp
@@ -329,8 +328,8 @@ fun PantryItemEditScreen(
                 navigationIcon = {
                     IconButton(onClick = onCancel, modifier = Modifier.testTag(PantryItemEditTestTags.BackButton)) {
                         Icon(
-                            painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.pantry_back),
+                            painter = painterResource(Res.drawable.ic_close),
+                            contentDescription = stringResource(Res.string.common_cancel),
                         )
                     }
                 },

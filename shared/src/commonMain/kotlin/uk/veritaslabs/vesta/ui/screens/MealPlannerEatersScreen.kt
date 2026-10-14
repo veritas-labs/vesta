@@ -50,7 +50,7 @@ import vesta.shared.generated.resources.ic_trash
 import vesta.shared.generated.resources.meal_planner_day_heading
 import vesta.shared.generated.resources.meal_planner_eaters_add
 import vesta.shared.generated.resources.meal_planner_eaters_add_label
-import vesta.shared.generated.resources.meal_planner_eaters_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.meal_planner_eaters_for
 import vesta.shared.generated.resources.meal_planner_eaters_guests
 import vesta.shared.generated.resources.meal_planner_eaters_members
@@ -65,7 +65,7 @@ import vesta.shared.generated.resources.meal_planner_pick_for
 /** Stable hooks for UI tests to target, independent of displayed copy or names. */
 internal object MealPlannerEatersTestTags {
     const val Screen = "meal_planner_eaters_screen"
-    const val BackButton = "meal_planner_eaters_back"
+    const val BackButton = "common_back"
     const val AddField = "meal_planner_eaters_add_field"
     const val AddButton = "meal_planner_eaters_add_button"
     const val RenameField = "meal_planner_eaters_rename_field"
@@ -140,7 +140,7 @@ fun MealPlannerEatersScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(MealPlannerEatersTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.meal_planner_eaters_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -263,7 +263,7 @@ private fun PersonRow(
                 .weight(1f)
                 .let {
                     if (onRename == null) it.clickable(role = Role.Checkbox, onClick = onToggle)
-                    else it.clickable(onClickLabel = stringResource(Res.string.meal_planner_eaters_rename, person.name), onClick = onRename)
+                    else it.clickable(role = Role.Button, onClickLabel = stringResource(Res.string.meal_planner_eaters_rename, person.name), onClick = onRename)
                         .testTag(MealPlannerEatersTestTags.rename(person.ref))
                 }
                 .padding(vertical = 12.dp),

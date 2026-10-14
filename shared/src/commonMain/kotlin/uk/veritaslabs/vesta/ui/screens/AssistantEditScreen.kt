@@ -59,7 +59,8 @@ import vesta.shared.generated.resources.assistant_edit_no_homes
 import vesta.shared.generated.resources.assistant_edit_pantry_add
 import vesta.shared.generated.resources.assistant_edit_remove
 import vesta.shared.generated.resources.assistant_edit_remove_body
-import vesta.shared.generated.resources.assistant_edit_remove_cancel
+import vesta.shared.generated.resources.ic_close
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.assistant_edit_remove_confirm
 import vesta.shared.generated.resources.assistant_edit_remove_title
 import vesta.shared.generated.resources.assistant_edit_save
@@ -68,8 +69,6 @@ import vesta.shared.generated.resources.assistant_edit_trust_title
 import vesta.shared.generated.resources.assistant_edit_trust_other_way
 import vesta.shared.generated.resources.assistant_edit_trust_body
 import vesta.shared.generated.resources.assistant_edit_title_new
-import vesta.shared.generated.resources.assistants_back
-import vesta.shared.generated.resources.ic_arrow_left
 
 private val AssistantEditTabletBreakpoint = 600.dp
 
@@ -130,8 +129,8 @@ fun AssistantEditScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(AssistantEditTestTags.BackButton)) {
                         Icon(
-                            painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.assistants_back),
+                            painter = painterResource(Res.drawable.ic_close),
+                            contentDescription = stringResource(Res.string.common_cancel),
                         )
                     }
                 },
@@ -232,7 +231,7 @@ fun AssistantEditScreen(
                 ) { Text(stringResource(Res.string.assistant_edit_remove_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { removing = false }) { Text(stringResource(Res.string.assistant_edit_remove_cancel)) }
+                TextButton(onClick = { removing = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }

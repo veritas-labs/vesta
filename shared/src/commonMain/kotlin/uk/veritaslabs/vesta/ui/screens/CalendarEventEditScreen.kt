@@ -87,7 +87,7 @@ import vesta.shared.generated.resources.event_edit_all_day
 import vesta.shared.generated.resources.event_edit_calendar_home
 import vesta.shared.generated.resources.event_edit_calendar_private
 import vesta.shared.generated.resources.event_edit_calendar_private_note
-import vesta.shared.generated.resources.event_edit_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.event_edit_close
 import vesta.shared.generated.resources.event_edit_colour
 import vesta.shared.generated.resources.event_edit_delete
@@ -193,7 +193,7 @@ fun CalendarEventEditScreen(
                 title = { Text(stringResource(if (event == null) Res.string.event_edit_add_title else Res.string.event_edit_edit_title)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel, modifier = Modifier.testTag(EventEditTestTags.CancelButton)) {
-                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.event_edit_cancel))
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.common_cancel))
                     }
                 },
                 actions = {
@@ -553,7 +553,7 @@ internal fun DatePickerPopup(initial: CalendarDate, onPick: (CalendarDate) -> Un
                 modifier = Modifier.testTag(EventEditTestTags.PickerOk),
             ) { Text(stringResource(Res.string.event_edit_pick_ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.event_edit_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) } },
     ) { DatePicker(state = state) }
 }
 
@@ -567,7 +567,7 @@ internal fun TimePickerPopup(initial: Int, onPick: (Int) -> Unit, onDismiss: () 
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 TimePicker(state = state, layoutType = TimePickerLayoutType.Vertical)
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                    TextButton(onClick = onDismiss) { Text(stringResource(Res.string.event_edit_cancel)) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) }
                     TextButton(onClick = { onPick(state.hour * 60 + state.minute) }, modifier = Modifier.testTag(EventEditTestTags.PickerOk)) {
                         Text(stringResource(Res.string.event_edit_pick_ok))
                     }

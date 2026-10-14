@@ -32,7 +32,7 @@ import uk.veritaslabs.vesta.licenses.OpenSourceLicense
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
-import vesta.shared.generated.resources.licenses_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.licenses_empty
 import vesta.shared.generated.resources.licenses_intro
 import vesta.shared.generated.resources.licenses_title
@@ -67,7 +67,7 @@ fun OpenSourceLicensesScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(OpenSourceLicensesTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.licenses_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },

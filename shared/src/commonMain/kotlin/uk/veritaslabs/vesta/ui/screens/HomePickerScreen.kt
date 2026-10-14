@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -64,7 +65,7 @@ import vesta.shared.generated.resources.home_picker_settings
 import vesta.shared.generated.resources.img_vesta_line
 import vesta.shared.generated.resources.img_vesta_line_dark
 import vesta.shared.generated.resources.onboarding_create_home
-import vesta.shared.generated.resources.pending_join_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.pending_join_denied_declined
 import vesta.shared.generated.resources.pending_join_denied_expired
 import vesta.shared.generated.resources.pending_join_denied_revoked
@@ -262,7 +263,7 @@ fun HomePickerScreen(
                                 .then(if (isTablet) Modifier.fillMaxHeight().heightIn(min = 184.dp) else Modifier.height(64.dp))
                                 .clip(shape)
                                 .background(MaterialTheme.colorScheme.primary)
-                                .clickable(onClick = onCreateHome)
+                                .clickable(role = Role.Button, onClick = onCreateHome)
                                 .testTag(HomePickerTestTags.CreateHomeButton),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -339,7 +340,7 @@ private fun PendingJoinCard(join: PendingJoin, networkConnected: Boolean, onCanc
                 )
             }
             TextButton(onClick = onCancel, modifier = Modifier.testTag(HomePickerTestTags.pendingJoinCancel(join.homeId))) {
-                Text(stringResource(if (join.denial == null) Res.string.pending_join_cancel else Res.string.pending_join_dismiss))
+                Text(stringResource(if (join.denial == null) Res.string.common_cancel else Res.string.pending_join_dismiss))
             }
         }
     }

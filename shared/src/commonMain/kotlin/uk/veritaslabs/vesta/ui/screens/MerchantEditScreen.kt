@@ -49,7 +49,7 @@ import vesta.shared.generated.resources.merchant_edit_add_range
 import vesta.shared.generated.resources.merchant_edit_add_title
 import vesta.shared.generated.resources.merchant_edit_address_label
 import vesta.shared.generated.resources.merchant_edit_agent_id_label
-import vesta.shared.generated.resources.merchant_edit_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.merchant_edit_close_label
 import vesta.shared.generated.resources.merchant_edit_coordinates_error
 import vesta.shared.generated.resources.merchant_edit_custom_services_label
@@ -157,7 +157,7 @@ fun MerchantEditScreen(
                 title = { Text(stringResource(if (merchant == null) Res.string.merchant_edit_add_title else Res.string.merchant_edit_edit_title)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel, modifier = Modifier.testTag(MerchantEditTestTags.CancelButton)) {
-                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.merchant_edit_cancel))
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.common_cancel))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

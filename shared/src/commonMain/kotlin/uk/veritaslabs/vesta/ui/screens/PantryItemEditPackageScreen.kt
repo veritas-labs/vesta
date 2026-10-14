@@ -43,7 +43,7 @@ import uk.veritaslabs.vesta.ui.components.vestaFilterChipColors
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.pantry_edit_package_done
 import vesta.shared.generated.resources.pantry_edit_package_loose
 import vesta.shared.generated.resources.pantry_edit_package_packaged
@@ -110,7 +110,7 @@ fun PantryItemEditPackageScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(PantryItemEditPackageTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.pantry_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },

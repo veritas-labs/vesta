@@ -31,7 +31,7 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.device_pairing_paste_body
 import vesta.shared.generated.resources.device_pairing_paste_field_label
 import vesta.shared.generated.resources.device_pairing_paste_field_placeholder
@@ -78,7 +78,7 @@ fun DevicePairingPasteScreen(
         ) {
             Icon(
                 painter = painterResource(Res.drawable.ic_arrow_left),
-                contentDescription = stringResource(Res.string.device_pairing_back),
+                contentDescription = stringResource(Res.string.common_back),
             )
         }
 

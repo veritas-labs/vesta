@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
+import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -87,7 +89,7 @@ import vesta.shared.generated.resources.calendar_event_time_until
 import vesta.shared.generated.resources.calendar_private_event
 import vesta.shared.generated.resources.ic_lock
 import vesta.shared.generated.resources.ic_plus
-import vesta.shared.generated.resources.calendar_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.calendar_collapse
 import vesta.shared.generated.resources.calendar_expand
 import vesta.shared.generated.resources.calendar_months
@@ -95,7 +97,7 @@ import vesta.shared.generated.resources.calendar_next_month
 import vesta.shared.generated.resources.calendar_next_week
 import vesta.shared.generated.resources.calendar_next_year
 import vesta.shared.generated.resources.calendar_no_events
-import vesta.shared.generated.resources.calendar_pick_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.calendar_pick_title
 import vesta.shared.generated.resources.calendar_previous_month
 import vesta.shared.generated.resources.calendar_previous_week
@@ -223,7 +225,7 @@ fun CalendarScreen(
             },
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(CalendarTestTags.BackButton)) {
-                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.calendar_back))
+                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                 }
             },
             actions = {
@@ -319,7 +321,7 @@ fun CalendarScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.widthIn(max = MaxGridWidth * 1.5f),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = FabClearance),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(dayEvents, key = { it.event.id }) { occurrence ->
@@ -444,7 +446,7 @@ private fun DayCell(
             .padding(2.dp)
             .clip(CircleShape)
             .then(if (isSelected) Modifier.background(scheme.primary) else if (isToday) Modifier.border(1.dp, scheme.primary, CircleShape) else Modifier)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .testTag(CalendarTestTags.day(date)),
         contentAlignment = Alignment.Center,
     ) {
@@ -484,7 +486,7 @@ private fun EventRow(occurrence: EventOccurrence, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .testTag(CalendarTestTags.event(event.id)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -556,7 +558,7 @@ private fun MonthYearPickerDialog(year: Int, month: Int, onPick: (year: Int, mon
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.calendar_pick_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) } },
     )
 }
 

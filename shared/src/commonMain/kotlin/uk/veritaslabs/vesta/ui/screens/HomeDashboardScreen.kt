@@ -65,7 +65,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.X0xConnectivityIndicator
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.home_dashboard_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.calendar_title
 import vesta.shared.generated.resources.home_dashboard_tasks_body
 import vesta.shared.generated.resources.home_dashboard_tasks_overdue
@@ -97,7 +97,7 @@ import vesta.shared.generated.resources.members_leave
 import vesta.shared.generated.resources.members_leave_blocked_body
 import vesta.shared.generated.resources.members_leave_blocked_ok
 import vesta.shared.generated.resources.members_leave_blocked_title
-import vesta.shared.generated.resources.members_leave_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.members_leave_confirm
 import vesta.shared.generated.resources.members_leave_confirm_body
 import vesta.shared.generated.resources.members_leave_confirm_title
@@ -144,20 +144,20 @@ private data class DashboardTile(
 internal val PantryAccent = Color(0xFF6F93B5)
 
 /** The shopping tile's gold, shared with the shopping screens' app bar shadow. */
-internal val ShoppingAccent = Color(0xFFC9973A)
+internal val ShoppingAccent = Color(0xFFB8862B)
 
 /**
  * A colour for each tile, fixed rather than from the theme (which has too few accents to tell six areas apart) and muted enough to sit
- * on both the light and the dark background. It is the bar down a tile's left side and the icon's circle.
+ * on both the light and the dark background, but dark enough that the white icon in each circle keeps 3:1 contrast. It is the bar down a tile's left side and the icon's circle.
  */
 private val TileAccents = mapOf(
     HomeDashboardTestTags.PantryTile to PantryAccent, // blue
     HomeDashboardTestTags.ShoppingTile to ShoppingAccent, // gold
     HomeDashboardTestTags.CookbookTile to Color(0xFFD9694F), // coral
-    HomeDashboardTestTags.MealPlannerTile to Color(0xFFD9743A), // terracotta
-    HomeDashboardTestTags.CalendarTile to Color(0xFF8FA07A), // sage
-    HomeDashboardTestTags.TasksTile to Color(0xFF6FA5A0), // teal
-    HomeDashboardTestTags.MarketplaceTile to Color(0xFFA89A6E), // khaki
+    HomeDashboardTestTags.MealPlannerTile to Color(0xFF9B7FB0), // lavender
+    HomeDashboardTestTags.CalendarTile to Color(0xFF7F9168), // sage
+    HomeDashboardTestTags.TasksTile to Color(0xFF5F9690), // teal
+    HomeDashboardTestTags.MarketplaceTile to Color(0xFF968A5E), // khaki
 )
 
 /**
@@ -243,7 +243,7 @@ fun HomeDashboardScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(HomeDashboardTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.home_dashboard_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -343,7 +343,7 @@ fun HomeDashboardScreen(
                 ) { Text(stringResource(Res.string.members_leave_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmingLeave = false }) { Text(stringResource(Res.string.members_leave_cancel)) }
+                TextButton(onClick = { confirmingLeave = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }

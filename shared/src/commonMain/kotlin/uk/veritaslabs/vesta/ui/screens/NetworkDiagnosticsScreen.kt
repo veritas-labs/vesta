@@ -49,7 +49,7 @@ import uk.veritaslabs.vesta.x0x.X0xPeerTraffic
 import uk.veritaslabs.vesta.x0x.X0xTransportSnapshot
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
-import vesta.shared.generated.resources.network_diagnostics_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.network_diagnostics_download
 import vesta.shared.generated.resources.network_diagnostics_log_empty
 import vesta.shared.generated.resources.network_diagnostics_log_nat
@@ -81,7 +81,8 @@ import vesta.shared.generated.resources.settings_network_connecting
 import vesta.shared.generated.resources.settings_network_offline
 
 private val DiagnosticsTabletBreakpoint = 600.dp
-private val ConnectedGreen = Color(0xFF4CAF50)
+/** The green for "connected" and "direct", shared by the network screens. */
+internal val ConnectedGreen = Color(0xFF4CAF50)
 private val LogPanelHeight = 180.dp
 
 /** Stable hooks for UI tests to target. */
@@ -116,7 +117,7 @@ fun NetworkDiagnosticsScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(NetworkDiagnosticsTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.network_diagnostics_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },

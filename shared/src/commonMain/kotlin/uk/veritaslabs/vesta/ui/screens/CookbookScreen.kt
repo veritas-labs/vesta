@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -68,7 +70,7 @@ import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_star
 import vesta.shared.generated.resources.ic_star_filled
 import vesta.shared.generated.resources.ic_tag
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.recipe_rate_star
 import vesta.shared.generated.resources.recipe_type_baking
 import vesta.shared.generated.resources.recipe_type_breakfast
@@ -214,7 +216,7 @@ fun CookbookScreen(
                 title = { Text(stringResource(Res.string.cookbook_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(CookbookTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -278,7 +280,7 @@ fun CookbookScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(start = contentPadding, end = contentPadding, top = 4.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(start = contentPadding, end = contentPadding, top = 4.dp, bottom = FabClearance),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(visible, key = { it.key }) { recipe ->
@@ -306,7 +308,7 @@ fun CookbookScreen(
 
 @Composable
 private fun RecipeRow(recipe: Recipe, pantry: List<PantryListItem>, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    OutlinedCard(modifier = modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)) {
         Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             recipe.media.firstNotNullOfOrNull { if (it.kind == MediaKind.Photo) it.blob else null }?.let { photo ->
                 BlobImage(photo, Modifier.size(72.dp).clip(RoundedCornerShape(8.dp)).testTag(CookbookTestTags.thumbnail(recipe.key)))

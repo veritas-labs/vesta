@@ -63,7 +63,7 @@ import uk.veritaslabs.vesta.x0x.X0xPeer
 import uk.veritaslabs.vesta.x0x.X0xPeerStatus
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
-import vesta.shared.generated.resources.network_peers_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.network_peers_count
 import vesta.shared.generated.resources.network_peers_empty
 import vesta.shared.generated.resources.network_peers_legend_active
@@ -93,7 +93,6 @@ import vesta.shared.generated.resources.network_peers_title
 import vesta.shared.generated.resources.network_peers_you
 
 private val NetworkPeersTabletBreakpoint = 600.dp
-private val DirectGreen = Color(0xFF4CAF50)
 /** Room kept between the outermost peers and the graph's edge. */
 private val GraphInset = 12.dp
 private const val GoldenAngle = 2.399963229728653
@@ -132,7 +131,7 @@ fun NetworkPeersScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(NetworkPeersTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.network_peers_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -259,7 +258,7 @@ private fun PeerGraph(peers: List<X0xPeer>, probe: suspend (peerId: String) -> L
                 }
                 sorted.forEachIndexed { i, peer ->
                     val at = Offset(middle.x + positions[i].x * reach, middle.y + positions[i].y * reach)
-                    if (peer.direct) drawCircle(DirectGreen.copy(alpha = 0.35f), radius = 11.dp.toPx(), center = at)
+                    if (peer.direct) drawCircle(ConnectedGreen.copy(alpha = 0.35f), radius = 11.dp.toPx(), center = at)
                     when (peer.status) {
                         X0xPeerStatus.Active -> drawCircle(node, radius = 6.dp.toPx(), center = at)
                         X0xPeerStatus.Idle -> {
@@ -387,7 +386,7 @@ private fun PeerLegend() {
             Box(Modifier.size(12.dp).border(1.dp, outline, CircleShape))
         }
         LegendItem(stringResource(Res.string.network_peers_legend_direct)) {
-            Box(Modifier.size(12.dp).background(DirectGreen.copy(alpha = 0.5f), CircleShape))
+            Box(Modifier.size(12.dp).background(ConnectedGreen.copy(alpha = 0.5f), CircleShape))
         }
     }
 }

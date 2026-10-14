@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -73,7 +75,7 @@ import vesta.shared.generated.resources.merchants_filter_label
 import vesta.shared.generated.resources.merchants_no_matches
 import vesta.shared.generated.resources.merchants_search_label
 import vesta.shared.generated.resources.merchants_title
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 
 private val MerchantsTabletBreakpoint = 600.dp
 
@@ -188,7 +190,7 @@ fun MerchantsScreen(
                 title = { Text(stringResource(Res.string.merchants_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(MerchantsTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -233,7 +235,7 @@ fun MerchantsScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(start = contentPadding, end = contentPadding, top = 4.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(start = contentPadding, end = contentPadding, top = 4.dp, bottom = FabClearance),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(visible, key = { it.key }) { merchant ->
@@ -261,7 +263,7 @@ fun MerchantsScreen(
 
 @Composable
 private fun MerchantRow(merchant: Merchant, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    OutlinedCard(modifier = modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(merchant.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             Text(merchantTypeLabel(merchant.type), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

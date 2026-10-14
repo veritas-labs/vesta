@@ -42,7 +42,7 @@ import uk.veritaslabs.vesta.ui.components.PageDots
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.hub_tutorial_finish
 import vesta.shared.generated.resources.hub_tutorial_good_body
 import vesta.shared.generated.resources.hub_tutorial_good_point_1
@@ -191,7 +191,7 @@ fun HubTutorialScreen(
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack, modifier = Modifier.testTag(HubTutorialTestTags.BackButton)) {
-                Icon(painter = painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.device_pairing_back))
+                Icon(painter = painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
             }
             Spacer(Modifier.weight(1f))
             // Kept in the layout on the last page so the bar does not change height.

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
 import uk.veritaslabs.vesta.ui.components.LocalUndo
 import vesta.shared.generated.resources.shopping_item_deleted
 import androidx.compose.foundation.background
@@ -79,7 +80,7 @@ import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_adjustments
 import vesta.shared.generated.resources.ic_tag
 import vesta.shared.generated.resources.ic_trash
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.shopping_add_item
 import vesta.shared.generated.resources.shopping_empty_subtitle
 import vesta.shared.generated.resources.shopping_filter_merchants_label
@@ -100,7 +101,7 @@ import vesta.shared.generated.resources.shopping_remaining
 import vesta.shared.generated.resources.shopping_more_options
 import vesta.shared.generated.resources.shopping_title
 import vesta.shared.generated.resources.shopping_delete_all
-import vesta.shared.generated.resources.shopping_delete_all_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.shopping_delete_all_confirm
 import vesta.shared.generated.resources.shopping_delete_all_message
 import vesta.shared.generated.resources.shopping_delete_all_title
@@ -291,7 +292,7 @@ fun ShoppingListScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(ShoppingListTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.pantry_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -355,7 +356,7 @@ fun ShoppingListScreen(
                         .groupBy { it.primaryCategory }
                     LazyColumn(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 88.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = FabClearance),
                     ) {
                         grouped.forEach { (category, categoryItems) ->
                             item(key = "header_$category") {
@@ -437,7 +438,7 @@ fun ShoppingListScreen(
                 TextButton(
                     onClick = { confirmDeleteAll = false },
                     modifier = Modifier.testTag(ShoppingListTestTags.DeleteAllCancelButton),
-                ) { Text(stringResource(Res.string.shopping_delete_all_cancel)) }
+                ) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }

@@ -49,8 +49,9 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.home_edit_back
 import vesta.shared.generated.resources.home_edit_create_title
+import vesta.shared.generated.resources.common_cancel
+import vesta.shared.generated.resources.ic_close
 import vesta.shared.generated.resources.home_edit_delete
 import vesta.shared.generated.resources.home_edit_edit_title
 import vesta.shared.generated.resources.home_edit_more_options
@@ -68,7 +69,6 @@ import vesta.shared.generated.resources.home_edit_shape_other
 import vesta.shared.generated.resources.home_edit_shape_other_description
 import vesta.shared.generated.resources.home_edit_shape_single_support
 import vesta.shared.generated.resources.home_edit_shape_single_support_description
-import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_dots_vertical
 
 private val HomeEditTabletBreakpoint = 600.dp
@@ -194,8 +194,8 @@ fun HomeEditScreen(
                 navigationIcon = {
                     IconButton(onClick = onCancel, modifier = Modifier.testTag(HomeEditTestTags.BackButton)) {
                         Icon(
-                            painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.home_edit_back),
+                            painter = painterResource(Res.drawable.ic_close),
+                            contentDescription = stringResource(Res.string.common_cancel),
                         )
                     }
                 },

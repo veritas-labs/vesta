@@ -37,7 +37,7 @@ import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.meal_planner_required_empty
 import vesta.shared.generated.resources.meal_planner_required_title
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 
 /** One line of the week's shopping need: [name] with the total [quantity] of [unit], or no quantity when no recipe gave one. */
 data class RequiredIngredient(val name: String, val quantity: Double?, val unit: String)
@@ -95,7 +95,7 @@ fun MealPlannerRequiredItemsScreen(
             },
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(MealPlannerRequiredTestTags.BackButton)) {
-                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

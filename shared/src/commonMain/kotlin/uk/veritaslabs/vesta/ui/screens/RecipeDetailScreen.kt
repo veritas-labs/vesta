@@ -41,8 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import uk.veritaslabs.vesta.blobs.BlobReference
 import uk.veritaslabs.vesta.blobs.Placeholder
 import uk.veritaslabs.vesta.ui.components.BlobImage
@@ -75,13 +73,13 @@ import vesta.shared.generated.resources.ic_photo
 import vesta.shared.generated.resources.ic_player_play
 import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.ic_video
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.recipe_availability_in_pantry
 import vesta.shared.generated.resources.recipe_availability_not_enough
 import vesta.shared.generated.resources.recipe_availability_not_in_pantry
 import vesta.shared.generated.resources.recipe_availability_out_of_stock
 import vesta.shared.generated.resources.recipe_cook_start
-import vesta.shared.generated.resources.recipe_delete_cancel
+import vesta.shared.generated.resources.common_cancel
 import vesta.shared.generated.resources.recipe_delete_confirm
 import vesta.shared.generated.resources.recipe_delete_confirm_body
 import vesta.shared.generated.resources.recipe_delete_confirm_title
@@ -188,7 +186,7 @@ fun RecipeDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(RecipeDetailTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 actions = {
@@ -297,7 +295,7 @@ fun RecipeDetailScreen(
                     Text(stringResource(Res.string.recipe_delete_confirm))
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmingDelete = false }) { Text(stringResource(Res.string.recipe_delete_cancel)) } },
+            dismissButton = { TextButton(onClick = { confirmingDelete = false }) { Text(stringResource(Res.string.common_cancel)) } },
         )
     }
 }

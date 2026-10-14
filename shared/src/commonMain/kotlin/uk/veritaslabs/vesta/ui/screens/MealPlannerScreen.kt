@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -106,7 +107,7 @@ import vesta.shared.generated.resources.meal_planner_title
 import vesta.shared.generated.resources.meal_planner_today
 import vesta.shared.generated.resources.meal_planner_week_range
 import vesta.shared.generated.resources.meal_planner_weekdays
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 
 private val MaxContentWidth = 720.dp
 private val ContentPadding = 16.dp
@@ -207,7 +208,7 @@ fun MealPlannerScreen(
             title = { Text(stringResource(Res.string.meal_planner_title)) },
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(MealPlannerTestTags.BackButton)) {
-                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                 }
             },
             actions = {
@@ -581,13 +582,13 @@ private fun PlannedRecipeCard(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier
-                            .clickable(onClickLabel = stringResource(Res.string.meal_planner_eaters_edit, title), onClick = onEditEaters)
+                            .clickable(role = Role.Button, onClickLabel = stringResource(Res.string.meal_planner_eaters_edit, title), onClick = onEditEaters)
                             .padding(vertical = 4.dp)
                             .testTag(MealPlannerTestTags.eaters(date, slot, recipeKey)),
                     )
                 }
             }
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp).testTag(MealPlannerTestTags.removeButton(date, slot, recipeKey))) {
+            IconButton(onClick = onRemove, modifier = Modifier.testTag(MealPlannerTestTags.removeButton(date, slot, recipeKey))) {
                 Icon(
                     painterResource(Res.drawable.ic_close),
                     contentDescription = stringResource(Res.string.meal_planner_remove_recipe, title ?: removedLabel),

@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -107,7 +109,7 @@ import vesta.shared.generated.resources.meal_planner_previous_week
 import vesta.shared.generated.resources.meal_planner_this_week
 import vesta.shared.generated.resources.meal_planner_today
 import vesta.shared.generated.resources.meal_planner_weekdays
-import vesta.shared.generated.resources.pantry_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.tasks_add
 import vesta.shared.generated.resources.tasks_add_on_day
 import vesta.shared.generated.resources.tasks_anyone
@@ -145,8 +147,6 @@ private val MaxContentWidth = 720.dp
 private val ContentPadding = 16.dp
 private val TickSize = 28.dp
 
-/** Bottom padding of the scrolling lists so the last row can scroll clear of the add button. */
-private val FabClearance = 88.dp
 private const val DaysPerWeek = 7
 private const val UpcomingDays = 7
 private const val RecentDays = 7
@@ -237,7 +237,7 @@ fun TasksScreen(
                 title = { Text(stringResource(Res.string.tasks_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(TasksTestTags.BackButton)) {
-                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -652,7 +652,7 @@ private fun TaskRow(
     val title = task.title
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth().clickable(onClick = onOpen).padding(vertical = 2.dp).testTag(TasksTestTags.row(task.id, key)),
+        modifier = modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onOpen).padding(vertical = 2.dp).testTag(TasksTestTags.row(task.id, key)),
     ) {
         TickCircle(
             done = occurrence.isDone,

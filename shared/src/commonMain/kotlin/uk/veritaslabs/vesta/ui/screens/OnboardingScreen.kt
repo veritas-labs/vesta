@@ -48,7 +48,7 @@ import uk.veritaslabs.vesta.ui.theme.artPaper
 import uk.veritaslabs.vesta.ui.theme.isDarkArt
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_close
-import vesta.shared.generated.resources.tour_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.tour_close
 import vesta.shared.generated.resources.tour_get_started
 import vesta.shared.generated.resources.tour_next
@@ -148,7 +148,7 @@ internal fun OnboardingScreen(
                         onClick = { scope.launch { pagerState.animateScrollToPage(current - 1) } },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
                         modifier = Modifier.testTag(OnboardingTestTags.Previous),
-                    ) { Text(stringResource(Res.string.tour_back)) }
+                    ) { Text(stringResource(Res.string.common_back)) }
                 }
             }
         }

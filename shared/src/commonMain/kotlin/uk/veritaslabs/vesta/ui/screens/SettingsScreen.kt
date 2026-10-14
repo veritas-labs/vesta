@@ -57,7 +57,7 @@ import vesta.shared.generated.resources.ic_chevron_right
 import vesta.shared.generated.resources.settings_application_build
 import vesta.shared.generated.resources.settings_assistants
 import vesta.shared.generated.resources.settings_application_version
-import vesta.shared.generated.resources.settings_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.settings_device_platform
 import vesta.shared.generated.resources.settings_network_connected
 import vesta.shared.generated.resources.settings_network_connecting
@@ -154,7 +154,7 @@ fun SettingsScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(SettingsTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.settings_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -439,7 +439,7 @@ private fun SettingsRow(
             .alpha(if (enabled) 1f else DisabledRowAlpha)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), shape)
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .let { if (onClick != null) it.clickable(role = Role.Button, onClick = onClick) else it }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +47,7 @@ import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.device_pairing_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.hub_add_another
 import vesta.shared.generated.resources.hub_failed
 import vesta.shared.generated.resources.hub_manager_empty_body
@@ -123,7 +124,7 @@ fun HubManagerScreen(
             title = { Text(stringResource(Res.string.hub_manager_title)) },
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(HubManagerTestTags.BackButton)) {
-                    Icon(painter = painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.device_pairing_back))
+                    Icon(painter = painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -222,7 +223,7 @@ private fun AddHubButton(onClick: () -> Unit) {
             .height(64.dp)
             .clip(MaterialTheme.shapes.small)
             .background(MaterialTheme.colorScheme.primary)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .testTag(HubManagerTestTags.AddHub),
         contentAlignment = Alignment.Center,
     ) {

@@ -73,7 +73,7 @@ import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.calendar_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.calendar_settings
 import vesta.shared.generated.resources.calendar_setting_other_months
 import vesta.shared.generated.resources.calendar_setting_start_collapsed
@@ -130,7 +130,7 @@ fun CalendarSettingsScreen(
             title = { Text(stringResource(Res.string.calendar_settings)) },
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(CalendarSettingsTestTags.BackButton)) {
-                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.calendar_back))
+                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

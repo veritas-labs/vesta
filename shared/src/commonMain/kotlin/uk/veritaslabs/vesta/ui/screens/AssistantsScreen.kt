@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.FabClearance
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,7 +41,7 @@ import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.assistants_add
-import vesta.shared.generated.resources.assistants_back
+import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.assistants_empty_subtitle
 import vesta.shared.generated.resources.assistants_empty_title
 import vesta.shared.generated.resources.assistants_pending
@@ -87,7 +89,7 @@ fun AssistantsScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag(AssistantsTestTags.BackButton)) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_arrow_left),
-                            contentDescription = stringResource(Res.string.assistants_back),
+                            contentDescription = stringResource(Res.string.common_back),
                         )
                     }
                 },
@@ -115,7 +117,7 @@ fun AssistantsScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding),
-                    contentPadding = PaddingValues(top = 4.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = FabClearance),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(assistants, key = { it.agentId }) { assistant ->
@@ -149,7 +151,7 @@ private fun AssistantRow(assistant: AssistantListItem, onClick: () -> Unit, modi
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), shape)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .testTag(AssistantsTestTags.row(assistant.agentId)),
     ) {

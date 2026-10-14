@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -202,7 +203,7 @@ private fun InviteRow(onClick: () -> Unit) {
         contentColor = MaterialTheme.colorScheme.onPrimary,
         // Same 1dp border as a MemberRow (in the fill colour) so the two are exactly the same size.
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).testTag(MembersTestTags.InviteButton),
+        modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).testTag(MembersTestTags.InviteButton),
     ) {
         // Padded and sized like a MemberRow (12dp around a 40dp avatar) so the heights match.
         Row(
@@ -227,7 +228,7 @@ private fun MemberRow(member: MemberListItem, onClick: () -> Unit) {
         shape = MaterialTheme.shapes.small,
         color = Color.Transparent,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).testTag(MembersTestTags.Row),
+        modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).testTag(MembersTestTags.Row),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
