@@ -60,6 +60,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.calendar.CalendarDate
+import uk.veritaslabs.vesta.calendar.today
 import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.vesta.ui.components.ActionCard
 import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
@@ -181,7 +182,7 @@ fun MealPlannerScreen(
     recipes: List<Recipe>,
     modifier: Modifier = Modifier,
     plan: MealPlan = MealPlan(),
-    today: CalendarDate = remember { CalendarDate.todayUtc() },
+    today: CalendarDate = remember { CalendarDate.today() },
     weekStart: WeekStart = WeekStart.Monday,
     weekOffset: Int = 0,
     onBack: () -> Unit = {},

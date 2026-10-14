@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uk.veritaslabs.vesta.calendar.CalendarDate
+import uk.veritaslabs.vesta.calendar.today
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
 import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.vesta.ui.screens.MealPlannerCopyScreen
@@ -37,7 +38,7 @@ import uk.veritaslabs.vesta.ui.screens.weekRangeText
 fun MealPlannerFlow(
     viewModel: MealPlannerViewModel,
     modifier: Modifier = Modifier,
-    today: CalendarDate = remember { CalendarDate.todayUtc() },
+    today: CalendarDate = remember { CalendarDate.today() },
     weekStart: WeekStart = LocalCalendarSettings.current.settings.weekStart,
     onViewRecipe: (recipeKey: String) -> Unit = {},
     onBack: () -> Unit = {},

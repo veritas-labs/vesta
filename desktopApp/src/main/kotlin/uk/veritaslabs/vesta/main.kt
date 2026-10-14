@@ -23,13 +23,15 @@ fun main() = application {
             openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
             openMerchants = { database, homeId -> agentCommands.merchants(database, homeId) },
             openMealPlan = { database, homeId -> agentCommands.mealPlan(database, homeId) },
+            openCalendar = { database, homeId -> agentCommands.calendar(database, homeId) },
+            openPrivateCalendar = { database, homeId -> agentCommands.privateCalendar(database, homeId) },
             backgroundServices = { database -> agentCommands.run(database) },
             assistantsFor = agentCommands::assistants,
             dataSync = { database, client, devices ->
                 DeviceDataSyncService(
                     client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
                     agentCommands.cookbookSources(database), agentCommands.merchantsSources(database),
-                    agentCommands.mealPlanSources(database),
+                    agentCommands.mealPlanSources(database), agentCommands.calendarSources(database),
                 )
             },
             blobRuntime = { database, client, sync ->
@@ -42,6 +44,7 @@ fun main() = application {
                 )
             },
             recipeImporter = HttpRecipeImporter(),
+            fileExporter = remember { DesktopFileExporter(window) },
             ownDeviceCanBeHub = true,
         )
     }

@@ -1,6 +1,6 @@
 # ADR-025: Calendar
 
-**Status:** Accepted, first slice built (2026-10-09). View only: no events can be created yet.
+**Status:** Accepted, first slice built (2026-10-09). View only. Events, the local time zone and the private calendar followed in ADR-029.
 
 ## Context
 
@@ -16,9 +16,8 @@ screen and its navigation; events (and where they live: a Home document synced l
   sideways changes month. Previous / next buttons either side of the handle (and swiping) step a month, or a week when collapsed. The handle beneath collapses the grid to the week of the selected day and expands it again.
 - **Below the grid:** the selected day and "No events".
 - **Dates:** a small `CalendarDate` (`calendar/CalendarDate.kt`) with the civil-date arithmetic, rather than a new
-  dependency. "Today" is taken by the UTC clock for now (`CalendarDate.todayUtc()`); the screen takes `today` as a
-  parameter so it can be given the local date. Using the device time zone needs `kotlinx-datetime` or a platform hook,
-  and is the first thing to do before events.
+  dependency. "Today" was first taken by the UTC clock; ADR-029 replaced that with the device's time zone (`CalendarDate.today()`, over a
+  small platform hook rather than `kotlinx-datetime`). The screen still takes `today` as a parameter.
 - **Settings:** the app bar's overflow menu has Settings, a screen of per-device preferences (saved in `AppSettingsRepository`,
   not synced): Week starts on (Monday, Saturday or Sunday; default Monday), Show week numbers (ISO, shown as w40; off), Show days from
   other months (on) and Open with the month collapsed (off). They reach the screens through `LocalCalendarSettings`.
@@ -30,4 +29,4 @@ today; the picker dialog changes month and year; the grid collapses to a week an
 
 ## Not yet
 
-Events, reminders, per-Home sync, local time zone, week/agenda views.
+Reminders, week/agenda views (events, sync and the time zone: ADR-029).

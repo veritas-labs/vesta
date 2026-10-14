@@ -6,6 +6,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,12 +60,30 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.calendar.CalendarDate
+import uk.veritaslabs.vesta.calendar.CalendarEvent
+import uk.veritaslabs.vesta.calendar.EventCalendar
+import uk.veritaslabs.vesta.calendar.EventOccurrence
+import uk.veritaslabs.vesta.calendar.EventRepeat
+import uk.veritaslabs.vesta.calendar.allDayMillis
+import uk.veritaslabs.vesta.calendar.utcMillisOf
+import uk.veritaslabs.vesta.calendar.eventColoursOn
+import uk.veritaslabs.vesta.calendar.eventsOn
+import uk.veritaslabs.vesta.calendar.formatMinute
+import uk.veritaslabs.vesta.calendar.today
 import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
 import uk.veritaslabs.vesta.calendar.monthGrid
 import uk.veritaslabs.vesta.calendar.weekNumber
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.calendar_add_event
+import vesta.shared.generated.resources.calendar_all_day
+import vesta.shared.generated.resources.calendar_event_time_from
+import vesta.shared.generated.resources.calendar_event_time_range
+import vesta.shared.generated.resources.calendar_event_time_until
+import vesta.shared.generated.resources.calendar_private_event
+import vesta.shared.generated.resources.ic_lock
+import vesta.shared.generated.resources.ic_plus
 import vesta.shared.generated.resources.calendar_back
 import vesta.shared.generated.resources.calendar_collapse
 import vesta.shared.generated.resources.calendar_expand
@@ -98,6 +123,11 @@ internal object CalendarTestTags {
     const val Agenda = "calendar_agenda"
     const val OverflowButton = "calendar_overflow_button"
     const val SettingsMenuItem = "calendar_settings_menu_item"
+    const val AddButton = "calendar_add_button"
+    const val NoEvents = "calendar_no_events"
+
+    fun event(id: String) = "calendar_event_$id"
+    fun dots(date: CalendarDate) = "calendar_dots_${date.year}-${date.month}-${date.day}"
 
     fun pickerMonth(month: Int) = "calendar_picker_month_$month"
     fun day(date: CalendarDate) = "calendar_day_${date.year}-${date.month}-${date.day}"
@@ -112,16 +142,20 @@ private val MaxGridWidth = 480.dp
  * month and year. Under it is a square month grid (Monday first) that can be collapsed to just the week of the selected day
  * with the handle below it, and swiped sideways to change month. Tapping a day selects it. [today] is highlighted and is
  * where the calendar opens. The overflow menu's Settings calls [onSettingsClick]; [settings] set the first day of the week,
- * week numbers and so on. There are no events yet, so the area under the grid says so for the selected day.
+ * week numbers and so on. Under the grid are the [events] of the selected day (tap one for [onEventClick]), and the plus button
+ * calls [onAddEvent] with that day; a day with events has a dot of each event's colour in the grid.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
-    today: CalendarDate = remember { CalendarDate.todayUtc() },
+    today: CalendarDate = remember { CalendarDate.today() },
     settings: CalendarSettings = LocalCalendarSettings.current.settings,
     onBack: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    events: List<CalendarEvent> = emptyList(),
+    onAddEvent: (CalendarDate) -> Unit = {},
+    onEventClick: (CalendarEvent) -> Unit = {},
 ) {
     var selected by remember { mutableStateOf(today) }
     var visibleYear by remember { mutableStateOf(today.year) }
@@ -152,12 +186,15 @@ fun CalendarScreen(
     // Collapsed, the calendar steps a week at a time; expanded, a month.
     fun step(by: Int) = if (expanded) shiftMonth(by) else shiftWeek(by)
 
-    Column(
+    val dayEvents = remember(events, selected) { eventsOn(events, selected) }
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)),
     ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
             title = {
                 Column(
@@ -222,6 +259,7 @@ fun CalendarScreen(
                 today = today,
                 settings = settings,
                 selected = selected,
+                events = events,
                 expanded = expanded,
                 onSelect = { date ->
                     selected = date
@@ -255,19 +293,38 @@ fun CalendarScreen(
             }
         }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).testTag(CalendarTestTags.Agenda)) {
+        Column(modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 24.dp).testTag(CalendarTestTags.Agenda)) {
             Text(
                 "${selected.day} ${months[selected.month - 1]} ${selected.year}",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.testTag(CalendarTestTags.SelectedDay),
             )
-            Text(
-                stringResource(Res.string.calendar_no_events),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+            if (dayEvents.isEmpty()) {
+                Text(
+                    stringResource(Res.string.calendar_no_events),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp).testTag(CalendarTestTags.NoEvents),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.widthIn(max = MaxGridWidth * 1.5f),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(dayEvents, key = { it.event.id }) { occurrence ->
+                        EventRow(occurrence, onClick = { onEventClick(occurrence.event) })
+                    }
+                }
+            }
         }
+    }
+    FloatingActionButton(
+        onClick = { onAddEvent(selected) },
+        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).testTag(CalendarTestTags.AddButton),
+    ) {
+        Icon(painterResource(Res.drawable.ic_plus), contentDescription = stringResource(Res.string.calendar_add_event))
+    }
     }
 
     if (picking) {
@@ -290,6 +347,7 @@ private fun MonthGrid(
     today: CalendarDate,
     settings: CalendarSettings,
     selected: CalendarDate,
+    events: List<CalendarEvent>,
     expanded: Boolean,
     onSelect: (CalendarDate) -> Unit,
     onSwipe: (Int) -> Unit,
@@ -345,6 +403,7 @@ private fun MonthGrid(
                         showOtherMonth = settings.showOtherMonthDays,
                         isToday = date == today,
                         isSelected = date == selected,
+                        colours = remember(events, date) { eventColoursOn(events, date) },
                         onClick = { onSelect(date) },
                         modifier = Modifier.weight(1f).fillMaxSize(),
                     )
@@ -361,6 +420,7 @@ private fun DayCell(
     showOtherMonth: Boolean,
     isToday: Boolean,
     isSelected: Boolean,
+    colours: List<Int>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -389,6 +449,60 @@ private fun DayCell(
                 else -> scheme.onSurfaceVariant.copy(alpha = 0.5f)
             },
         )
+        if (colours.isNotEmpty()) {
+            // A dot for each colour of event the day has, up to three, under the number.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).testTag(CalendarTestTags.dots(date)),
+            ) {
+                colours.take(MaxDots).forEach { colour ->
+                    Box(Modifier.size(5.dp).clip(CircleShape).background(eventColour(colour)).border(0.5.dp, scheme.background, CircleShape))
+                }
+            }
+        }
+    }
+}
+
+private const val MaxDots = 3
+
+/** One event in the day's list: a bar in its colour, its title and when it is, and a padlock if it is on the private calendar. */
+@Composable
+private fun EventRow(occurrence: EventOccurrence, onClick: () -> Unit) {
+    val event = occurrence.event
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .clickable(onClick = onClick)
+            .testTag(CalendarTestTags.event(event.id)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(6.dp).height(56.dp).background(eventColour(event.color)))
+        Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Text(event.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(timeLabel(occurrence), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (event.calendar == EventCalendar.Private) {
+            Icon(
+                painterResource(Res.drawable.ic_lock),
+                contentDescription = stringResource(Res.string.calendar_private_event),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 12.dp).size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun timeLabel(occurrence: EventOccurrence): String {
+    val start = occurrence.startMinute
+    val end = occurrence.endMinute
+    return when {
+        occurrence.wholeDay || start == null || end == null -> stringResource(Res.string.calendar_all_day)
+        occurrence.isFirstDay && occurrence.isLastDay -> stringResource(Res.string.calendar_event_time_range, formatMinute(start), formatMinute(end))
+        occurrence.isFirstDay -> stringResource(Res.string.calendar_event_time_from, formatMinute(start))
+        else -> stringResource(Res.string.calendar_event_time_until, formatMinute(end))
     }
 }
 
@@ -437,27 +551,32 @@ private fun MonthYearPickerDialog(year: Int, month: Int, onPick: (year: Int, mon
 }
 
 private val PreviewToday = CalendarDate(2026, 10, 9)
+private val PreviewEvents = listOf(
+    CalendarEvent("1", EventCalendar.Home, "Parents' evening", false, utcMillisOf(PreviewToday, 18 * 60), utcMillisOf(PreviewToday, 19 * 60), color = 2),
+    CalendarEvent("2", EventCalendar.Private, "Gym", false, utcMillisOf(PreviewToday, 7 * 60), utcMillisOf(PreviewToday, 8 * 60), color = 4),
+    CalendarEvent("3", EventCalendar.Home, "Bin day", true, allDayMillis(PreviewToday.plusDays(3)), allDayMillis(PreviewToday.plusDays(3)), EventRepeat.Weekly, color = 1),
+)
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun CalendarScreenPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { CalendarScreen(today = PreviewToday) }
+    VestaTheme(darkTheme = false) { CalendarScreen(today = PreviewToday, events = PreviewEvents) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun CalendarScreenPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { CalendarScreen(today = PreviewToday) }
+    VestaTheme(darkTheme = true) { CalendarScreen(today = PreviewToday, events = PreviewEvents) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun CalendarScreenTabletLightPreview() {
-    VestaTheme(darkTheme = false) { CalendarScreen(today = PreviewToday) }
+    VestaTheme(darkTheme = false) { CalendarScreen(today = PreviewToday, events = PreviewEvents) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun CalendarScreenTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { CalendarScreen(today = PreviewToday) }
+    VestaTheme(darkTheme = true) { CalendarScreen(today = PreviewToday, events = PreviewEvents) }
 }

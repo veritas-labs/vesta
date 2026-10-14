@@ -1,7 +1,5 @@
 package uk.veritaslabs.vesta.calendar
 
-import kotlin.time.Clock
-
 /** A day in the proleptic Gregorian calendar. [month] is 1..12 and [day] 1..31. */
 data class CalendarDate(val year: Int, val month: Int, val day: Int) : Comparable<CalendarDate> {
 
@@ -42,9 +40,6 @@ data class CalendarDate(val year: Int, val month: Int, val day: Int) : Comparabl
             val y = (yoe + era * 400 + if (m <= 2) 1 else 0).toInt()
             return CalendarDate(y, m, d)
         }
-
-        /** Today by the UTC clock; callers that know the user's time zone should pass their own date instead. */
-        fun todayUtc(): CalendarDate = fromEpochDay(Clock.System.now().epochSeconds.floorDiv(86_400L))
     }
 }
 

@@ -2,7 +2,9 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -10,7 +12,11 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.calendar.CalendarDate
+import uk.veritaslabs.vesta.calendar.CalendarEvent
 import uk.veritaslabs.vesta.calendar.CalendarSettings
+import uk.veritaslabs.vesta.calendar.EventCalendar
+import uk.veritaslabs.vesta.calendar.allDayMillis
+import uk.veritaslabs.vesta.calendar.utcMillisOf
 import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
@@ -195,5 +201,119 @@ class CalendarScreenTest {
 
         // Assert
         onNodeWithTag(CalendarTestTags.Month, useUnmergedTree = true).assertTextEquals("November")
+    }
+
+    private fun allDay(id: String, title: String, date: CalendarDate, calendar: EventCalendar = EventCalendar.Home, color: Int = 0) =
+        CalendarEvent(id, calendar, title, allDay = true, startMillis = allDayMillis(date), endMillis = allDayMillis(date), color = color)
+
+    @Test
+    fun theSelectedDaysEventsAreListedUnderTheGridAndOtherDaysAreNot() = runComposeUiTest {
+        // Arrange
+        val events = listOf(allDay("a", "Bin day", today), allDay("b", "Dentist", today.plusDays(1)))
+        setContent { VestaTheme { CalendarScreen(today = today, events = events) } }
+
+        // Act
+        // (no user interaction — today is selected on opening)
+
+        // Assert
+        onNodeWithTag(CalendarTestTags.event("a")).assertIsDisplayed()
+        onNodeWithTag(CalendarTestTags.event("b")).assertDoesNotExist()
+        onNodeWithTag(CalendarTestTags.NoEvents).assertDoesNotExist()
+    }
+
+    @Test
+    fun aDayWithNoEventsSaysSo() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { CalendarScreen(today = today, events = listOf(allDay("b", "Dentist", today.plusDays(1)))) } }
+
+        // Act
+        // (no user interaction)
+
+        // Assert
+        onNodeWithTag(CalendarTestTags.NoEvents).assertIsDisplayed()
+    }
+
+    @Test
+    fun aTimedEventShowsItsTimes() = runComposeUiTest {
+        // Arrange
+        val event = CalendarEvent(
+            "a", EventCalendar.Home, "Dentist", allDay = false,
+            startMillis = utcMillisOf(today, 9 * 60), endMillis = utcMillisOf(today, 9 * 60 + 30),
+        )
+        setContent { VestaTheme { CalendarScreen(today = today, events = listOf(event)) } }
+
+        // Act
+        // (no user interaction)
+
+        // Assert
+        onNodeWithTag(CalendarTestTags.event("a")).assertTextContains("09:00 – 09:30", substring = true)
+    }
+
+    @Test
+    fun daysWithEventsHaveDotsAndOthersDoNot() = runComposeUiTest {
+        // Arrange
+        val events = listOf(allDay("a", "Bin day", today.plusDays(2)))
+        setContent { VestaTheme { CalendarScreen(today = today, events = events) } }
+
+        // Act
+        // (no user interaction)
+
+        // Assert
+        onNodeWithTag(CalendarTestTags.dots(today.plusDays(2)), useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag(CalendarTestTags.dots(today), useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun selectingADayShowsItsEvents() = runComposeUiTest {
+        // Arrange
+        val later = today.plusDays(3)
+        setContent { VestaTheme { CalendarScreen(today = today, events = listOf(allDay("a", "Bin day", later))) } }
+
+        // Act
+        onNodeWithTag(CalendarTestTags.day(later)).performClick()
+
+        // Assert
+        onNodeWithTag(CalendarTestTags.event("a")).assertIsDisplayed()
+    }
+
+    @Test
+    fun aPrivateEventIsMarkedWithAPadlock() = runComposeUiTest {
+        // Arrange
+        val events = listOf(allDay("a", "Gym", today, EventCalendar.Private), allDay("b", "Bins", today))
+        setContent { VestaTheme { CalendarScreen(today = today, events = events) } }
+
+        // Act
+        // (no user interaction)
+
+        // Assert
+        onNodeWithTag(CalendarTestTags.event("a")).assertIsDisplayed()
+        onNodeWithContentDescription("Private event", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun thePlusButtonAsksToAddAnEventOnTheSelectedDay() = runComposeUiTest {
+        // Arrange
+        val added = mutableListOf<CalendarDate>()
+        setContent { VestaTheme { CalendarScreen(today = today, onAddEvent = { added += it }) } }
+        onNodeWithTag(CalendarTestTags.day(today.plusDays(4))).performClick()
+
+        // Act
+        onNodeWithTag(CalendarTestTags.AddButton).performClick()
+
+        // Assert
+        assertEquals(listOf(today.plusDays(4)), added)
+    }
+
+    @Test
+    fun tappingAnEventAsksToOpenIt() = runComposeUiTest {
+        // Arrange
+        val tapped = mutableListOf<String>()
+        setContent { VestaTheme { CalendarScreen(today = today, events = listOf(allDay("a", "Bin day", today)), onEventClick = { tapped += it.id }) } }
+
+        // Act
+        onNodeWithTag(CalendarTestTags.event("a")).performClick()
+
+        // Assert
+        assertEquals(listOf("a"), tapped)
     }
 }

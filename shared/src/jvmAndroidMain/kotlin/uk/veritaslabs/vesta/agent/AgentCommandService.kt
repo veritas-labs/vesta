@@ -6,6 +6,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.automerge.CalendarDocumentSource
+import uk.veritaslabs.vesta.automerge.CalendarSources
 import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
@@ -34,6 +36,7 @@ class AgentCommandService(
     private var current: Pair<VestaDatabase, PantrySources>? = null
     private var currentShopping: Pair<VestaDatabase, ShoppingListSources>? = null
     private var currentCookbook: Pair<VestaDatabase, CookbookSources>? = null
+    private var currentCalendars: Pair<VestaDatabase, CalendarSources>? = null
     private var currentMealPlans: Pair<VestaDatabase, MealPlanSources>? = null
     private var currentMerchants: Pair<VestaDatabase, MerchantsSources>? = null
     private var currentAssistants: Pair<VestaDatabase, AssistantRepository>? = null
@@ -99,6 +102,20 @@ class AgentCommandService(
     /** [homeId]'s shared meal plan source, for the UI; the Home must exist. */
     suspend fun mealPlan(database: VestaDatabase, homeId: String): MealPlanDocumentSource =
         checkNotNull(mealPlanSources(database).forHome(homeId)) { "no Home with id $homeId" }
+
+    /** The shared calendar sources of [database]. */
+    @Synchronized
+    fun calendarSources(database: VestaDatabase): CalendarSources =
+        currentCalendars?.takeIf { it.first === database }?.second
+            ?: CalendarSources(database).also { currentCalendars = database to it }
+
+    /** [homeId]'s shared calendar source, for the UI; the Home must exist. */
+    suspend fun calendar(database: VestaDatabase, homeId: String): CalendarDocumentSource =
+        checkNotNull(calendarSources(database).forHome(homeId)) { "no Home with id $homeId" }
+
+    /** The user's private calendar source in [homeId], for the UI; the Home must exist. */
+    suspend fun privateCalendar(database: VestaDatabase, homeId: String): CalendarDocumentSource =
+        checkNotNull(calendarSources(database).privateForHome(homeId)) { "no Home with id $homeId" }
 
     /** Handles agent commands arriving on x0x until cancelled; never returns normally. */
     @OptIn(ExperimentalUuidApi::class)

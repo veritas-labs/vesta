@@ -501,6 +501,50 @@
         <item>Sat</item>
         <item>Sun</item>
     </string-array>
+    <string name="calendar_add_event">Add event</string>
+    <string name="calendar_private_event">Private event</string>
+    <string name="calendar_all_day">All day</string>
+    <string name="calendar_event_time_range">%1$s – %2$s</string>
+    <string name="calendar_event_time_from">From %1$s</string>
+    <string name="calendar_event_time_until">Until %1$s</string>
+    <string name="event_edit_add_title">New event</string>
+    <string name="event_edit_edit_title">Edit event</string>
+    <string name="event_edit_title_hint">Add title</string>
+    <string name="event_edit_starts">Starts</string>
+    <string name="event_edit_ends">Ends</string>
+    <string name="event_edit_ends_before_start">The event can\'t end before it starts</string>
+    <string name="event_edit_all_day">All day</string>
+    <string name="event_edit_repeat_none">Does not repeat</string>
+    <string name="event_edit_repeat_daily">Every day</string>
+    <string name="event_edit_repeat_weekly">Every week</string>
+    <string name="event_edit_repeat_monthly">Every month</string>
+    <string name="event_edit_repeat_yearly">Every year</string>
+    <string name="event_edit_calendar_home">%1$s calendar</string>
+    <string name="event_edit_calendar_private">My private calendar</string>
+    <string name="event_edit_calendar_private_note">Only your own devices see this calendar. It is never sent to the Home\'s other members.</string>
+    <string name="event_edit_colour">Colour</string>
+    <string name="event_edit_add_participants">Add participants</string>
+    <string name="event_edit_participants_title">Participants</string>
+    <string name="event_edit_participants_done">Done</string>
+    <string name="event_edit_location">Add location</string>
+    <string name="event_edit_description">Add description</string>
+    <string name="event_edit_cancel">Cancel</string>
+    <string name="event_edit_save">Save</string>
+    <string name="event_edit_delete">Delete</string>
+    <string name="event_edit_pick_ok">OK</string>
+    <string name="event_edit_more_options">More options</string>
+    <string name="event_edit_export_ical">Export as iCal event</string>
+    <string name="event_edit_close">Close</string>
+    <string-array name="event_colours">
+        <item>Blue</item>
+        <item>Green</item>
+        <item>Gold</item>
+        <item>Red</item>
+        <item>Purple</item>
+        <item>Teal</item>
+        <item>Pink</item>
+        <item>Grey</item>
+    </string-array>
     <string name="marketplace_title">Marketplace</string>
     <string name="marketplace_back">Back</string>
     <string name="marketplace_local_merchants">Local Merchants</string>

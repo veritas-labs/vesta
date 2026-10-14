@@ -1,10 +1,12 @@
 package uk.veritaslabs.vesta.mailbox
 
+import uk.veritaslabs.vesta.automerge.CalendarSources
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsSources
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
+import uk.veritaslabs.vesta.automerge.calendarDocumentId
 import uk.veritaslabs.vesta.automerge.cookbookDocumentId
 import uk.veritaslabs.vesta.automerge.mealPlanDocumentId
 import uk.veritaslabs.vesta.automerge.merchantsDocumentId
@@ -34,7 +36,7 @@ internal interface MailboxDocuments {
     suspend fun open(homeId: String, documentId: String): MailboxDocument?
 }
 
-/** A Home's Pantry, shopping list, cookbook, merchants, meal plan and roster. */
+/** A Home's Pantry, shopping list, cookbook, merchants, meal plan, calendar and roster. */
 internal class HomeMailboxDocuments(
     private val pantries: PantrySources,
     private val shoppingLists: ShoppingListSources,
@@ -42,10 +44,11 @@ internal class HomeMailboxDocuments(
     private val rosters: HomeRosters,
     private val merchants: MerchantsSources? = null,
     private val mealPlans: MealPlanSources? = null,
+    private val calendars: CalendarSources? = null,
 ) : MailboxDocuments {
 
     override fun documentIds(homeId: String) = listOf(rosterDocumentId(homeId), pantryDocumentId(homeId), shoppingListDocumentId(homeId), cookbookDocumentId(homeId)) +
-        listOfNotNull(merchants?.let { merchantsDocumentId(homeId) }, mealPlans?.let { mealPlanDocumentId(homeId) })
+        listOfNotNull(merchants?.let { merchantsDocumentId(homeId) }, mealPlans?.let { mealPlanDocumentId(homeId) }, calendars?.let { calendarDocumentId(homeId) })
 
     override suspend fun open(homeId: String, documentId: String): MailboxDocument? = when (documentId) {
         rosterDocumentId(homeId) -> object : MailboxDocument {
@@ -82,6 +85,13 @@ internal class HomeMailboxDocuments(
             }
         }
         mealPlanDocumentId(homeId) -> mealPlans?.forHome(homeId)?.let { source ->
+            object : MailboxDocument {
+                override suspend fun heads() = source.heads()
+                override suspend fun changesSince(saved: ByteArray) = source.changesSince(saved)
+                override suspend fun applyChanges(changes: ByteArray) = source.applyChanges(changes)
+            }
+        }
+        calendarDocumentId(homeId) -> calendars?.forHome(homeId)?.let { source ->
             object : MailboxDocument {
                 override suspend fun heads() = source.heads()
                 override suspend fun changesSince(saved: ByteArray) = source.changesSince(saved)

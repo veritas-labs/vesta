@@ -48,7 +48,7 @@ ROOT
 - **Slots are Breakfast, Lunch and Dinner**, stored by enum name. A key this version can't read (a future slot, a
   damaged date) is skipped, not an error.
 - **The week is the Calendar's:** it starts on the Calendar's first day of the week setting (Monday, Saturday or
-  Sunday; ADR-025), and "today" is the Calendar's (`CalendarDate.todayUtc()`). Previous/next arrows move a week at a
+  Sunday; ADR-025), and "today" is the Calendar's (`CalendarDate.today()`, the device's date since ADR-029). Previous/next arrows move a week at a
   time with no limit either way; "This week" appears when away from the current one.
 - **Layout:** a vertical list of seven day cards on phone and tablet alike (the list is centred and at most 720 dp wide). A
   card has a coloured bar down its left edge (a fixed colour per weekday, Monday first whichever day the week starts on), the day's
@@ -92,7 +92,7 @@ ROOT
 - **Links to the rest of Vesta.** Standalone for now. Later: add a week's (or a meal's) missing ingredients to the
   shopping list net of Pantry stock; mark a meal cooked and take its ingredients out of the Pantry; servings per planned meal.
 - Copying a whole day or week; moving a recipe to another slot or day; "what shall we have?" suggestions.
-- The time zone: "today" is UTC, as in the Calendar, so around midnight the highlighted day can be a day out.
+- The time zone: "today" was the UTC date; since ADR-029 it is the device's own, as in the Calendar.
 - Agent (ADR-009) commands for the plan; Assistants grants (ADR-027) do not cover it.
 
 ## Not done yet (as of 2026-10-13)

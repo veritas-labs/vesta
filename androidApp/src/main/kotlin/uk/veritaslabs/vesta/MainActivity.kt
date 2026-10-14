@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
         // backgroundServices = { database -> agentCommands.run(database) } as desktopApp's main.kt does
         // (and decide how the allowlist is configured on a phone, where there is no environment variable).
         val agentCommands = AgentCommandService()
+        val fileExporter = AndroidFileExporter(this)
         setContent {
             VestaApp(
                 openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
@@ -35,11 +36,13 @@ class MainActivity : ComponentActivity() {
                 openCookbook = { database, homeId -> agentCommands.cookbook(database, homeId) },
                 openMerchants = { database, homeId -> agentCommands.merchants(database, homeId) },
                 openMealPlan = { database, homeId -> agentCommands.mealPlan(database, homeId) },
+                openCalendar = { database, homeId -> agentCommands.calendar(database, homeId) },
+                openPrivateCalendar = { database, homeId -> agentCommands.privateCalendar(database, homeId) },
                 dataSync = { database, client, devices ->
                     DeviceDataSyncService(
                         client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
                         agentCommands.cookbookSources(database), agentCommands.merchantsSources(database),
-                        agentCommands.mealPlanSources(database),
+                        agentCommands.mealPlanSources(database), agentCommands.calendarSources(database),
                     )
                 },
                 blobRuntime = { database, client, sync ->
@@ -52,6 +55,7 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 recipeImporter = HttpRecipeImporter(),
+                fileExporter = fileExporter,
             )
         }
     }

@@ -19,6 +19,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.io.encoding.Base64
+import uk.veritaslabs.vesta.automerge.CalendarSources
+import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
+import uk.veritaslabs.vesta.automerge.calendarDocumentId
+import uk.veritaslabs.vesta.calendar.CalendarEvent
+import uk.veritaslabs.vesta.calendar.EventCalendar
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsSources
@@ -67,8 +74,11 @@ class DeviceDataSyncServiceTest {
         val cookbook = CookbookSources(database)
         val merchants = MerchantsSources(database)
         val mealPlans = MealPlanSources(database)
+        val calendars = CalendarSources(database)
+        /** The id of every document a sync message has reached this device for. */
+        val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, shopping, cookbook, merchants, mealPlans, interval = interval,
+            node, database, devices, pantries, shopping, cookbook, merchants, mealPlans, calendars, interval = interval,
         )
         /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
         val deviceSync: DeviceSyncService by lazy {
@@ -85,6 +95,8 @@ class DeviceDataSyncServiceTest {
 
         init {
             node.onDirect = { message: X0xDirectMessage ->
+                message.payload?.let { runCatching { Base64.Default.decode(it) }.getOrNull() }?.let { SyncEnvelope.decode(it) }
+                    ?.let { receivedDocuments.add(it.documentId) }
                 scope.launch {
                     if (routeDeviceSyncMessages) deviceSync.handle(message)
                     sync.handle(message)
@@ -123,6 +135,11 @@ class DeviceDataSyncServiceTest {
 
         suspend fun plannedDinners(homeId: String, date: CalendarDate) =
             mealPlans.forHome(homeId)!!.plan.first().recipes(date, MealSlot.Dinner).sorted()
+
+        suspend fun homeEventTitles(homeId: String) =
+            calendars.forHome(homeId)!!.events.first().map { it.title }.sorted()
+
+        suspend fun privateEventTitles(homeId: String) = calendars.privateForHome(homeId)!!.events.first().map { it.title }.sorted()
 
         suspend fun merchantNames(homeId: String) =
             merchants.forHome(homeId)!!.merchants.first().map { it.name }.sorted()
@@ -275,6 +292,72 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         eventually { a.plannedDinners(homeId, tuesday) == listOf("curry", "pie") }
+        scope.cancel()
+    }
+
+
+    private fun event(id: String, title: String, calendar: EventCalendar) =
+        CalendarEvent(id = id, calendar = calendar, title = title, allDay = true, startMillis = 0L, endMillis = 0L)
+
+    @Test
+    fun aHomesCalendarEventsReachItsOtherMembers() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+
+        // Act
+        x.calendars.forHome(homeId)!!.save(event("e1", "Bin day", EventCalendar.Home))
+        eventually { y.homeEventTitles(homeId) == listOf("Bin day") }
+        y.calendars.forHome(homeId)!!.save(event("e2", "Dentist", EventCalendar.Home))
+
+        // Assert
+        eventually { x.homeEventTitles(homeId) == listOf("Bin day", "Dentist") }
+        scope.cancel()
+    }
+
+    @Test
+    fun aPrivateCalendarReachesTheUsersOwnDevicesAndNeverAnotherMemberOfTheHome() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        val x2 = Device("agent-x2")
+        x.pairedWith(x2)
+        x2.pairedWith(x)
+        x.start()
+        x2.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 }
+
+        // Act
+        x.calendars.privateForHome(homeId)!!.save(event("p1", "Surprise party planning", EventCalendar.Private))
+        x.calendars.forHome(homeId)!!.save(event("e1", "Bin day", EventCalendar.Home))
+        eventually { x2.privateEventTitles(homeId) == listOf("Surprise party planning") }
+        eventually { y.homeEventTitles(homeId) == listOf("Bin day") }
+        delay(500.milliseconds) // long enough for several sync rounds to have passed
+
+        // Assert
+        assertTrue(privateCalendarDocumentId(homeId) !in y.receivedDocuments)
+        assertEquals(emptyList(), y.privateEventTitles(homeId))
+        assertTrue(calendarDocumentId(homeId) in y.receivedDocuments)
+        scope.cancel()
+    }
+
+    @Test
+    fun aPrivateCalendarEventEditedOnOneDeviceUpdatesTheOther() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        b.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames().isNotEmpty() }
+        a.calendars.privateForHome(homeId)!!.save(event("p1", "Gym", EventCalendar.Private))
+        eventually { b.privateEventTitles(homeId) == listOf("Gym") }
+
+        // Act
+        b.calendars.privateForHome(homeId)!!.save(event("p1", "Gym session", EventCalendar.Private))
+
+        // Assert
+        eventually { a.privateEventTitles(homeId) == listOf("Gym session") }
         scope.cancel()
     }
 

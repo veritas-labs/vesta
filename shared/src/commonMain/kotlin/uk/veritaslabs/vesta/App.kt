@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.files.FileExporter
+import uk.veritaslabs.vesta.files.LocalFileExporter
 import uk.veritaslabs.vesta.recipes.LocalRecipeImporter
 import uk.veritaslabs.vesta.recipes.RecipeImporter
 import uk.veritaslabs.vesta.blobs.BlobRuntime
@@ -62,7 +64,10 @@ import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.CalendarSettingsController
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
 import uk.veritaslabs.vesta.ui.screens.AddedToPantryScreen
+import uk.veritaslabs.vesta.ui.flows.CalendarFlow
 import uk.veritaslabs.vesta.ui.screens.CalendarScreen
+import uk.veritaslabs.vesta.ui.screens.CalendarSource
+import uk.veritaslabs.vesta.ui.screens.CalendarViewModel
 import uk.veritaslabs.vesta.ui.screens.CalendarSettingsScreen
 import uk.veritaslabs.vesta.ui.screens.CookbookScreen
 import uk.veritaslabs.vesta.ui.screens.CookbookSource
@@ -376,6 +381,8 @@ private fun HomeContent(
     cookbookSource: CookbookSource? = null,
     merchantsSource: MerchantsSource? = null,
     mealPlanSource: MealPlanSource? = null,
+    calendarSource: CalendarSource? = null,
+    privateCalendarSource: CalendarSource? = null,
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
@@ -419,6 +426,11 @@ private fun HomeContent(
     val mealPlannerViewModel = mealPlanSource?.let { source ->
         val recipes = cookbookSource?.recipes ?: flowOf(emptyList())
         viewModel(key = "meal-planner-$homeId") { MealPlannerViewModel(source, recipes, members) }
+    }
+    val calendarViewModel = if (calendarSource != null && privateCalendarSource != null) {
+        viewModel(key = "calendar-$homeId") { CalendarViewModel(calendarSource, privateCalendarSource, members) }
+    } else {
+        null
     }
     val merchantsViewModel = merchantsSource?.let { source ->
         viewModel(key = "merchants-$homeId") { MerchantsViewModel(source) }
@@ -580,10 +592,19 @@ private fun HomeContent(
                 MerchantsScreen(merchants = emptyList(), onBack = { destination = HomeDestination.Marketplace })
             }
         }
-        HomeDestination.Calendar -> CalendarScreen(
-            onBack = { destination = HomeDestination.Dashboard },
-            onSettingsClick = { destination = HomeDestination.CalendarSettings },
-        )
+        HomeDestination.Calendar -> if (calendarViewModel != null) {
+            CalendarFlow(
+                calendarViewModel,
+                homeName = homeName,
+                onBack = { destination = HomeDestination.Dashboard },
+                onSettingsClick = { destination = HomeDestination.CalendarSettings },
+            )
+        } else {
+            CalendarScreen(
+                onBack = { destination = HomeDestination.Dashboard },
+                onSettingsClick = { destination = HomeDestination.CalendarSettings },
+            )
+        }
         HomeDestination.CalendarSettings -> {
             val calendarSettings = LocalCalendarSettings.current
             CalendarSettingsScreen(calendarSettings.settings, calendarSettings.onChange, onBack = { destination = HomeDestination.Calendar })
@@ -770,6 +791,7 @@ internal fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
  * [dataSync], if given, builds the sync of the user's data (Homes, Pantries) between their paired devices from the
  * database, the x0x client and the device list; it is fed Home changes and run for as long as the app is shown.
  * [blobRuntime], if given, builds the storage and transfer of photos from the same three; screens get it through [LocalBlobs].
+ * [fileExporter], if given, lets screens save a file the user chooses a place for (an event as iCal); screens get it through [LocalFileExporter].
  * [recipeImporter], if given, lets the add-recipe form fill itself from a web link; screens get it through [LocalRecipeImporter].
  * [ownDeviceCanBeHub] lets a user make this device an always-on hub of a Home (docs/adr/ADR-020, several-hubs amendment): true where
  * the x0x daemon keeps running when the app is closed, as on the desktop, not where it is embedded and stops with the app.
@@ -781,12 +803,15 @@ fun VestaApp(
     openCookbook: (suspend (VestaDatabase, homeId: String) -> CookbookSource)? = null,
     openMerchants: (suspend (VestaDatabase, homeId: String) -> MerchantsSource)? = null,
     openMealPlan: (suspend (VestaDatabase, homeId: String) -> MealPlanSource)? = null,
+    openCalendar: (suspend (VestaDatabase, homeId: String) -> CalendarSource)? = null,
+    openPrivateCalendar: (suspend (VestaDatabase, homeId: String) -> CalendarSource)? = null,
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     assistantsFor: ((VestaDatabase) -> AssistantRepository)? = null,
     dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
     blobRuntime: ((VestaDatabase, X0xClient, DeviceDataSync?) -> BlobRuntime)? = null,
     recipeImporter: RecipeImporter? = null,
+    fileExporter: FileExporter? = null,
     ownDeviceCanBeHub: Boolean = false,
 ) {
     val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
@@ -833,6 +858,7 @@ fun VestaApp(
     CompositionLocalProvider(
         LocalBlobs provides blobs?.blobs,
         LocalRecipeImporter provides recipeImporter,
+        LocalFileExporter provides fileExporter,
         LocalCalendarSettings provides calendarController,
     ) {
         App(
@@ -849,9 +875,12 @@ fun VestaApp(
                 val cookbookSource by produceState<CookbookSource?>(null, homeId) { value = openCookbook?.invoke(database, homeId) }
                 val merchantsSource by produceState<MerchantsSource?>(null, homeId) { value = openMerchants?.invoke(database, homeId) }
                 val mealPlanSource by produceState<MealPlanSource?>(null, homeId) { value = openMealPlan?.invoke(database, homeId) }
+                val calendarSource by produceState<CalendarSource?>(null, homeId) { value = openCalendar?.invoke(database, homeId) }
+                val privateCalendarSource by produceState<CalendarSource?>(null, homeId) { value = openPrivateCalendar?.invoke(database, homeId) }
                 val members = remember(homeId) { memberRepository.members(homeId) }
                 HomeContent(
-                    homeId, homeName, pantrySource, shoppingListSource, cookbookSource, merchantsSource, mealPlanSource, members,
+                    homeId, homeName, pantrySource, shoppingListSource, cookbookSource, merchantsSource, mealPlanSource,
+                    calendarSource, privateCalendarSource, members,
                     onLeave = { homeRepository.leave(homeId) },
                     onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
                     onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },
