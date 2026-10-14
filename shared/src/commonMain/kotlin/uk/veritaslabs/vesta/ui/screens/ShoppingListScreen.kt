@@ -435,7 +435,7 @@ fun ShoppingListScreen(
 
     // Looked up by key so the sheet follows the item as it changes; it closes if the item goes away.
     items.firstOrNull { it.key == sheetKey }?.let { sheetItem ->
-        ModalBottomSheet(onDismissRequest = { sheetKey = null }, sheetState = rememberModalBottomSheetState()) {
+        ModalBottomSheet(onDismissRequest = { sheetKey = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             ShoppingItemSheetContent(
                 item = sheetItem,
                 onSetProgress = { got, outOfStock -> onSetProgress(sheetItem.key, got, outOfStock) },

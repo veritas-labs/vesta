@@ -297,7 +297,7 @@ fun TasksScreen(
 
     // Looked up in the current tasks so the sheet closes if the task goes away.
     sheet?.let { tasksById[it] }?.let { task ->
-        ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = rememberModalBottomSheetState()) {
+        ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             TaskSheetContent(
                 task = task,
                 onEdit = {

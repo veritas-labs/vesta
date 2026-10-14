@@ -270,7 +270,7 @@ fun MealPlannerScreen(
 
     // Looked up in the cookbook so the sheet closes if the recipe goes away (a removed recipe has nothing to view).
     sheet?.let { meal -> recipesByKey[meal.recipeKey]?.let { it to meal } }?.let { (recipe, meal) ->
-        ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = rememberModalBottomSheetState()) {
+        ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             PlannedRecipeSheetContent(
                 title = recipe.title,
                 onView = {
