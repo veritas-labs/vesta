@@ -119,7 +119,7 @@ private const val WeeklyShift = 7
  * A colour for each day's bar, Monday first, whatever day the week starts on. Fixed rather than from the theme, which has too few
  * accents to tell seven days apart; muted enough to sit on both the light and the dark background.
  */
-private val DayAccents = listOf(
+internal val DayAccents = listOf(
     Color(0xFFD9743A), // Monday: terracotta
     Color(0xFF8FA07A), // Tuesday: sage
     Color(0xFFD9A441), // Wednesday: mustard
@@ -386,7 +386,7 @@ private fun WeekHeader(
 
 /** A circle with a thin outline that holds one icon and is tapped, like the week arrows and the plus on a meal. */
 @Composable
-private fun RoundButton(onClick: () -> Unit, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = PlusSize, content: @Composable () -> Unit) {
+internal fun RoundButton(onClick: () -> Unit, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = PlusSize, content: @Composable () -> Unit) {
     Surface(
         onClick = onClick,
         shape = CircleShape,

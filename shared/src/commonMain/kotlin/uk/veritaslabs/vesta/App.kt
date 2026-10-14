@@ -69,6 +69,14 @@ import uk.veritaslabs.vesta.calendar.CalendarSettingsController
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
 import uk.veritaslabs.vesta.ui.screens.AddedToPantryScreen
 import uk.veritaslabs.vesta.ui.flows.CalendarFlow
+import uk.veritaslabs.vesta.ui.flows.TasksFlow
+import uk.veritaslabs.vesta.ui.screens.TasksScreen
+import uk.veritaslabs.vesta.ui.screens.TasksViewModel
+import uk.veritaslabs.vesta.ui.screens.TasksSummary
+import uk.veritaslabs.vesta.ui.screens.tasksSummary
+import uk.veritaslabs.vesta.tasks.TaskSource
+import uk.veritaslabs.vesta.calendar.CalendarDate
+import uk.veritaslabs.vesta.calendar.today
 import uk.veritaslabs.vesta.ui.screens.CalendarScreen
 import uk.veritaslabs.vesta.ui.screens.CalendarSource
 import uk.veritaslabs.vesta.ui.screens.CalendarViewModel
@@ -406,6 +414,8 @@ private fun HomeContent(
     mealPlanSource: MealPlanSource? = null,
     calendarSource: CalendarSource? = null,
     privateCalendarSource: CalendarSource? = null,
+    tasksSource: TaskSource? = null,
+    privateTasksSource: TaskSource? = null,
     members: Flow<List<MemberListItem>> = flowOf(emptyList()),
     onLeave: suspend () -> LeaveResult = { LeaveResult.Left },
     onSetRole: suspend (memberId: String, role: MemberRole) -> Unit = { _, _ -> },
@@ -455,6 +465,11 @@ private fun HomeContent(
     } else {
         null
     }
+    val tasksViewModel = if (tasksSource != null && privateTasksSource != null) {
+        viewModel(key = "tasks-$homeId") { TasksViewModel(tasksSource, privateTasksSource, members) }
+    } else {
+        null
+    }
     val merchantsViewModel = merchantsSource?.let { source ->
         viewModel(key = "merchants-$homeId") { MerchantsViewModel(source) }
     }
@@ -465,6 +480,7 @@ private fun HomeContent(
     val categoriesState = categoriesViewModel?.uiState?.collectAsStateWithLifecycle()
     val shoppingState = shoppingViewModel?.uiState?.collectAsStateWithLifecycle()
     val calendarState = calendarViewModel?.uiState?.collectAsStateWithLifecycle()
+    val tasksState = tasksViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
     when (destination) {
@@ -477,6 +493,8 @@ private fun HomeContent(
             onCookbookClick = { destination = HomeDestination.Cookbook },
             onMealPlannerClick = { destination = HomeDestination.MealPlanner },
             onCalendarClick = { destination = HomeDestination.Calendar },
+            onTasksClick = { destination = HomeDestination.Tasks },
+            tasksSummary = tasksState?.value?.let { tasksSummary(it, CalendarDate.today()) } ?: TasksSummary(),
             onMarketplaceClick = { destination = HomeDestination.Marketplace },
             onMembersClick = { destination = HomeDestination.Members },
             isAdmin = isAdmin,
@@ -628,6 +646,11 @@ private fun HomeContent(
                 onBack = { destination = HomeDestination.Dashboard },
                 onSettingsClick = { destination = HomeDestination.CalendarSettings },
             )
+        }
+        HomeDestination.Tasks -> if (tasksViewModel != null) {
+            TasksFlow(tasksViewModel, homeName = homeName, onBack = { destination = HomeDestination.Dashboard })
+        } else {
+            TasksScreen(tasks = emptyList(), onBack = { destination = HomeDestination.Dashboard })
         }
         HomeDestination.CalendarSettings -> {
             val calendarSettings = LocalCalendarSettings.current
@@ -795,7 +818,7 @@ class DeviceSyncHost(
 
 private enum class HomeDestination {
     Dashboard, Members, MemberDetail, InviteLinks, HubManager, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
-    ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, MealPlanner, Marketplace, Merchants, Calendar, CalendarSettings,
+    ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, MealPlanner, Marketplace, Merchants, Calendar, CalendarSettings, Tasks,
 }
 
 internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(
@@ -837,6 +860,8 @@ fun VestaApp(
     openMealPlan: (suspend (VestaDatabase, homeId: String) -> MealPlanSource)? = null,
     openCalendar: (suspend (VestaDatabase, homeId: String) -> CalendarSource)? = null,
     openPrivateCalendar: (suspend (VestaDatabase, homeId: String) -> CalendarSource)? = null,
+    openTasks: (suspend (VestaDatabase, homeId: String) -> TaskSource)? = null,
+    openPrivateTasks: (suspend (VestaDatabase, homeId: String) -> TaskSource)? = null,
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
     backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
     assistantsFor: ((VestaDatabase) -> AssistantRepository)? = null,
@@ -911,10 +936,12 @@ fun VestaApp(
                 val mealPlanSource by produceState<MealPlanSource?>(null, homeId) { value = openMealPlan?.invoke(database, homeId) }
                 val calendarSource by produceState<CalendarSource?>(null, homeId) { value = openCalendar?.invoke(database, homeId) }
                 val privateCalendarSource by produceState<CalendarSource?>(null, homeId) { value = openPrivateCalendar?.invoke(database, homeId) }
+                val tasksSource by produceState<TaskSource?>(null, homeId) { value = openTasks?.invoke(database, homeId) }
+                val privateTasksSource by produceState<TaskSource?>(null, homeId) { value = openPrivateTasks?.invoke(database, homeId) }
                 val members = remember(homeId) { memberRepository.members(homeId) }
                 HomeContent(
                     homeId, homeName, pantrySource, shoppingListSource, cookbookSource, merchantsSource, mealPlanSource,
-                    calendarSource, privateCalendarSource, members,
+                    calendarSource, privateCalendarSource, tasksSource, privateTasksSource, members,
                     onLeave = { homeRepository.leave(homeId) },
                     onSetRole = { memberId, role -> memberRepository.setRole(homeId, memberId, role) },
                     onRemoveMember = { memberId -> memberRepository.removeMember(homeId, memberId) },

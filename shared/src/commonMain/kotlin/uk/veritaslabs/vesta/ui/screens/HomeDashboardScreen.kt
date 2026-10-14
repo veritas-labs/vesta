@@ -63,6 +63,11 @@ import uk.veritaslabs.vesta.x0x.X0xConnectivityIndicator
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.home_dashboard_back
 import vesta.shared.generated.resources.calendar_title
+import vesta.shared.generated.resources.home_dashboard_tasks_body
+import vesta.shared.generated.resources.home_dashboard_tasks_overdue
+import vesta.shared.generated.resources.home_dashboard_tasks_today
+import vesta.shared.generated.resources.ic_checklist
+import vesta.shared.generated.resources.tasks_title
 import vesta.shared.generated.resources.cookbook_title
 import vesta.shared.generated.resources.ic_calendar
 import vesta.shared.generated.resources.ic_arrow_left
@@ -106,6 +111,8 @@ internal object HomeDashboardTestTags {
     const val CookbookTile = "home_dashboard_cookbook_tile"
     const val MealPlannerTile = "home_dashboard_meal_planner_tile"
     const val CalendarTile = "home_dashboard_calendar_tile"
+    const val TasksTile = "home_dashboard_tasks_tile"
+    const val TasksTileBody = "home_dashboard_tasks_tile_body"
     const val MarketplaceTile = "home_dashboard_marketplace_tile"
     const val X0xIndicator = "home_dashboard_x0x_indicator"
     const val OverflowButton = "home_dashboard_overflow_button"
@@ -124,6 +131,9 @@ private data class DashboardTile(
     val icon: DrawableResource,
     val accent: Color,
     val onClick: () -> Unit,
+    /** Words to show instead of [body], such as how many tasks are overdue; [bodyIsAlert] draws them in the error colour. */
+    val bodyOverride: String? = null,
+    val bodyIsAlert: Boolean = false,
 )
 
 /** The Pantry tile's blue, shared with the Pantry screen's app bar shadow. */
@@ -142,6 +152,7 @@ private val TileAccents = mapOf(
     HomeDashboardTestTags.CookbookTile to Color(0xFFD9694F), // coral
     HomeDashboardTestTags.MealPlannerTile to Color(0xFFD9743A), // terracotta
     HomeDashboardTestTags.CalendarTile to Color(0xFF8FA07A), // sage
+    HomeDashboardTestTags.TasksTile to Color(0xFF6FA5A0), // teal
     HomeDashboardTestTags.MarketplaceTile to Color(0xFFA89A6E), // khaki
 )
 
@@ -168,6 +179,8 @@ fun HomeDashboardScreen(
     onCookbookClick: () -> Unit = {},
     onMealPlannerClick: () -> Unit = {},
     onCalendarClick: () -> Unit = {},
+    onTasksClick: () -> Unit = {},
+    tasksSummary: TasksSummary = TasksSummary(),
     onMarketplaceClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
     onMembersClick: () -> Unit = {},
@@ -187,6 +200,16 @@ fun HomeDashboardScreen(
         DashboardTile(HomeDashboardTestTags.CookbookTile, Res.string.cookbook_title, Res.string.home_dashboard_cookbook_body, Res.drawable.ic_cookbook, TileAccents.getValue(HomeDashboardTestTags.CookbookTile), onCookbookClick),
         DashboardTile(HomeDashboardTestTags.MealPlannerTile, Res.string.meal_planner_title, Res.string.home_dashboard_meal_planner_body, Res.drawable.ic_meal_planner, TileAccents.getValue(HomeDashboardTestTags.MealPlannerTile), onMealPlannerClick),
         DashboardTile(HomeDashboardTestTags.CalendarTile, Res.string.calendar_title, Res.string.home_dashboard_calendar_body, Res.drawable.ic_calendar, TileAccents.getValue(HomeDashboardTestTags.CalendarTile), onCalendarClick),
+        DashboardTile(
+            HomeDashboardTestTags.TasksTile, Res.string.tasks_title, Res.string.home_dashboard_tasks_body, Res.drawable.ic_checklist,
+            TileAccents.getValue(HomeDashboardTestTags.TasksTile), onTasksClick,
+            bodyOverride = when {
+                tasksSummary.overdue > 0 -> stringResource(Res.string.home_dashboard_tasks_overdue, tasksSummary.overdue)
+                tasksSummary.today > 0 -> stringResource(Res.string.home_dashboard_tasks_today, tasksSummary.today)
+                else -> null
+            },
+            bodyIsAlert = tasksSummary.overdue > 0,
+        ),
         DashboardTile(HomeDashboardTestTags.MarketplaceTile, Res.string.marketplace_title, Res.string.home_dashboard_marketplace_body, Res.drawable.ic_merchants, TileAccents.getValue(HomeDashboardTestTags.MarketplaceTile), onMarketplaceClick),
     ).map { it to stringResource(it.label) }
         .sortedBy { (_, label) -> label.lowercase() }
@@ -346,12 +369,14 @@ private fun DashboardTileCard(tile: DashboardTile, modifier: Modifier = Modifier
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = stringResource(tile.body),
+                        text = tile.bodyOverride ?: stringResource(tile.body),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (tile.bodyIsAlert) FontWeight.Bold else null,
+                        color = if (tile.bodyIsAlert) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         minLines = 2,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = if (tile.testTag == HomeDashboardTestTags.TasksTile) Modifier.testTag(HomeDashboardTestTags.TasksTileBody) else Modifier,
                     )
                 }
             }

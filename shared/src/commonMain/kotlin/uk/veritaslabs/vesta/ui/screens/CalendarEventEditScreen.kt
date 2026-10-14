@@ -423,7 +423,7 @@ fun CalendarEventEditScreen(
 
 private enum class DateTimeField { StartDate, StartTime, EndDate, EndTime }
 
-private fun dateText(date: CalendarDate, months: List<String>) = "${date.day} ${months[date.month - 1].take(3)} ${date.year}"
+internal fun dateText(date: CalendarDate, months: List<String>) = "${date.day} ${months[date.month - 1].take(3)} ${date.year}"
 
 @Composable
 private fun repeatLabel(repeat: EventRepeat) = stringResource(
@@ -442,7 +442,7 @@ private fun calendarLabel(calendar: EventCalendar, homeName: String) =
 
 /** A form line: an icon in the left margin and its [content] beside it. */
 @Composable
-private fun FormRow(icon: DrawableResource?, topAligned: Boolean = false, content: @Composable () -> Unit) {
+internal fun FormRow(icon: DrawableResource?, topAligned: Boolean = false, content: @Composable () -> Unit) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = if (topAligned) Alignment.Top else Alignment.CenterVertically,
@@ -480,7 +480,7 @@ private fun DateTimeRow(
 
 /** A button showing [current] that opens a menu of [options]. */
 @Composable
-private fun <T> ChoiceMenu(
+internal fun <T> ChoiceMenu(
     current: String,
     options: List<T>,
     label: @Composable (T) -> String,
@@ -543,7 +543,7 @@ private fun ColourMenu(selected: Int, names: List<String>, onChoose: (Int) -> Un
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DatePickerPopup(initial: CalendarDate, onPick: (CalendarDate) -> Unit, onDismiss: () -> Unit) {
+internal fun DatePickerPopup(initial: CalendarDate, onPick: (CalendarDate) -> Unit, onDismiss: () -> Unit) {
     val state = rememberDatePickerState(initialSelectedDateMillis = allDayMillis(initial))
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -559,7 +559,7 @@ private fun DatePickerPopup(initial: CalendarDate, onPick: (CalendarDate) -> Uni
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimePickerPopup(initial: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+internal fun TimePickerPopup(initial: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     val state = rememberTimePickerState(initialHour = initial / 60, initialMinute = initial % 60, is24Hour = true)
     // The vertical layout always: the automatic one goes horizontal on a short window and the dial then overlaps the digits in a dialog this narrow.
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {

@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.ui.screens
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -282,5 +283,58 @@ class HomeDashboardScreenTest {
 
         // Assert
         assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingTheTasksTileInvokesOnTasksClick() = runComposeUiTest {
+        // Arrange
+        var clicks = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", onTasksClick = { clicks++ }) } }
+
+        // Act
+        onNodeWithTag(HomeDashboardTestTags.TasksTile).performClick()
+
+        // Assert
+        assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theTasksTileCountsOverdueTasksBeforeThoseDueToday() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", tasksSummary = TasksSummary(overdue = 2, today = 3)) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(HomeDashboardTestTags.TasksTileBody, useUnmergedTree = true).assertTextEquals("2 overdue")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theTasksTileCountsTodaysTasksWhenNothingIsOverdue() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", tasksSummary = TasksSummary(overdue = 0, today = 3)) } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(HomeDashboardTestTags.TasksTileBody, useUnmergedTree = true).assertTextEquals("3 due today")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun theTasksTileSaysWhatItIsForWhenNothingNeedsDoing() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons") } }
+
+        // Act
+        // (no user interaction — checking the initial state)
+
+        // Assert
+        onNodeWithTag(HomeDashboardTestTags.TasksTileBody, useUnmergedTree = true).assertTextEquals("Chores and to-dos")
     }
 }

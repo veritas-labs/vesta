@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.automerge.CalendarDocumentSource
 import uk.veritaslabs.vesta.automerge.CalendarSources
+import uk.veritaslabs.vesta.automerge.TaskDocumentSource
+import uk.veritaslabs.vesta.automerge.TaskSources
 import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
@@ -37,6 +39,7 @@ class AgentCommandService(
     private var currentShopping: Pair<VestaDatabase, ShoppingListSources>? = null
     private var currentCookbook: Pair<VestaDatabase, CookbookSources>? = null
     private var currentCalendars: Pair<VestaDatabase, CalendarSources>? = null
+    private var currentTasks: Pair<VestaDatabase, TaskSources>? = null
     private var currentMealPlans: Pair<VestaDatabase, MealPlanSources>? = null
     private var currentMerchants: Pair<VestaDatabase, MerchantsSources>? = null
     private var currentAssistants: Pair<VestaDatabase, AssistantRepository>? = null
@@ -116,6 +119,20 @@ class AgentCommandService(
     /** The user's private calendar source in [homeId], for the UI; the Home must exist. */
     suspend fun privateCalendar(database: VestaDatabase, homeId: String): CalendarDocumentSource =
         checkNotNull(calendarSources(database).privateForHome(homeId)) { "no Home with id $homeId" }
+
+    /** The shared task sources of [database] (ADR-031). */
+    @Synchronized
+    fun taskSources(database: VestaDatabase): TaskSources =
+        currentTasks?.takeIf { it.first === database }?.second
+            ?: TaskSources(database).also { currentTasks = database to it }
+
+    /** [homeId]'s shared tasks source, for the UI; the Home must exist. */
+    suspend fun tasks(database: VestaDatabase, homeId: String): TaskDocumentSource =
+        checkNotNull(taskSources(database).forHome(homeId)) { "no Home with id $homeId" }
+
+    /** The user's private tasks source in [homeId], for the UI; the Home must exist. */
+    suspend fun privateTasks(database: VestaDatabase, homeId: String): TaskDocumentSource =
+        checkNotNull(taskSources(database).privateForHome(homeId)) { "no Home with id $homeId" }
 
     /** Handles agent commands arriving on x0x until cancelled; never returns normally. */
     @OptIn(ExperimentalUuidApi::class)
