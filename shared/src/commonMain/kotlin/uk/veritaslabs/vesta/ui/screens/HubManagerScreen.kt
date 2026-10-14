@@ -132,33 +132,28 @@ fun HubManagerScreen(
                 navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
             ),
         )
+        val empty = !state.loading && state.hubs.isEmpty()
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp), contentAlignment = Alignment.TopCenter) {
-            Column(modifier = Modifier.widthIn(max = HubManagerContentMaxWidth).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = onHowHubsWork,
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth().height(60.dp).testTag(HubManagerTestTags.HowButton),
-                ) {
-                    Icon(painter = painterResource(Res.drawable.ic_clipboard_text), contentDescription = null, modifier = Modifier.size(20.dp))
-                    Text(
-                        text = stringResource(Res.string.hub_manager_how_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-                when {
-                    state.loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.testTag(HubManagerTestTags.Progress))
-                    }
-                    state.hubs.isEmpty() -> HubEmptyState(state, onSetUpHub, modifier = Modifier.weight(1f))
-                    else -> LazyColumn(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(state.hubs, key = { it.agentId }) { hub -> RecordedHub(hub, onRemove = { onRemove(hub.agentId) }) }
-                        item {
-                            if (state.failed) FailureText()
-                            AddHubButton(onAddHub)
+            if (empty) {
+                // Not width-capped, so the empty state can put its words beside the picture on a wide screen.
+                HubEmptyState(state, onHowHubsWork, onSetUpHub, modifier = Modifier.fillMaxSize())
+            } else {
+                Column(modifier = Modifier.widthIn(max = HubManagerContentMaxWidth).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HowHubsWorkButton(onHowHubsWork)
+                    if (state.loading) {
+                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.testTag(HubManagerTestTags.Progress))
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            items(state.hubs, key = { it.agentId }) { hub -> RecordedHub(hub, onRemove = { onRemove(hub.agentId) }) }
+                            item {
+                                if (state.failed) FailureText()
+                                AddHubButton(onAddHub)
+                            }
                         }
                     }
                 }
@@ -167,9 +162,25 @@ fun HubManagerScreen(
     }
 }
 
-/** No hub yet: what one is for and the way to set the first up, or why that can't be done now. */
 @Composable
-private fun HubEmptyState(state: HubUiState, onSetUpHub: () -> Unit, modifier: Modifier = Modifier) {
+private fun HowHubsWorkButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier.fillMaxWidth().height(60.dp).testTag(HubManagerTestTags.HowButton),
+    ) {
+        Icon(painter = painterResource(Res.drawable.ic_clipboard_text), contentDescription = null, modifier = Modifier.size(20.dp))
+        Text(
+            text = stringResource(Res.string.hub_manager_how_title),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(start = 8.dp),
+        )
+    }
+}
+
+/** No hub yet: what one is for, the tutorial button and the way to set the first up, or why that can't be done now. */
+@Composable
+private fun HubEmptyState(state: HubUiState, onHowHubsWork: () -> Unit, onSetUpHub: () -> Unit, modifier: Modifier = Modifier) {
     EmptyState(
         EmptyStateArt.Hubs,
         title = stringResource(Res.string.hub_manager_empty_title),
@@ -179,6 +190,7 @@ private fun HubEmptyState(state: HubUiState, onSetUpHub: () -> Unit, modifier: M
         illustrationMaxSize = 220.dp,
         modifier = modifier.testTag(HubManagerTestTags.EmptyState),
     ) {
+        HowHubsWorkButton(onHowHubsWork)
         if (!state.unavailable) {
             PrimaryButton(
                 label = stringResource(Res.string.hub_manager_setup_title),
