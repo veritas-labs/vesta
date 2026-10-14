@@ -1,6 +1,15 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.dp
+import kotlin.test.assertTrue
+import uk.veritaslabs.vesta.ui.components.EmptyState
+import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -147,5 +156,63 @@ class EmptyStateIllustrationsTest {
 
         // Assert
         onNodeWithTag(illustration).assertIsDisplayed()
+    }
+
+    private fun ComposeUiTest.emptyStateIn(width: Int, height: Int) = setContent {
+        VestaTheme {
+            Box(Modifier.size(width.dp, height.dp)) { EmptyState(EmptyStateArt.Pantry, "Your pantry is empty", body = "Items your household buys will show up here.") }
+        }
+    }
+
+    @Test
+    fun onAWideScreenThePictureIsBesideTheWords() = runComposeUiTest {
+        // Arrange
+        emptyStateIn(width = 1000, height = 600)
+
+        // Act
+        val picture = onNodeWithTag(illustration).getUnclippedBoundsInRoot()
+        val title = onNodeWithTag(EmptyStateTestTags.Title).getUnclippedBoundsInRoot()
+
+        // Assert
+        assertTrue(title.left >= picture.right, "the words start to the right of the picture")
+    }
+
+    @Test
+    fun onANarrowScreenThePictureIsAboveTheWords() = runComposeUiTest {
+        // Arrange
+        emptyStateIn(width = 360, height = 700)
+
+        // Act
+        val picture = onNodeWithTag(illustration).getUnclippedBoundsInRoot()
+        val title = onNodeWithTag(EmptyStateTestTags.Title).getUnclippedBoundsInRoot()
+
+        // Assert
+        assertTrue(title.top >= picture.bottom, "the words start below the picture")
+    }
+
+    @Test
+    fun aWideButShortLandscapeScreenAlsoPutsThePictureBesideTheWords() = runComposeUiTest {
+        // Arrange
+        emptyStateIn(width = 800, height = 380)
+
+        // Act
+        val picture = onNodeWithTag(illustration).getUnclippedBoundsInRoot()
+        val title = onNodeWithTag(EmptyStateTestTags.Title).getUnclippedBoundsInRoot()
+
+        // Assert
+        assertTrue(title.left >= picture.right, "the words start to the right of the picture")
+    }
+
+    @Test
+    fun aTallWideScreenKeepsThePictureAboveTheWords() = runComposeUiTest {
+        // Arrange
+        emptyStateIn(width = 720, height = 760)
+
+        // Act
+        val picture = onNodeWithTag(illustration).getUnclippedBoundsInRoot()
+        val title = onNodeWithTag(EmptyStateTestTags.Title).getUnclippedBoundsInRoot()
+
+        // Assert
+        assertTrue(title.top >= picture.bottom, "the words start below the picture")
     }
 }

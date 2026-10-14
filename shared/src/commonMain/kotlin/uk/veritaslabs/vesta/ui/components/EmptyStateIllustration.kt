@@ -3,11 +3,18 @@ package uk.veritaslabs.vesta.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -55,6 +62,7 @@ import vesta.shared.generated.resources.empty_synced_devices_dark
 /** Stable hooks for UI tests to target. */
 object EmptyStateTestTags {
     const val Illustration = "empty_state_illustration"
+    const val Title = "empty_state_title"
 }
 
 /**
@@ -80,17 +88,17 @@ enum class EmptyStateArt(internal val light: DrawableResource, internal val dark
 
 /**
  * [art], square, drawn on its own paper colour so it blends into the screen. Decorative: the words next to it say it. It is [size] wide when
- * given, otherwise as wide as [modifier] allows.
+ * given, otherwise as wide as [modifier] allows (or as tall, with [matchHeight]).
  */
 @Composable
-fun EmptyStateIllustration(art: EmptyStateArt, modifier: Modifier = Modifier, size: Dp? = null) {
+fun EmptyStateIllustration(art: EmptyStateArt, modifier: Modifier = Modifier, size: Dp? = null, matchHeight: Boolean = false) {
     val dark = isDarkArt()
     Image(
         painter = painterResource(if (dark) art.dark else art.light),
         contentDescription = null,
         contentScale = ContentScale.Fit,
         modifier = modifier
-            .let { if (size != null) it.size(size) else it.aspectRatio(1f) }
+            .let { if (size != null) it.size(size) else it.aspectRatio(1f, matchHeightConstraintsFirst = matchHeight) }
             .clip(RoundedCornerShape(24.dp))
             .background(artPaper(dark))
             .testTag(EmptyStateTestTags.Illustration),
@@ -99,39 +107,79 @@ fun EmptyStateIllustration(art: EmptyStateArt, modifier: Modifier = Modifier, si
 
 private val EmptyStateContentMaxWidth = 480.dp
 private val EmptyStateIllustrationMaxSize = 420.dp
+private val EmptyStateWideBreakpoint = 720.dp
 
 /**
- * An empty list's message: [art] above a [title] and an optional [body], laid out and styled like a welcome-tour slide (a large picture, a
- * headline, a line of explanation). Centred, and scrolls when the screen is too short to show all of it.
+ * An empty list's message: [art] with a [title] and an optional [body], laid out and styled like a welcome-tour slide (a large picture, a
+ * headline, a line of explanation): the picture above the words on a narrow screen, beside them on one wider than 720dp and wider than it is
+ * tall. Centred, and scrolls when the screen is too short to show all of it. [actions] (a button, say) go under the words, and the picture is at
+ * most [illustrationMaxSize] wide.
  */
 @Composable
-fun EmptyState(art: EmptyStateArt, title: String, modifier: Modifier = Modifier, body: String? = null) {
-    Column(
-        modifier = modifier
-            .widthIn(max = EmptyStateContentMaxWidth)
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        EmptyStateIllustration(art, Modifier.widthIn(max = EmptyStateIllustrationMaxSize).fillMaxWidth())
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        body?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+fun EmptyState(
+    art: EmptyStateArt,
+    title: String,
+    modifier: Modifier = Modifier,
+    body: String? = null,
+    bodyModifier: Modifier = Modifier,
+    illustrationMaxSize: Dp = EmptyStateIllustrationMaxSize,
+    actions: @Composable ColumnScope.() -> Unit = {},
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val wide = maxWidth >= EmptyStateWideBreakpoint && maxHeight != Dp.Infinity && maxWidth > maxHeight
+        if (wide) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(modifier = Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    EmptyStateIllustration(art, Modifier.sizeIn(maxWidth = illustrationMaxSize, maxHeight = illustrationMaxSize).fillMaxHeight(), matchHeight = true)
+                }
+                Column(
+                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    EmptyStateText(title, body, TextAlign.Start, bodyModifier)
+                    actions()
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = EmptyStateContentMaxWidth)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                EmptyStateIllustration(art, Modifier.widthIn(max = illustrationMaxSize).fillMaxWidth())
+                EmptyStateText(title, body, TextAlign.Center, bodyModifier)
+                actions()
+            }
         }
+    }
+}
+
+@Composable
+private fun EmptyStateText(title: String, body: String?, textAlign: TextAlign, bodyModifier: Modifier) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        textAlign = textAlign,
+        modifier = Modifier.fillMaxWidth().testTag(EmptyStateTestTags.Title),
+    )
+    body?.let {
+        Text(
+            text = it,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = textAlign,
+            modifier = bodyModifier.fillMaxWidth(),
+        )
     }
 }
 

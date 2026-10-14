@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,8 +41,8 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.homegroup.HubItem
 import uk.veritaslabs.vesta.homegroup.HubUiState
 import uk.veritaslabs.vesta.homegroup.HubViewModel
+import uk.veritaslabs.vesta.ui.components.EmptyState
 import uk.veritaslabs.vesta.ui.components.EmptyStateArt
-import uk.veritaslabs.vesta.ui.components.EmptyStateIllustration
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
@@ -172,42 +170,23 @@ fun HubManagerScreen(
 /** No hub yet: what one is for and the way to set the first up, or why that can't be done now. */
 @Composable
 private fun HubEmptyState(state: HubUiState, onSetUpHub: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp).testTag(HubManagerTestTags.EmptyState),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            EmptyStateIllustration(EmptyStateArt.Hubs, Modifier.widthIn(max = 280.dp).fillMaxWidth())
-            Text(
-                text = stringResource(Res.string.hub_manager_empty_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
+    EmptyState(
+        EmptyStateArt.Hubs,
+        title = stringResource(Res.string.hub_manager_empty_title),
+        body = stringResource(if (state.unavailable) Res.string.hub_unavailable else Res.string.hub_manager_empty_body),
+        bodyModifier = if (state.unavailable) Modifier.testTag(HubManagerTestTags.Unavailable) else Modifier,
+        // Smaller than the other empty states, to leave room for the button underneath.
+        illustrationMaxSize = 220.dp,
+        modifier = modifier.testTag(HubManagerTestTags.EmptyState),
+    ) {
+        if (!state.unavailable) {
+            PrimaryButton(
+                label = stringResource(Res.string.hub_manager_setup_title),
+                onClick = onSetUpHub,
+                modifier = Modifier.testTag(HubManagerTestTags.SetupButton),
             )
-            if (state.unavailable) {
-                Text(
-                    text = stringResource(Res.string.hub_unavailable),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.testTag(HubManagerTestTags.Unavailable),
-                )
-            } else {
-                Text(
-                    text = stringResource(Res.string.hub_manager_empty_body),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                PrimaryButton(
-                    label = stringResource(Res.string.hub_manager_setup_title),
-                    onClick = onSetUpHub,
-                    modifier = Modifier.testTag(HubManagerTestTags.SetupButton),
-                )
-            }
-            if (state.failed) FailureText()
         }
+        if (state.failed) FailureText()
     }
 }
 

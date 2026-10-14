@@ -102,4 +102,4 @@ See `OnboardingAcceptanceTest` (`docs/testing/acceptance-tests.md`):
 - The copy is a first draft.
 - The assistants slide has its art and copy but is off.
 - The Hub tutorial's art and the older `onboarding_*` Home picker strings are unchanged.
-- Empty states are styled like a tour slide (picture up to 420dp wide, headline, body) by the shared `EmptyState`; the exceptions are the Hubs picture (280dp, to leave room for its buttons), the Calendar's quiet day (96dp, inline). Only rendered to images, not seen on a device.
+- Empty states are styled like a tour slide (picture up to 420dp wide, headline, body) by the shared `EmptyState`; on a screen wider than 720dp and wider than it is tall the words sit beside the picture, as in the tour; the exceptions are the Hubs picture (220dp, to leave room for its buttons, and it stays stacked because its screen is a narrow column), the Calendar's quiet day (96dp, inline). Only rendered to images, not seen on a device.
