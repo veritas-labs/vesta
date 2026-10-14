@@ -11,7 +11,7 @@ If you fork Vesta, replace these assets with your own and rename the app.
 | --- | --- |
 | `app-icon.png` | The master app icon (1080x1080). The Android launcher icons, the iOS icon and the desktop (Linux) icon are all generated from it. |
 | `android/res/` | Android launcher icons. Added to the `androidApp` resources in `androidApp/build.gradle.kts`. |
-| `compose/drawable/` | The in-app logo and artwork. Compose Multiplatform allows only one resources folder per source set, so the files in `shared/src/commonMain/composeResources/drawable/` that start `img_` or `onboarding_` are symlinks to these. The `onboarding_*.xml`, `empty_*.xml` and `img_vesta_line*.xml` files are generated (light and dark) from `slides/` by `scripts/slides-to-vectors.py`; do not edit them by hand. |
+| `compose/drawable/` | The in-app logo (`img_app_logo.png`, a 512px copy of `app-icon.png`, shown in the middle of the pairing QR code) and artwork. Compose Multiplatform allows only one resources folder per source set, so the files in `shared/src/commonMain/composeResources/drawable/` that start `img_` or `onboarding_` are symlinks to these. The `onboarding_*.xml`, `empty_*.xml` and `img_vesta_line*.xml` files are generated (light and dark) from `slides/` by `scripts/slides-to-vectors.py`; do not edit them by hand. |
 | `slides/` | The Illustro line-art SVGs the welcome tour, the empty Home picker and the empty states are made from (ADR-030). |
 
 ## One brand asset lives elsewhere
