@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.ui.flows
 
+import uk.veritaslabs.vesta.ui.components.LocalUndo
+import org.jetbrains.compose.resources.stringResource
+import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.event_deleted
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -38,6 +42,8 @@ fun CalendarFlow(
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
     var editing by remember { mutableStateOf<EventTarget?>(null) }
+    val undo = LocalUndo.current
+    val deletedMessage = stringResource(Res.string.event_deleted)
     Box(modifier = modifier.fillMaxSize()) {
         CalendarScreen(
             today = today,
@@ -60,6 +66,8 @@ fun CalendarFlow(
                 },
                 onDelete = { event ->
                     viewModel.delete(event)
+                    // The same id, so putting it back replaces nothing and lands where it was.
+                    undo?.offer(deletedMessage) { viewModel.save(event) }
                     editing = null
                 },
                 onCancel = { editing = null },

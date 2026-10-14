@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.ui.flows
 
+import uk.veritaslabs.vesta.ui.components.LocalUndo
+import org.jetbrains.compose.resources.stringResource
+import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.task_deleted
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -39,6 +43,14 @@ fun TasksFlow(
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
     val weekStart = LocalCalendarSettings.current.settings.weekStart
     var editing by remember { mutableStateOf<TaskTarget?>(null) }
+    val undo = LocalUndo.current
+    val deletedMessage = stringResource(Res.string.task_deleted)
+    // Deleting says so and offers to put the task back as it was (the same id, so it lands where it was).
+    val delete = { task: Task ->
+        viewModel.delete(task)
+        undo?.offer(deletedMessage) { viewModel.save(task) }
+        Unit
+    }
     Box(modifier = modifier.fillMaxSize()) {
         TasksScreen(
             tasks = state.tasks,
@@ -51,7 +63,7 @@ fun TasksFlow(
             onAdd = { date -> editing = TaskTarget(null, date) },
             onToggle = viewModel::toggle,
             onEdit = { task -> editing = TaskTarget(task, null) },
-            onDelete = viewModel::delete,
+            onDelete = delete,
         )
         editing?.let { target ->
             TaskEditScreen(
@@ -66,7 +78,7 @@ fun TasksFlow(
                     editing = null
                 },
                 onDelete = { task ->
-                    viewModel.delete(task)
+                    delete(task)
                     editing = null
                 },
                 onCancel = { editing = null },

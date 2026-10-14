@@ -1,5 +1,14 @@
 package uk.veritaslabs.vesta.acceptance
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import uk.veritaslabs.vesta.ui.components.LocalUndo
+import uk.veritaslabs.vesta.ui.components.UndoController
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -56,7 +65,17 @@ class ShoppingListSwipeDeleteAcceptanceTest {
     private fun ComposeUiTest.show(source: ShoppingListDocumentSource) {
         setContent {
             val viewModel = remember { ShoppingListViewModel(source) }
-            VestaTheme { ShoppingListScreen(viewModel) }
+            val snackbars = remember { SnackbarHostState() }
+            val scope = rememberCoroutineScope()
+            val undo = remember { UndoController(snackbars, scope, "Undo") }
+            CompositionLocalProvider(LocalUndo provides undo) {
+                VestaTheme {
+                    Box {
+                        ShoppingListScreen(viewModel)
+                        SnackbarHost(snackbars)
+                    }
+                }
+            }
         }
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Whole Milk").fetchSemanticsNodes().isNotEmpty() }
     }
@@ -89,5 +108,24 @@ class ShoppingListSwipeDeleteAcceptanceTest {
         // Assert — Then milk is deleted and brie stays
         waitUntil(timeoutMillis = 5_000) { titles(source) == listOf("Brie") }
         assertEquals(listOf("Brie"), titles(source))
+    }
+
+    @Test
+    fun swipingAwayAnItemCanBeUndoneAndKeepsWhatWasPickedUp() = runComposeUiTest {
+        // Arrange — Given milk with 2 of 4 picked up, and brie
+        val source = newSource().also { runBlocking { it.seed(); it.setProgress("whole milk", 2, false) } }
+        show(source)
+
+        // Act — When I swipe the milk away and press Undo
+        onNodeWithTag(ShoppingListTestTags.swipeToDelete("whole milk")).performTouchInput { swipeRight() }
+        waitUntil(timeoutMillis = 5_000) { titles(source) == listOf("Brie") }
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Undo").fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithText("Undo").performClick()
+
+        // Assert — Then the milk is back with its quantity and the 2 already got
+        waitUntil(timeoutMillis = 5_000) { runBlocking { source.items.first() }.singleOrNull { it.title == "Whole Milk" }?.got == 2 }
+        val milk = runBlocking { source.items.first() }.single { it.title == "Whole Milk" }
+        assertEquals(4, milk.quantity)
+        assertEquals(2, milk.got)
     }
 }

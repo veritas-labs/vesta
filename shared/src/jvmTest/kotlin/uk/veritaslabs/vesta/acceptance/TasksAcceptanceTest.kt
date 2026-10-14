@@ -1,5 +1,14 @@
 package uk.veritaslabs.vesta.acceptance
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import uk.veritaslabs.vesta.ui.components.LocalUndo
+import uk.veritaslabs.vesta.ui.components.UndoController
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -87,7 +96,17 @@ class TasksAcceptanceTest {
     private fun ComposeUiTest.showTasks(lists: Lists) {
         setContent {
             val viewModel = remember { TasksViewModel(lists.home, lists.private, flowOf(members)) }
-            VestaTheme { TasksFlow(viewModel, homeName = "Maple Street", today = today) }
+            val snackbars = remember { SnackbarHostState() }
+            val scope = rememberCoroutineScope()
+            val undo = remember { UndoController(snackbars, scope, "Undo") }
+            CompositionLocalProvider(LocalUndo provides undo) {
+                VestaTheme {
+                    Box {
+                        TasksFlow(viewModel, homeName = "Maple Street", today = today)
+                        SnackbarHost(snackbars)
+                    }
+                }
+            }
         }
     }
 
@@ -439,6 +458,26 @@ class TasksAcceptanceTest {
         // Assert — Then it is gone from the list and the document
         waitForNoTag(TasksTestTags.row("t1", today.isoText()))
         assertEquals(emptyList(), lists.homeTasks())
+    }
+
+    @Test
+    fun aDeletedTaskCanBeUndone() = runComposeUiTest {
+        // Arrange — Given "Bins" due today
+        val lists = Lists()
+        runBlocking { lists.home.save(task("t1", "Bins")) }
+        showTasks(lists)
+        waitForTag(TasksTestTags.row("t1", today.isoText()))
+
+        // Act — When I delete it from its sheet and then press Undo
+        onNodeWithTag(TasksTestTags.row("t1", today.isoText())).performClick()
+        waitForTag(TasksTestTags.SheetDelete)
+        onNodeWithTag(TasksTestTags.SheetDelete).performClick()
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Undo").fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithText("Undo").performClick()
+
+        // Assert — Then the same task is back
+        waitUntil(timeoutMillis = 5_000) { lists.homeTasks().singleOrNull()?.id == "t1" }
+        assertEquals("Bins", lists.homeTasks().single().title)
     }
 
     @Test

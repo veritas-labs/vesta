@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.LocalUndo
+import vesta.shared.generated.resources.shopping_item_deleted
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -161,6 +163,8 @@ fun ShoppingListScreen(
     onAddedToPantry: (addedCount: Int) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val undo = LocalUndo.current
+    val removedMessage = stringResource(Res.string.shopping_item_deleted)
     if (state.isLoading) {
         Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
     } else {
@@ -170,7 +174,12 @@ fun ShoppingListScreen(
             merchants = merchants, selectedMerchants = state.selectedMerchants, onToggleMerchant = viewModel::toggleMerchant,
             onToggleCrossedOff = viewModel::toggleCrossedOff, onSetProgress = viewModel::setProgress,
             onAddCheckedToPantry = { viewModel.addCheckedToPantry(onAddedToPantry) },
-            onUncheckAll = viewModel::uncheckAll, onDeleteItem = viewModel::remove, onDeleteAll = viewModel::removeAll,
+            onUncheckAll = viewModel::uncheckAll, onDeleteItem = { key ->
+                val removed = state.items.firstOrNull { it.key == key }
+                viewModel.remove(key)
+                removed?.let { undo?.offer(removedMessage) { viewModel.restore(it) } }
+            },
+            onDeleteAll = viewModel::removeAll,
         )
     }
 }

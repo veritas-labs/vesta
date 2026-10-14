@@ -211,4 +211,22 @@ class ShoppingListViewModel(private val source: ShoppingListSource) : ViewModel(
     fun remove(key: String) {
         viewModelScope.launch { source.remove(key) }
     }
+
+    /** Puts back an item removed from its edit form; what had been picked up is not kept. */
+    fun restore(details: ShoppingItemDetails) {
+        viewModelScope.launch { source.save(details.copy(key = null)) }
+    }
+
+    /** Puts a removed [item] back on the list, with how much of it had been picked up (its key comes from its title and barcode, so it is the same). */
+    fun restore(item: ShoppingListItem) {
+        viewModelScope.launch {
+            source.save(
+                ShoppingItemDetails(
+                    primaryCategory = item.primaryCategory, secondaryCategory = item.secondaryCategory, title = item.title,
+                    quantity = item.quantity, packageSize = item.packageSize, barcode = item.barcode, tags = item.tags,
+                ),
+            )
+            if (item.isCheckedOff) source.setProgress(item.key, item.got, item.outOfStock)
+        }
+    }
 }

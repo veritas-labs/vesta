@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ConfirmDeleteTestTags
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -192,9 +193,28 @@ class HomeDashboardScreenTest {
         // Act
         openMenu()
         onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).performClick()
+        onNodeWithTag(ConfirmDeleteTestTags.Confirm).performClick()
 
         // Assert
         assertEquals(1, deletes)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun deleteHomeAsksFirstAndCancelKeepsTheHome() = runComposeUiTest {
+        // Arrange
+        var deletes = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = true, onDeleteHome = { deletes++ }) } }
+
+        // Act
+        openMenu()
+        onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).performClick()
+        onNodeWithTag(ConfirmDeleteTestTags.Dialog).assertIsDisplayed()
+        onNodeWithTag(ConfirmDeleteTestTags.Cancel).performClick()
+
+        // Assert
+        assertEquals(0, deletes)
+        onNodeWithTag(ConfirmDeleteTestTags.Dialog).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)

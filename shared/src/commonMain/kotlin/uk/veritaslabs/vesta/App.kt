@@ -5,6 +5,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import uk.veritaslabs.vesta.ui.components.LocalUndo
+import uk.veritaslabs.vesta.ui.components.UndoController
+import vesta.shared.generated.resources.common_undo
 import androidx.compose.runtime.Composable
 import uk.veritaslabs.vesta.blobs.LocalBlobs
 import uk.veritaslabs.vesta.files.FileExporter
@@ -25,6 +30,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.safeDrawingPadding
+import org.jetbrains.compose.resources.stringResource
+import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.pantry_item_deleted
+import vesta.shared.generated.resources.shopping_item_deleted
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
@@ -244,7 +254,10 @@ fun App(
     // On until the user opts out; saved in [settings]. Platforms that run x0x in-process stop it on mobile data unless this is on.
     // The policy is only set once the saved choice is known, so a saved "off" is never briefly overridden by the default.
     LaunchedEffect(useMobileData, settingsLoaded) { if (settingsLoaded) X0xNetworkPolicy.useMobileData.value = useMobileData }
-    CompositionLocalProvider(LocalSelectedHome provides selectedHome) {
+    val snackbarHost = remember { SnackbarHostState() }
+    val undoLabel = stringResource(Res.string.common_undo)
+    val undo = remember(snackbarHost, scope, undoLabel) { UndoController(snackbarHost, scope, undoLabel) }
+    CompositionLocalProvider(LocalSelectedHome provides selectedHome, LocalUndo provides undo) {
         VestaTheme(darkTheme = darkTheme, appTheme = appTheme) {
             if (!settingsLoaded) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
@@ -392,6 +405,7 @@ fun App(
                         homes = homes,
                     )
                 }
+                SnackbarHost(snackbarHost, modifier = Modifier.align(Alignment.BottomCenter).safeDrawingPadding())
             }
         }
     }
@@ -440,6 +454,9 @@ private fun HomeContent(
     // Opening a Home or its Pantry asks for a sync now (ADR-020), rather than showing what the next timer round brings.
     LaunchedEffect(homeId, destination == HomeDestination.Pantry) { onOpened() }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }
+    val undo = LocalUndo.current
+    val itemDeletedMessage = stringResource(Res.string.pantry_item_deleted)
+    val shoppingDeletedMessage = stringResource(Res.string.shopping_item_deleted)
     // The recipe a cookbook visit opens on, when it was opened from somewhere with a recipe in hand (the meal planner), and where back goes.
     var cookbookRecipeKey by remember { mutableStateOf<String?>(null) }
     val pantryViewModel = pantrySource?.let { source ->
@@ -725,6 +742,9 @@ private fun HomeContent(
                 },
                 onDelete = { key ->
                     shoppingViewModel?.remove(key)
+                    editingShoppingItem?.let { details ->
+                        undo?.offer(shoppingDeletedMessage) { shoppingViewModel?.restore(details) }
+                    }
                     destination = HomeDestination.ShoppingList
                 },
                 onSave = { draft ->
@@ -773,6 +793,7 @@ private fun HomeContent(
             },
             onDelete = { key ->
                 pantryViewModel?.delete(key)
+                editingItem?.let { item -> undo?.offer(itemDeletedMessage) { pantryViewModel?.save(item) } }
                 destination = HomeDestination.Pantry
             },
             onSave = { item ->

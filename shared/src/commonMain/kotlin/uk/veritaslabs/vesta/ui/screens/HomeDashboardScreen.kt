@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ConfirmDeleteDialog
+import vesta.shared.generated.resources.home_delete_confirm_title
+import vesta.shared.generated.resources.home_delete_confirm_body
+import vesta.shared.generated.resources.home_delete_confirm
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -194,6 +198,7 @@ fun HomeDashboardScreen(
     membersBadge: Int = 0,
 ) {
     var confirmingLeave by remember { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
     val tiles = listOf(
         DashboardTile(HomeDashboardTestTags.PantryTile, Res.string.pantry_title, Res.string.home_dashboard_pantry_body, Res.drawable.ic_pantry, TileAccents.getValue(HomeDashboardTestTags.PantryTile), onPantryClick),
         DashboardTile(HomeDashboardTestTags.ShoppingTile, Res.string.shopping_title, Res.string.home_dashboard_shopping_body, Res.drawable.ic_shopping_cart, TileAccents.getValue(HomeDashboardTestTags.ShoppingTile), onShoppingClick),
@@ -284,7 +289,7 @@ fun HomeDashboardScreen(
                                 text = { Text(stringResource(Res.string.onboarding_delete_home), color = MaterialTheme.colorScheme.error) },
                                 onClick = {
                                     menuExpanded = false
-                                    onDeleteHome()
+                                    confirmingDelete = true
                                 },
                                 modifier = Modifier.testTag(HomeDashboardTestTags.DeleteMenuItem),
                             )
@@ -311,6 +316,18 @@ fun HomeDashboardScreen(
         }
     }
 
+    if (confirmingDelete) {
+        ConfirmDeleteDialog(
+            title = stringResource(Res.string.home_delete_confirm_title),
+            body = stringResource(Res.string.home_delete_confirm_body),
+            confirmLabel = stringResource(Res.string.home_delete_confirm),
+            onConfirm = {
+                confirmingDelete = false
+                onDeleteHome()
+            },
+            onDismiss = { confirmingDelete = false },
+        )
+    }
     if (confirmingLeave) {
         AlertDialog(
             onDismissRequest = { confirmingLeave = false },

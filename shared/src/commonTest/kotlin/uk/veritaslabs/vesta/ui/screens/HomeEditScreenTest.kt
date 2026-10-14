@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ConfirmDeleteTestTags
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -73,6 +74,7 @@ class HomeEditScreenTest {
         // Act
         onNodeWithTag(HomeEditTestTags.OverflowButton).performClick()
         onNodeWithTag(HomeEditTestTags.DeleteMenuItem).performClick()
+        onNodeWithTag(ConfirmDeleteTestTags.Confirm).performClick()
 
         // Assert
         assertEquals("flat-4b", deletedId)

@@ -906,4 +906,13 @@
     <string name="task_edit_assign_done">Done</string>
     <string name="task_edit_save">Save</string>
     <string name="task_edit_pick_ok">OK</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="home_delete_confirm_title">Delete this Home?</string>
+    <string name="home_delete_confirm_body">It and everything in it will be removed from this device, and for every member. This cannot be undone.</string>
+    <string name="home_delete_confirm">Delete</string>
+    <string name="common_undo">Undo</string>
+    <string name="task_deleted">Task deleted</string>
+    <string name="event_deleted">Event deleted</string>
+    <string name="pantry_item_deleted">Item deleted</string>
+    <string name="shopping_item_deleted">Item removed from the list</string>
 </resources>

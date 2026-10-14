@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.ui.components.ConfirmDeleteDialog
+import vesta.shared.generated.resources.home_delete_confirm_title
+import vesta.shared.generated.resources.home_delete_confirm_body
+import vesta.shared.generated.resources.home_delete_confirm
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -165,6 +169,7 @@ fun HomeEditScreen(
     // and an existing Home keeps whatever shape it has.
     val shape = home?.shape ?: HomeShape.Other
     var nameTouched by remember(home) { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
 
     val isNameValid = name.trim().length in HomeNameMinLength..HomeNameMaxLength
     val isValid = isNameValid
@@ -212,7 +217,7 @@ fun HomeEditScreen(
                                     text = { Text(stringResource(Res.string.home_edit_delete)) },
                                     onClick = {
                                         menuExpanded = false
-                                        onDelete(id)
+                                        confirmingDelete = true
                                     },
                                     modifier = Modifier.testTag(HomeEditTestTags.DeleteMenuItem),
                                 )
@@ -280,6 +285,19 @@ fun HomeEditScreen(
                 }
             }
         }
+    }
+
+    if (confirmingDelete) {
+        ConfirmDeleteDialog(
+            title = stringResource(Res.string.home_delete_confirm_title),
+            body = stringResource(Res.string.home_delete_confirm_body),
+            confirmLabel = stringResource(Res.string.home_delete_confirm),
+            onConfirm = {
+                confirmingDelete = false
+                home?.id?.let(onDelete)
+            },
+            onDismiss = { confirmingDelete = false },
+        )
     }
 }
 
