@@ -56,14 +56,6 @@ data class EventOccurrence(
 
 private const val LongestLookBackDays = 400
 
-private fun EventRepeat.recursOn(first: CalendarDate, day: CalendarDate): Boolean = when (this) {
-    EventRepeat.None -> day == first
-    EventRepeat.Daily -> day >= first
-    EventRepeat.Weekly -> day >= first && (day.epochDay - first.epochDay) % 7 == 0L
-    EventRepeat.Monthly -> day >= first && day.day == first.day
-    EventRepeat.Yearly -> day >= first && day.month == first.month && day.day == first.day
-}
-
 /**
  * The events (and repeats of them) that take place on [date], whole-day ones first, then by start time, then by title. An
  * event that runs over several days appears on each, a repeating one on each day it comes round to (and the days it then
