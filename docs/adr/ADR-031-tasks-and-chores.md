@@ -105,8 +105,8 @@ NON-GOAL is not to be a scheduling platform. A later ADR can offer an opt-in "sh
 
 Where the build settled something this ADR left open:
 
-- **The plus.** The bar's plus adds a task due *today* in the Week view and one for *whenever* in the List view; each day card also has
-  its own plus that adds a task for that day. Choosing a repeat on a task with no date starts it today.
+- **The plus.** Each day card in the Week view has its own plus that adds a task for that day; the List view has a floating plus that adds
+  one for *whenever*. There is no plus in the bar. Choosing a repeat on a task with no date starts it today.
 - **Assignees are shown as names** ("Sam, Alex"), not initials. The Mine / Everyone chips only appear once the user's own member is known.
 - **Done records store `at` as a decimal string**, like the calendar's times, not an Automerge timestamp.
 - **Upcoming** is the seven days after today; **Done recently** is the last seven days by when it was ticked, and a tick there un-ticks it.

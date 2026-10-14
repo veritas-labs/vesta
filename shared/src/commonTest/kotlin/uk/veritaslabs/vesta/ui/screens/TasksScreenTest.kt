@@ -144,19 +144,20 @@ class TasksScreenTest {
     }
 
     @Test
-    fun aDaysOwnPlusReportsThatDayAndTheBarsPlusReportsTodayInTheWeekViewAndNoDayInTheList() = runComposeUiTest {
+    fun aDaysOwnPlusReportsThatDayInTheWeekViewAndTheFloatingPlusReportsNoDayInTheList() = runComposeUiTest {
         // Arrange
         val adds = mutableListOf<CalendarDate?>()
         setContent { VestaTheme { TasksScreen(tasks = emptyList(), today = today, onAdd = { adds += it }) } }
 
         // Act
+        onNodeWithTag(TasksTestTags.dayAdd(today.plusDays(2))).assertIsDisplayed()
         onNodeWithTag(TasksTestTags.dayAdd(today.plusDays(2))).performClick()
-        onNodeWithTag(TasksTestTags.AddButton).performClick()
+        onNodeWithTag(TasksTestTags.AddButton).assertDoesNotExist()
         onNodeWithTag(TasksTestTags.ViewList).performClick()
         onNodeWithTag(TasksTestTags.AddButton).performClick()
 
         // Assert
-        assertEquals(listOf(today.plusDays(2), today, null), adds)
+        assertEquals(listOf(today.plusDays(2), null), adds)
     }
 
     @Test

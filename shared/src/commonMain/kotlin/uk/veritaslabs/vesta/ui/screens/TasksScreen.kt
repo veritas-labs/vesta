@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,11 +27,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -141,6 +144,9 @@ import vesta.shared.generated.resources.tasks_week_day_heading
 private val MaxContentWidth = 720.dp
 private val ContentPadding = 16.dp
 private val TickSize = 28.dp
+
+/** Bottom padding of the scrolling lists so the last row can scroll clear of the add button. */
+private val FabClearance = 88.dp
 private const val DaysPerWeek = 7
 private const val UpcomingDays = 7
 private const val RecentDays = 7
@@ -192,8 +198,8 @@ internal object TasksTestTags {
  * (repeating ones on each day they come round) with a tick circle. **List** has Overdue, Today, Upcoming, Anytime and Done recently, and a
  * Mine / Everyone filter on [me]. [done] says which occurrences are ticked; [members] name who a task is for and who did it.
  *
- * The tick calls [onToggle]; tapping a task opens a sheet with [onEdit] and [onDelete]. The plus in the bar calls [onAdd] with [today] (a day's
- * own plus with that day, and in the List view with null: a task for whenever).
+ * The tick calls [onToggle]; tapping a task opens a sheet with [onEdit] and [onDelete]. A day's plus in the Week view calls [onAdd] with that day;
+ * the floating plus, shown only in the List view, calls it with null: a task for whenever.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,31 +228,36 @@ fun TasksScreen(
     val people = remember(members) { members.associate { memberRef(it.memberId) to it.name } }
     val currentView = TasksView.entries[view]
 
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        TopAppBar(
-            title = { Text(stringResource(Res.string.tasks_title)) },
-            navigationIcon = {
-                IconButton(onClick = onBack, modifier = Modifier.testTag(TasksTestTags.BackButton)) {
-                    Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
-                }
-            },
-            actions = {
-                IconButton(
-                    onClick = { onAdd(if (currentView == TasksView.Week) today else null) },
-                    modifier = Modifier.testTag(TasksTestTags.AddButton),
-                ) {
+    Scaffold(
+        modifier = modifier.fillMaxSize().safeDrawingPadding(),
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(Res.string.tasks_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack, modifier = Modifier.testTag(TasksTestTags.BackButton)) {
+                        Icon(painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.pantry_back))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
+            )
+        },
+        floatingActionButton = {
+            // The Week view has a plus on every day, so only the List view needs this one.
+            if (currentView == TasksView.List) {
+                FloatingActionButton(onClick = { onAdd(null) }, modifier = Modifier.testTag(TasksTestTags.AddButton)) {
                     Icon(painterResource(Res.drawable.ic_plus), contentDescription = stringResource(Res.string.tasks_add))
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background,
-                titleContentColor = MaterialTheme.colorScheme.onBackground,
-                navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                actionIconContentColor = MaterialTheme.colorScheme.onBackground,
-            ),
-        )
+            }
+        },
+    ) { innerPadding ->
         // Only what is under the app bar is held to a readable width, so the bar spans the window like every other screen's.
-        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Column(modifier = Modifier.fillMaxHeight().widthIn(max = MaxContentWidth).fillMaxWidth()) {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = ContentPadding, vertical = 4.dp)) {
                     SegmentedButton(
@@ -382,7 +393,7 @@ private fun WeekView(
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = ContentPadding, end = ContentPadding, top = 16.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = ContentPadding, end = ContentPadding, top = 16.dp, bottom = FabClearance),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(days, key = { it.epochDay }) { date ->
@@ -567,7 +578,7 @@ private fun ListView(
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = ContentPadding, end = ContentPadding, top = 8.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = ContentPadding, end = ContentPadding, top = 8.dp, bottom = FabClearance),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         sections.forEach { (name, title, occurrences) ->

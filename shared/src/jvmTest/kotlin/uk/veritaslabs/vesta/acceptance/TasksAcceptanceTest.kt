@@ -116,9 +116,18 @@ class TasksAcceptanceTest {
     private fun ComposeUiTest.waitForNoTag(tag: String) =
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
 
-    /** Opens the form from the bar's plus, types [title], lets [configure] change the form and saves; returns once the form has closed. */
+    /** Opens the add form: from the floating plus in the List view, or today's own plus in the Week view. */
+    private fun ComposeUiTest.openAddForm() {
+        if (onAllNodesWithTag(TasksTestTags.AddButton).fetchSemanticsNodes().isNotEmpty()) {
+            onNodeWithTag(TasksTestTags.AddButton).performClick()
+        } else {
+            onNodeWithTag(TasksTestTags.dayAdd(today)).performClick()
+        }
+    }
+
+    /** Opens the form, types [title], lets [configure] change the form and saves; returns once the form has closed. */
     private fun ComposeUiTest.addTask(title: String, configure: ComposeUiTest.() -> Unit = {}) {
-        onNodeWithTag(TasksTestTags.AddButton).performClick()
+        openAddForm()
         onNodeWithTag(TaskEditTestTags.TitleField).performTextInput(title)
         configure()
         onNodeWithTag(TaskEditTestTags.SaveButton).performClick()
@@ -156,7 +165,7 @@ class TasksAcceptanceTest {
         showTasks(lists)
         onNodeWithTag(TasksTestTags.ViewList).performClick()
 
-        // Act — When I add "Sort the loft" from the plus in the bar
+        // Act — When I add "Sort the loft" from the plus
         addTask("Sort the loft")
 
         // Assert — Then it has no date, is saved on the Home list and shows under Anytime
@@ -175,7 +184,7 @@ class TasksAcceptanceTest {
         val lists = Lists()
         showTasks(lists)
 
-        // Act — When I add "Bins" from the plus in the bar
+        // Act — When I add "Bins" from the plus
         addTask("Bins")
 
         // Assert — Then it is due today and listed on today's card, which now counts it
@@ -208,7 +217,7 @@ class TasksAcceptanceTest {
         // Arrange — Given the add form open
         val lists = Lists()
         showTasks(lists)
-        onNodeWithTag(TasksTestTags.AddButton).performClick()
+        openAddForm()
 
         // Act — When I look at Save with no title, then type one and cancel
         onNodeWithTag(TaskEditTestTags.SaveButton).assertIsNotEnabled()
@@ -219,7 +228,7 @@ class TasksAcceptanceTest {
         // Assert — Then nothing was added and I am back on the tasks
         waitForNoTag(TaskEditTestTags.TitleField)
         assertEquals(emptyList(), lists.homeTasks())
-        onNodeWithTag(TasksTestTags.AddButton).assertIsDisplayed()
+        onNodeWithTag(TasksTestTags.dayAdd(today)).assertIsDisplayed()
     }
 
     @Test
@@ -296,7 +305,7 @@ class TasksAcceptanceTest {
     fun aRepeatNeedsAnIntervalOfAtLeastOne() = runComposeUiTest {
         // Arrange — Given the form with a title and a weekly repeat
         showTasks(Lists())
-        onNodeWithTag(TasksTestTags.AddButton).performClick()
+        openAddForm()
         onNodeWithTag(TaskEditTestTags.TitleField).performTextInput("Hoover")
         onNodeWithTag(TaskEditTestTags.Repeat).performClick()
         onNodeWithTag(TaskEditTestTags.repeatOption(EventRepeat.Weekly)).performClick()
