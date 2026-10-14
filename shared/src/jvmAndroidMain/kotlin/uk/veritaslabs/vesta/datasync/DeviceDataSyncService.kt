@@ -17,6 +17,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.CalendarSources
+import uk.veritaslabs.vesta.automerge.TaskSources
+import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
+import uk.veritaslabs.vesta.automerge.tasksDocumentId
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsSources
@@ -57,6 +60,8 @@ private const val MerchantsSuffix = ":merchants"
 private const val MealPlanSuffix = ":mealplan"
 private const val CalendarSuffix = ":calendar"
 private const val PrivateCalendarSuffix = ":private-calendar"
+private const val TasksSuffix = ":tasks"
+private const val PrivateTasksSuffix = ":private-tasks"
 private const val MaxBufferedPerHome = 64
 
 /**
@@ -84,6 +89,7 @@ class DeviceDataSyncService(
     private val merchantsSources: MerchantsSources = MerchantsSources(database),
     private val mealPlanSources: MealPlanSources = MealPlanSources(database),
     private val calendarSources: CalendarSources = CalendarSources(database),
+    private val taskSources: TaskSources = TaskSources(database),
     private val interval: Duration = 30.seconds,
     private val peerBackoff: Duration = 2.minutes,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
@@ -95,7 +101,7 @@ class DeviceDataSyncService(
     private val rosters = HomeRosters(database, profiles)
     private val join = HomeJoinService(client, database, rosters, registry, profiles)
     private val groups = HomeGroups(client, database, rosters, profiles)
-    private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources, mealPlanSources, calendarSources)
+    private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources, mealPlanSources, calendarSources, taskSources)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
     private val mailboxReader = MailboxReader(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
 
@@ -169,6 +175,7 @@ class DeviceDataSyncService(
                 attempt { syncDocument(merchantsDocumentId(homeId)) }
                 attempt { syncDocument(mealPlanDocumentId(homeId)) }
                 attempt { syncDocument(calendarDocumentId(homeId)) }
+                attempt { syncDocument(tasksDocumentId(homeId)) }
             }
         }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
@@ -210,6 +217,14 @@ class DeviceDataSyncService(
         }
         // A private calendar goes to the user's own devices only: no mailbox, and homeIdOf knows no Home to add members from.
         launch { calendarSources.privateChanges.collect { homeId -> attempt { syncDocument(privateCalendarDocumentId(homeId)) } } }
+        launch {
+            taskSources.localChanges.collect { homeId ->
+                launch { attempt { mailboxWriter.deposit(homeId, tasksDocumentId(homeId)) } }
+                attempt { syncDocument(tasksDocumentId(homeId)) }
+            }
+        }
+        // Private tasks, like the private calendar, go to the user's own devices only.
+        launch { taskSources.privateChanges.collect { homeId -> attempt { syncDocument(privateTasksDocumentId(homeId)) } } }
         // A newly paired device, or one that has gone, changes who there is to sync with.
         launch { devices.devices.collect { attempt { syncEverything() } } }
         // A peer coming online is the moment a message to it can get through (ADR-020): sync with it now rather than
@@ -316,6 +331,7 @@ class DeviceDataSyncService(
         documentId.endsWith(MerchantsSuffix) -> documentId.removeSuffix(MerchantsSuffix)
         documentId.endsWith(MealPlanSuffix) -> documentId.removeSuffix(MealPlanSuffix)
         documentId.endsWith(CalendarSuffix) -> documentId.removeSuffix(CalendarSuffix)
+        documentId.endsWith(TasksSuffix) -> documentId.removeSuffix(TasksSuffix)
         else -> null
     }
 
@@ -360,7 +376,7 @@ class DeviceDataSyncService(
 
     private suspend fun documentIds(): List<String> =
         listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
-            .flatMap { listOf(pantryDocumentId(it.id), shoppingListDocumentId(it.id), cookbookDocumentId(it.id), merchantsDocumentId(it.id), mealPlanDocumentId(it.id), calendarDocumentId(it.id), privateCalendarDocumentId(it.id), rosterDocumentId(it.id)) }
+            .flatMap { listOf(pantryDocumentId(it.id), shoppingListDocumentId(it.id), cookbookDocumentId(it.id), merchantsDocumentId(it.id), mealPlanDocumentId(it.id), calendarDocumentId(it.id), privateCalendarDocumentId(it.id), tasksDocumentId(it.id), privateTasksDocumentId(it.id), rosterDocumentId(it.id)) }
 
     private suspend fun receive(sender: String, documentId: String, message: ByteArray) {
         if (documentId == HomeRegistryDocumentId) {
@@ -381,6 +397,8 @@ class DeviceDataSyncService(
             publishRosters()
         } else if (documentId.endsWith(PrivateCalendarSuffix)) {
             calendarSources.privateForHome(documentId.removeSuffix(PrivateCalendarSuffix))?.receiveSync(stateFor(documentId, sender), message)
+        } else if (documentId.endsWith(PrivateTasksSuffix)) {
+            taskSources.privateForHome(documentId.removeSuffix(PrivateTasksSuffix))?.receiveSync(stateFor(documentId, sender), message)
         } else if (homeIdOf(documentId) != null) {
             val homeId = homeIdOf(documentId)!!
             if (!receiveHomeDocument(sender, documentId, message)) {
@@ -395,7 +413,7 @@ class DeviceDataSyncService(
         peersFor(documentId).forEach { pump(documentId, it) }
     }
 
-    /** Applies a Pantry, shopping-list, cookbook, merchants, meal plan or roster message; false when this device has no such Home yet. */
+    /** Applies a Pantry, shopping-list, cookbook, merchants, meal plan, calendar, tasks or roster message; false when this device has no such Home yet. */
     private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
         if (documentId.endsWith(RosterSuffix)) {
             val homeId = documentId.removeSuffix(RosterSuffix)
@@ -426,6 +444,11 @@ class DeviceDataSyncService(
             source.receiveSync(stateFor(documentId, sender), message)
             return true
         }
+        if (documentId.endsWith(TasksSuffix)) {
+            val source = taskSources.forHome(documentId.removeSuffix(TasksSuffix)) ?: return false
+            source.receiveSync(stateFor(documentId, sender), message)
+            return true
+        }
         val source = pantrySources.forHome(documentId.removeSuffix(PantrySuffix)) ?: return false
         source.receiveSync(stateFor(documentId, sender), message)
         return true
@@ -450,7 +473,11 @@ class DeviceDataSyncService(
                 val message = when (documentId) {
                     HomeRegistryDocumentId -> registry.generate(state)
                     ProfileDocumentId -> profile.generate(state)
-                    else -> if (documentId.endsWith(PrivateCalendarSuffix)) {
+                    else -> if (documentId.endsWith(PrivateTasksSuffix)) {
+                        taskSources.privateForHome(documentId.removeSuffix(PrivateTasksSuffix))?.generateSync(state)
+                    } else if (documentId.endsWith(TasksSuffix)) {
+                        taskSources.forHome(documentId.removeSuffix(TasksSuffix))?.generateSync(state)
+                    } else if (documentId.endsWith(PrivateCalendarSuffix)) {
                         calendarSources.privateForHome(documentId.removeSuffix(PrivateCalendarSuffix))?.generateSync(state)
                     } else if (documentId.endsWith(RosterSuffix)) {
                         rosters.generate(documentId.removeSuffix(RosterSuffix), state)

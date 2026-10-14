@@ -22,6 +22,12 @@ import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.io.encoding.Base64
 import uk.veritaslabs.vesta.automerge.CalendarSources
+import uk.veritaslabs.vesta.automerge.TaskSources
+import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
+import uk.veritaslabs.vesta.automerge.tasksDocumentId
+import uk.veritaslabs.vesta.tasks.Task
+import uk.veritaslabs.vesta.tasks.TaskDone
+import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
 import uk.veritaslabs.vesta.automerge.calendarDocumentId
 import uk.veritaslabs.vesta.calendar.CalendarEvent
@@ -75,10 +81,11 @@ class DeviceDataSyncServiceTest {
         val merchants = MerchantsSources(database)
         val mealPlans = MealPlanSources(database)
         val calendars = CalendarSources(database)
+        val tasks = TaskSources(database)
         /** The id of every document a sync message has reached this device for. */
         val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, shopping, cookbook, merchants, mealPlans, calendars, interval = interval,
+            node, database, devices, pantries, shopping, cookbook, merchants, mealPlans, calendars, taskSources = tasks, interval = interval,
         )
         /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
         val deviceSync: DeviceSyncService by lazy {
@@ -140,6 +147,12 @@ class DeviceDataSyncServiceTest {
             calendars.forHome(homeId)!!.events.first().map { it.title }.sorted()
 
         suspend fun privateEventTitles(homeId: String) = calendars.privateForHome(homeId)!!.events.first().map { it.title }.sorted()
+
+        suspend fun homeTaskTitles(homeId: String) = tasks.forHome(homeId)!!.snapshot.first().tasks.map { it.title }.sorted()
+
+        suspend fun privateTaskTitles(homeId: String) = tasks.privateForHome(homeId)!!.snapshot.first().tasks.map { it.title }.sorted()
+
+        suspend fun doneOccurrences(homeId: String) = tasks.forHome(homeId)!!.snapshot.first().done.map { "${it.taskId}|${it.occurrence}" }.sorted()
 
         suspend fun merchantNames(homeId: String) =
             merchants.forHome(homeId)!!.merchants.first().map { it.name }.sorted()
@@ -358,6 +371,70 @@ class DeviceDataSyncServiceTest {
 
         // Assert
         eventually { a.privateEventTitles(homeId) == listOf("Gym session") }
+        scope.cancel()
+    }
+
+    private fun task(id: String, title: String, list: TaskList) = Task(id = id, list = list, title = title)
+
+    @Test
+    fun aHomesTasksAndWhatWasDoneReachItsOtherMembers() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+
+        // Act
+        x.tasks.forHome(homeId)!!.save(task("t1", "Bins", TaskList.Home))
+        eventually { y.homeTaskTitles(homeId) == listOf("Bins") }
+        y.tasks.forHome(homeId)!!.setDone(TaskDone("t1", "2026-10-14", 5L, "m:y"))
+
+        // Assert
+        eventually { x.doneOccurrences(homeId) == listOf("t1|2026-10-14") }
+        scope.cancel()
+    }
+
+    @Test
+    fun twoMembersTickingTheSameOccurrenceMergeToOneRecord() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        x.tasks.forHome(homeId)!!.save(task("t1", "Bins", TaskList.Home))
+        eventually { y.homeTaskTitles(homeId) == listOf("Bins") }
+
+        // Act
+        x.tasks.forHome(homeId)!!.setDone(TaskDone("t1", "2026-10-14", 5L, "m:x"))
+        y.tasks.forHome(homeId)!!.setDone(TaskDone("t1", "2026-10-14", 6L, "m:y"))
+        delay(500.milliseconds)
+
+        // Assert
+        eventually { x.doneOccurrences(homeId) == listOf("t1|2026-10-14") && y.doneOccurrences(homeId) == listOf("t1|2026-10-14") }
+        scope.cancel()
+    }
+
+    @Test
+    fun privateTasksReachTheUsersOwnDevicesAndNeverAnotherMemberOfTheHome() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        val x2 = Device("agent-x2")
+        x.pairedWith(x2)
+        x2.pairedWith(x)
+        x.start()
+        x2.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 }
+
+        // Act
+        x.tasks.privateForHome(homeId)!!.save(task("p1", "Buy a present", TaskList.Private))
+        x.tasks.forHome(homeId)!!.save(task("t1", "Bins", TaskList.Home))
+        eventually { x2.privateTaskTitles(homeId) == listOf("Buy a present") }
+        eventually { y.homeTaskTitles(homeId) == listOf("Bins") }
+        delay(500.milliseconds) // long enough for several sync rounds to have passed
+
+        // Assert
+        assertTrue(privateTasksDocumentId(homeId) !in y.receivedDocuments)
+        assertEquals(emptyList(), y.privateTaskTitles(homeId))
+        assertTrue(tasksDocumentId(homeId) in y.receivedDocuments)
         scope.cancel()
     }
 
