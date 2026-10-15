@@ -1,6 +1,6 @@
 # Implementation plan: document type registry and DocumentSource collapse
 
-Written 2026-10-15 so a fresh session can do steps 1 and 2 of [shared-packages-extraction-plan.md](shared-packages-extraction-plan.md) without re-deriving context. **Status: not started.** This is a refactor: no user-visible behaviour, wire format or schema changes. Each work package (WP) is a commit-sized slice that leaves `:shared:jvmTest` green.
+Written 2026-10-15 so a fresh session can do steps 1 and 2 of [shared-packages-extraction-plan.md](shared-packages-extraction-plan.md) without re-deriving context. **Status: built (2026-10-15); see [ADR-035](../adr/ADR-035-document-type-registry.md) "As built" for where it differs.** This is a refactor: no user-visible behaviour, wire format or schema changes. Each work package (WP) is a commit-sized slice that leaves `:shared:jvmTest` green.
 
 ## Goal
 
@@ -68,14 +68,16 @@ All paths are under `shared/src/jvmAndroidMain/kotlin/uk/veritaslabs/vesta/` unl
        val scope: Scope,                          // Shared | Private
        val open: suspend (homeId: String) -> HomeDocument?,   // null: no such Home, or this device doesn't have it yet
        val localChanges: Flow<String>,            // homeId each time it is edited on this device
-       val afterReceive: suspend (homeId: String) -> Unit = {},   // roster: project + publish
+       val afterReceive: suspend (homeId: String) -> Unit = {},   // roster: project (also on replay from the buffer)
+       val afterSync: suspend (homeId: String) -> Unit = {},      // roster: publishRosters (live messages only)
+       val resyncsHome: Boolean = false,                          // roster: also sync the Home's other shared documents
    )
    internal enum class Scope { Shared, Private }
    ```
 
    `Shared` = synced with the user's paired devices and the Home's members and hubs, carried by the mailbox, acknowledged. `Private` = paired devices only, no mailbox. These are exactly the two behaviours the engine has today, split by `homeIdOf` returning null for the private suffixes.
 4. **The registry parses ids by the last `:` segment**, not by `endsWith` chains: `parse("abc:private-tasks") = ("abc", type)`. A feature key containing `:` is rejected when the registry is built, as is a duplicate key. The existing code already assumes Home ids contain no `:` (`recordUnknownDocument` uses `substringBeforeLast(':')`); WP1 adds a test that the id generator produces none.
-5. **Vesta's own list lives in one place:** `automerge/VestaHomeDocuments.kt` builds the sources and the type list from a `VestaDatabase`. It replaces the eight fields of `AgentCommandService` and the seven constructor parameters of `DeviceDataSyncService`. Accessors the UI needs (`pantry(homeId)`, `tasks(homeId)`, …) stay as thin typed getters on it, so the `openPantry = { … }` lambdas in the apps are unchanged in WP7 and shrink in Part B.
+5. **Vesta's own list lives in one place:** `automerge/VestaHomeDocuments.kt` holds the type list, and the sources it registers are built by `VestaHomeSources` (public, same file; `AgentCommandService.homeSources(database)` hands out the shared one), from a `VestaDatabase`. It replaces the eight fields of `AgentCommandService` and the seven constructor parameters of `DeviceDataSyncService`. Accessors the UI needs (`pantry(homeId)`, `tasks(homeId)`, …) stay as thin typed getters on it, so the `openPantry = { … }` lambdas in the apps are unchanged in WP7 and shrink in Part B.
 6. **Composition, not inheritance, for Part B.** `AutomergeDocumentCore` is a class that features hold and delegate to (`HomeDocument by core`), because Pantry and Shopping need to differ in more ways than an open base class would stay clean about.
 7. **Existing public constructors stay** in Part B (`TaskDocumentSource(document, list, persist, onLocalChange)`), so the ~25 tests that build sources by hand are not rewritten. Only the internals change.
 

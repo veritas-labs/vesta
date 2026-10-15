@@ -28,6 +28,8 @@ Names are provisional.
 
 ### 1. The sync engine hard-codes every document type (highest value)
 
+**Shipped (2026-10-15, [ADR-035](../adr/ADR-035-document-type-registry.md)).** `HomeDocumentType` and `HomeDocumentRegistry` replace the suffix constants, `endsWith` chains, duplicate lists and nullable mailbox parameters; the engine, mailbox, acknowledgement, activity modules and changes-waiting are registry lookups, and `VestaHomeDocuments` is Vesta's one list of ten types. Roster behaviour became two hooks (`afterReceive`, `afterSync`) and a `resyncsHome` flag. Still open: the registry is internal to `:shared`, not yet its own package. The text below describes the state before this work.
+
 `DeviceDataSyncService.kt` is 698 lines, and each new feature must be added to it by hand.
 
 - **Suffix constants.** `DeviceDataSyncService.kt:59-68` has a `":pantry"`, `":cookbook"`, `":tasks"` suffix per document type, plus `:private-*` variants.
@@ -41,6 +43,8 @@ Names are provisional.
 **Proposal:** one `SyncableDocumentType` descriptor (feature key, scope shared or private, factory) and one `DocumentRegistry`. Engine, mailbox, ack, activity and changes-waiting all become lookups. A new app registers its types and gets sync without touching engine code.
 
 ### 2. Every `*DocumentSource` and `*Sources` pair is a copy
+
+**Shipped (2026-10-15, [ADR-035](../adr/ADR-035-document-type-registry.md)).** `AutomergeDocumentCore` and `HomeDocumentStore` (composition, not inheritance) hold the shared lock, sync, persist and per-Home cache code, and `VestaHomeSources` builds all seven `*Sources` in one place. The saving measured on production code was well under the estimate below (see ADR-035 "As built"). The Pantry/Shopping `SeedGate` was not extracted. The text below describes the state before this work.
 
 Seven document types each have a `*DocumentSource` (about 80-250 lines) and a `*Sources` (about 30-90 lines).
 
