@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.acceptance
 
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
@@ -30,7 +31,7 @@ import uk.veritaslabs.vesta.syncactivity.SyncActivityViewModel
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventItem
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModuleName
+import uk.veritaslabs.vesta.syncactivity.SyncModule
 import uk.veritaslabs.vesta.syncactivity.SyncSnapshot
 import uk.veritaslabs.vesta.ui.screens.SyncActivityScreen
 import uk.veritaslabs.vesta.ui.screens.SyncActivityTestTags
@@ -100,7 +101,7 @@ class SyncActivityAcceptanceTest {
         lastSyncedMsAgo = lastSyncedMsAgo,
     )
 
-    private fun event(id: Long, kind: SyncEventKind, module: SyncModuleName, peer: String, minutesAgo: Long = id, count: Int = 1, detail: String? = null) =
+    private fun event(id: Long, kind: SyncEventKind, module: SyncModule, peer: String, minutesAgo: Long = id, count: Int = 1, detail: String? = null) =
         SyncEventItem(id, now - minutesAgo * 60_000L, now - minutesAgo * 60_000L, kind, module, peer, detail, count)
 
     private class FakeSyncActivity(initial: SyncSnapshot, val log: List<SyncEventItem> = emptyList()) : SyncActivityRepository {
@@ -165,7 +166,7 @@ class SyncActivityAcceptanceTest {
         val offlineSam = sam.copy(online = false, lastSyncedMsAgo = 3_600_000L)
         val repository = FakeSyncActivity(
             snapshot(peers = listOf(offlineSam, tom)),
-            log = listOf(event(1, SyncEventKind.Received, SyncModuleName.Tasks, "sam", minutesAgo = 60)),
+            log = listOf(event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Tasks), "sam", minutesAgo = 60)),
         )
 
         // Act — When I open Sync activity
@@ -199,7 +200,7 @@ class SyncActivityAcceptanceTest {
         // Arrange — Given Sam's phone sent a Tasks update three times inside five minutes, already folded into one row
         val repository = FakeSyncActivity(
             snapshot(),
-            log = listOf(event(1, SyncEventKind.Received, SyncModuleName.Tasks, "sam", minutesAgo = 2, count = 3)),
+            log = listOf(event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Tasks), "sam", minutesAgo = 2, count = 3)),
         )
 
         // Act — When I open Sync activity
@@ -218,8 +219,8 @@ class SyncActivityAcceptanceTest {
         val repository = FakeSyncActivity(
             snapshot(),
             log = listOf(
-                event(1, SyncEventKind.Received, SyncModuleName.Pantry, "sam", minutesAgo = 5),
-                event(2, SyncEventKind.Failed, SyncModuleName.Pantry, "tom", minutesAgo = 3, detail = "unreachable"),
+                event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Pantry), "sam", minutesAgo = 5),
+                event(2, SyncEventKind.Failed, SyncModule(VestaSyncModules.Pantry), "tom", minutesAgo = 3, detail = "unreachable"),
             ),
         )
         showScreen(repository)

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,7 +58,7 @@ import uk.veritaslabs.vesta.syncactivity.SyncActivityViewModel
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventItem
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModuleName
+import uk.veritaslabs.vesta.syncactivity.SyncModule
 import uk.veritaslabs.vesta.syncactivity.SyncVerdict
 import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import uk.veritaslabs.vesta.ui.components.FabClearance
@@ -379,10 +380,10 @@ private fun previewPeers() = listOf(
 )
 
 private fun previewEvents() = listOf(
-    SyncEventItem(1, PreviewNow - 5 * MillisPerMinute, PreviewNow - 5 * MillisPerMinute, SyncEventKind.Received, SyncModuleName.Tasks, PreviewSam),
-    SyncEventItem(2, PreviewNow - 9 * MillisPerMinute, PreviewNow - 9 * MillisPerMinute, SyncEventKind.Sent, SyncModuleName.Shopping, PreviewPriya, count = 3),
-    SyncEventItem(3, PreviewNow - 20 * MillisPerMinute, PreviewNow - 20 * MillisPerMinute, SyncEventKind.Failed, SyncModuleName.Pantry, PreviewTom, detail = "unreachable"),
-    SyncEventItem(4, PreviewNow - 26 * MillisPerHour, PreviewNow - 26 * MillisPerHour, SyncEventKind.Membership, SyncModuleName.Members, PreviewPriya),
+    SyncEventItem(1, PreviewNow - 5 * MillisPerMinute, PreviewNow - 5 * MillisPerMinute, SyncEventKind.Received, SyncModule(VestaSyncModules.Tasks), PreviewSam),
+    SyncEventItem(2, PreviewNow - 9 * MillisPerMinute, PreviewNow - 9 * MillisPerMinute, SyncEventKind.Sent, SyncModule(VestaSyncModules.Shopping), PreviewPriya, count = 3),
+    SyncEventItem(3, PreviewNow - 20 * MillisPerMinute, PreviewNow - 20 * MillisPerMinute, SyncEventKind.Failed, SyncModule(VestaSyncModules.Pantry), PreviewTom, detail = "unreachable"),
+    SyncEventItem(4, PreviewNow - 26 * MillisPerHour, PreviewNow - 26 * MillisPerHour, SyncEventKind.Membership, SyncModule.Members, PreviewPriya),
 )
 
 private fun previewState(

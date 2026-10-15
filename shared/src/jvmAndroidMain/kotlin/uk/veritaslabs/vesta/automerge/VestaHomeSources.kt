@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.automerge
 
-import uk.veritaslabs.vesta.datasync.SyncModules
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.docs.HomeDocumentType
 import uk.veritaslabs.vesta.docs.Scope
@@ -24,14 +24,14 @@ class VestaHomeSources(
      * private types after the shared ones (ADR-035). The feature strings are the ids' suffixes (ADR-006) and must never change.
      */
     fun documentTypes(): List<HomeDocumentType> = listOf(
-        HomeDocumentType("pantry", SyncModules.Pantry, Scope.Shared, pantries::forHome, pantries.localChanges),
-        HomeDocumentType("shopping-list", SyncModules.Shopping, Scope.Shared, shoppingLists::forHome, shoppingLists.localChanges),
-        HomeDocumentType("cookbook", SyncModules.Cookbook, Scope.Shared, cookbooks::forHome, cookbooks.localChanges),
-        HomeDocumentType("merchants", SyncModules.Merchants, Scope.Shared, merchants::forHome, merchants.localChanges),
-        HomeDocumentType("mealplan", SyncModules.MealPlan, Scope.Shared, mealPlans::forHome, mealPlans.localChanges),
-        HomeDocumentType("calendar", SyncModules.Calendar, Scope.Shared, calendars::forHome, calendars.localChanges),
-        HomeDocumentType("tasks", SyncModules.Tasks, Scope.Shared, tasks::forHome, tasks.localChanges),
-        HomeDocumentType("private-calendar", SyncModules.Calendar, Scope.Private, calendars::privateForHome, calendars.privateChanges),
-        HomeDocumentType("private-tasks", SyncModules.Tasks, Scope.Private, tasks::privateForHome, tasks.privateChanges),
+        HomeDocumentType("pantry", VestaSyncModules.Pantry, Scope.Shared, pantries::forHome, pantries.localChanges),
+        HomeDocumentType("shopping-list", VestaSyncModules.Shopping, Scope.Shared, shoppingLists::forHome, shoppingLists.localChanges),
+        HomeDocumentType("cookbook", VestaSyncModules.Cookbook, Scope.Shared, cookbooks::forHome, cookbooks.localChanges),
+        HomeDocumentType("merchants", VestaSyncModules.Merchants, Scope.Shared, merchants::forHome, merchants.localChanges),
+        HomeDocumentType("mealplan", VestaSyncModules.MealPlan, Scope.Shared, mealPlans::forHome, mealPlans.localChanges),
+        HomeDocumentType("calendar", VestaSyncModules.Calendar, Scope.Shared, calendars::forHome, calendars.localChanges),
+        HomeDocumentType("tasks", VestaSyncModules.Tasks, Scope.Shared, tasks::forHome, tasks.localChanges),
+        HomeDocumentType("private-calendar", VestaSyncModules.Calendar, Scope.Private, calendars::privateForHome, calendars.privateChanges),
+        HomeDocumentType("private-tasks", VestaSyncModules.Tasks, Scope.Private, tasks::privateForHome, tasks.privateChanges),
     )
 }

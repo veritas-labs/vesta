@@ -23,7 +23,7 @@ import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventItem
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModuleName
+import uk.veritaslabs.vesta.syncactivity.SyncModule
 import uk.veritaslabs.vesta.syncactivity.SyncSnapshot
 
 /**
@@ -160,18 +160,7 @@ internal class SyncActivityService(
             SyncEventKinds.UnknownMessage -> SyncEventKind.UnknownMessage
             else -> return null
         }
-        val itemModule = when (module) {
-            SyncModules.Pantry -> SyncModuleName.Pantry
-            SyncModules.Shopping -> SyncModuleName.Shopping
-            SyncModules.Cookbook -> SyncModuleName.Cookbook
-            SyncModules.MealPlan -> SyncModuleName.MealPlan
-            SyncModules.Calendar -> SyncModuleName.Calendar
-            SyncModules.Tasks -> SyncModuleName.Tasks
-            SyncModules.Merchants -> SyncModuleName.Merchants
-            SyncModules.Members -> SyncModuleName.Members
-            SyncModules.Mailbox -> SyncModuleName.Mailbox
-            else -> return null
-        }
+        val itemModule = SyncModule(module)
         return SyncEventItem(id, at, lastAt, itemKind, itemModule, peerAgent, detail, count.toInt())
     }
 

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.getDeviceName
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import app.cash.sqldelight.async.coroutines.awaitAsList
@@ -38,11 +39,11 @@ class SyncEventRecorderTest {
         val recorder = recorder(database)
 
         // Act
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         now += minute
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         now += minute
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
 
         // Assert
@@ -57,12 +58,12 @@ class SyncEventRecorderTest {
         // Arrange
         val database = newDatabase()
         val recorder = recorder(database)
-        recorder.sent("home", SyncModules.Tasks, "peer")
+        recorder.sent("home", VestaSyncModules.Tasks, "peer")
         recorder.flush()
 
         // Act
         now += 2 * minute
-        recorder.sent("home", SyncModules.Tasks, "peer")
+        recorder.sent("home", VestaSyncModules.Tasks, "peer")
         recorder.flush()
 
         // Assert
@@ -74,12 +75,12 @@ class SyncEventRecorderTest {
         // Arrange
         val database = newDatabase()
         val recorder = recorder(database)
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
 
         // Act
         now += 6 * minute
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
 
         // Assert
@@ -93,10 +94,10 @@ class SyncEventRecorderTest {
         val recorder = recorder(database)
 
         // Act
-        recorder.received("home", SyncModules.Pantry, "peer")
-        recorder.received("home", SyncModules.Pantry, "other")
-        recorder.received("home", SyncModules.Shopping, "peer")
-        recorder.sent("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "other")
+        recorder.received("home", VestaSyncModules.Shopping, "peer")
+        recorder.sent("home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
 
         // Assert
@@ -110,7 +111,7 @@ class SyncEventRecorderTest {
         val recorder = recorder(database)
 
         // Act
-        recorder.failed("home", SyncModules.Pantry, "peer", "timed out")
+        recorder.failed("home", VestaSyncModules.Pantry, "peer", "timed out")
         recorder.membership("home", "peer", "joined")
         recorder.mailbox("home", incoming = true, peer = null)
         recorder.mailbox("home", incoming = false, peer = "peer")
@@ -149,7 +150,7 @@ class SyncEventRecorderTest {
         driver.close()
 
         // Act
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
         recorder.lastSynced("peer")
         recorder.prune(now)
@@ -165,11 +166,11 @@ class SyncEventRecorderTest {
         // Arrange
         val database = newDatabase()
         val recorder = recorder(database)
-        recorder.received("unknown-home", SyncModules.Pantry, "peer")
+        recorder.received("unknown-home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
 
         // Act
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
 
         // Assert
@@ -181,9 +182,9 @@ class SyncEventRecorderTest {
         // Arrange
         val database = newDatabase()
         val recorder = recorder(database)
-        recorder.received("home", SyncModules.Pantry, "first")
-        recorder.received("gone", SyncModules.Pantry, "orphan")
-        recorder.received("home", SyncModules.Shopping, "last")
+        recorder.received("home", VestaSyncModules.Pantry, "first")
+        recorder.received("gone", VestaSyncModules.Pantry, "orphan")
+        recorder.received("home", VestaSyncModules.Shopping, "last")
 
         // Act
         recorder.flush()
@@ -216,10 +217,10 @@ class SyncEventRecorderTest {
         val recorder = recorder(database)
         val day = 24 * 60 * minute
         now = 100 * day
-        recorder.received("home", SyncModules.Pantry, "old")
+        recorder.received("home", VestaSyncModules.Pantry, "old")
         recorder.flush()
         now += 6 * day
-        recorder.received("home", SyncModules.Pantry, "new")
+        recorder.received("home", VestaSyncModules.Pantry, "new")
         recorder.flush()
 
         // Act
@@ -235,9 +236,9 @@ class SyncEventRecorderTest {
         // Arrange
         val database = newDatabase()
         val recorder = recorder(database)
-        recorder.received("home", SyncModules.Pantry, "peer")
+        recorder.received("home", VestaSyncModules.Pantry, "peer")
         recorder.flush()
-        recorder.sent("home", SyncModules.Pantry, "peer")
+        recorder.sent("home", VestaSyncModules.Pantry, "peer")
 
         // Act
         recorder.forgetHome("home")
@@ -293,16 +294,16 @@ class SyncEventRecorderTest {
     fun `document ids map to modules and registry and profile map to none`() {
         // Arrange
         val expected = mapOf(
-            "h:pantry" to SyncModules.Pantry,
+            "h:pantry" to VestaSyncModules.Pantry,
             "h:roster" to SyncModules.Members,
-            "h:shopping-list" to SyncModules.Shopping,
-            "h:cookbook" to SyncModules.Cookbook,
-            "h:merchants" to SyncModules.Merchants,
-            "h:mealplan" to SyncModules.MealPlan,
-            "h:calendar" to SyncModules.Calendar,
-            "h:private-calendar" to SyncModules.Calendar,
-            "h:tasks" to SyncModules.Tasks,
-            "h:private-tasks" to SyncModules.Tasks,
+            "h:shopping-list" to VestaSyncModules.Shopping,
+            "h:cookbook" to VestaSyncModules.Cookbook,
+            "h:merchants" to VestaSyncModules.Merchants,
+            "h:mealplan" to VestaSyncModules.MealPlan,
+            "h:calendar" to VestaSyncModules.Calendar,
+            "h:private-calendar" to VestaSyncModules.Calendar,
+            "h:tasks" to VestaSyncModules.Tasks,
+            "h:private-tasks" to VestaSyncModules.Tasks,
         )
 
         val database = newDatabase()

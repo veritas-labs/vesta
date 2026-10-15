@@ -64,7 +64,7 @@ class SyncActivityViewModelTest {
         SyncSnapshot(takenAt = 0L, hasOtherDevices = true, roundInProgress = roundInProgress, lastRoundAt = lastRoundAt)
 
     private fun event(id: Long, kind: SyncEventKind = SyncEventKind.Received, peer: String? = "agent-a") =
-        SyncEventItem(id = id, at = id, lastAt = id, kind = kind, module = SyncModuleName.Tasks, peerAgent = peer)
+        SyncEventItem(id = id, at = id, lastAt = id, kind = kind, module = SyncModule(VestaSyncModules.Tasks), peerAgent = peer)
 
     @Test
     fun itIsLoadingUntilTheFirstSnapshotAndLogHaveArrived() = runTest {

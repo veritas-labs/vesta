@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.home.homeRepository
 import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsList
@@ -1439,63 +1440,63 @@ class DeviceDataSyncServiceTest {
 
     private val documentCases = listOf(
         DocumentCase(
-            "pantry", ::pantryDocumentId, SyncModules.Pantry, private = false,
+            "pantry", ::pantryDocumentId, VestaSyncModules.Pantry, private = false,
             edit = { pantries.forHome(it)!!.mutate { doc -> upsertPantryItem(doc, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null) } },
             seen = { pantryTitles(it) == listOf("Whole Milk") },
             heads = { pantries.forHome(it)?.heads() },
             peer = { pantries.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "shopping-list", ::shoppingListDocumentId, SyncModules.Shopping, private = false,
+            "shopping-list", ::shoppingListDocumentId, VestaSyncModules.Shopping, private = false,
             edit = { shopping.forHome(it)!!.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Whole Milk")) },
             seen = { shoppingTitles(it) == listOf("Whole Milk") },
             heads = { shopping.forHome(it)?.heads() },
             peer = { shopping.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "cookbook", ::cookbookDocumentId, SyncModules.Cookbook, private = false,
+            "cookbook", ::cookbookDocumentId, VestaSyncModules.Cookbook, private = false,
             edit = { cookbook.forHome(it)!!.save(Recipe(title = "Shepherd's Pie")) },
             seen = { recipeTitles(it) == listOf("Shepherd's Pie") },
             heads = { cookbook.forHome(it)?.heads() },
             peer = { cookbook.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "merchants", ::merchantsDocumentId, SyncModules.Merchants, private = false,
+            "merchants", ::merchantsDocumentId, VestaSyncModules.Merchants, private = false,
             edit = { merchants.forHome(it)!!.save(Merchant(name = "Hargreaves")) },
             seen = { merchantNames(it) == listOf("Hargreaves") },
             heads = { merchants.forHome(it)?.heads() },
             peer = { merchants.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "mealplan", ::mealPlanDocumentId, SyncModules.MealPlan, private = false,
+            "mealplan", ::mealPlanDocumentId, VestaSyncModules.MealPlan, private = false,
             edit = { mealPlans.forHome(it)!!.add(tuesday, MealSlot.Dinner, "pie") },
             seen = { plannedDinners(it, tuesday) == listOf("pie") },
             heads = { mealPlans.forHome(it)?.heads() },
             peer = { mealPlans.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "calendar", ::calendarDocumentId, SyncModules.Calendar, private = false,
+            "calendar", ::calendarDocumentId, VestaSyncModules.Calendar, private = false,
             edit = { calendars.forHome(it)!!.save(event("e1", "Bin day", EventCalendar.Home)) },
             seen = { homeEventTitles(it) == listOf("Bin day") },
             heads = { calendars.forHome(it)?.heads() },
             peer = { calendars.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "private-calendar", ::privateCalendarDocumentId, SyncModules.Calendar, private = true,
+            "private-calendar", ::privateCalendarDocumentId, VestaSyncModules.Calendar, private = true,
             edit = { calendars.privateForHome(it)!!.save(event("p1", "Surprise party planning", EventCalendar.Private)) },
             seen = { privateEventTitles(it) == listOf("Surprise party planning") },
             heads = { calendars.privateForHome(it)?.heads() },
             peer = { calendars.privateForHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "tasks", ::tasksDocumentId, SyncModules.Tasks, private = false,
+            "tasks", ::tasksDocumentId, VestaSyncModules.Tasks, private = false,
             edit = { tasks.forHome(it)!!.save(task("t1", "Bins", TaskList.Home)) },
             seen = { homeTaskTitles(it) == listOf("Bins") },
             heads = { tasks.forHome(it)?.heads() },
             peer = { tasks.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
         ),
         DocumentCase(
-            "private-tasks", ::privateTasksDocumentId, SyncModules.Tasks, private = true,
+            "private-tasks", ::privateTasksDocumentId, VestaSyncModules.Tasks, private = true,
             edit = { tasks.privateForHome(it)!!.save(task("p1", "Buy a present", TaskList.Private)) },
             seen = { privateTaskTitles(it) == listOf("Buy a present") },
             heads = { tasks.privateForHome(it)?.heads() },

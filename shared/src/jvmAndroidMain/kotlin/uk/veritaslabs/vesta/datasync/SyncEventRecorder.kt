@@ -25,15 +25,8 @@ internal object SyncEventKinds {
     const val UnknownMessage = "unknown_message"
 }
 
-/** The modules a [SyncEventRecorder] event can name, as stored in `SyncEvent.module`. Never content, only which part moved. */
+/** The modules of the sync machinery itself; the app's own are named by its document types. A [SyncEventRecorder] event can name either, as stored in `SyncEvent.module`. Never content, only which part moved. */
 internal object SyncModules {
-    const val Pantry = "pantry"
-    const val Shopping = "shopping"
-    const val Cookbook = "cookbook"
-    const val MealPlan = "mealplan"
-    const val Calendar = "calendar"
-    const val Tasks = "tasks"
-    const val Merchants = "merchants"
     const val Members = "members"
 
     /** Mailbox events belong to the Home as a whole rather than to one module. */

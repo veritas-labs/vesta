@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.home.homeRepository
 import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
@@ -51,15 +52,15 @@ class DocumentIdsTest {
     )
 
     private val ten = listOf(
-        Expected("$homeId:pantry", SyncModules.Pantry, private = false, inMailbox = true, idFor = ::pantryDocumentId),
-        Expected("$homeId:shopping-list", SyncModules.Shopping, private = false, inMailbox = true, idFor = ::shoppingListDocumentId),
-        Expected("$homeId:cookbook", SyncModules.Cookbook, private = false, inMailbox = true, idFor = ::cookbookDocumentId),
-        Expected("$homeId:merchants", SyncModules.Merchants, private = false, inMailbox = true, idFor = ::merchantsDocumentId),
-        Expected("$homeId:mealplan", SyncModules.MealPlan, private = false, inMailbox = true, idFor = ::mealPlanDocumentId),
-        Expected("$homeId:calendar", SyncModules.Calendar, private = false, inMailbox = true, idFor = ::calendarDocumentId),
-        Expected("$homeId:private-calendar", SyncModules.Calendar, private = true, inMailbox = false, idFor = ::privateCalendarDocumentId),
-        Expected("$homeId:tasks", SyncModules.Tasks, private = false, inMailbox = true, idFor = ::tasksDocumentId),
-        Expected("$homeId:private-tasks", SyncModules.Tasks, private = true, inMailbox = false, idFor = ::privateTasksDocumentId),
+        Expected("$homeId:pantry", VestaSyncModules.Pantry, private = false, inMailbox = true, idFor = ::pantryDocumentId),
+        Expected("$homeId:shopping-list", VestaSyncModules.Shopping, private = false, inMailbox = true, idFor = ::shoppingListDocumentId),
+        Expected("$homeId:cookbook", VestaSyncModules.Cookbook, private = false, inMailbox = true, idFor = ::cookbookDocumentId),
+        Expected("$homeId:merchants", VestaSyncModules.Merchants, private = false, inMailbox = true, idFor = ::merchantsDocumentId),
+        Expected("$homeId:mealplan", VestaSyncModules.MealPlan, private = false, inMailbox = true, idFor = ::mealPlanDocumentId),
+        Expected("$homeId:calendar", VestaSyncModules.Calendar, private = false, inMailbox = true, idFor = ::calendarDocumentId),
+        Expected("$homeId:private-calendar", VestaSyncModules.Calendar, private = true, inMailbox = false, idFor = ::privateCalendarDocumentId),
+        Expected("$homeId:tasks", VestaSyncModules.Tasks, private = false, inMailbox = true, idFor = ::tasksDocumentId),
+        Expected("$homeId:private-tasks", VestaSyncModules.Tasks, private = true, inMailbox = false, idFor = ::privateTasksDocumentId),
         Expected("$homeId:roster", SyncModules.Members, private = false, inMailbox = true, idFor = ::rosterDocumentId),
     )
 

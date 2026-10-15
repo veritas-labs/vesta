@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,7 +27,7 @@ import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.syncactivity.ProblemReason
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModuleName
+import uk.veritaslabs.vesta.syncactivity.SyncModule
 import uk.veritaslabs.vesta.syncactivity.SyncSnapshot
 import uk.veritaslabs.vesta.syncactivity.SyncVerdict
 import uk.veritaslabs.vesta.ui.screens.HomeShape
@@ -310,11 +311,11 @@ class SyncActivityServiceTest {
         val a = ActivityDevice(network, scope, "agent-a", nowMillis = { clock })
         val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         val recorder = a.recorder
-        recorder.received(homeId, SyncModules.Pantry, "peer-1") // oldest
+        recorder.received(homeId, VestaSyncModules.Pantry, "peer-1") // oldest
         clock += 6 * minute
-        recorder.sent(homeId, SyncModules.Shopping, "peer-2")
+        recorder.sent(homeId, VestaSyncModules.Shopping, "peer-2")
         clock += 6 * minute
-        recorder.failed(homeId, SyncModules.Tasks, "peer-1", "unreachable")
+        recorder.failed(homeId, VestaSyncModules.Tasks, "peer-1", "unreachable")
         clock += 6 * minute
         recorder.mailbox(homeId, incoming = true, peer = null)
         clock += 6 * minute
@@ -322,7 +323,7 @@ class SyncActivityServiceTest {
         clock += 6 * minute
         recorder.mailbox(homeId, incoming = false, peer = null)
         clock += 6 * minute
-        recorder.received(homeId, SyncModules.Calendar, "peer-2") // newest
+        recorder.received(homeId, VestaSyncModules.Calendar, "peer-2") // newest
         recorder.flush()
         return a to homeId
     }
@@ -338,18 +339,33 @@ class SyncActivityServiceTest {
         // Assert
         assertEquals(
             listOf(
-                SyncEventKind.Received to SyncModuleName.Calendar,
-                SyncEventKind.MailboxOut to SyncModuleName.Mailbox,
-                SyncEventKind.Membership to SyncModuleName.Members,
-                SyncEventKind.MailboxIn to SyncModuleName.Mailbox,
-                SyncEventKind.Failed to SyncModuleName.Tasks,
-                SyncEventKind.Sent to SyncModuleName.Shopping,
-                SyncEventKind.Received to SyncModuleName.Pantry,
+                SyncEventKind.Received to SyncModule(VestaSyncModules.Calendar),
+                SyncEventKind.MailboxOut to SyncModule.Mailbox,
+                SyncEventKind.Membership to SyncModule.Members,
+                SyncEventKind.MailboxIn to SyncModule.Mailbox,
+                SyncEventKind.Failed to SyncModule(VestaSyncModules.Tasks),
+                SyncEventKind.Sent to SyncModule(VestaSyncModules.Shopping),
+                SyncEventKind.Received to SyncModule(VestaSyncModules.Pantry),
             ),
             events.map { it.kind to it.module },
         )
         assertEquals("joined", events.single { it.kind == SyncEventKind.Membership }.detail)
         assertNull(events.single { it.kind == SyncEventKind.MailboxIn }.peerAgent)
+        scope.cancel()
+    }
+
+    @Test
+    fun aModuleThisVersionDoesNotKnowIsStillListedUnderItsId() = runBlocking {
+        // Arrange
+        val (a, homeId) = seeded()
+        a.recorder.received(homeId, "gardening", "peer-9")
+        a.recorder.flush()
+
+        // Act
+        val events = a.sync.syncActivity.events(homeId, SyncEventFilter.All, "peer-9", null, 50)
+
+        // Assert
+        assertEquals(listOf(SyncModule("gardening")), events.map { it.module })
         scope.cancel()
     }
 
@@ -383,9 +399,9 @@ class SyncActivityServiceTest {
         val received = repository.events(homeId, SyncEventFilter.Received, "peer-2", null, 50)
 
         // Assert
-        assertEquals(listOf(SyncModuleName.Tasks, SyncModuleName.Pantry), all.map { it.module })
-        assertEquals(listOf(SyncModuleName.Tasks), firstOnly.map { it.module })
-        assertEquals(listOf(SyncModuleName.Calendar), received.map { it.module })
+        assertEquals(listOf(SyncModule(VestaSyncModules.Tasks), SyncModule(VestaSyncModules.Pantry)), all.map { it.module })
+        assertEquals(listOf(SyncModule(VestaSyncModules.Tasks)), firstOnly.map { it.module })
+        assertEquals(listOf(SyncModule(VestaSyncModules.Calendar)), received.map { it.module })
         scope.cancel()
     }
 
@@ -405,8 +421,8 @@ class SyncActivityServiceTest {
         // Assert
         assertEquals(listOf(3, 3, 1), listOf(first.size, second.size, third.size))
         assertEquals(7, (first + second + third).map { it.id }.toSet().size)
-        assertEquals(listOf(SyncModuleName.Calendar, SyncModuleName.Mailbox), received.map { it.module })
-        assertEquals(listOf(SyncModuleName.Pantry), receivedMore.map { it.module })
+        assertEquals(listOf(SyncModule(VestaSyncModules.Calendar), SyncModule.Mailbox), received.map { it.module })
+        assertEquals(listOf(SyncModule(VestaSyncModules.Pantry)), receivedMore.map { it.module })
         scope.cancel()
     }
 

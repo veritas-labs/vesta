@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
@@ -24,7 +25,7 @@ import uk.veritaslabs.vesta.syncactivity.SyncActivityUiState
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventItem
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModuleName
+import uk.veritaslabs.vesta.syncactivity.SyncModule
 import uk.veritaslabs.vesta.syncactivity.SyncVerdict
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
@@ -55,7 +56,7 @@ class SyncActivityScreenTest {
         syncAvailable = syncAvailable,
     )
 
-    private fun event(id: Long, kind: SyncEventKind, module: SyncModuleName, peer: String?, detail: String? = null, count: Int = 1) =
+    private fun event(id: Long, kind: SyncEventKind, module: SyncModule, peer: String?, detail: String? = null, count: Int = 1) =
         SyncEventItem(id, now - id * 60_000L, now - id * 60_000L, kind, module, peer, detail, count)
 
     @OptIn(ExperimentalTestApi::class)
@@ -257,8 +258,8 @@ class SyncActivityScreenTest {
     fun theLogReadsEachEntryAsOneSentence() = runComposeUiTest {
         // Arrange
         val events = listOf(
-            event(1, SyncEventKind.Received, SyncModuleName.Tasks, "sam"),
-            event(2, SyncEventKind.Sent, SyncModuleName.Shopping, "tom", count = 3),
+            event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Tasks), "sam"),
+            event(2, SyncEventKind.Sent, SyncModule(VestaSyncModules.Shopping), "tom", count = 3),
         )
         show(state(events = events))
 
@@ -289,8 +290,8 @@ class SyncActivityScreenTest {
     fun anUnsupportedVersionEntryNamesTheDeviceAndWhatItSent() = runComposeUiTest {
         // Arrange
         val events = listOf(
-            event(1, SyncEventKind.UnsupportedVersion, SyncModuleName.Mailbox, "tom", detail = "v2", count = 2),
-            event(2, SyncEventKind.UnknownMessage, SyncModuleName.Members, "sam", detail = "devicesync.teleport"),
+            event(1, SyncEventKind.UnsupportedVersion, SyncModule.Mailbox, "tom", detail = "v2", count = 2),
+            event(2, SyncEventKind.UnknownMessage, SyncModule.Members, "sam", detail = "devicesync.teleport"),
         )
         show(state(events = events, filter = SyncEventFilter.Problems))
 
@@ -308,7 +309,7 @@ class SyncActivityScreenTest {
     @Test
     fun aProblemEntryNamesTheDeviceAndSaysItWillKeepTrying() = runComposeUiTest {
         // Arrange
-        val events = listOf(event(1, SyncEventKind.Failed, SyncModuleName.Pantry, "tom", detail = "unreachable"))
+        val events = listOf(event(1, SyncEventKind.Failed, SyncModule(VestaSyncModules.Pantry), "tom", detail = "unreachable"))
         show(state(events = events, filter = SyncEventFilter.Problems))
 
         // Act
@@ -323,7 +324,7 @@ class SyncActivityScreenTest {
     @Test
     fun anEntryFromAnUnknownDeviceUsesAGenericName() = runComposeUiTest {
         // Arrange
-        val events = listOf(event(1, SyncEventKind.Received, SyncModuleName.Pantry, "stranger"))
+        val events = listOf(event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Pantry), "stranger"))
         show(state(events = events))
 
         // Act
@@ -337,7 +338,7 @@ class SyncActivityScreenTest {
     @Test
     fun entriesSitUnderADayHeader() = runComposeUiTest {
         // Arrange
-        show(state(events = listOf(event(1, SyncEventKind.Received, SyncModuleName.Tasks, "sam"))))
+        show(state(events = listOf(event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Tasks), "sam"))))
 
         // Act
         // (no user interaction — checking the screen's initial state)
@@ -352,7 +353,7 @@ class SyncActivityScreenTest {
     fun showOlderReportsTheClickAndOnlyShowsWhenThereIsMore() = runComposeUiTest {
         // Arrange
         var clicks = 0
-        val events = listOf(event(1, SyncEventKind.Received, SyncModuleName.Tasks, "sam"))
+        val events = listOf(event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Tasks), "sam"))
         show(state(events = events, canLoadOlder = true), onLoadOlder = { clicks++ })
 
         // Act
@@ -366,7 +367,7 @@ class SyncActivityScreenTest {
     @Test
     fun showOlderIsAbsentWhenThereIsNoMore() = runComposeUiTest {
         // Arrange
-        show(state(events = listOf(event(1, SyncEventKind.Received, SyncModuleName.Tasks, "sam")), canLoadOlder = false))
+        show(state(events = listOf(event(1, SyncEventKind.Received, SyncModule(VestaSyncModules.Tasks), "sam")), canLoadOlder = false))
 
         // Act
         // (no user interaction — checking the screen's initial state)

@@ -3,8 +3,17 @@ package uk.veritaslabs.vesta.syncactivity
 /** What a log entry records. Content-free: only the transport fact (docs/design/sync-activity.md §8.2). */
 enum class SyncEventKind { Received, Sent, Failed, Membership, MailboxIn, MailboxOut, UnsupportedVersion, UnknownMessage }
 
-/** The Home document a log entry is about, named plainly. */
-enum class SyncModuleName { Pantry, Shopping, Cookbook, MealPlan, Calendar, Tasks, Merchants, Members, Mailbox }
+/**
+ * The part of a Home a log entry is about, as the id stored in `SyncEvent.module`. The ids are the app's to name (a
+ * document type says which module it belongs to); only the sync machinery's own two have constants here.
+ */
+@JvmInline
+value class SyncModule(val id: String) {
+    companion object {
+        val Members = SyncModule("members")
+        val Mailbox = SyncModule("mailbox")
+    }
+}
 
 /** Which log entries the filter menu shows. */
 enum class SyncEventFilter { All, Received, Sent, Problems }
@@ -20,7 +29,7 @@ data class SyncEventItem(
     val at: Long,
     val lastAt: Long,
     val kind: SyncEventKind,
-    val module: SyncModuleName,
+    val module: SyncModule,
     val peerAgent: String? = null,
     val detail: String? = null,
     val count: Int = 1,

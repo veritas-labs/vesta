@@ -49,7 +49,8 @@ import uk.veritaslabs.vesta.syncactivity.ProblemReason
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventItem
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModuleName
+import uk.veritaslabs.vesta.syncactivity.SyncModule
+import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.syncactivity.SyncVerdict
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.calendar_months
@@ -351,23 +352,25 @@ private fun filterLabel(filter: SyncEventFilter): StringResource = when (filter)
     SyncEventFilter.Problems -> Res.string.sync_activity_filter_problems
 }
 
-private fun moduleLabel(module: SyncModuleName): StringResource = when (module) {
-    SyncModuleName.Pantry -> Res.string.sync_activity_module_pantry
-    SyncModuleName.Shopping -> Res.string.sync_activity_module_shopping
-    SyncModuleName.Cookbook -> Res.string.sync_activity_module_cookbook
-    SyncModuleName.MealPlan -> Res.string.sync_activity_module_meal_plan
-    SyncModuleName.Calendar -> Res.string.sync_activity_module_calendar
-    SyncModuleName.Tasks -> Res.string.sync_activity_module_tasks
-    SyncModuleName.Merchants -> Res.string.sync_activity_module_merchants
-    SyncModuleName.Members -> Res.string.sync_activity_module_members
-    SyncModuleName.Mailbox -> Res.string.sync_activity_module_mailbox
+/** The label of a module this version knows; null for one it does not, which is shown by its id. */
+private fun moduleLabel(module: SyncModule): StringResource? = when (module.id) {
+    VestaSyncModules.Pantry -> Res.string.sync_activity_module_pantry
+    VestaSyncModules.Shopping -> Res.string.sync_activity_module_shopping
+    VestaSyncModules.Cookbook -> Res.string.sync_activity_module_cookbook
+    VestaSyncModules.MealPlan -> Res.string.sync_activity_module_meal_plan
+    VestaSyncModules.Calendar -> Res.string.sync_activity_module_calendar
+    VestaSyncModules.Tasks -> Res.string.sync_activity_module_tasks
+    VestaSyncModules.Merchants -> Res.string.sync_activity_module_merchants
+    SyncModule.Members.id -> Res.string.sync_activity_module_members
+    SyncModule.Mailbox.id -> Res.string.sync_activity_module_mailbox
+    else -> null
 }
 
 /** One log entry: a direction icon with a description, one plain sentence, the time, and a second line when there is one. */
 @Composable
 internal fun SyncActivityItem(item: SyncEventItem, peers: List<PeerActivity>, modifier: Modifier = Modifier) {
     val device = item.peerAgent?.let { id -> peers.firstOrNull { it.agentId == id }?.name } ?: stringResource(Res.string.sync_activity_another_device)
-    val module = stringResource(moduleLabel(item.module))
+    val module = moduleLabel(item.module)?.let { stringResource(it) } ?: item.module.id
     val count = item.count.coerceAtLeast(1)
     val sentence = when (item.kind) {
         SyncEventKind.Received -> pluralStringResource(Res.plurals.sync_activity_event_received, count, module, device, count)
