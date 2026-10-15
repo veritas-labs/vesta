@@ -4,14 +4,13 @@ import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
+import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
 import uk.veritaslabs.vesta.docs.HomeDocument
+import uk.veritaslabs.vesta.docs.homeDocumentId
+import uk.veritaslabs.vesta.docs.openHomeDocument
 import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.mailbox.changesSince
-import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
 import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
@@ -19,7 +18,7 @@ import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
 private const val ShoppingListFeature = "shopping-list"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s shopping-list document. */
-fun shoppingListDocumentId(homeId: String): String = "$homeId:$ShoppingListFeature"
+fun shoppingListDocumentId(homeId: String): String = homeDocumentId(homeId, ShoppingListFeature)
 
 /**
  * A [ShoppingListSource] backed by a shopping-list Automerge [document] (ADR-008, fourth amendment), downstream of
@@ -28,15 +27,26 @@ fun shoppingListDocumentId(homeId: String): String = "$homeId:$ShoppingListFeatu
  *
  * Use [openShoppingListDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
  */
-class ShoppingListDocumentSource(
-    private val document: Document,
+class ShoppingListDocumentSource private constructor(
+    private val state: MutableStateFlow<List<ShoppingListItem>>,
+    private val core: AutomergeDocumentCore,
     private val pantry: PantryDocumentSource,
-    private val persist: suspend (ByteArray) -> Unit = {},
-    private val onLocalChange: () -> Unit = {},
-) : ShoppingListSource, HomeDocument {
+) : ShoppingListSource, HomeDocument by core {
 
-    private val lock = Mutex()
-    private val state = MutableStateFlow(readItems())
+    constructor(
+        document: Document,
+        pantry: PantryDocumentSource,
+        persist: suspend (ByteArray) -> Unit = {},
+        onLocalChange: () -> Unit = {},
+    ) : this(MutableStateFlow(document.toShoppingItems()), document, pantry, persist, onLocalChange)
+
+    private constructor(
+        state: MutableStateFlow<List<ShoppingListItem>>,
+        document: Document,
+        pantry: PantryDocumentSource,
+        persist: suspend (ByteArray) -> Unit,
+        onLocalChange: () -> Unit,
+    ) : this(state, AutomergeDocumentCore(document, { state.value = document.toShoppingItems() }, persist, onLocalChange), pantry)
 
     override val items: Flow<List<ShoppingListItem>> = state
 
@@ -44,50 +54,40 @@ class ShoppingListDocumentSource(
     // once the creator's list has arrived. In memory only, so one made before then is lost if the app is closed first.
     private val pending = mutableListOf<suspend () -> Unit>()
 
-    private suspend fun queuedUntilSeeded(operation: suspend () -> Unit): Boolean = lock.withLock {
-        if (document.isShoppingListSeeded()) false else { pending += operation; true }
+    private suspend fun queuedUntilSeeded(operation: suspend () -> Unit): Boolean = core.read {
+        if (isShoppingListSeeded()) false else { pending += operation; true }
     }
 
     override suspend fun save(item: ShoppingItemDetails) {
         if (queuedUntilSeeded { save(item) }) return
-        lock.withLock {
+        core.edit {
             if (item.key == null) {
                 addShoppingItem(
-                    document, item.primaryCategory, item.secondaryCategory, item.title,
+                    this, item.primaryCategory, item.secondaryCategory, item.title,
                     item.quantity, item.packageSize, item.barcode, item.tags,
                 )
             } else {
                 updateShoppingItem(
-                    document, item.key, item.primaryCategory, item.secondaryCategory, item.title,
+                    this, item.key, item.primaryCategory, item.secondaryCategory, item.title,
                     item.quantity, item.packageSize, item.barcode, item.tags,
                 )
             }
-            publishAndPersist()
         }
-        onLocalChange()
     }
 
     override suspend fun remove(key: String) {
         if (queuedUntilSeeded { remove(key) }) return
-        lock.withLock {
-            removeShoppingItem(document, key)
-            publishAndPersist()
-        }
-        onLocalChange()
+        core.edit { removeShoppingItem(this, key) }
     }
 
     override suspend fun setProgress(key: String, got: Int, outOfStock: Boolean) {
         if (queuedUntilSeeded { setProgress(key, got, outOfStock) }) return
-        lock.withLock {
-            setShoppingItemProgress(document, key, got, outOfStock)
-            publishAndPersist()
-        }
-        onLocalChange()
+        core.edit { setShoppingItemProgress(this, key, got, outOfStock) }
     }
 
     override suspend fun addCheckedToPantry(): Int {
-        val bought = lock.withLock {
-            if (document.isShoppingListSeeded()) readItems().filter { it.isBought } else emptyList()
+        val bought = core.read {
+            if (isShoppingListSeeded()) toShoppingItems().filter { it.isBought } else emptyList()
         }
         if (bought.isEmpty()) return 0
         // The Pantry is written first: a crash in between leaves the items checked, to be added again, rather than
@@ -103,78 +103,60 @@ class ShoppingListDocumentSource(
                 adjustStock(doc, key, item.got.coerceAtMost(item.quantity))
             }
         }
-        lock.withLock {
+        core.edit {
             bought.forEach { item ->
                 val got = item.got.coerceAtMost(item.quantity)
                 if (got >= item.quantity) {
-                    removeShoppingItem(document, item.key)
+                    removeShoppingItem(this, item.key)
                 } else {
                     updateShoppingItem(
-                        document, item.key, item.primaryCategory, item.secondaryCategory, item.title,
+                        this, item.key, item.primaryCategory, item.secondaryCategory, item.title,
                         item.quantity - got, item.packageSize, item.barcode, item.tags,
                     )
-                    setShoppingItemProgress(document, item.key, 0, false)
+                    setShoppingItemProgress(this, item.key, 0, false)
                 }
             }
-            publishAndPersist()
         }
-        onLocalChange()
         return bought.size
     }
 
-    /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
-    override suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
-        document.generateSyncMessage(state).orElse(null)
+    /** Applies a sync message from a peer, then republishes and persists the list if it changed. */
+    override suspend fun receiveSync(state: SyncState, message: ByteArray) {
+        core.receiveSync(state, message)
+        runPending()
     }
 
-    /** Applies a sync message from a peer, then republishes and persists the list if it changed. */
-    override suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
-
-    /** The list's current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
-    override suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
-
-    /** True once the peer whose progress is [state] has replied with its heads and has everything this document has. */
-    override suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
-
-    /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
-    override suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
-
     /** Applies changes from [changesSince], as [receiveSync] does a sync message. Applying one again changes nothing. */
-    override suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
+    override suspend fun applyChanges(changes: ByteArray) {
+        core.applyChanges(changes)
+        runPending()
+    }
 
-    private suspend fun applyIncoming(apply: Document.() -> Unit) {
-        val ready = lock.withLock {
-            val before = document.heads
-            document.apply()
-            if (!document.heads.contentEquals(before)) publishAndPersist()
-            // The creator's list may just have arrived: what was saved or removed before it can now be done on top of it.
-            if (pending.isNotEmpty() && document.isShoppingListSeeded()) pending.toList().also { pending.clear() } else emptyList()
+    private suspend fun runPending() {
+        // The creator's list may just have arrived: what was saved or removed before it can now be done on top of it.
+        val ready = core.read {
+            if (pending.isNotEmpty() && isShoppingListSeeded()) pending.toList().also { pending.clear() } else emptyList()
         }
         ready.forEach { it() }
     }
 
-    /** Republishes and persists after [document] changed outside [save]/[remove], e.g. by applying a sync message. */
-    suspend fun refresh() = lock.withLock { publishAndPersist() }
+    /** Republishes and persists after the document changed outside [save]/[remove], e.g. by applying a sync message. */
+    suspend fun refresh() = core.refresh()
+}
 
-    private suspend fun publishAndPersist() {
-        state.value = readItems()
-        persist(document.save())
-    }
-
-    private fun readItems() = document.readShoppingList().map {
-        ShoppingListItem(
-            key = it.id,
-            primaryCategory = it.primaryCategory,
-            secondaryCategory = it.secondaryCategory,
-            title = it.title,
-            quantity = it.quantity,
-            packageSize = it.packageSize,
-            barcode = it.barcode,
-            tags = it.tags,
-            got = it.got,
-            outOfStock = it.outOfStock,
-        )
-    }
+private fun Document.toShoppingItems() = readShoppingList().map {
+    ShoppingListItem(
+        key = it.id,
+        primaryCategory = it.primaryCategory,
+        secondaryCategory = it.secondaryCategory,
+        title = it.title,
+        quantity = it.quantity,
+        packageSize = it.packageSize,
+        barcode = it.barcode,
+        tags = it.tags,
+        got = it.got,
+        outOfStock = it.outOfStock,
+    )
 }
 
 /**
@@ -188,20 +170,15 @@ suspend fun openShoppingListDocumentSource(
     pantry: PantryDocumentSource,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
-): ShoppingListDocumentSource {
-    val documentId = shoppingListDocumentId(homeId)
-    val queries = database.automergeDocumentQueries
-    val stored = queries.selectById(documentId).awaitAsOneOrNull()
-    val document = Document.load(stored?.bytes ?: newShoppingListDocument())
-    val source = ShoppingListDocumentSource(
-        document,
-        pantry,
-        persist = { bytes -> queries.upsert(documentId, homeId, ShoppingListFeature, bytes, nowMillis()) },
+): ShoppingListDocumentSource = checkNotNull(
+    openHomeDocument(
+        database, homeId, ShoppingListFeature, nowMillis,
+        refreshNew = { it.refresh() },
+        create = { _, document, persist, changed -> ShoppingListDocumentSource(document, pantry, persist, changed) },
+        newDocument = { newShoppingListDocument() },
         onLocalChange = onLocalChange,
-    )
-    if (stored == null) source.refresh()
-    return source
-}
+    ),
+)
 
 /**
  * Stores an empty shopping-list document for [homeId], unless one is stored already. For a Home that was created on
