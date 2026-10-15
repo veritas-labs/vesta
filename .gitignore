@@ -22,3 +22,5 @@ node_modules/
 ffi/x0x-ffi/target/
 ffi/x0x-ffi/dist/
 androidApp/src/main/jniLibs/
+
+.serena/
