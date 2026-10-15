@@ -153,6 +153,7 @@ import uk.veritaslabs.vesta.ui.screens.MemberDetailScreen
 import uk.veritaslabs.vesta.ui.screens.MembersScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen
 import uk.veritaslabs.vesta.ui.screens.SettingsSyncedDevicesScreen
+import uk.veritaslabs.vesta.ui.theme.SystemBarsAppearance
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.settings.AppSettingsRepository
 import uk.veritaslabs.vesta.ui.theme.AppTheme
@@ -255,6 +256,7 @@ fun App(
         }
     }
     val darkTheme = themeMode.isDark(isSystemInDarkTheme())
+    SystemBarsAppearance(darkTheme)
     // On until the user opts out; saved in [settings]. Platforms that run x0x in-process stop it on mobile data unless this is on.
     // The policy is only set once the saved choice is known, so a saved "off" is never briefly overridden by the default.
     LaunchedEffect(useMobileData, settingsLoaded) { if (settingsLoaded) X0xNetworkPolicy.useMobileData.value = useMobileData }
