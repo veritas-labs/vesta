@@ -141,9 +141,16 @@ The grant model (capability, per-workspace policy of Ask or Auto, activity log, 
 4. **Resolve database composition (item 10)** before touching `groups-kit` or `device-kit`. It affects every table.
 5. **Rename "Home" to a neutral term** before any package is published, because afterwards it is a breaking change for every consumer.
 
-## Open questions
+## Decisions (2026-10-15)
 
-- Are the consuming apps in the same repo, or separate repos pulling published artifacts? That decides between Gradle modules and Maven publication, and whether APIs can break freely.
-- What is the neutral word for a Home: workspace, space, circle? It must be chosen once.
-- Do the other apps need the Compose screens, or only the services? If only services, the UI extraction in finding 11 can wait.
-- Is Autonomi meant to carry data (blobs or documents) in a future app? If so it needs a design before package boundaries are fixed.
+- **Separate repos.** Consuming apps pull published artifacts, so each kit is a versioned library with a deliberate public API. Vesta becomes a consumer of its own kits. Consequences: Kotlin explicit-API mode and a binary-compatibility check on every kit; semantic versioning; the kits live in one kits repo (they version together and depend on each other) and publish to a Maven repository; Vesta pins released versions rather than project dependencies. Breaking changes must be settled before the first release.
+- **Neutral term: "Space".** Rename "Home" to "Space" in the kits' API before the first release. Persisted names and wire ids must not change for existing installs: document ids stay `"$spaceId:$feature"` byte-identical to today's `"$homeId:$feature"`, and tables, x0x group names and invite-link formats keep their current spelling or get an explicit migration. Vesta's UI may keep saying "Home".
+- **Services only, no UI.** Finding 11 (generic UI) is dropped. `x0x-kit` loses its status UI; `app-shell-kit` shrinks to DB safety and settings services (rename or fold into the other kits). Each kit exposes state as flows and commands; apps build their own screens.
+- **Future apps use Autonomi; Vesta does not.** Nothing in Vesta touches Autonomi today, so no existing code needs extracting for it. It is a new capability for future apps. It becomes a separate kit (working name `autonomi-kit`) once an app needs it, designed against that app's real requirements: what it carries (blobs, documents, or both) and how it sits beside x0x. Do not add storage interfaces to the existing kits speculatively; add them when the first Autonomi app shows what shape it needs.
+
+## Revised order
+
+3. Make the registry and engine public inside `:shared` (explicit API; Vesta's ten types supplied from outside; roster hook and SeedGate decisions).
+4. Resolve database composition (item 10).
+5. Rename Home to Space in the API, with compatibility for persisted names.
+6. Create the kits repo; extract `x0x-kit`, then `crdt-docs`, `groups-kit`, `device-kit`, `blobs-kit`, `assistants-kit`; publish; Vesta consumes the artifacts.
