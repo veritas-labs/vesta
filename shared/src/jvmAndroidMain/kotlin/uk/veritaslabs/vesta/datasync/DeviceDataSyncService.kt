@@ -524,69 +524,32 @@ class DeviceDataSyncService(
             // A device that took on the shared Profile retires its old member id, then publishes the new one.
             profile.project()?.let { rosters.retire(it) }
             publishRosters()
-        } else if (documentId.endsWith(PrivateCalendarSuffix)) {
-            recordingReceived(sender, documentId) {
-                calendarSources.privateForHome(documentId.removeSuffix(PrivateCalendarSuffix))?.receiveSync(stateFor(documentId, sender), message)
-            }
-        } else if (documentId.endsWith(PrivateTasksSuffix)) {
-            recordingReceived(sender, documentId) {
-                taskSources.privateForHome(documentId.removeSuffix(PrivateTasksSuffix))?.receiveSync(stateFor(documentId, sender), message)
-            }
-        } else if (homeIdOf(documentId) != null) {
-            val homeId = homeIdOf(documentId)!!
-            if (!receiveHomeDocument(sender, documentId, message)) {
-                waiting.getOrPut(homeId) { mutableListOf() }.let { if (it.size < MaxBufferedPerHome) it += Triple(sender, documentId, message) }
-                return
-            }
-            if (documentId.endsWith(RosterSuffix)) publishRosters()
         } else {
-            return // a document this version doesn't know about
+            val (homeId, type) = documentRegistry.parse(documentId) ?: return // a document this version doesn't know about
+            if (type.scope == Scope.Private) {
+                // Not buffered when this device lacks the Home, and not applied through applyHomeDocument: a later round recovers it.
+                recordingReceived(sender, documentId) { type.open(homeId)?.receiveSync(stateFor(documentId, sender), message) }
+            } else {
+                if (!receiveHomeDocument(sender, documentId, message)) {
+                    waiting.getOrPut(homeId) { mutableListOf() }.let { if (it.size < MaxBufferedPerHome) it += Triple(sender, documentId, message) }
+                    return
+                }
+                type.afterSync(homeId)
+            }
         }
         // Answer the sender, and tell the other peers what changed.
         peersFor(documentId).forEach { pump(documentId, it) }
     }
 
-    /** Applies a Pantry, shopping-list, cookbook, merchants, meal plan, calendar, tasks or roster message; false when this device has no such Home yet. */
+    /** Applies a message for one of a Home's shared documents; false when this device has no such Home yet. */
     private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean =
         recordingReceived(sender, documentId) { applyHomeDocument(sender, documentId, message) }
 
     private suspend fun applyHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
-        if (documentId.endsWith(RosterSuffix)) {
-            val homeId = documentId.removeSuffix(RosterSuffix)
-            return rosters.receive(homeId, stateFor(documentId, sender), message).also { if (it) rosters.project(homeId) }
-        }
-        if (documentId.endsWith(ShoppingListSuffix)) {
-            val source = shoppingSources.forHome(documentId.removeSuffix(ShoppingListSuffix)) ?: return false
-            source.receiveSync(stateFor(documentId, sender), message)
-            return true
-        }
-        if (documentId.endsWith(CookbookSuffix)) {
-            val source = cookbookSources.forHome(documentId.removeSuffix(CookbookSuffix)) ?: return false
-            source.receiveSync(stateFor(documentId, sender), message)
-            return true
-        }
-        if (documentId.endsWith(MerchantsSuffix)) {
-            val source = merchantsSources.forHome(documentId.removeSuffix(MerchantsSuffix)) ?: return false
-            source.receiveSync(stateFor(documentId, sender), message)
-            return true
-        }
-        if (documentId.endsWith(MealPlanSuffix)) {
-            val source = mealPlanSources.forHome(documentId.removeSuffix(MealPlanSuffix)) ?: return false
-            source.receiveSync(stateFor(documentId, sender), message)
-            return true
-        }
-        if (documentId.endsWith(CalendarSuffix)) {
-            val source = calendarSources.forHome(documentId.removeSuffix(CalendarSuffix)) ?: return false
-            source.receiveSync(stateFor(documentId, sender), message)
-            return true
-        }
-        if (documentId.endsWith(TasksSuffix)) {
-            val source = taskSources.forHome(documentId.removeSuffix(TasksSuffix)) ?: return false
-            source.receiveSync(stateFor(documentId, sender), message)
-            return true
-        }
-        val source = pantrySources.forHome(documentId.removeSuffix(PantrySuffix)) ?: return false
-        source.receiveSync(stateFor(documentId, sender), message)
+        val (homeId, type) = documentRegistry.parse(documentId) ?: return false
+        val document = type.open(homeId) ?: return false // no such Home yet
+        document.receiveSync(stateFor(documentId, sender), message)
+        type.afterReceive(homeId)
         return true
     }
 
@@ -609,25 +572,7 @@ class DeviceDataSyncService(
                 val message = when (documentId) {
                     HomeRegistryDocumentId -> registry.generate(state)
                     ProfileDocumentId -> profile.generate(state)
-                    else -> if (documentId.endsWith(PrivateTasksSuffix)) {
-                        taskSources.privateForHome(documentId.removeSuffix(PrivateTasksSuffix))?.generateSync(state)
-                    } else if (documentId.endsWith(TasksSuffix)) {
-                        taskSources.forHome(documentId.removeSuffix(TasksSuffix))?.generateSync(state)
-                    } else if (documentId.endsWith(PrivateCalendarSuffix)) {
-                        calendarSources.privateForHome(documentId.removeSuffix(PrivateCalendarSuffix))?.generateSync(state)
-                    } else if (documentId.endsWith(RosterSuffix)) {
-                        rosters.generate(documentId.removeSuffix(RosterSuffix), state)
-                    } else if (documentId.endsWith(ShoppingListSuffix)) {
-                        shoppingSources.forHome(documentId.removeSuffix(ShoppingListSuffix))?.generateSync(state)
-                    } else if (documentId.endsWith(CookbookSuffix)) {
-                        cookbookSources.forHome(documentId.removeSuffix(CookbookSuffix))?.generateSync(state)
-                    } else if (documentId.endsWith(MerchantsSuffix)) {
-                        merchantsSources.forHome(documentId.removeSuffix(MerchantsSuffix))?.generateSync(state)
-                    } else if (documentId.endsWith(MealPlanSuffix)) {
-                        mealPlanSources.forHome(documentId.removeSuffix(MealPlanSuffix))?.generateSync(state)
-                    } else if (documentId.endsWith(CalendarSuffix)) {
-                        calendarSources.forHome(documentId.removeSuffix(CalendarSuffix))?.generateSync(state)
-                    } else pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
+                    else -> documentRegistry.parse(documentId)?.let { (homeId, type) -> type.open(homeId)?.generateSync(state) }
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())
                 noteSynced(peer)

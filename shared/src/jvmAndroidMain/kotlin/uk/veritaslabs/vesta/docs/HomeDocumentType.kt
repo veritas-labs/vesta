@@ -22,7 +22,10 @@ internal enum class Scope {
  * @property scope see [Scope].
  * @property open the document for a Home, or null when there is no such Home or this device does not have it yet.
  * @property localChanges the Home id each time this type's document is edited on this device.
- * @property afterReceive runs after a sync message for this type has been applied (the roster projects and publishes).
+ * @property afterReceive runs right after a sync message for this type has been applied, also for one replayed from the buffer of
+ * messages that arrived before their Home (the roster projects its members).
+ * @property afterSync runs once such a message, received live, has been applied and recorded, before the sender is answered; it is
+ * not run for a replayed one (the roster publishes this device's own member and devices).
  */
 internal class HomeDocumentType(
     val feature: String,
@@ -31,4 +34,5 @@ internal class HomeDocumentType(
     val open: suspend (homeId: String) -> HomeDocument?,
     val localChanges: Flow<String>,
     val afterReceive: suspend (homeId: String) -> Unit = {},
+    val afterSync: suspend (homeId: String) -> Unit = {},
 )

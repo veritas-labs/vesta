@@ -13,7 +13,7 @@ import uk.veritaslabs.vesta.docs.Scope
  *
  * Registration order is the mailbox's current order (roster first), with the private types after the shared ones.
  *
- * @param publishRosters runs after a roster sync message has been applied and projected, so this device's own member
+ * @param publishRosters runs after a live roster sync message has been applied and projected, so this device's own member
  * and devices are written back into the roster.
  */
 internal class VestaHomeDocuments(
@@ -32,10 +32,8 @@ internal class VestaHomeDocuments(
         listOf(
             HomeDocumentType(
                 "roster", SyncModules.Members, Scope.Shared, rosters::homeDocument, rosters.changes,
-                afterReceive = { homeId ->
-                    rosters.project(homeId)
-                    publishRosters()
-                },
+                afterReceive = { homeId -> rosters.project(homeId) },
+                afterSync = { publishRosters() },
             ),
             HomeDocumentType("pantry", SyncModules.Pantry, Scope.Shared, pantries::forHome, pantries.localChanges),
             HomeDocumentType("shopping-list", SyncModules.Shopping, Scope.Shared, shoppingLists::forHome, shoppingLists.localChanges),

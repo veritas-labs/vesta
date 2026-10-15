@@ -20,7 +20,7 @@ internal class HomeDocumentRegistry(val types: List<HomeDocumentType>) {
     }
 
     /** A document id split into its Home and its type. */
-    class Parsed(val homeId: String, val type: HomeDocumentType)
+    data class Parsed(val homeId: String, val type: HomeDocumentType)
 
     /** Splits [documentId] on its last `:`; null when it has none or the feature is not registered. */
     fun parse(documentId: String): Parsed? {
