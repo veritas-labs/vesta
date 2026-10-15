@@ -6,7 +6,7 @@
 > [ADR-013](../adr/ADR-013-device-data-sync.md), [ADR-017](../adr/ADR-017-retrying-messages-to-offline-devices.md),
 > [ADR-020](../adr/ADR-020-syncing-without-overlapping-online-time.md).
 >
-> **Status:** Draft, open questions decided 2026-10-15 (§12). Nothing here is built. The data section (§8) shapes the
+> **Status:** Draft; the decision record is [ADR-033](../adr/ADR-033-sync-activity.md). Open questions decided 2026-10-15 (§12). Nothing here is built. The data section (§8) shapes the
 > design, so read it before the layout.
 
 ## 1. Purpose
