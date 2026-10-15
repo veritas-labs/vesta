@@ -47,11 +47,13 @@ All three are local to the device and **never synced** (not in an Automerge docu
      devices, because only those ever receive them.
 2. **`lastSynced` persisted** in a `PeerSync` table (agent id, millis), written at most once a minute per peer. `AgentDetails.lastSyncedMsAgo`
    reads from it too, so every row shows its time straight after a restart instead of "never".
-3. **Unsent-change tracking** for "Changes waiting". For each document of the Home, compare the current heads with the heads last
-   deposited in the mailbox (`MailboxWrite`) and with the heads last sent to any peer. If neither covers the current heads, changes
-   are waiting. This is a boolean from data already kept; a count is shown only if it proves cheap to compute, otherwise the card says
-   changes are waiting without a number. Needs a `lastSentHeads` record per (document, peer), kept in memory and rebuilt on the
-   next round (a restart errs towards "waiting", which is the safe side).
+3. **Unsent-change tracking** for "Changes waiting", from the peers' **acknowledgement**, not from what was sent. Automerge's
+   `SyncState.isInSync(document)` is true only once the peer has replied with the heads it has, so a message to an offline device
+   stays "not in sync" (Spike 1). A Home is "waiting" when, for some document, no peer's sync state is in sync with it **and** the
+   current heads are not covered by the last mailbox deposit (`MailboxWrite`). The result is a boolean (the library has no
+   change-count API, so there is no number: the card says changes are waiting to be sent). The service clears its sync states at
+   the start of each round (`syncEverything`), so the answer is computed at the end of a round, once the replies are in, and held until
+   the next; a restart errs towards "waiting".
 
 ### Exposure
 
@@ -75,12 +77,24 @@ they were online, which the Members screen already shows. Nothing about the log 
   and drops the event on error.
 - The write volume stays small because of the collapsing window and 7-day pruning, but it is new disk traffic on every round. The
   recorder batches writes per round rather than per message.
-- "Changes waiting" can be briefly wrong in both directions: a message sent but not received counts as sent (Automerge's sync state
-  assumes arrival, as `syncEverything` notes), and a restart shows "waiting" until the first round. The copy says "waiting to be
-  sent", not "not received".
-- A restart clears the in-memory heads record, not the persisted `lastSynced`.
+- "Changes waiting" is based on acknowledgement, so it is accurate about what a peer has confirmed. It can still show "waiting" after a
+  restart until the first round ends, and a peer that has everything but has not replied yet counts as not in sync. The copy says
+  "waiting to be sent".
+- A restart clears the in-memory sync states, not the persisted `lastSynced`.
 - Sync-state facts that are cheap here (heads) are the only ones used. Anything needing a peer's acknowledgement would need a protocol
   change and is out of scope.
+
+## Spike findings
+
+**Spike 1 (2026-10-15): can "changes waiting" be answered cheaply?** Yes, as a boolean.
+- Every Home document already exposes `heads()` through `MailboxDocument` (`HomeMailboxDocuments.open`): roster, Pantry, shopping list,
+  cookbook, merchants, meal plan, calendar, tasks. The private calendar and tasks documents are not in that list but use the same
+  source classes, which have `heads()` and `receiveSync`. Nothing needs adding to `SyncableDocument` for "did the heads change".
+- There is **no change-count API** in automerge-java 0.0.9 (`encodeChangesSince` returns opaque bytes), so no number.
+- `SyncState.isInSync(doc)` (throwaway test, deleted): false for a new state, false after sending with no reply, true after a full
+  exchange, false again after a new local change, true after the next exchange. It reflects acknowledged heads. The sources keep their
+  `Document` private, so each needs a small `isInSync(state)` method.
+- Sync states are cleared at the start of every round, so the verdict must be computed after a round's exchanges, not read cold.
 
 ## Acceptance criteria
 

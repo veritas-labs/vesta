@@ -54,14 +54,12 @@ log of content-free transport events, with **Sync now**. Nothing leaves the devi
 Each WP is a commit-sized slice with its tests; the order lets everything up to WP6 be built and verified on the fake mesh without a
 real daemon or any UI.
 
-### WP0. Spike: can heads be compared cheaply? (read-only, 1 hour)
+### WP0. Spike: can "changes waiting" be answered cheaply? (done 2026-10-15)
 
-"Changes waiting" (ADR "Unsent-change tracking") needs the current heads of each document. Check, in a throwaway test, that an
-`AutomergeDocument`/`SyncableDocument` exposes heads (the mailbox writer already compares them against `MailboxWrite.heads`; read
-`MailboxWriter.deposit` for how). If heads are only reachable inside the writer, add `suspend fun heads(): ByteArray` to
-`SyncableDocument` (it is `internal`, 12 lines, implemented by the per-module sources; `HomeMailboxDocuments` is the aggregator).
-Record the finding in the ADR as a short "Spike findings" note. **Exit:** a decision that the heads accessor exists or is added, and
-whether a count is cheap (number of changes since a heads set); if not, the boolean ships and the open question closes.
+Findings are in the ADR's "Spike findings". In short: heads are already available for every Home document through `MailboxDocument`;
+there is no change count, so the result is a boolean; and `SyncState.isInSync(document)` gives an acknowledgement-based answer (verified
+with a throwaway two-document test, since deleted). No change to `SyncableDocument` is needed. Each document source gains a small
+`isInSync(state)` method (WP4) because they keep their `Document` private.
 
 ### WP1. Schema and queries
 
@@ -108,13 +106,15 @@ compile; both entry points pass the real one). No behaviour change; only calls:
 
 ### WP4. Changes waiting and the verdict inputs
 
-- Keep, in memory, `lastSentHeads[(documentId, peer)]` set in `pump` after a successful send; read `MailboxWrite.heads` for deposits.
+- Add `suspend fun isInSync(state: SyncState): Boolean` to each document source (Pantry, ShoppingList, Cookbook, Merchants, MealPlan,
+  Calendar, Tasks, and `HomeRosters` for the roster), as `lock.withLock { state.isInSync(document) }`.
 - `ChangesWaiting.of(homeId)`: true when, for any of the Home's documents (private ones count only against the user's own devices),
-  current heads are covered by neither the last mailbox deposit nor any peer's last-sent heads. A restart empties the in-memory part, so
-  it errs towards "waiting" (accepted in the ADR).
+  **no** peer's state in `states[(documentId, peer)]` is in sync **and** the current `heads()` differ from `MailboxWrite.heads` (a deposit
+  covers it). Evaluate at the end of `round()` and after each `receive`, cache the result per Home, and read the cache. A restart has
+  no states, so it errs towards "waiting" (accepted in the ADR).
 - Daemon-down: `client.agent()` failing for the last round (already wrapped in `runCatching` in `self()`), plus the stalled-membership
   rule (a `PendingMessage` row older than 1 hour).
-- **Tests (`ChangesWaitingTest`):** local change with nobody online -> waiting; after a peer syncs -> not; after a mailbox deposit -> not;
+- **Tests (`ChangesWaitingTest`):** local change with nobody online -> waiting; after a peer syncs (replies) -> not; a send the peer never answered -> still waiting; after a mailbox deposit -> not;
   fresh start -> waiting; private document never waits on another member's device.
 - **Exit:** the service can answer a `SyncSnapshot` (peers with presence and last-synced, hubs, `changesWaiting`, `lastRoundAt`,
   `roundInProgress`, daemon state, stalled message age).
@@ -172,7 +172,7 @@ compile; both entry points pass the real one). No behaviour change; only calls:
 
 ## Risks
 
-- **Heads accessor** (WP0) is the main unknown; the boolean "Changes waiting" depends on it.
+- **"Changes waiting"** relies on sync states, which are cleared every round; evaluating at the wrong moment shows a false "waiting" (WP4 caches the result from the end of a round).
 - **Event noise:** if `received` fires on every handshake, the log is useless. The heads-changed test in WP3 is what prevents it; check it
   on the real daemon by hand.
 - **Recorder in the hot path:** keep writes buffered (decision 1); never `await` SQL inside `lock`.
