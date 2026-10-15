@@ -49,7 +49,7 @@ Seven document types each have a `*DocumentSource` (about 80-250 lines) and a `*
 - **Duplicated ids.** `fun xxxDocumentId(homeId) = "$homeId:$feature"` appears once per type.
 - **Domain code is small.** Only `readX`, `putX` and `deleteX` differ.
 
-**Proposal:** a generic `AutomergeDocumentHandle<T>` taking `read: Document.() -> T` and a persist function, plus a generic `PerScopeSources<T>(featureKey, factory)`. Each feature shrinks to its schema functions and its repository interface. Expected saving is roughly 1,500-2,000 lines.
+**Proposal:** a generic `AutomergeDocumentHandle<T>` taking `read: Document.() -> T` and a persist function, plus a generic `PerScopeSources<T>(featureKey, factory)`. Each feature shrinks to its schema functions and its repository interface. Expected saving is roughly 650 lines in the sources alone, and about 900-1,000 with the registry work of finding 1 (see [document-registry-and-source-collapse-plan.md](document-registry-and-source-collapse-plan.md); the first draft's 1,500-2,000 was an overestimate). The saving that matters is that a new document type becomes one registration.
 
 ### 3. x0x client and daemon layer
 
