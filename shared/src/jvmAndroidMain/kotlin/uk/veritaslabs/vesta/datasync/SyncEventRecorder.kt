@@ -17,6 +17,12 @@ internal object SyncEventKinds {
     const val Membership = "membership"
     const val MailboxIn = "mailbox_in"
     const val MailboxOut = "mailbox_out"
+
+    /** Something arrived in a newer format, or for a document this version doesn't have (ADR-034). Kept, not lost: an update applies it. */
+    const val UnsupportedVersion = "unsupported_version"
+
+    /** A message of a family this version knows, with a `kind` it doesn't (ADR-034). */
+    const val UnknownMessage = "unknown_message"
 }
 
 /** The modules a [SyncEventRecorder] event can name, as stored in `SyncEvent.module`. Never content, only which part moved. */
@@ -105,6 +111,17 @@ class SyncEventRecorder(
     suspend fun mailbox(homeId: String, incoming: Boolean, peer: String?) = record(
         homeId, SyncModules.Mailbox, peer, if (incoming) SyncEventKinds.MailboxIn else SyncEventKinds.MailboxOut, null,
     )
+
+    /**
+     * [peer] sent something in a format newer than this version reads, for [module] of [homeId]; [detail] is the version or the
+     * name of the document type, never content. Repeats of the same thing fold into one row.
+     */
+    suspend fun unsupportedVersion(homeId: String, module: String, peer: String?, detail: String) =
+        record(homeId, module, peer, SyncEventKinds.UnsupportedVersion, safeDetail(detail))
+
+    /** [peer] sent a message of a family this version knows, with a `kind` it doesn't; [detail] is that kind. */
+    suspend fun unknownMessage(homeId: String, peer: String?, detail: String) =
+        record(homeId, SyncModules.Members, peer, SyncEventKinds.UnknownMessage, safeDetail(detail))
 
     /**
      * Notes that this device synced with [peer] just now. The time is kept in memory at once, and written to the table
@@ -224,3 +241,12 @@ class SyncEventRecorder(
         val RetentionMillis = 7.days.inWholeMilliseconds
     }
 }
+
+private const val MaxDetailLength = 64
+
+/**
+ * [text] as a log detail: text a remote device chose (a message kind, a document type) cut to a short length and to plain
+ * identifier characters, so it can never carry content or markup into the log.
+ */
+internal fun safeDetail(text: String): String =
+    text.take(MaxDetailLength).map { if ((it.isLetterOrDigit() && it.code < 128) || it in "._-:") it else '_' }.joinToString("")

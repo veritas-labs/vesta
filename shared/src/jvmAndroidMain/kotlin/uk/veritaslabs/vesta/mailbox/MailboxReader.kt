@@ -3,6 +3,8 @@ package uk.veritaslabs.vesta.mailbox
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import uk.veritaslabs.vesta.datasync.SyncEventRecorder
+import uk.veritaslabs.vesta.datasync.SyncModules
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
 
@@ -20,7 +22,9 @@ private const val AutomergeExceptionClass = "org.automerge.AutomergeException"
  * A writer's entries are read without gaps, from the one after the last dealt with (saved per writer): a replica can
  * hand over entry 5 before entry 4, so a missing number means "not here yet" and the rest waits. The place only moves
  * past entries that were applied or never can be: a group of parts still arriving is read again next time, one cut short by a
- * newer deposit is skipped, and an entry from a newer format or a damaged one is skipped.
+ * newer deposit is skipped, and a damaged one is skipped. An entry from a newer format is noted in Sync activity (ADR-034) and
+ * not read, and the saved place stays before it, so a Vesta that can read it later still finds it; entries after it are read as usual,
+ * and this run remembers how far ([Held]) so it doesn't apply them again every round. Only a snapshot that covers it ends the wait.
  *
  * A gap that the writer's newest complete snapshot ([SnapshotKeys]) covers is not waited for: the writer has deleted those
  * entries, or they are about to be, and the snapshot holds everything they did, so it is applied and the place moves to the end
@@ -30,10 +34,16 @@ internal class MailboxReader(
     private val client: X0xClient,
     private val database: VestaDatabase,
     private val documents: MailboxDocuments,
+    private val recorder: SyncEventRecorder? = null,
     private val storeId: suspend (homeId: String) -> String?,
 ) {
 
     private val lock = Mutex()
+
+    /** Where a round read to past an entry in a newer format, for the next round to resume from; lost on restart, which only means reading again. */
+    private class Held(val at: Long, val doneThrough: Long)
+
+    private val held = mutableMapOf<Pair<String, String>, Held>()
 
     /** What a writer has in the store, as listed. */
     private class Listing(val sequences: MutableSet<Long> = mutableSetOf(), val manifests: MutableSet<Long> = mutableSetOf(), val chunks: MutableMap<Long, MutableSet<Int>> = mutableMapOf())
@@ -66,39 +76,74 @@ internal class MailboxReader(
         var sequence = start + 1
         var snapshot: Snapshot? = null // loaded once, if a gap needs it
         var snapshotLoaded = false
+        val key = homeId to writer
+        var earlier = held[key]?.takeIf { start + 1 <= it.at } // an entry in a newer format an earlier round stopped the saved place at
+        var holding = false // an entry in a newer format was seen: the saved place stays before it
+        var heldAt = -1L
+        var through = start // how far the place would have moved, were nothing held
+        fun advance(to: Long) {
+            through = to
+            if (!holding) mark = to
+        }
         try {
             while (true) {
                 if (sequence !in listing.sequences) {
                     if (!snapshotLoaded) {
                         snapshotLoaded = true
-                        snapshot = latestCompleteSnapshot(store, writer, listing)
+                        snapshot = latestCompleteSnapshot(homeId, store, writer, listing)
                     }
                     val covering = snapshot?.takeIf { it.coversThrough >= sequence } ?: break
                     applied += applySnapshot(homeId, covering)
                     assembler = Assembler()
                     mark = covering.coversThrough
+                    through = mark
+                    holding = false // the snapshot holds everything the writer did up to here
+                    earlier = null
                     sequence = covering.coversThrough + 1
                     continue
                 }
                 val bytes = client.getValue(store, MailboxEntry.key(writer, sequence)) ?: break // gone since it was listed: try later
                 val entry = MailboxEntry.decode(bytes)
+                val resumed = earlier
+                if (resumed != null && sequence == resumed.at) {
+                    earlier = null
+                    val version = if (entry == null) MailboxEntry.newerVersion(bytes) else null
+                    if (version != null) {
+                        // Still too new. What follows it was applied in an earlier round: carry on from there.
+                        recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, "v$version")
+                        holding = true
+                        heldAt = resumed.at
+                        through = resumed.doneThrough
+                        sequence = resumed.doneThrough + 1
+                        assembler = Assembler()
+                        continue
+                    }
+                }
                 if (entry == null) {
                     // Nothing we can read: a newer format or damaged. Skip it, and the group it may have been part of.
                     assembler = Assembler()
-                    mark = sequence++
+                    val version = MailboxEntry.newerVersion(bytes)
+                    if (version != null) {
+                        if (!holding) heldAt = sequence
+                        holding = true
+                        recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, "v$version")
+                    }
+                    advance(sequence)
+                    sequence++
                     continue
                 }
                 when (val outcome = assembler.offer(entry)) {
-                    Assembler.Outcome.Stray -> mark = sequence // the rest of its group was lost or replaced
+                    Assembler.Outcome.Stray -> advance(sequence) // the rest of its group was lost or replaced
                     Assembler.Outcome.Pending -> Unit
                     is Assembler.Outcome.Complete -> {
                         if (apply(homeId, outcome.documentId, outcome.changes)) applied++
-                        mark = sequence
+                        advance(sequence)
                     }
                 }
                 sequence++
             }
         } finally {
+            if (holding) held[key] = Held(heldAt, through) else held.remove(key)
             if (mark != start) database.mailboxQueries.upsertLastRead(homeId, writer, mark)
         }
         return applied
@@ -107,9 +152,14 @@ internal class MailboxReader(
     private class Snapshot(val generation: Long, val coversThrough: Long, val store: String, val writer: String, val chunkCount: Int)
 
     /** The newest generation whose manifest and every chunk are listed, or null. */
-    private suspend fun latestCompleteSnapshot(store: String, writer: String, listing: Listing): Snapshot? {
+    private suspend fun latestCompleteSnapshot(homeId: String, store: String, writer: String, listing: Listing): Snapshot? {
         for (generation in listing.manifests.sortedDescending()) {
-            val manifest = client.getValue(store, SnapshotKeys.manifest(writer, generation))?.let { SnapshotManifest.decode(it) } ?: continue
+            val bytes = client.getValue(store, SnapshotKeys.manifest(writer, generation)) ?: continue
+            val manifest = SnapshotManifest.decode(bytes)
+            if (manifest == null) {
+                SnapshotManifest.newerVersion(bytes)?.let { recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, "v$it") }
+                continue
+            }
             val present = listing.chunks[generation].orEmpty()
             if ((0 until manifest.chunkCount).all { it in present }) return Snapshot(generation, manifest.coversThrough, store, writer, manifest.chunkCount)
         }

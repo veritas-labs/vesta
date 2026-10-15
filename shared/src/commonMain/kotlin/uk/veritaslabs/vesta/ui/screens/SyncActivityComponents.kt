@@ -81,6 +81,8 @@ import vesta.shared.generated.resources.sync_activity_event_mailbox_out
 import vesta.shared.generated.resources.sync_activity_event_membership
 import vesta.shared.generated.resources.sync_activity_event_received
 import vesta.shared.generated.resources.sync_activity_event_sent
+import vesta.shared.generated.resources.sync_activity_event_unknown_message
+import vesta.shared.generated.resources.sync_activity_event_unsupported_version
 import vesta.shared.generated.resources.sync_activity_filter_all
 import vesta.shared.generated.resources.sync_activity_filter_problems
 import vesta.shared.generated.resources.sync_activity_filter_received
@@ -102,6 +104,8 @@ import vesta.shared.generated.resources.sync_activity_online
 import vesta.shared.generated.resources.sync_activity_this_device
 import vesta.shared.generated.resources.sync_activity_verdict_changes_body
 import vesta.shared.generated.resources.sync_activity_verdict_changes_title
+import vesta.shared.generated.resources.sync_activity_verdict_newer_body
+import vesta.shared.generated.resources.sync_activity_verdict_newer_title
 import vesta.shared.generated.resources.sync_activity_verdict_only_you_body
 import vesta.shared.generated.resources.sync_activity_verdict_only_you_title
 import vesta.shared.generated.resources.sync_activity_verdict_problem_daemon
@@ -143,6 +147,12 @@ internal fun SyncStatusCard(verdict: SyncVerdict, modifier: Modifier = Modifier)
                 if (verdict.reason == ProblemReason.DaemonUnreachable) Res.string.sync_activity_verdict_problem_daemon
                 else Res.string.sync_activity_verdict_problem_stalled,
             )
+        }
+        SyncVerdict.NeedsNewerVersion -> {
+            icon = Res.drawable.ic_alert_triangle
+            tint = MaterialTheme.colorScheme.secondary
+            title = stringResource(Res.string.sync_activity_verdict_newer_title)
+            body = stringResource(Res.string.sync_activity_verdict_newer_body)
         }
         SyncVerdict.OnlyYou -> {
             icon = Res.drawable.ic_home
@@ -366,17 +376,22 @@ internal fun SyncActivityItem(item: SyncEventItem, peers: List<PeerActivity>, mo
         SyncEventKind.Membership -> pluralStringResource(Res.plurals.sync_activity_event_membership, count, device, count)
         SyncEventKind.MailboxIn -> pluralStringResource(Res.plurals.sync_activity_event_mailbox_in, count, module, device, count)
         SyncEventKind.MailboxOut -> pluralStringResource(Res.plurals.sync_activity_event_mailbox_out, count, module, device, count)
+        SyncEventKind.UnsupportedVersion -> pluralStringResource(Res.plurals.sync_activity_event_unsupported_version, count, device, count)
+        SyncEventKind.UnknownMessage -> pluralStringResource(Res.plurals.sync_activity_event_unknown_message, count, device, count)
     }
     val (icon, directionLabel) = when (item.kind) {
         SyncEventKind.Received, SyncEventKind.MailboxIn -> Res.drawable.ic_arrow_down to Res.string.sync_activity_direction_received
         SyncEventKind.Sent, SyncEventKind.MailboxOut -> Res.drawable.ic_arrow_up to Res.string.sync_activity_direction_sent
-        SyncEventKind.Failed -> Res.drawable.ic_alert_triangle to Res.string.sync_activity_direction_problem
+        SyncEventKind.Failed, SyncEventKind.UnsupportedVersion, SyncEventKind.UnknownMessage ->
+            Res.drawable.ic_alert_triangle to Res.string.sync_activity_direction_problem
         SyncEventKind.Membership -> Res.drawable.ic_users to Res.string.sync_activity_direction_membership
     }
-    val failed = item.kind == SyncEventKind.Failed
+    val unreadable = item.kind == SyncEventKind.UnsupportedVersion || item.kind == SyncEventKind.UnknownMessage
+    val failed = item.kind == SyncEventKind.Failed || unreadable
     val time = formatMinute(localMoment(item.lastAt).minute)
     val note = if (failed && (item.detail == "unreachable" || item.detail == "retrying")) stringResource(Res.string.sync_activity_detail_will_keep_trying) else null
-    val secondLine = listOfNotNull(time, note).joinToString(" · ")
+    val what = item.detail?.takeIf { unreadable }
+    val secondLine = listOfNotNull(time, note, what).joinToString(" · ")
     val directionText = stringResource(directionLabel)
     Row(
         modifier = modifier

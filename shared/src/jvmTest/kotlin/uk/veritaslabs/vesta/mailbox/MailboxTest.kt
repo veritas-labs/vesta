@@ -11,7 +11,12 @@ import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import uk.veritaslabs.vesta.datasync.HomeRosters
+import uk.veritaslabs.vesta.datasync.SyncEventKinds
+import uk.veritaslabs.vesta.datasync.SyncEventRecorder
+import uk.veritaslabs.vesta.datasync.SyncModules
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
@@ -37,7 +42,10 @@ class MailboxTest {
         val merchants = uk.veritaslabs.vesta.automerge.MerchantsSources(database)
         val documents = HomeMailboxDocuments(pantries, lists, uk.veritaslabs.vesta.automerge.CookbookSources(database), rosters, merchants)
         var writer = MailboxWriter(node, database, documents) { storeId }
-        val reader = MailboxReader(node, database, documents) { storeId }
+        val recorder = SyncEventRecorder(database)
+        val reader = MailboxReader(node, database, documents, recorder) { storeId }
+
+        suspend fun activity() = recorder.flush().let { database.syncEventQueries.selectPage(homeId, Long.MAX_VALUE, 100).awaitAsList() }
 
         init {
             runBlocking {
@@ -295,6 +303,91 @@ class MailboxTest {
         assertEquals(1, applied)
         assertEquals(0, again)
         assertEquals(listOf("Flour"), home.bob.pantryTitles())
+    }
+
+    @Test
+    fun anEntryFromANewerVersionIsNotedKeptAndAppliedOnceAReaderUnderstandsIt() = runBlocking {
+        // Arrange
+        val home = Household().open()
+        val docId = pantryDocumentId(homeId)
+        home.ann.addToPantry("Flour")
+        val flour = MailboxEntry.split(docId, home.ann.pantries.forHome(homeId)!!.changesSince(ByteArray(0))).single().encode()
+        home.plant(0, flour.copyOf().also { it[0] = 2 }) // a newer format
+        val before = home.bob.entryKeys()
+
+        // Act
+        val whileTooNew = home.bob.reader.fetch(homeId)
+        val kept = home.bob.entryKeys()
+        val place = home.bob.database.mailboxQueries.selectLastRead(homeId, "agent-ann").awaitAsOneOrNull()
+        home.plant(0, flour) // the same entry once this version can read it
+        val afterUpdate = home.bob.reader.fetch(homeId)
+
+        // Assert
+        assertEquals(0, whileTooNew)
+        assertEquals(before, kept)
+        assertEquals(null, place)
+        assertEquals(1, afterUpdate)
+        assertEquals(listOf("Flour"), home.bob.pantryTitles())
+        val noted = home.bob.activity().single()
+        assertEquals(SyncEventKinds.UnsupportedVersion, noted.kind)
+        assertEquals("v2", noted.detail)
+        assertEquals("agent-ann", noted.peerAgent)
+        assertEquals(SyncModules.Mailbox, noted.module)
+    }
+
+    @Test
+    fun entriesAfterANewerOneAreAppliedOnceAndNotAgainEachRoundWhileTheNotesFold() = runBlocking {
+        // Arrange
+        val home = Household().open()
+        val docId = pantryDocumentId(homeId)
+        home.ann.addToPantry("Flour")
+        val changes = home.ann.pantries.forHome(homeId)!!.changesSince(ByteArray(0))
+        home.plant(0, MailboxEntry("d", 1, 0, 1, byteArrayOf()).encode().also { it[0] = 3 })
+        home.plant(1, MailboxEntry.split(docId, changes).single().encode())
+
+        // Act
+        val first = home.bob.reader.fetch(homeId)
+        val second = home.bob.reader.fetch(homeId)
+        val third = home.bob.reader.fetch(homeId)
+
+        // Assert
+        assertEquals(1, first)
+        assertEquals(0, second)
+        assertEquals(0, third)
+        assertEquals(listOf("Flour"), home.bob.pantryTitles())
+        val noted = home.bob.activity().single()
+        assertEquals("v3", noted.detail)
+        assertEquals(3L, noted.count)
+    }
+
+    @Test
+    fun aDamagedEntryIsSkippedWithoutBeingNotedAsANewerVersion() = runBlocking {
+        // Arrange
+        val home = Household().open()
+        home.plant(0, byteArrayOf(1, 0)) // the current version, but no document id
+
+        // Act
+        home.bob.reader.fetch(homeId)
+
+        // Assert
+        assertEquals(0, home.bob.activity().size)
+        assertEquals(0L, home.bob.database.mailboxQueries.selectLastRead(homeId, "agent-ann").awaitAsOneOrNull())
+    }
+
+    @Test
+    fun aSnapshotFromANewerVersionIsNoted() = runBlocking {
+        // Arrange
+        val home = Household().open()
+        home.plant(1, MailboxEntry("d", 1, 0, 1, byteArrayOf()).encode()) // entry 0 is missing, so the reader looks for a snapshot
+        home.ann.node.putValue(home.ann.storeId!!, SnapshotKeys.manifest("agent-ann", 1), SnapshotManifest(0, 1).encode().also { it[0] = 2 })
+
+        // Act
+        home.bob.reader.fetch(homeId)
+
+        // Assert
+        val noted = home.bob.activity().single()
+        assertEquals(SyncEventKinds.UnsupportedVersion, noted.kind)
+        assertEquals("v2", noted.detail)
     }
 
     @Test

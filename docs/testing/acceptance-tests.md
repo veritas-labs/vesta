@@ -108,3 +108,28 @@ screen on a device.
    another device moved first, *when* this device opens it, *then* that device's later additions survive.
    `PantryCategoriesMigrationTest.migrationIsIdempotentAndASecondRunWritesNothing`, `aVersionTwoDocumentIsNotTouched`,
    `aCategoryAddedAfterOneDeviceMigratedSurvivesTheOtherDevicesMigration`, `migrationDoesNotReplaceTheCategoriesMap`.
+
+### Input this version can't read (ADR-034, WP4)
+
+Unknown input is still ignored, but now shows in Sync activity. Not covered by an automated test: a real daemon, and the screen on a device.
+
+11. **A message with an unknown kind is noted.** *Given* a paired device sends a device-sync or Home-group message whose `kind` this version doesn't
+    know, *when* I open Sync activity and choose Problems, *then* "{device} sent a message this version doesn't know" is listed with the kind and a count
+    when it repeats, and nothing from the message's content is stored.
+    `UnsupportedInputActivityTest.anUnknownDeviceSyncKindFromAPairedDeviceIsNotedOnItsHomes`, `anUnknownHomeGroupKindIsNotedOnlyOnTheHomeItNames` and
+    `aRetryingPeerFoldsIntoOneRowAndNoPayloadContentIsStored`; `UnrecognisedKindTest`; the screen: `SyncActivityScreenTest.anUnsupportedVersionEntryNamesTheDeviceAndWhatItSent`.
+12. **Other traffic is not a problem.** *Given* an agent command, another family's message, a known kind or text that isn't a message arrives, or
+    a message from an unverified sender or a stranger, *when* I open Sync activity, *then* nothing is added.
+    `UnsupportedInputActivityTest.messagesThatAreNotOfAKnownFamilyOrAreKnownAreNotNoted` and `anUnverifiedMessageOrOneFromAStrangerIsNotNoted`;
+    `UnrecognisedKindTest.foreignOrMalformedPayloadsAreNeverUnrecognisedKinds`.
+13. **A newer document or mailbox entry is noted and kept.** *Given* a device sends a sync message for a document type this version lacks, or leaves a
+    mailbox entry or snapshot from a newer version, *when* I open Sync activity, *then* "{device} sent changes this version can't read" is listed with
+    the document type or version; *when* Vesta is updated, *then* the mailbox entry is applied, because it was never deleted or passed over.
+    `UnsupportedInputActivityTest.aSyncMessageForADocumentTypeThisVersionLacksIsNotedOnItsHome` and `aDocumentIdOfNoHomeOfOursOrFromAStrangerIsNotNoted`;
+    `MailboxTest.anEntryFromANewerVersionIsNotedKeptAndAppliedOnceAReaderUnderstandsIt`, `entriesAfterANewerOneAreAppliedOnceAndNotAgainEachRoundWhileTheNotesFold`,
+    `aDamagedEntryIsSkippedWithoutBeingNotedAsANewerVersion` and `aSnapshotFromANewerVersionIsNoted`.
+14. **The card says a newer Vesta is needed.** *Given* changes this version can't read arrived in the last week, *when* I open Sync activity, *then* the
+    card says "Some changes need a newer Vesta" (after a sync problem, before Up to date).
+    `SyncVerdictTest.changesFromANewerVersionOutrankUpToDate` and `aProblemOutranksChangesFromANewerVersion`;
+    `UnsupportedInputActivityTest.theUnsupportedVersionMakesTheVerdictSayANewerVersionIsNeededAndShowsUnderProblems`;
+    the screen: `SyncActivityScreenTest.changesFromANewerVersionSaySoOnTheCard`.

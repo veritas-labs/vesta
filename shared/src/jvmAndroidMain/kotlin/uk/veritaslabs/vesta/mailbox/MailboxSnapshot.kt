@@ -46,6 +46,9 @@ internal class SnapshotManifest(val coversThrough: Long, val chunkCount: Int) {
     companion object {
         const val Version: Byte = 1
 
+        /** The version byte of [bytes] when it is newer than this version reads, else null. */
+        fun newerVersion(bytes: ByteArray): Int? = bytes.firstOrNull()?.let { it.toInt() and 0xFF }?.takeIf { it > Version }
+
         fun decode(bytes: ByteArray): SnapshotManifest? {
             if (bytes.size != 13 || bytes[0] != Version) return null
             val through = (1..8).fold(0L) { all, i -> (all shl 8) or (bytes[i].toLong() and 0xFF) }

@@ -121,7 +121,7 @@ internal class SyncActivityService(
             SyncEventFilter.All -> null
             SyncEventFilter.Received -> listOf(SyncEventKinds.Received, SyncEventKinds.MailboxIn)
             SyncEventFilter.Sent -> listOf(SyncEventKinds.Sent, SyncEventKinds.MailboxOut)
-            SyncEventFilter.Problems -> listOf(SyncEventKinds.Failed)
+            SyncEventFilter.Problems -> listOf(SyncEventKinds.Failed, SyncEventKinds.UnsupportedVersion, SyncEventKinds.UnknownMessage)
         }
         val oldest = nowMillis() - Retention.inWholeMilliseconds
         val found = mutableListOf<SyncEvent>()
@@ -156,6 +156,8 @@ internal class SyncActivityService(
             SyncEventKinds.Membership -> SyncEventKind.Membership
             SyncEventKinds.MailboxIn -> SyncEventKind.MailboxIn
             SyncEventKinds.MailboxOut -> SyncEventKind.MailboxOut
+            SyncEventKinds.UnsupportedVersion -> SyncEventKind.UnsupportedVersion
+            SyncEventKinds.UnknownMessage -> SyncEventKind.UnknownMessage
             else -> return null
         }
         val itemModule = when (module) {
@@ -224,10 +226,21 @@ internal class SyncActivityService(
             } catch (_: Exception) {
                 false
             },
+            needsNewerVersion = needsNewerVersion(homeId, now),
             stalledMessageAgeMs = pending.minOfOrNull { it.createdAt }?.let { now - it }?.takeIf { it > 0 },
             lastSyncedPeerName = latest?.first?.name,
             lastSyncedMsAgo = latest?.second,
         )
+    }
+
+    /** True when the log holds a change from a newer format within the retention window (ADR-034); the log is what remembers it across restarts. */
+    private suspend fun needsNewerVersion(homeId: String, now: Long): Boolean = try {
+        database.syncEventQueries.selectPageOfKind(homeId, SyncEventKinds.UnsupportedVersion, Long.MAX_VALUE, 1).awaitAsList()
+            .any { it.lastAt >= now - Retention.inWholeMilliseconds }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        false
     }
 
     /** Online by what presence and messages have said, but not while a send to it is being held off after failing. */
