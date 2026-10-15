@@ -22,8 +22,6 @@ import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
-import uk.veritaslabs.vesta.automerge.cookbookDocumentId
-import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.AgentDetails
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
@@ -46,16 +44,6 @@ import uk.veritaslabs.vesta.x0x.X0xEventHub
 
 /** The engine's send order for a Home's non-roster documents (the roster goes last); see [DeviceDataSyncService.documentIds]. */
 private val SyncOrder = listOf("pantry", "shopping-list", "cookbook", "merchants", "mealplan", "calendar", "private-calendar", "tasks", "private-tasks")
-private const val PantrySuffix = ":pantry"
-private const val RosterSuffix = ":roster"
-private const val ShoppingListSuffix = ":shopping-list"
-private const val CookbookSuffix = ":cookbook"
-private const val MerchantsSuffix = ":merchants"
-private const val MealPlanSuffix = ":mealplan"
-private const val CalendarSuffix = ":calendar"
-private const val PrivateCalendarSuffix = ":private-calendar"
-private const val TasksSuffix = ":tasks"
-private const val PrivateTasksSuffix = ":private-tasks"
 private const val MaxBufferedPerHome = 64
 
 /**
@@ -309,7 +297,7 @@ class DeviceDataSyncService(
             ?: return
         val homes = homeId?.let { listOfNotNull(database.homeQueries.selectById(it).awaitAsOneOrNull()?.id) }
             ?: database.homeQueries.selectAll().awaitAsList().map { it.id }
-        homes.filter { sender in peersFor(pantryDocumentId(it)) }.forEach { recorder.unknownMessage(it, sender, kind) }
+        homes.filter { sender in homePeers(it) }.forEach { recorder.unknownMessage(it, sender, kind) }
     }
 
     /** Notes a document id this version doesn't know, from a peer of the Home it names (`<home id>:<document type>`), as needing a newer Vesta. */
@@ -318,7 +306,7 @@ class DeviceDataSyncService(
         if (documentRegistry.parse(documentId) != null) return
         val homeId = documentId.substringBeforeLast(':', "").takeIf { it.isNotEmpty() } ?: return
         if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) return
-        if (sender !in peersFor(pantryDocumentId(homeId))) return
+        if (sender !in homePeers(homeId)) return
         recorder.unsupportedVersion(homeId, SyncModules.Mailbox, sender, documentId.substringAfterLast(':'))
     }
 
@@ -367,12 +355,15 @@ class DeviceDataSyncService(
     private suspend fun peersFor(documentId: String): Set<String> {
         val paired = devices.agentIds()
         val homeId = homeIdOf(documentId) ?: return paired // a private type or a non-Home document: the user's own devices only
-        val members = rosters.devices(homeId).values.flatten()
-        return (paired + members) - setOfNotNull(self())
+        return homePeers(homeId)
     }
 
-    /** The same devices [homeId]'s cookbook syncs with, so a photo reaches whoever can see the recipe that shows it. */
-    override suspend fun blobPeers(homeId: String): Set<String> = peersFor(cookbookDocumentId(homeId))
+    /** The devices a Home's shared documents sync with: the user's paired devices and the Home's members' devices. */
+    private suspend fun homePeers(homeId: String): Set<String> =
+        (devices.agentIds() + rosters.devices(homeId).values.flatten()) - setOfNotNull(self())
+
+    /** The same devices [homeId]'s shared documents sync with, so a photo reaches whoever can see the recipe that shows it. */
+    override suspend fun blobPeers(homeId: String): Set<String> = homePeers(homeId)
 
     /** The Home a shared document belongs to; null for a private type's document and for anything the registry doesn't know. */
     private fun homeIdOf(documentId: String): String? =
