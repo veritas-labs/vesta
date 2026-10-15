@@ -4,9 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import uk.veritaslabs.vesta.ui.components.LocalUndo
 import uk.veritaslabs.vesta.ui.components.UndoController
 import vesta.shared.generated.resources.common_undo
@@ -30,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.safeDrawingPadding
 import org.jetbrains.compose.resources.stringResource
 import vesta.shared.generated.resources.Res
@@ -52,9 +55,11 @@ import uk.veritaslabs.vesta.agent.AssistantRepository
 import uk.veritaslabs.vesta.agent.AgentApprovalHost
 import uk.veritaslabs.vesta.agent.AssistantEditHost
 import uk.veritaslabs.vesta.agent.AssistantsListHost
+import uk.veritaslabs.vesta.db.DatabaseDowngradeException
 import uk.veritaslabs.vesta.db.DatabaseDriverFactory
+import uk.veritaslabs.vesta.db.DatabaseOpenResult
 import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.createVestaDatabase
+import uk.veritaslabs.vesta.db.openVestaDatabase
 import uk.veritaslabs.vesta.licenses.OpenSourceLicense
 import uk.veritaslabs.vesta.licenses.loadOpenSourceLicenses
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
@@ -882,6 +887,16 @@ internal fun PantryItemDetails.toShoppingDetails() = ShoppingItemDetails(
     quantity = stockCount, packageSize = packageSize, barcode = barcode, tags = tags,
 )
 
+/** Shown instead of the app when the database was written by a newer Vesta (nothing has been changed in it). */
+@Composable
+private fun DatabaseTooNewMessage(error: DatabaseDowngradeException) {
+    MaterialTheme {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding(), contentAlignment = Alignment.Center) {
+            Text(error.message.orEmpty(), color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(24.dp))
+        }
+    }
+}
+
 /**
  * [App] backed by the local database on this platform; what the platform entry points launch. With
  * [openPantry] (platforms that have the Pantry Automerge document layer), each Home's Pantry is loaded
@@ -917,7 +932,15 @@ fun VestaApp(
     fileImporter: FileImporter? = null,
     ownDeviceCanBeHub: Boolean = false,
 ) {
-    val database = remember { createVestaDatabase(DatabaseDriverFactory()) }
+    val opened = remember { openVestaDatabase(DatabaseDriverFactory()) }
+    val database = when (opened) {
+        is DatabaseOpenResult.Opened -> opened.database
+        // The file is from a newer Vesta and was left untouched; say so rather than run against a schema this build doesn't know.
+        is DatabaseOpenResult.TooNew -> {
+            DatabaseTooNewMessage(opened.error)
+            return
+        }
+    }
     LaunchedEffect(database) { backgroundServices?.invoke(this, database) }
     val client = remember { createX0xClient() }
     val devices = remember { SyncedDeviceRepository(database) }

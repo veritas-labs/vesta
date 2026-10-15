@@ -8,6 +8,7 @@ import java.io.File
 private val appDir = File(System.getProperty("user.home"), ".vesta").apply { mkdirs() }
 
 actual class DatabaseDriverFactory {
-    actual fun databaseType(): AndroidxSqliteDatabaseType =
-        AndroidxSqliteDatabaseType.File(File(appDir, "vesta.db").absolutePath)
+    actual fun databasePath(): String = File(appDir, "vesta.db").absolutePath
+
+    actual fun databaseType(): AndroidxSqliteDatabaseType = AndroidxSqliteDatabaseType.File(databasePath())
 }
