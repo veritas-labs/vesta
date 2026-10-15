@@ -1,20 +1,17 @@
 package uk.veritaslabs.vesta.automerge
 
-import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
-import org.automerge.SyncState
+import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
 import uk.veritaslabs.vesta.docs.HomeDocument
+import uk.veritaslabs.vesta.docs.homeDocumentId
+import uk.veritaslabs.vesta.docs.openHomeDocument
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.mailbox.changesSince
-import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.ui.screens.MealPlan
 import uk.veritaslabs.vesta.ui.screens.MealPlanSource
 import uk.veritaslabs.vesta.ui.screens.MealSlot
@@ -22,7 +19,7 @@ import uk.veritaslabs.vesta.ui.screens.MealSlot
 private const val MealPlanFeature = "mealplan"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s meal plan document. */
-fun mealPlanDocumentId(homeId: String): String = "$homeId:$MealPlanFeature"
+fun mealPlanDocumentId(homeId: String): String = homeDocumentId(homeId, MealPlanFeature)
 
 /**
  * A [MealPlanSource] backed by a meal plan Automerge [document] (ADR-028). Same threading contract as
@@ -32,84 +29,65 @@ fun mealPlanDocumentId(homeId: String): String = "$homeId:$MealPlanFeature"
  * Use [openMealPlanDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
  */
 @OptIn(ExperimentalUuidApi::class)
-class MealPlanDocumentSource(
-    private val document: Document,
-    private val persist: suspend (ByteArray) -> Unit = {},
-    private val onLocalChange: () -> Unit = {},
-    private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-    private val newGuestId: () -> String = { Uuid.random().toString() },
-) : MealPlanSource, HomeDocument {
+class MealPlanDocumentSource private constructor(
+    private val core: AutomergeDocumentCore,
+    private val nowMillis: () -> Long,
+    private val newGuestId: () -> String,
+    override val plan: Flow<MealPlan>,
+) : MealPlanSource, HomeDocument by core {
 
-    private val lock = Mutex()
-    private val state = MutableStateFlow(document.readMealPlan())
+    constructor(
+        document: Document,
+        persist: suspend (ByteArray) -> Unit = {},
+        onLocalChange: () -> Unit = {},
+        nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+        newGuestId: () -> String = { Uuid.random().toString() },
+    ) : this(MutableStateFlow(document.readMealPlan()), document, persist, onLocalChange, nowMillis, newGuestId)
 
-    override val plan: Flow<MealPlan> = state
+    private constructor(
+        state: MutableStateFlow<MealPlan>,
+        document: Document,
+        persist: suspend (ByteArray) -> Unit,
+        onLocalChange: () -> Unit,
+        nowMillis: () -> Long,
+        newGuestId: () -> String,
+    ) : this(
+        AutomergeDocumentCore(document, { state.value = document.readMealPlan() }, persist, onLocalChange),
+        nowMillis,
+        newGuestId,
+        state,
+    )
 
     override suspend fun add(date: CalendarDate, slot: MealSlot, recipeKey: String) =
-        edit { planMeal(document, date, slot, recipeKey, nowMillis()) }
+        edit { planMeal(this, date, slot, recipeKey, nowMillis()) }
 
     override suspend fun remove(date: CalendarDate, slot: MealSlot, recipeKey: String) =
-        edit { unplanMeal(document, date, slot, recipeKey) }
+        edit { unplanMeal(this, date, slot, recipeKey) }
 
     override suspend fun setEaters(date: CalendarDate, slot: MealSlot, recipeKey: String, refs: Set<String>) =
-        edit { chooseEaters(document, date, slot, recipeKey, refs) }
+        edit { chooseEaters(this, date, slot, recipeKey, refs) }
 
     override suspend fun addGuest(name: String): String? {
         val trimmed = name.trim().ifEmpty { return null }
         val id = newGuestId()
-        edit { addMealGuest(document, id, trimmed); true }
+        edit { addMealGuest(this, id, trimmed); true }
         return id
     }
 
     override suspend fun renameGuest(id: String, name: String) {
         val trimmed = name.trim().ifEmpty { return }
-        edit { renameMealGuest(document, id, trimmed) }
+        edit { renameMealGuest(this, id, trimmed) }
     }
 
-    override suspend fun removeGuest(id: String) = edit { removeMealGuest(document, id) }
+    override suspend fun removeGuest(id: String) = edit { removeMealGuest(this, id) }
 
-    private suspend fun edit(change: () -> Boolean) {
-        val changed = lock.withLock {
-            change().also { if (it) publishAndPersist() }
-        }
-        if (changed) onLocalChange()
+    /** Publishes and persists only when [change] reports it changed something, as the plan's edits always did. */
+    private suspend fun edit(change: Document.() -> Boolean) {
+        core.editIfChanged(change)
     }
 
-    /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
-    override suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
-        document.generateSyncMessage(state).orElse(null)
-    }
-
-    /** Applies a sync message from a peer, then republishes and persists the plan if it changed. */
-    override suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
-
-    /** The plan's current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
-    override suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
-
-    /** True once the peer whose progress is [state] has replied with its heads and has everything this document has. */
-    override suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
-
-    /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
-    override suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
-
-    /** Applies changes from [changesSince], as [receiveSync] does a sync message. Applying one again changes nothing. */
-    override suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
-
-    private suspend fun applyIncoming(apply: Document.() -> Unit) {
-        lock.withLock {
-            val before = document.heads
-            document.apply()
-            if (!document.heads.contentEquals(before)) publishAndPersist()
-        }
-    }
-
-    /** Republishes and persists after [document] changed outside [add]/[remove], e.g. by applying a sync message. */
-    suspend fun refresh() = lock.withLock { publishAndPersist() }
-
-    private suspend fun publishAndPersist() {
-        state.value = document.readMealPlan()
-        persist(document.save())
-    }
+    /** Republishes and persists after the document changed outside the edits above, e.g. by applying a sync message. */
+    suspend fun refresh() = core.refresh()
 }
 
 /**
@@ -122,17 +100,11 @@ suspend fun openMealPlanDocumentSource(
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
-): MealPlanDocumentSource {
-    val documentId = mealPlanDocumentId(homeId)
-    val queries = database.automergeDocumentQueries
-    val stored = queries.selectById(documentId).awaitAsOneOrNull()
-    val document = Document.load(stored?.bytes ?: Document().save())
-    val source = MealPlanDocumentSource(
-        document,
-        persist = { bytes -> queries.upsert(documentId, homeId, MealPlanFeature, bytes, nowMillis()) },
+): MealPlanDocumentSource = checkNotNull(
+    openHomeDocument(
+        database, homeId, MealPlanFeature, nowMillis,
+        refreshNew = { it.refresh() },
+        create = { _, document, persist, changed -> MealPlanDocumentSource(document, persist, changed, nowMillis) },
         onLocalChange = onLocalChange,
-        nowMillis = nowMillis,
-    )
-    if (stored == null) source.refresh()
-    return source
-}
+    ),
+)
