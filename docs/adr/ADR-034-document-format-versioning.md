@@ -160,7 +160,7 @@ Data frames stay exactly as they are, so old and new apps keep syncing.
 | WP0 | Capture v1 fixtures from the current build for all ten document types; add load-with-current-code tests. | Pure tests, no behaviour change. Land first. |
 | WP1 | Shared helper: write `schemaVersion` at creation, `max`-read `schemaVersion`/`minReaderVersion`, per-module `SupportedSchemaVersion`. | Existing docs unchanged (v1). |
 | WP2 | Write guard in the `*DocumentSource` base, `writable` flow, "Update Vesta to edit" UI state. Release this **before** anything raises `minReaderVersion`. | The guard is only useful once it is out in the field. |
-| WP3 | Fix the Pantry migration: stop `set(ROOT, MAP)` re-seeds, convergence test, amend ADR-010. | Fixes a live data-loss path. |
+| WP3 | Fix the Pantry migration: stop `set(ROOT, MAP)` re-seeds, convergence test, amend ADR-010. **Done 2026-10-15:** in-place convergent migration, custom categories now kept, see ADR-010 Amendment 2. | Fixes a live data-loss path. |
 | WP4 | Record unknown kinds / versions as Sync activity events; verdict text. | Builds on ADR-033. |
 | WP5 | Hello frame and peer capability display. | Optional for correctness; informs release decisions. |
 | WP6 | Review checklist in `CONTRIBUTING`/docs referencing the rules in 2 and 4. | Docs. |

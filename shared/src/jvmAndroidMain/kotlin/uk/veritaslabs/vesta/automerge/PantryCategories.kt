@@ -13,7 +13,7 @@ private const val NameKey = "name"
 private const val SecondaryKey = "secondary"
 private const val CategoriesVersionKey = "categoriesVersion"
 
-/** Bumped whenever [DefaultPantryCategories] changes; a document seeded with an older set is reset to the new one. */
+/** Bumped whenever [DefaultPantryCategories] changes; a document seeded with an older set is migrated to the new one. */
 private const val CategoriesVersion = 2
 
 /** A primary category and its secondary categories, as registered in the Pantry document — see ADR-010. */
@@ -42,6 +42,28 @@ val DefaultPantryCategories: List<PantryCategory> = listOf(
     PantryCategory("Baby", listOf("Nappies", "Formula & Food", "Wipes & Toiletries")),
     PantryCategory("Pets", listOf("Dog Food", "Cat Food", "Other Pet")),
     PantryCategory("Other / Uncategorised", listOf()),
+)
+
+/**
+ * The set documents were seeded with before `categoriesVersion` existed (version 1, ADR-010). [migratePantryCategories]
+ * removes only entries from this set that the current defaults dropped; anything else in a document is the household's.
+ */
+internal val LegacyDefaultPantryCategoriesV1: List<PantryCategory> = listOf(
+    PantryCategory("Fruit & Vegetables", listOf("Fruit", "Vegetables", "Salad", "Herbs")),
+    PantryCategory("Meat", listOf("Beef", "Pork", "Poultry", "Lamb", "Sausages & Bacon")),
+    PantryCategory("Fish", listOf("Fresh Fish", "Frozen Fish", "Tinned Fish")),
+    PantryCategory("Dairy", listOf("Milk", "Cheese", "Yoghurt", "Butter & Spreads", "Eggs", "Cream")),
+    PantryCategory("Bakery", listOf("Bread", "Rolls & Wraps", "Cakes & Pastries")),
+    PantryCategory("Condiments", listOf("Ketchup", "Brown Sauce", "Mayonnaise", "Mustard", "Pickles")),
+    PantryCategory("Cooking Sauces", listOf("Pasta Sauce", "Curry Sauce", "Stock & Gravy")),
+    PantryCategory("Tins & Jars", listOf("Tinned Vegetables", "Tinned Tomatoes", "Beans & Pulses", "Soup")),
+    PantryCategory("Pasta, Rice & Grains", listOf("Pasta", "Rice", "Noodles", "Cereal", "Oats")),
+    PantryCategory("Baking", listOf("Flour", "Sugar", "Baking Ingredients")),
+    PantryCategory("Herbs & Spices", listOf("Herbs", "Spices", "Salt & Pepper")),
+    PantryCategory("Snacks", listOf("Crisps", "Biscuits", "Chocolate & Sweets", "Nuts")),
+    PantryCategory("Frozen", listOf("Frozen Meals", "Frozen Vegetables", "Ice Cream", "Frozen Chips")),
+    PantryCategory("Drinks", listOf("Tea & Coffee", "Juice", "Soft Drinks", "Water", "Alcohol")),
+    PantryCategory("Household", listOf("Cleaning", "Laundry", "Paper Goods", "Toiletries")),
 )
 
 /**
@@ -116,7 +138,11 @@ private fun List<PantryCategory>.sortedCategories(): List<PantryCategory> =
 
 private fun Read.categoriesMapId(): ObjectId? = (get(ObjectId.ROOT, CategoriesKey).getOrNull() as? AmValue.Map)?.id
 
-/** Writes [DefaultPantryCategories] into a fresh `categories` map and returns its id. */
+/**
+ * Writes [DefaultPantryCategories] into a fresh `categories` map and returns its id. Only for a document that has no
+ * `categories` key yet (a brand-new one, or one that predates ADR-010): never call it over an existing registry, as
+ * it replaces the root map and hides whatever another device wrote into the old one. Use [migratePantryCategories].
+ */
 internal fun Transaction.seedCategories(): ObjectId {
     val categoriesId = set(ObjectId.ROOT, CategoriesKey, ObjectType.MAP)
     DefaultPantryCategories.forEach { category ->
@@ -130,15 +156,55 @@ internal fun Transaction.seedCategories(): ObjectId {
 }
 
 /**
- * Replaces the registered categories with [DefaultPantryCategories] if they were seeded from an older set (ADR-010
- * amendment). Destructive by design: custom categories are dropped, though items keep their category text. A
- * document with no registry yet — an empty one waiting to be filled from another device — is left alone.
+ * Brings a registry seeded from an older default set up to [DefaultPantryCategories] (ADR-010 amendment, ADR-034).
+ *
+ * It edits the existing `categories` map in place, entry by entry, and never replaces it, so devices that migrate
+ * before they sync write the same keys with the same values and their changes merge: a category either device added
+ * in the meantime is kept. It adds the current defaults that are missing, removes only the version 1 defaults the
+ * current set dropped (and a dropped primary only once nothing the household added is left under it), leaves every
+ * other entry alone, and writes `categoriesVersion` last. Running it again changes nothing. A document with no
+ * registry yet — an empty one waiting to be filled from another device — is left alone.
  */
 fun migratePantryCategories(doc: Document) {
     val tx = doc.startTransaction()
     val version = (tx.get(ObjectId.ROOT, CategoriesVersionKey).getOrNull() as? AmValue.Int)?.value?.toInt() ?: 0
-    if (tx.categoriesMapId() != null && version < CategoriesVersion) tx.seedCategories()
+    val categoriesId = tx.categoriesMapId()
+    if (categoriesId != null && version < CategoriesVersion) {
+        tx.addMissingDefaults(categoriesId)
+        tx.removeDroppedLegacyDefaults(categoriesId)
+        tx.set(ObjectId.ROOT, CategoriesVersionKey, CategoriesVersion)
+    }
     tx.commit()
+}
+
+private fun Transaction.addMissingDefaults(categoriesId: ObjectId) {
+    DefaultPantryCategories.forEach { category ->
+        val categoryId = (get(categoriesId, categoryKey(category.name)).getOrNull() as? AmValue.Map)?.id
+            ?: set(categoriesId, categoryKey(category.name), ObjectType.MAP).also { set(it, NameKey, category.name) }
+        val secondaryId = (get(categoryId, SecondaryKey).getOrNull() as? AmValue.Map)?.id
+            ?: set(categoryId, SecondaryKey, ObjectType.MAP)
+        category.secondary.forEach { secondary ->
+            if (!get(secondaryId, categoryKey(secondary)).isPresent) set(secondaryId, categoryKey(secondary), secondary)
+        }
+    }
+}
+
+private fun Transaction.removeDroppedLegacyDefaults(categoriesId: ObjectId) {
+    val currentByKey = DefaultPantryCategories.associateBy { categoryKey(it.name) }
+    LegacyDefaultPantryCategoriesV1.forEach { legacy ->
+        val key = categoryKey(legacy.name)
+        val current = currentByKey[key]
+        val categoryId = (get(categoriesId, key).getOrNull() as? AmValue.Map)?.id ?: return@forEach
+        val secondaryId = (get(categoryId, SecondaryKey).getOrNull() as? AmValue.Map)?.id
+        val kept = current?.secondary?.map(::categoryKey).orEmpty().toSet()
+        if (secondaryId != null) {
+            legacy.secondary.map(::categoryKey).filter { it !in kept }.forEach {
+                if (get(secondaryId, it).isPresent) delete(secondaryId, it)
+            }
+        }
+        val leftOver = secondaryId?.let { mapEntries(it).getOrNull() }.orEmpty().size
+        if (current == null && leftOver == 0) delete(categoriesId, key)
+    }
 }
 
 /** The `categories` map, first seeding the defaults if this document predates the registry. */

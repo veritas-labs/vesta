@@ -27,9 +27,9 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
 /**
  * Acceptance tests for the default Pantry categories (ADR-010 amendment, see docs/testing/acceptance-tests.md): a
- * Pantry stored with the first default set is reset to the supermarket-aisle set when the app opens it, once, and
- * categories added afterwards are kept. Driven through the real stored document, source, view model and categories
- * screen.
+ * Pantry stored with the first default set is moved to the supermarket-aisle set when the app opens it, once, keeping
+ * the household's own categories, and categories added afterwards are kept. Driven through the real stored document,
+ * source, view model and categories screen.
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class PantryDefaultCategoriesAcceptanceTest {
@@ -67,7 +67,7 @@ class PantryDefaultCategoriesAcceptanceTest {
     }
 
     @Test
-    fun aPantryStoredWithTheOldCategoriesShowsTheNewDefaults() = runComposeUiTest {
+    fun aPantryStoredWithTheOldCategoriesShowsTheNewDefaultsAndKeepsMyOwn() = runComposeUiTest {
         // Arrange — Given a Home whose stored Pantry has the old categories and a custom one
         val database = openInMemoryDatabase()
         database.storeOldPantry("home-1")
@@ -75,10 +75,10 @@ class PantryDefaultCategoriesAcceptanceTest {
         // Act — When I open the Pantry and go to its categories
         showCategories(database, "home-1")
 
-        // Assert — Then I see the new defaults, and the old categories are gone
+        // Assert — Then I see the new defaults and my own category, and the dropped old defaults are gone
         onNodeWithTag(PantryCategoriesTestTags.category("Baby")).assertIsDisplayed()
         onNodeWithTag(PantryCategoriesTestTags.category("Bakery")).assertIsDisplayed()
-        onNodeWithTag(PantryCategoriesTestTags.category("Aardvark Food")).assertDoesNotExist()
+        onNodeWithTag(PantryCategoriesTestTags.category("Aardvark Food")).assertIsDisplayed()
         onNodeWithTag(PantryCategoriesTestTags.category("Meat")).assertDoesNotExist()
         onNodeWithTag(PantryCategoriesTestTags.category("Dairy")).assertDoesNotExist()
     }
