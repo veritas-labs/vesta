@@ -1,30 +1,22 @@
 package uk.veritaslabs.vesta.automerge
 
-import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.docs.HomeDocumentStore
 
 /** One shared [CookbookDocumentSource] per Home (see [PantrySources] for why there must be exactly one). */
-class CookbookSources(private val database: VestaDatabase) {
+class CookbookSources(database: VestaDatabase) {
 
-    private val lock = Mutex()
-    private val sources = mutableMapOf<String, CookbookDocumentSource>()
-    private val _localChanges = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    private val store = HomeDocumentStore(
+        database, "cookbook", { Clock.System.now().toEpochMilliseconds() },
+        refreshNew = { it.refresh() },
+        create = { _, document, persist, changed -> CookbookDocumentSource(document, persist, changed) },
+    )
 
     /** The id of a Home each time its cookbook is edited on this device (not when a sync brings in a change). */
-    val localChanges: SharedFlow<String> = _localChanges.asSharedFlow()
+    val localChanges: SharedFlow<String> = store.localChanges
 
     /** [homeId]'s cookbook source, opened on first use; null if there is no such Home. */
-    suspend fun forHome(homeId: String): CookbookDocumentSource? = lock.withLock {
-        if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) {
-            sources.remove(homeId)
-            return@withLock null
-        }
-        sources[homeId] ?: openCookbookDocumentSource(database, homeId, onLocalChange = { _localChanges.tryEmit(homeId) })
-            .also { sources[homeId] = it }
-    }
+    suspend fun forHome(homeId: String): CookbookDocumentSource? = store.forHome(homeId)
 }
