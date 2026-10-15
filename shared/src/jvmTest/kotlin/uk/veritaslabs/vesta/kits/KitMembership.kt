@@ -41,7 +41,7 @@ object KitMembership {
         ),
         Kit.Spaces to setOf(
             "datasync/HomeRosters", "datasync/HomeRegistry", "datasync/HomeJoinService",
-            "datasync/HomeGroups", "datasync/HomeHubs", "datasync/ProfileRegistry",
+            "datasync/HomeGroups", "datasync/HomeHubs", "datasync/ProfileRegistry", "datasync/HomeSeeding",
             "automerge/HomeRosterDocument", "automerge/HomeRegistryDocument",
             "automerge/InviteSecrets", "automerge/ProfileRegistryDocument",
             "home/HomeRepository", "home/MemberRepository", "home/HomeChangeListener",
@@ -92,7 +92,7 @@ object KitMembership {
         Kit.X0x to 15,
         Kit.Store to 9,
         Kit.Docs to 17,
-        Kit.Spaces to 25, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1) and HomeConfig (WP3)
+        Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
         Kit.Blobs to 16, // plus MediaKind (WP1)
         Kit.Assistants to 5,

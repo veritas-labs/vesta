@@ -7,6 +7,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.datasync.HomeRosters
+import uk.veritaslabs.vesta.datasync.TestHomeDocuments
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -19,7 +20,7 @@ class VestaHomeDocumentsTest {
     )
 
     private fun documents(database: uk.veritaslabs.vesta.db.VestaDatabase) =
-        VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
+        TestHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
 
     @Test
     fun registersTheTenTypesUnderTheirWireFeatureKeys() {

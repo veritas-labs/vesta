@@ -141,7 +141,7 @@ Unknown input is still ignored, but now shows in Sync activity. Not covered by a
 ## Document type registry (this plan)
 
 Criteria for docs/plans/document-registry-and-source-collapse-plan.md, WP9. A throwaway `probe` document type, defined only in the test, is
-registered through `HomeDocumentType` and handed to the engine as `extraTypes`; the engine, mailbox, acknowledgement, Sync activity and
+registered through `HomeDocumentType` and handed to the engine with the app's other document types; the engine, mailbox, acknowledgement, Sync activity and
 Changes waiting are not edited for it. All in `DocumentTypeRegistrationAcceptanceTest`.
 
 1. **A new type syncs directly.** *Given* a Home on two devices with the `probe` type registered on both, *when* one device edits its probe document,

@@ -102,12 +102,13 @@ class DocumentTypeRegistrationAcceptanceTest {
         private val personal = store(privateProbe)
 
         val sync = DeviceDataSyncService(
-            node, database, devices, ::getDeviceName, interval = 50.milliseconds, activityRefresh = 20.milliseconds,
-            seeding = VestaHomeSeeding(VestaHomeSources(database), database),
-            extraTypes = listOf(
+            node, database, devices, ::getDeviceName,
+            VestaHomeSources(database).documentTypes() + listOf(
                 HomeDocumentType(probe, probeModule, Scope.Shared, shared::forHome, shared.localChanges),
                 HomeDocumentType(privateProbe, probeModule, Scope.Private, personal::forHome, personal.localChanges),
             ),
+            interval = 50.milliseconds, activityRefresh = 20.milliseconds,
+            seeding = VestaHomeSeeding(VestaHomeSources(database), database),
         )
         val homes = homeRepository(database, sync.homeChanges)
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)

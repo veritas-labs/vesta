@@ -95,7 +95,7 @@ internal class Phone(val daemon: Daemon, private val scope: CoroutineScope, priv
     val pantries = PantrySources(database)
     val shopping = ShoppingListSources(database, pantries)
     val cookbooks = CookbookSources(database)
-    val sync = DeviceDataSyncService(daemon.client, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbooks), interval = 3.seconds, seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database))
+    val sync = DeviceDataSyncService(daemon.client, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbooks).documentTypes(), interval = 3.seconds, seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database))
     val homes = homeRepository(database, sync.homeChanges)
     val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
     private var running: Job? = null

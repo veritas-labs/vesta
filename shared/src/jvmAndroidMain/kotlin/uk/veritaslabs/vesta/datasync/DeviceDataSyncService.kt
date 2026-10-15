@@ -17,8 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
-import uk.veritaslabs.vesta.automerge.VestaHomeSources
+import uk.veritaslabs.vesta.docs.HomeDocumentRegistry
 import uk.veritaslabs.vesta.docs.HomeDocumentType
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
@@ -44,6 +43,17 @@ import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
 
+/**
+ * The roster's document type. The roster is membership machinery, so the engine registers it, first (the mailbox's order),
+ * and the app supplies only its own types. [publishRosters] runs after a live roster sync message has been applied and
+ * projected, so this device's own member and devices are written back into the roster.
+ */
+internal fun rosterDocumentType(rosters: HomeRosters, publishRosters: suspend () -> Unit) = HomeDocumentType(
+    "roster", SyncModules.Members, Scope.Shared, rosters::homeDocument, rosters.changes,
+    afterReceive = { homeId -> rosters.project(homeId) },
+    afterSync = { publishRosters() }, resyncsHome = true,
+)
+
 /** The engine's send order for a Home's non-roster documents (the roster goes last); see [DeviceDataSyncService.documentIds]. */
 private val SyncOrder = listOf("pantry", "shopping-list", "cookbook", "merchants", "mealplan", "calendar", "private-calendar", "tasks", "private-tasks")
 private const val MaxBufferedPerHome = 64
@@ -68,13 +78,12 @@ class DeviceDataSyncService(
     private val database: VestaDatabase,
     private val devices: SyncedDeviceRepository,
     private val deviceName: () -> String,
-    documents: VestaHomeSources = VestaHomeSources(database),
+    documentTypes: List<HomeDocumentType>,
     private val interval: Duration = 30.seconds,
     private val peerBackoff: Duration = 2.minutes,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
     private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
     activityRefresh: Duration = 20.seconds,
-    extraTypes: List<HomeDocumentType> = emptyList(),
     homeConfig: HomeConfig = HomeConfig(),
     seeding: HomeSeeding,
 ) : DeviceDataSync {
@@ -95,9 +104,11 @@ class DeviceDataSyncService(
     private val join = HomeJoinService(client, database, rosters, homeListener, profiles, seeding, recorder = recorder, config = homeConfig)
     private val groups = HomeGroups(client, database, rosters, profiles, config = homeConfig)
 
-    /** The one list of Home document types, built from the [documents] this service was given; the acknowledgement, activity module and private-id lookups go through it. */
-    private val homeDocuments = VestaHomeDocuments(database, rosters, publishRosters = { publishRosters() }, sources = documents, extraTypes = extraTypes)
-    private val documentRegistry = homeDocuments.registry
+    /**
+     * The one list of Home document types: the roster, which the engine registers itself, then the [documentTypes] the app
+     * gave; the acknowledgement, activity module and private-id lookups go through it.
+     */
+    private val documentRegistry = HomeDocumentRegistry(listOf(rosterDocumentType(rosters) { publishRosters() }) + documentTypes)
     private val mailboxDocuments = HomeMailboxDocuments(documentRegistry)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
     private val mailboxReader = MailboxReader(client, database, mailboxDocuments, recorder) { groups.mailboxStoreId(it) }

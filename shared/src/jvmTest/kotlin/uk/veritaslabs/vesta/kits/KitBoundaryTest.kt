@@ -140,6 +140,5 @@ class KitBoundaryTest {
         // WP4 seeding hook, WP5 document types, WP9 database, WP16 blobs seam).
         "blobs->vesta: blobs/BlobTransferService -> automerge/CookbookSources",
         "blobs->vesta: blobs/DeviceBlobRuntime -> automerge/CookbookSources",
-        "sync->vesta: datasync/DeviceDataSyncService -> automerge/VestaHomeDocuments",
     )
 }

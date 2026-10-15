@@ -50,7 +50,7 @@ class MailboxTest {
         val node = network.node(agentId)
         var storeId: String? = null
         val merchants = uk.veritaslabs.vesta.automerge.MerchantsSources(database)
-        val documents = HidingDocuments(HomeMailboxDocuments(uk.veritaslabs.vesta.automerge.VestaHomeDocuments(database, rosters, publishRosters = {}, sources = uk.veritaslabs.vesta.automerge.VestaHomeSources(database, pantries = pantries, shoppingLists = lists, merchants = merchants)).registry))
+        val documents = HidingDocuments(HomeMailboxDocuments(uk.veritaslabs.vesta.datasync.TestHomeDocuments(database, rosters, publishRosters = {}, sources = uk.veritaslabs.vesta.automerge.VestaHomeSources(database, pantries = pantries, shoppingLists = lists, merchants = merchants)).registry))
         var writer = MailboxWriter(node, database, documents) { storeId }
         val recorder = SyncEventRecorder(database)
         val reader = MailboxReader(node, database, documents, recorder) { storeId }

@@ -57,7 +57,7 @@ internal class ActivityDevice(
                 override suspend fun openGroupStore(groupId: String, name: String): String = error("the group store cannot be opened")
             },
         ),
-        database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, calendars = calendars, tasks = tasks), interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
+        database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, calendars = calendars, tasks = tasks).documentTypes(), interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
         activityRefresh = activityRefresh,
         seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database),
     )

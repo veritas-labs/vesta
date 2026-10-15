@@ -29,7 +29,6 @@ import uk.veritaslabs.vesta.automerge.tasksDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
-import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
@@ -67,9 +66,9 @@ class DocumentIdsTest {
     private fun mailbox(database: VestaDatabase) = HomeMailboxDocuments(documents(database).registry)
 
     private fun documents(database: VestaDatabase) =
-        VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
+        TestHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
 
-    private fun changesWaiting(database: VestaDatabase, documents: VestaHomeDocuments) = ChangesWaiting(
+    private fun changesWaiting(database: VestaDatabase, documents: TestHomeDocuments) = ChangesWaiting(
         database,
         sharedDocumentIds = { emptyList() },
         privateDocumentIds = { documents.registry.documentIds(it, Scope.Private) },

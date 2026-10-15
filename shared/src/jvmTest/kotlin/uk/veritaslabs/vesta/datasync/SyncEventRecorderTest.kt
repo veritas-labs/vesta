@@ -12,7 +12,6 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
-import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.db.SyncEvent
 import uk.veritaslabs.vesta.db.VestaDatabase
@@ -307,7 +306,7 @@ class SyncEventRecorderTest {
         )
 
         val database = newDatabase()
-        val registry = VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {}).registry
+        val registry = TestHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {}).registry
 
         // Act
         val actual = expected.keys.associateWith { registry.moduleOf(it) }

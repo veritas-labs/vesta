@@ -63,3 +63,6 @@ Differences from the plan, and what was left alone:
 - The registry is internal to the shared module for now; extracting it as a package (extraction plan, finding 1) is
   mechanical but not yet done.
 - Not changed: wire formats, document ids, the engine's lock, `states`, `waiting` and `peerDownUntil` behaviour.
+- **Kits extraction, WP5 (2026-10-16).** `VestaHomeDocuments` was deleted. The engine registers the roster type itself, first, and
+  takes the app's nine other types as `documentTypes` (`VestaHomeSources.documentTypes()`), replacing `extraTypes`; the order and
+  ids are unchanged (`DocumentIdsTest`). Tests that need the registry without the engine use `TestHomeDocuments`.

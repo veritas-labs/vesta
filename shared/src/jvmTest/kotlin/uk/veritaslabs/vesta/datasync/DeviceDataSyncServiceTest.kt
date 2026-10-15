@@ -103,7 +103,7 @@ class DeviceDataSyncServiceTest {
         /** The id of every document a sync message has reached this device for. */
         val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
-            node, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbook, merchants, mealPlans, calendars, tasks), interval = interval,
+            node, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbook, merchants, mealPlans, calendars, tasks).documentTypes(), interval = interval,
             seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database),
             peerBackoff = peerBackoff,
             recorder = if (brokenRecorder) SyncEventRecorder(database, nowMillis = { error("the clock is broken") }) else SyncEventRecorder(database),
@@ -1386,7 +1386,7 @@ class DeviceDataSyncServiceTest {
         eventually { a.database.peerSyncQueries.selectByAgent("agent-b").awaitAsOneOrNull() != null }
 
         // Act
-        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, ::getDeviceName, VestaHomeSources(a.database, a.pantries), seeding = VestaHomeSeeding(VestaHomeSources(a.database, a.pantries), a.database)) // never started: no in-memory times
+        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, ::getDeviceName, VestaHomeSources(a.database, a.pantries).documentTypes(), seeding = VestaHomeSeeding(VestaHomeSources(a.database, a.pantries), a.database)) // never started: no in-memory times
         val details = fresh.agentDetails(homeId, "agent-b")
 
         // Assert
