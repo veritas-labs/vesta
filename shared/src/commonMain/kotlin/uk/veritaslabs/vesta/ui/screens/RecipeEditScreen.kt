@@ -40,7 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.launch
-import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.blobs.PhotoAddResult
 import uk.veritaslabs.vesta.blobs.PhotoRejection
 import uk.veritaslabs.vesta.recipes.LocalRecipeImporter

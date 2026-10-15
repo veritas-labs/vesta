@@ -1,15 +1,8 @@
 package uk.veritaslabs.vesta.x0x
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.SerialName
@@ -92,20 +85,4 @@ object X0xPeers {
             }
         }.awaitAll()
     }
-}
-
-private const val PeersPollIntervalMillis = 5_000L
-
-/** Polls the local daemon for its peers; null until the first answer, and an empty list while the daemon can't be asked. */
-@Composable
-fun rememberX0xPeers(): List<X0xPeer>? {
-    val client = remember { createX0xClient() }
-    var peers by remember { mutableStateOf<List<X0xPeer>?>(null) }
-    LaunchedEffect(client) {
-        while (true) {
-            peers = runCatching { X0xPeers.load(client) }.getOrDefault(emptyList())
-            delay(PeersPollIntervalMillis)
-        }
-    }
-    return peers
 }

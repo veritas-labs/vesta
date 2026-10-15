@@ -1,6 +1,5 @@
 package uk.veritaslabs.vesta.blobs
 
-import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -33,6 +32,3 @@ interface Blobs {
      */
     val waitingForWifi: Flow<Boolean> get() = flowOf(false)
 }
-
-/** The [Blobs] of the running app; null where there is none (previews, iOS), in which case photos can't be added and show their placeholder. */
-val LocalBlobs = staticCompositionLocalOf<Blobs?> { null }

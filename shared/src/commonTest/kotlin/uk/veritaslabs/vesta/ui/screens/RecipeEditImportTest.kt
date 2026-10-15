@@ -12,7 +12,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.blobs.FakeBlobs
-import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.recipes.LocalRecipeImporter
 import uk.veritaslabs.vesta.recipes.RecipeImportFailure
 import uk.veritaslabs.vesta.recipes.RecipeImportResult

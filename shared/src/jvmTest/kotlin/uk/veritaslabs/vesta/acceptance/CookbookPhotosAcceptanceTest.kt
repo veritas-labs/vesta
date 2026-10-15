@@ -36,7 +36,7 @@ import org.jetbrains.skia.Image
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.blobs.BlobTransferService
 import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
-import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.blobs.PhotoSource
 import uk.veritaslabs.vesta.blobs.SkiaPhotoEncoder
 import uk.veritaslabs.vesta.blobs.testJpeg

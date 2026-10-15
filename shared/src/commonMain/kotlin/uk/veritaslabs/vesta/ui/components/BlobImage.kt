@@ -40,7 +40,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.blobs.Placeholder
 import uk.veritaslabs.vesta.blobs.PlaceholderPixels
 import uk.veritaslabs.vesta.blobs.MediaKind

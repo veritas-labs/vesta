@@ -156,7 +156,7 @@ class RecipeDetailScreenTest {
         val withPhoto = recipe.copy(media = listOf(RecipeMedia("", MediaKind.Photo, "Fresh", reference)))
         setContent {
             VestaTheme {
-                androidx.compose.runtime.CompositionLocalProvider(uk.veritaslabs.vesta.blobs.LocalBlobs provides blobs) { RecipeDetailScreen(withPhoto) }
+                androidx.compose.runtime.CompositionLocalProvider(uk.veritaslabs.vesta.ui.components.LocalBlobs provides blobs) { RecipeDetailScreen(withPhoto) }
             }
         }
         waitUntil { runCatching { onNodeWithTag(uk.veritaslabs.vesta.ui.components.BlobImageTestTags.Waiting).assertIsDisplayed() }.isSuccess }

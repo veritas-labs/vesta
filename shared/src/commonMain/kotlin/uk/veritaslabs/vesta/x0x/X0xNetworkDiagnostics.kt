@@ -1,13 +1,5 @@
 package uk.veritaslabs.vesta.x0x
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import kotlin.time.Clock
-import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
@@ -126,23 +118,4 @@ class X0xNetworkMonitor(private val historySize: Int = 60, private val logSize: 
         previous = result
         return result
     }
-}
-
-private const val DiagnosticsPollIntervalMillis = 2_000L
-
-/** Polls the local daemon for what the diagnostics screen shows, every couple of seconds while composed. */
-@Composable
-fun rememberX0xNetworkDiagnostics(): X0xNetworkDiagnostics {
-    val client = remember { createX0xClient() }
-    val monitor = remember { X0xNetworkMonitor() }
-    var diagnostics by remember { mutableStateOf(X0xNetworkDiagnostics()) }
-    LaunchedEffect(client) {
-        while (true) {
-            val health = runCatching { client.health() }.getOrNull()
-            val snapshot = health?.let { runCatching { client.getTransportSnapshot() }.getOrNull() }
-            diagnostics = monitor.sample(Clock.System.now().toEpochMilliseconds(), health, snapshot)
-            delay(DiagnosticsPollIntervalMillis)
-        }
-    }
-    return diagnostics
 }

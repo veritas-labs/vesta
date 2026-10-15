@@ -13,7 +13,7 @@ import uk.veritaslabs.vesta.ui.components.LocalUndo
 import uk.veritaslabs.vesta.ui.components.UndoController
 import vesta.shared.generated.resources.common_undo
 import androidx.compose.runtime.Composable
-import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.files.FileExporter
 import uk.veritaslabs.vesta.files.FileImporter
 import uk.veritaslabs.vesta.files.LocalFileImporter
@@ -165,9 +165,9 @@ import uk.veritaslabs.vesta.ui.theme.AppTheme
 import uk.veritaslabs.vesta.ui.theme.ThemeMode
 import uk.veritaslabs.vesta.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.isReachingNetwork
-import uk.veritaslabs.vesta.x0x.rememberX0xConnectivity
-import uk.veritaslabs.vesta.x0x.rememberX0xNetworkDiagnostics
-import uk.veritaslabs.vesta.x0x.rememberX0xPeers
+import uk.veritaslabs.vesta.ui.components.rememberX0xConnectivity
+import uk.veritaslabs.vesta.ui.components.rememberX0xNetworkDiagnostics
+import uk.veritaslabs.vesta.ui.components.rememberX0xPeers
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
 val LocalSelectedHome = compositionLocalOf<SelectedHome> { error("No SelectedHome provided; call within App()") }

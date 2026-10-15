@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta.acceptance
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.onAllNodesWithTag
 import uk.veritaslabs.vesta.blobs.FakeBlobs
-import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.blobs.PhotoSource
 import uk.veritaslabs.vesta.ui.components.LocalPhotoPickerFactory
 import uk.veritaslabs.vesta.ui.components.PhotoPicker

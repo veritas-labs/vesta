@@ -123,6 +123,19 @@ class KitBoundaryTest {
     }
 
     @Test
+    fun x0xAndBlobsFilesImportNoCompose() {
+        // Arrange
+        val noUi = setOf(Kit.X0x, Kit.Blobs)
+        val compose = Regex("^import\\s+(?:androidx\\.compose|org\\.jetbrains\\.compose)\\.", RegexOption.MULTILINE)
+
+        // Act
+        val offenders = mainFiles().filter { it.kit in noUi && compose.containsMatchIn(it.text) }.map { it.path }
+
+        // Assert
+        assertEquals(emptyList(), offenders, "x0x and blobs code must not depend on Compose")
+    }
+
+    @Test
     fun noKitMayImportVesta() {
         // Arrange
         val kits = Kit.entries.filter { it != Kit.Vesta }

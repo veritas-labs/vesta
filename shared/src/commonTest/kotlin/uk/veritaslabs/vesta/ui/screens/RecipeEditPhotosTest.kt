@@ -12,7 +12,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.blobs.FakeBlobs
-import uk.veritaslabs.vesta.blobs.LocalBlobs
+import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.blobs.PhotoAddResult
 import uk.veritaslabs.vesta.blobs.PhotoRejection
 import uk.veritaslabs.vesta.blobs.PhotoSource
