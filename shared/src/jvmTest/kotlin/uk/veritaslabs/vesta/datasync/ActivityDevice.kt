@@ -8,6 +8,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.automerge.CalendarSources
 import uk.veritaslabs.vesta.automerge.CookbookSources
@@ -58,6 +59,7 @@ internal class ActivityDevice(
         ),
         database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, calendars = calendars, tasks = tasks), interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
         activityRefresh = activityRefresh,
+        seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database),
     )
     val homes = homeRepository(database, sync.homeChanges)
     val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)

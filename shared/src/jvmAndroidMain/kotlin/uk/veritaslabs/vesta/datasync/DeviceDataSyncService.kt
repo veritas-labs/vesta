@@ -76,9 +76,10 @@ class DeviceDataSyncService(
     activityRefresh: Duration = 20.seconds,
     extraTypes: List<HomeDocumentType> = emptyList(),
     homeConfig: HomeConfig = HomeConfig(),
+    seeding: HomeSeeding,
 ) : DeviceDataSync {
 
-    private val registry = HomeRegistry(database, documents.pantries)
+    private val registry = HomeRegistry(database, seeding)
     private val profiles = ProfileRepository(database, deviceName = deviceName)
     private val profile = ProfileRegistry(database, profiles)
     private val rosters = HomeRosters(database, profiles, deviceName = deviceName)
@@ -91,7 +92,7 @@ class DeviceDataSyncService(
             changesWaiting.forget(id)
         }
     }
-    private val join = HomeJoinService(client, database, rosters, homeListener, profiles, recorder = recorder, config = homeConfig)
+    private val join = HomeJoinService(client, database, rosters, homeListener, profiles, seeding, recorder = recorder, config = homeConfig)
     private val groups = HomeGroups(client, database, rosters, profiles, config = homeConfig)
 
     /** The one list of Home document types, built from the [documents] this service was given; the acknowledgement, activity module and private-id lookups go through it. */

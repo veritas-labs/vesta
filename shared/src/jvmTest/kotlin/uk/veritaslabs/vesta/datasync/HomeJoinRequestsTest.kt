@@ -14,6 +14,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.InviteStatus
 import uk.veritaslabs.vesta.automerge.inviteSecretHash
+import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
@@ -44,7 +46,7 @@ class HomeJoinRequestsTest {
                 override suspend fun saved(home: StoredHome) = Unit
                 override suspend fun deleted(id: String) = Unit
             },
-            profiles, nowMillis = { now },
+            profiles, VestaHomeSeeding(VestaHomeSources(database), database), nowMillis = { now },
         )
 
         /** What the joiner "Sam" (agent-sam) has been sent. */

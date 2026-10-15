@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.home.homeRepository
 import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsList
@@ -101,6 +103,7 @@ class DocumentTypeRegistrationAcceptanceTest {
 
         val sync = DeviceDataSyncService(
             node, database, devices, ::getDeviceName, interval = 50.milliseconds, activityRefresh = 20.milliseconds,
+            seeding = VestaHomeSeeding(VestaHomeSources(database), database),
             extraTypes = listOf(
                 HomeDocumentType(probe, probeModule, Scope.Shared, shared::forHome, shared.localChanges),
                 HomeDocumentType(privateProbe, probeModule, Scope.Private, personal::forHome, personal.localChanges),

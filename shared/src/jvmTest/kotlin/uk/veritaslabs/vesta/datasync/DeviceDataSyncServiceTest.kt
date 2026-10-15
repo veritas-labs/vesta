@@ -25,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.io.encoding.Base64
+import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.automerge.CalendarSources
 import uk.veritaslabs.vesta.automerge.TaskSources
@@ -103,6 +104,7 @@ class DeviceDataSyncServiceTest {
         val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
             node, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbook, merchants, mealPlans, calendars, tasks), interval = interval,
+            seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database),
             peerBackoff = peerBackoff,
             recorder = if (brokenRecorder) SyncEventRecorder(database, nowMillis = { error("the clock is broken") }) else SyncEventRecorder(database),
         )
@@ -935,7 +937,7 @@ class DeviceDataSyncServiceTest {
         val (x, y, homeId) = twoPeopleInOneHome()
         var now = 1_000L
         val join = HomeJoinService(
-            x.node, x.database, HomeRosters(x.database, x.profiles, deviceName = ::getDeviceName), x.sync.homeChanges, x.profiles,
+            x.node, x.database, HomeRosters(x.database, x.profiles, deviceName = ::getDeviceName), x.sync.homeChanges, x.profiles, VestaHomeSeeding(VestaHomeSources(x.database, x.pantries), x.database),
             nowMillis = { now }, messageLifetime = 10.seconds,
         )
         network.offline += y.agentId
@@ -1384,7 +1386,7 @@ class DeviceDataSyncServiceTest {
         eventually { a.database.peerSyncQueries.selectByAgent("agent-b").awaitAsOneOrNull() != null }
 
         // Act
-        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, ::getDeviceName, VestaHomeSources(a.database, a.pantries)) // never started: no in-memory times
+        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, ::getDeviceName, VestaHomeSources(a.database, a.pantries), seeding = VestaHomeSeeding(VestaHomeSources(a.database, a.pantries), a.database)) // never started: no in-memory times
         val details = fresh.agentDetails(homeId, "agent-b")
 
         // Assert
@@ -1587,9 +1589,9 @@ class DeviceDataSyncServiceTest {
             aDocument.receive(aState, case.peer(replica, homeId)!!.generate(SyncState())!!)
             val documentMessages = mutableListOf<ByteArray>()
             while (true) documentMessages += aDocument.generate(aState) ?: break
-            val aRegistry = HomeRegistry(a.database, a.pantries)
+            val aRegistry = HomeRegistry(a.database, VestaHomeSeeding(VestaHomeSources(a.database, a.pantries), a.database))
             val registryState = SyncState()
-            aRegistry.receive(registryState, HomeRegistry(replica.database, replica.pantries).generate(SyncState())!!)
+            aRegistry.receive(registryState, HomeRegistry(replica.database, VestaHomeSeeding(VestaHomeSources(replica.database, replica.pantries), replica.database)).generate(SyncState())!!)
             val registryMessages = mutableListOf<ByteArray>()
             while (true) registryMessages += aRegistry.generate(registryState) ?: break
             val sender = a.agentId

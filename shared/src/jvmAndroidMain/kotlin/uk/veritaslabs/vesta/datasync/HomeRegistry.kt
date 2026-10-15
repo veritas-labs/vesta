@@ -11,12 +11,9 @@ import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
-import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.deleteRegistryHome
 import uk.veritaslabs.vesta.automerge.putRegistryHome
 import uk.veritaslabs.vesta.automerge.readHomeRegistry
-import uk.veritaslabs.vesta.automerge.storeEmptyPantry
-import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
@@ -29,7 +26,7 @@ import uk.veritaslabs.vesta.home.StoredHome
  */
 internal class HomeRegistry(
     private val database: VestaDatabase,
-    private val pantrySources: PantrySources,
+    private val seeding: HomeSeeding,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : HomeChangeListener, SyncableDocument {
 
@@ -42,7 +39,7 @@ internal class HomeRegistry(
 
     override suspend fun saved(home: StoredHome) {
         // Seed the Pantry document before any other device hears of the Home, so the seed is the only one.
-        pantrySources.forHome(home.id)
+        seeding.seedCreated(home.id)
         if (lock.withLock { edit { putRegistryHome(it, home) } }) _changes.tryEmit(Unit)
     }
 
@@ -81,8 +78,7 @@ internal class HomeRegistry(
                 row == null -> {
                     database.homeQueries.insert(entry.id, entry.name, entry.shape, entry.createdAt)
                     // Created elsewhere, so that device seeds the Pantry; ours starts empty and fills from it.
-                    storeEmptyPantry(database, entry.id, nowMillis)
-                    storeEmptyShoppingList(database, entry.id, nowMillis)
+                    seeding.placeholdersForArrived(entry.id)
                     created += entry.id
                 }
                 row.name != entry.name || row.shape != entry.shape ->
