@@ -1,0 +1,15 @@
+-- When this device last synced with each other device (docs/adr/ADR-033). Local and unsynced.
+-- Keep in sync with migrations/19.sqm, which creates this table for databases that predate it.
+CREATE TABLE IF NOT EXISTS PeerSync (
+    agentId TEXT NOT NULL PRIMARY KEY,
+    lastSyncedAt INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM PeerSync;
+
+selectByAgent:
+SELECT * FROM PeerSync WHERE agentId = ?;
+
+upsert:
+INSERT OR REPLACE INTO PeerSync(agentId, lastSyncedAt) VALUES (?, ?);

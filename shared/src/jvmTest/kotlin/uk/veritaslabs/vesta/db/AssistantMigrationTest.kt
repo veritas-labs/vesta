@@ -59,7 +59,7 @@ class AssistantMigrationTest {
         val assistants = AssistantRepository(migrated)
 
         // Assert
-        assertEquals(19L, VestaDatabase.Schema.version)
+        assertEquals(20L, VestaDatabase.Schema.version)
         assertEquals(
             mapOf("allowed-agent" to AssistantStatus.Active, "pending-agent" to AssistantStatus.Pending),
             migrated.assistantQueries.selectAll().awaitAsList().associate { it.agentId to (if (it.status == "active") AssistantStatus.Active else AssistantStatus.Pending) },
