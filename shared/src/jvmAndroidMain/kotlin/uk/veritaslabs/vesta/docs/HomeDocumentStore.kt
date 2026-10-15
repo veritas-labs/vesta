@@ -22,6 +22,8 @@ internal fun homeDocumentId(homeId: String, feature: String) = "$homeId:$feature
  * it feeds [localChanges]). It returns null when the source cannot be opened yet (Shopping without a Pantry), in which
  * case nothing is cached and any earlier entry is evicted.
  *
+ * [newDocument] is the bytes of a document with nothing stored (seeded, for Pantry; empty by default).
+ *
  * [refreshNew] is called on a source whose document was not stored yet, so its state is published and the empty
  * document is stored straight away. It is a hook rather than an interface bound on [S] so a source need not change
  * shape to be stored here; typically `{ it.refresh() }`.
@@ -37,6 +39,7 @@ internal class HomeDocumentStore<S : HomeDocument>(
         persist: suspend (ByteArray) -> Unit,
         onLocalChange: () -> Unit,
     ) -> S?,
+    private val newDocument: () -> ByteArray = { Document().save() },
 ) {
 
     private val lock = Mutex()
@@ -53,7 +56,7 @@ internal class HomeDocumentStore<S : HomeDocument>(
             return@withLock null
         }
         sources[homeId]?.let { return@withLock it }
-        val source = openHomeDocument(database, homeId, feature, nowMillis, refreshNew, create) { _localChanges.tryEmit(homeId) }
+        val source = openHomeDocument(database, homeId, feature, nowMillis, refreshNew, create, newDocument) { _localChanges.tryEmit(homeId) }
         if (source == null) {
             sources.remove(homeId)
             return@withLock null
@@ -80,6 +83,7 @@ internal suspend fun <S : HomeDocument> openHomeDocument(
         persist: suspend (ByteArray) -> Unit,
         onLocalChange: () -> Unit,
     ) -> S?,
+    newDocument: () -> ByteArray = { Document().save() },
     onLocalChange: () -> Unit,
 ): S? {
     val queries = database.automergeDocumentQueries
@@ -87,7 +91,7 @@ internal suspend fun <S : HomeDocument> openHomeDocument(
     val stored = queries.selectById(documentId).awaitAsOneOrNull()
     val source = create(
         homeId,
-        Document.load(stored?.bytes ?: Document().save()),
+        Document.load(stored?.bytes ?: newDocument()),
         { bytes -> queries.upsert(documentId, homeId, feature, bytes, nowMillis()) },
         onLocalChange,
     ) ?: return null

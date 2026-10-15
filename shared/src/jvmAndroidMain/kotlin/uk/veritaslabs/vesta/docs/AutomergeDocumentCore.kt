@@ -40,6 +40,9 @@ internal class AutomergeDocumentCore(
         return changed
     }
 
+    /** Runs [read] on the document under the lock, without republishing or persisting. For checks that must be atomic with edits. */
+    suspend fun <R> read(read: Document.() -> R): R = lock.withLock { document.read() }
+
     override suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
         document.generateSyncMessage(state).orElse(null)
     }

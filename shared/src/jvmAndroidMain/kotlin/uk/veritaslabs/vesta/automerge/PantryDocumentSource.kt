@@ -4,14 +4,13 @@ import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
+import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
 import uk.veritaslabs.vesta.docs.HomeDocument
+import uk.veritaslabs.vesta.docs.homeDocumentId
+import uk.veritaslabs.vesta.docs.openHomeDocument
 import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.mailbox.changesSince
-import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesSource
 import uk.veritaslabs.vesta.ui.screens.PantryCategoryGroup
@@ -23,7 +22,7 @@ import uk.veritaslabs.vesta.ui.screens.PantrySource
 private const val PantryFeature = "pantry"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s Pantry document. */
-fun pantryDocumentId(homeId: String): String = "$homeId:$PantryFeature"
+fun pantryDocumentId(homeId: String): String = homeDocumentId(homeId, PantryFeature)
 
 /**
  * A [PantrySource] backed by a Pantry Automerge [document] (ADR-008).
@@ -39,15 +38,34 @@ fun pantryDocumentId(homeId: String): String = "$homeId:$PantryFeature"
  *
  * Use [openPantryDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
  */
-class PantryDocumentSource(
-    private val document: Document,
-    private val persist: suspend (ByteArray) -> Unit = {},
-    private val onLocalChange: () -> Unit = {},
-) : PantrySource, PantryCategoriesSource, HomeDocument {
+class PantryDocumentSource private constructor(
+    private val state: MutableStateFlow<PantryContents>,
+    private val categoryState: MutableStateFlow<List<PantryCategoryGroup>>,
+    private val core: AutomergeDocumentCore,
+) : PantrySource, PantryCategoriesSource, HomeDocument by core {
 
-    private val lock = Mutex()
-    private val state = MutableStateFlow(readContents())
-    private val categoryState = MutableStateFlow(readCategories())
+    constructor(
+        document: Document,
+        persist: suspend (ByteArray) -> Unit = {},
+        onLocalChange: () -> Unit = {},
+    ) : this(MutableStateFlow(document.toPantryContents()), MutableStateFlow(document.toCategoryGroups()), document, persist, onLocalChange)
+
+    private constructor(
+        state: MutableStateFlow<PantryContents>,
+        categoryState: MutableStateFlow<List<PantryCategoryGroup>>,
+        document: Document,
+        persist: suspend (ByteArray) -> Unit,
+        onLocalChange: () -> Unit,
+    ) : this(
+        state,
+        categoryState,
+        AutomergeDocumentCore(
+            document,
+            { state.value = document.toPantryContents(); categoryState.value = document.toCategoryGroups() },
+            persist,
+            onLocalChange,
+        ),
+    )
 
     override val contents: Flow<PantryContents> = state
 
@@ -64,42 +82,29 @@ class PantryDocumentSource(
      * an unseeded placeholder, where it would create root maps that compete with the creator's and lose items on merge.
      */
     suspend fun edit(block: (Document) -> Unit) {
-        val queued = lock.withLock { if (document.isPantrySeeded()) false else { pending += block; true } }
+        val queued = core.read { if (isPantrySeeded()) false else { pending += block; true } }
         if (!queued) mutate(block)
     }
 
     /** Runs [block] against the document (e.g. `upsertPantryItem(it, …)`), then republishes and persists it. */
-    suspend fun <T> mutate(block: (Document) -> T): T = lock.withLock {
-        block(document).also { publishAndPersist() }
-    }.also { onLocalChange() }
-
-    /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
-    override suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
-        document.generateSyncMessage(state).orElse(null)
-    }
+    suspend fun <T> mutate(block: (Document) -> T): T = core.edit { block(this) }
 
     /** Applies a sync message from a peer, then republishes and persists the document if it changed. */
-    override suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
-
-    /** The document's current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
-    override suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
-
-    /** True once the peer whose progress is [state] has replied with its heads and has everything this document has. */
-    override suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
-
-    /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
-    override suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
+    override suspend fun receiveSync(state: SyncState, message: ByteArray) {
+        core.receiveSync(state, message)
+        flushPending()
+    }
 
     /** Applies changes from [changesSince], as [receiveSync] does a sync message. Applying one again changes nothing. */
-    override suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
+    override suspend fun applyChanges(changes: ByteArray) {
+        core.applyChanges(changes)
+        flushPending()
+    }
 
-    private suspend fun applyIncoming(apply: Document.() -> Unit) {
-        val ready = lock.withLock {
-            val before = document.heads
-            document.apply()
-            if (!document.heads.contentEquals(before)) publishAndPersist()
-            // The creator's document may just have arrived: the edits made before it can now be applied on top of it.
-            if (pending.isNotEmpty() && document.isPantrySeeded()) pending.toList().also { pending.clear() } else emptyList()
+    private suspend fun flushPending() {
+        // The creator's document may just have arrived: the edits made before it can now be applied on top of it.
+        val ready = core.read {
+            if (pending.isNotEmpty() && isPantrySeeded()) pending.toList().also { pending.clear() } else emptyList()
         }
         ready.forEach { mutate(it) }
     }
@@ -143,32 +148,26 @@ class PantryDocumentSource(
     override suspend fun deleteSecondary(primary: String, name: String) =
         edit { deleteSecondaryCategory(it, primary, name) }
 
-    /** Republishes and persists after [document] changed outside [mutate], e.g. by applying a sync message. */
-    suspend fun refresh() = lock.withLock { publishAndPersist() }
-
-    private suspend fun publishAndPersist() {
-        state.value = readContents()
-        categoryState.value = readCategories()
-        persist(document.save())
-    }
-
-    private fun readCategories() = document.readPantryCategories().map { PantryCategoryGroup(it.name, it.secondary) }
-
-    private fun readContents() = PantryContents(
-        items = document.readPantry().map {
-            PantryListItem(
-                key = it.id,
-                primaryCategory = it.primaryCategory,
-                secondaryCategory = it.secondaryCategory,
-                title = it.title,
-                packageSize = it.packageSize,
-                stockCount = it.stockCount,
-                barcode = it.barcode,
-                merchantKeys = it.merchantKeys,
-            )
-        },
-    )
+    /** Republishes and persists after the document changed outside [mutate], e.g. by applying a sync message. */
+    suspend fun refresh() = core.refresh()
 }
+
+private fun Document.toCategoryGroups() = readPantryCategories().map { PantryCategoryGroup(it.name, it.secondary) }
+
+private fun Document.toPantryContents() = PantryContents(
+    items = readPantry().map {
+        PantryListItem(
+            key = it.id,
+            primaryCategory = it.primaryCategory,
+            secondaryCategory = it.secondaryCategory,
+            title = it.title,
+            packageSize = it.packageSize,
+            stockCount = it.stockCount,
+            barcode = it.barcode,
+            merchantKeys = it.merchantKeys,
+        )
+    },
+)
 
 /**
  * Opens [homeId]'s Pantry as a [PantryDocumentSource] persisted in [database]'s `AutomergeDocument`
@@ -182,20 +181,18 @@ suspend fun openPantryDocumentSource(
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
-): PantryDocumentSource {
-    val documentId = pantryDocumentId(homeId)
-    val queries = database.automergeDocumentQueries
-    val stored = queries.selectById(documentId).awaitAsOneOrNull()
-    val document = Document.load(stored?.bytes ?: newPantryDocument())
-    migratePantryCategories(document)
-    val source = PantryDocumentSource(
-        document,
-        persist = { bytes -> queries.upsert(documentId, homeId, PantryFeature, bytes, nowMillis()) },
+): PantryDocumentSource = checkNotNull(
+    openHomeDocument(
+        database, homeId, PantryFeature, nowMillis,
+        refreshNew = { it.refresh() },
+        create = { _, document, persist, changed ->
+            migratePantryCategories(document)
+            PantryDocumentSource(document, persist, changed)
+        },
+        newDocument = { newPantryDocument() },
         onLocalChange = onLocalChange,
-    )
-    if (stored == null) source.refresh()
-    return source
-}
+    ),
+)
 
 /**
  * Stores an empty Pantry document for [homeId], unless one is stored already. For a Home that was created on another
