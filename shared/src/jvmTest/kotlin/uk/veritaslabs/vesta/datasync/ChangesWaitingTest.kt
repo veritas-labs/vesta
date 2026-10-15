@@ -17,6 +17,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
+import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
@@ -159,7 +160,7 @@ class ChangesWaitingTest {
         targets: SyncTargets,
         heads: Map<String, ByteArray?>,
         database: uk.veritaslabs.vesta.db.VestaDatabase = openInMemoryDatabase(),
-    ) = ChangesWaiting(database, { shared }, { targets }, { _, id -> heads[id] })
+    ) = ChangesWaiting(database, { shared }, { listOf(calendar, privateTasksDocumentId(it)) }, { targets }, { _, id -> heads[id] })
 
     @Test
     fun aMailboxDepositOfTheCurrentHeadsCoversASharedDocument() = runBlocking {

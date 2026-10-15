@@ -19,6 +19,8 @@ import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.CalendarSources
 import uk.veritaslabs.vesta.automerge.TaskSources
+import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
+import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
 import uk.veritaslabs.vesta.automerge.tasksDocumentId
 import uk.veritaslabs.vesta.automerge.CookbookSources
@@ -120,7 +122,15 @@ class DeviceDataSyncService(
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
     private val mailboxReader = MailboxReader(client, database, mailboxDocuments, recorder) { groups.mailboxStoreId(it) }
 
-    private val acknowledgement = SyncAcknowledgement(rosters, pantrySources, shoppingSources, cookbookSources, merchantsSources, mealPlanSources, calendarSources, taskSources)
+    /** The one list of Home document types, built from the sources this service was given; the acknowledgement, activity module and private-id lookups go through it. */
+    private val homeDocuments = VestaHomeDocuments(
+        database, rosters, publishRosters = { publishRosters() },
+        pantries = pantrySources, shoppingLists = shoppingSources, cookbooks = cookbookSources, merchants = merchantsSources,
+        mealPlans = mealPlanSources, calendars = calendarSources, tasks = taskSources,
+    )
+    private val documentRegistry = homeDocuments.registry
+
+    private val acknowledgement = SyncAcknowledgement(documentRegistry)
 
     private val activityFacts = SyncActivityFacts()
 
@@ -128,6 +138,7 @@ class DeviceDataSyncService(
     private val changesWaiting = ChangesWaiting(
         database,
         sharedDocumentIds = { mailboxDocuments.documentIds(it) },
+        privateDocumentIds = { documentRegistry.documentIds(it, Scope.Private) },
         targets = { homeId ->
             val self = self()
             val paired = devices.agentIds() - setOfNotNull(self)
@@ -398,7 +409,7 @@ class DeviceDataSyncService(
 
     /** The ids of [homeId]'s documents that some peer's sync state reports in sync. Call it holding [lock]; it reads memory only. */
     private suspend fun acknowledgedDocuments(homeId: String): Set<String> {
-        val ids = mailboxDocuments.documentIds(homeId) + changesWaiting.privateDocumentIds(homeId)
+        val ids = mailboxDocuments.documentIds(homeId) + documentRegistry.documentIds(homeId, Scope.Private)
         return ids.filterTo(mutableSetOf()) { id ->
             states.any { (key, state) -> key.first == id && acknowledgement.isInSync(homeId, id, state) }
         }
@@ -640,7 +651,7 @@ class DeviceDataSyncService(
     // changes a sync result: the recorder swallows its own failures, and reading heads is guarded here the same way.
 
     private fun activityHomeId(documentId: String): String? = when {
-        moduleOfDocumentId(documentId) == null -> null
+        documentRegistry.moduleOf(documentId) == null -> null
         documentId.endsWith(PrivateCalendarSuffix) -> documentId.removeSuffix(PrivateCalendarSuffix)
         documentId.endsWith(PrivateTasksSuffix) -> documentId.removeSuffix(PrivateTasksSuffix)
         else -> homeIdOf(documentId)
@@ -648,14 +659,14 @@ class DeviceDataSyncService(
 
     private suspend fun noteSent(documentId: String, peer: String) {
         val homeId = activityHomeId(documentId) ?: return
-        moduleOfDocumentId(documentId)?.let { recorder.sent(homeId, it, peer) }
+        documentRegistry.moduleOf(documentId)?.let { recorder.sent(homeId, it, peer) }
     }
 
     private suspend fun noteFailed(documentId: String, peer: String) {
         val homeId = activityHomeId(documentId)
         activityFacts.sendFailed(homeId)
         if (homeId == null) return
-        moduleOfDocumentId(documentId)?.let { recorder.failed(homeId, it, peer, "unreachable") }
+        documentRegistry.moduleOf(documentId)?.let { recorder.failed(homeId, it, peer, "unreachable") }
     }
 
     /** The heads of a Home document, or null for anything else, a Home this device doesn't have yet, or a failed read. */
@@ -680,7 +691,7 @@ class DeviceDataSyncService(
         val before = headsOf(homeId, documentId)
         val result = apply()
         headsOf(homeId, documentId)?.takeUnless { it.contentEquals(before) }
-            ?.let { moduleOfDocumentId(documentId)?.let { module -> recorder.received(homeId, module, sender) } }
+            ?.let { documentRegistry.moduleOf(documentId)?.let { module -> recorder.received(homeId, module, sender) } }
         return result
     }
 

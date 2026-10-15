@@ -27,6 +27,8 @@ import uk.veritaslabs.vesta.automerge.tasksDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
+import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
+import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
 /**
@@ -73,9 +75,13 @@ class DocumentIdsTest {
         }
     }
 
-    private fun changesWaiting(database: VestaDatabase) = ChangesWaiting(
+    private fun documents(database: VestaDatabase) =
+        VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database)), publishRosters = {})
+
+    private fun changesWaiting(database: VestaDatabase, documents: VestaHomeDocuments) = ChangesWaiting(
         database,
         sharedDocumentIds = { emptyList() },
+        privateDocumentIds = { documents.registry.documentIds(it, Scope.Private) },
         targets = { SyncTargets(shared = false, own = false) },
         heads = { _, _ -> null },
     )
@@ -99,7 +105,7 @@ class DocumentIdsTest {
         val expected = ten.associate { it.id to it.module }
 
         // Act
-        val actual = ten.associate { it.id to moduleOfDocumentId(it.idFor(homeId)) }
+        val actual = ten.associate { it.id to documents(openInMemoryDatabase()).registry.moduleOf(it.idFor(homeId)) }
 
         // Assert
         assertEquals(expected, actual)
@@ -112,7 +118,7 @@ class DocumentIdsTest {
         val expectedPrivate = ten.filter { it.private }.map { it.id }
 
         // Act
-        val actual = changesWaiting(database).privateDocumentIds(homeId)
+        val actual = documents(database).registry.documentIds(homeId, Scope.Private)
 
         // Assert
         assertEquals(expectedPrivate.sorted(), actual.sorted())

@@ -2,8 +2,6 @@ package uk.veritaslabs.vesta.datasync
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import java.util.concurrent.ConcurrentHashMap
-import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
-import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 
 /** Where a Home's documents could go from this device: [shared] for the Home's own documents (members' devices and hubs), [own] for its private ones (the user's own paired devices). */
@@ -18,19 +16,17 @@ internal data class SyncTargets(val shared: Boolean, val own: Boolean)
  *
  * The answer is worked out only at moments when the service's sync states are whole, never in the middle of clearing them
  * (the service calls [update] at the end of a round and after each message it applies), and read from a cache by [of].
- * [sharedDocumentIds] are the ids the mailbox carries; [heads] reads a document's current heads, null for one this device
+ * [sharedDocumentIds] are the ids the mailbox carries, [privateDocumentIds] the ones only the user's own devices get; [heads] reads a document's current heads, null for one this device
  * doesn't have.
  */
 internal class ChangesWaiting(
     private val database: VestaDatabase,
     private val sharedDocumentIds: (homeId: String) -> List<String>,
+    private val privateDocumentIds: (homeId: String) -> List<String>,
     private val targets: suspend (homeId: String) -> SyncTargets,
     private val heads: suspend (homeId: String, documentId: String) -> ByteArray?,
 ) {
     private val cache = ConcurrentHashMap<String, Boolean>()
-
-    /** The documents of [homeId] that only the user's own devices get. */
-    fun privateDocumentIds(homeId: String): List<String> = listOf(privateCalendarDocumentId(homeId), privateTasksDocumentId(homeId))
 
     /**
      * Whether [homeId] has changes waiting, as of the last [update]. Before the first one (a fresh start has no sync states) it is

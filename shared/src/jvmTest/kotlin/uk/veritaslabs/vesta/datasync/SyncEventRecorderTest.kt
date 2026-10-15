@@ -11,6 +11,8 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
+import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
+import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.db.SyncEvent
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
@@ -303,12 +305,15 @@ class SyncEventRecorderTest {
             "h:private-tasks" to SyncModules.Tasks,
         )
 
+        val database = newDatabase()
+        val registry = VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database)), publishRosters = {}).registry
+
         // Act
-        val actual = expected.keys.associateWith { moduleOfDocumentId(it) }
+        val actual = expected.keys.associateWith { registry.moduleOf(it) }
 
         // Assert
         assertEquals(expected, actual)
-        assertNull(moduleOfDocumentId(HomeRegistryDocumentId))
-        assertNull(moduleOfDocumentId(ProfileDocumentId))
+        assertNull(registry.moduleOf(HomeRegistryDocumentId))
+        assertNull(registry.moduleOf(ProfileDocumentId))
     }
 }

@@ -40,27 +40,6 @@ internal object SyncModules {
     const val Mailbox = "mailbox"
 }
 
-// Private documents come before the shared ones: ":private-calendar" must not be mistaken for ":calendar".
-private val moduleBySuffix = listOf(
-    ":private-calendar" to SyncModules.Calendar,
-    ":private-tasks" to SyncModules.Tasks,
-    ":pantry" to SyncModules.Pantry,
-    ":roster" to SyncModules.Members,
-    ":shopping-list" to SyncModules.Shopping,
-    ":cookbook" to SyncModules.Cookbook,
-    ":merchants" to SyncModules.Merchants,
-    ":mealplan" to SyncModules.MealPlan,
-    ":calendar" to SyncModules.Calendar,
-    ":tasks" to SyncModules.Tasks,
-)
-
-/**
- * The module [documentId] belongs to, or null for documents that belong to no Home (the Home registry and the Profile),
- * which the Sync activity log doesn't show. A private calendar or task list counts as the calendar or tasks.
- */
-internal fun moduleOfDocumentId(documentId: String): String? =
-    moduleBySuffix.firstOrNull { (suffix, _) -> documentId.endsWith(suffix) }?.second
-
 /**
  * Keeps the Sync activity log (docs/adr/ADR-033-sync-activity.md): a content-free, local record of what moved between this
  * device and others, per Home. Events are buffered in memory and written by [flush], which the sync service calls at the end
