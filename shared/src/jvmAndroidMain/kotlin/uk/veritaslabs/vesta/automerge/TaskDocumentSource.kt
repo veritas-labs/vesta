@@ -57,6 +57,9 @@ class TaskDocumentSource(
     /** The document's current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
     suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
 
+    /** True once the peer whose progress is [state] has replied with its heads and has everything this document has. */
+    suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
+
     /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
     suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
 

@@ -92,6 +92,7 @@ import vesta.shared.generated.resources.sync_activity_module_calendar
 import vesta.shared.generated.resources.sync_activity_module_cookbook
 import vesta.shared.generated.resources.sync_activity_module_meal_plan
 import vesta.shared.generated.resources.sync_activity_module_members
+import vesta.shared.generated.resources.sync_activity_module_mailbox
 import vesta.shared.generated.resources.sync_activity_module_merchants
 import vesta.shared.generated.resources.sync_activity_module_pantry
 import vesta.shared.generated.resources.sync_activity_module_shopping
@@ -349,6 +350,7 @@ private fun moduleLabel(module: SyncModuleName): StringResource = when (module) 
     SyncModuleName.Tasks -> Res.string.sync_activity_module_tasks
     SyncModuleName.Merchants -> Res.string.sync_activity_module_merchants
     SyncModuleName.Members -> Res.string.sync_activity_module_members
+    SyncModuleName.Mailbox -> Res.string.sync_activity_module_mailbox
 }
 
 /** One log entry: a direction icon with a description, one plain sentence, the time, and a second line when there is one. */

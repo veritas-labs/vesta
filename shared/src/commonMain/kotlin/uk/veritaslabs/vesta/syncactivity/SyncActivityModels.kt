@@ -4,7 +4,7 @@ package uk.veritaslabs.vesta.syncactivity
 enum class SyncEventKind { Received, Sent, Failed, Membership, MailboxIn, MailboxOut }
 
 /** The Home document a log entry is about, named plainly. */
-enum class SyncModuleName { Pantry, Shopping, Cookbook, MealPlan, Calendar, Tasks, Merchants, Members }
+enum class SyncModuleName { Pantry, Shopping, Cookbook, MealPlan, Calendar, Tasks, Merchants, Members, Mailbox }
 
 /** Which log entries the filter menu shows. */
 enum class SyncEventFilter { All, Received, Sent, Problems }

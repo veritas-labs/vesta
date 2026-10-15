@@ -244,6 +244,10 @@ internal class HomeRosters(
     suspend fun generate(homeId: String, state: SyncState): ByteArray? =
         lock.withLock { open(homeId)?.generateSyncMessage(state)?.orElse(null) }
 
+    /** True once the peer whose progress is [state] has replied with its heads and has everything [homeId]'s roster has; false when this device has no such Home. */
+    suspend fun isInSync(homeId: String, state: SyncState): Boolean =
+        lock.withLock { open(homeId)?.let { state.isInSync(it) } ?: false }
+
     /** Applies a sync message to [homeId]'s roster; false when this device has no such Home. */
     suspend fun receive(homeId: String, state: SyncState, message: ByteArray): Boolean = lock.withLock {
         val doc = open(homeId) ?: return@withLock false

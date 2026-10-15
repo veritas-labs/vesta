@@ -957,6 +957,7 @@
     <string name="sync_activity_module_tasks">Tasks</string>
     <string name="sync_activity_module_merchants">Merchants</string>
     <string name="sync_activity_module_members">Members</string>
+    <string name="sync_activity_module_mailbox">Home</string>
     <string name="sync_activity_show_older">Show older</string>
     <string name="sync_activity_retention">Showing the last 7 days.</string>
     <string name="sync_activity_empty_title">Nothing has synced yet.</string>

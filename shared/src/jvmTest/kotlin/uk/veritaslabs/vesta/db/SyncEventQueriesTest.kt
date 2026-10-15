@@ -68,9 +68,9 @@ class SyncEventQueriesTest {
         db.event("h1", 400L, kind = "sent")
 
         // Act
-        val inside = db.syncEventQueries.findOpen("h1", "pantry", "peer-1", "received", 150L).awaitAsOneOrNull()
-        val outside = db.syncEventQueries.findOpen("h1", "pantry", "peer-1", "received", 250L).awaitAsOneOrNull()
-        val otherPeer = db.syncEventQueries.findOpen("h1", "pantry", "peer-2", "received", 0L).awaitAsOneOrNull()
+        val inside = db.syncEventQueries.findOpen("h1", "pantry", "peer-1", "received", null, 150L).awaitAsOneOrNull()
+        val outside = db.syncEventQueries.findOpen("h1", "pantry", "peer-1", "received", null, 250L).awaitAsOneOrNull()
+        val otherPeer = db.syncEventQueries.findOpen("h1", "pantry", "peer-2", "received", null, 0L).awaitAsOneOrNull()
 
         // Assert
         assertEquals(200L, inside?.lastAt)
@@ -87,8 +87,8 @@ class SyncEventQueriesTest {
         db.event("h1", 200L, kind = "membership", module = "members", peer = "peer-1")
 
         // Act
-        val withoutPeer = db.syncEventQueries.findOpen("h1", "members", null, "membership", 0L).awaitAsOneOrNull()
-        val withPeer = db.syncEventQueries.findOpen("h1", "members", "peer-1", "membership", 0L).awaitAsOneOrNull()
+        val withoutPeer = db.syncEventQueries.findOpen("h1", "members", null, "membership", null, 0L).awaitAsOneOrNull()
+        val withPeer = db.syncEventQueries.findOpen("h1", "members", "peer-1", "membership", null, 0L).awaitAsOneOrNull()
 
         // Assert
         assertEquals(100L, withoutPeer?.lastAt)
@@ -201,7 +201,7 @@ class SyncEventQueriesTest {
 
         // Assert
         assertEquals(20L, VestaDatabase.Schema.version)
-        assertNotNull(migrated.syncEventQueries.findOpen("h1", "pantry", "peer-1", "sent", 0L).awaitAsOneOrNull())
+        assertNotNull(migrated.syncEventQueries.findOpen("h1", "pantry", "peer-1", "sent", null, 0L).awaitAsOneOrNull())
         assertEquals(100L, migrated.peerSyncQueries.selectByAgent("peer-1").awaitAsOneOrNull()?.lastSyncedAt)
     }
 }

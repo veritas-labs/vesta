@@ -58,7 +58,7 @@ internal fun moduleOfDocumentId(documentId: String): String? =
 /**
  * Keeps the Sync activity log (docs/adr/ADR-033-sync-activity.md): a content-free, local record of what moved between this
  * device and others, per Home. Events are buffered in memory and written by [flush], which the sync service calls at the end
- * of each round. The same event (Home, module, peer and kind) within five minutes of the last one is not a new row but a
+ * of each round. The same event (Home, module, peer, kind and detail) within five minutes of the last one is not a new row but a
  * higher `count` on it, so a busy hour is a handful of rows rather than thousands.
  *
  * Recording must never fail a sync: every method swallows its own failures (cancellation aside), and a failed [flush]
@@ -76,7 +76,7 @@ class SyncEventRecorder(
         val kind: String,
         val at: Long,
         var lastAt: Long,
-        var detail: String?,
+        val detail: String?,
         var count: Long,
     )
 
@@ -140,26 +140,36 @@ class SyncEventRecorder(
     suspend fun flush() {
         try {
             val events = lock.withLock { buffer.toList().also { buffer.clear() } }
-            events.forEach { event ->
-                val open = database.syncEventQueries.findOpen(
-                    homeId = event.homeId,
-                    module = event.module,
-                    peerAgent = event.peer,
-                    kind = event.kind,
-                    since = event.at - CollapseWindowMillis,
-                ).awaitAsOneOrNull()
-                if (open == null) {
-                    database.syncEventQueries.insert(
-                        event.homeId, event.at, event.lastAt, event.kind, event.module, event.peer, event.detail, event.count,
-                    )
-                } else {
-                    database.syncEventQueries.bump(maxOf(open.lastAt, event.lastAt), open.count + event.count, open.id)
-                }
-            }
+            events.forEach { event -> write(event) }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
             // The events that were being written are dropped; the log is a courtesy, not a record of truth.
+        }
+    }
+
+    /** Writes one event; a failure (a Home deleted since, say) drops only that event, not the rest of the batch. */
+    private suspend fun write(event: Pending) {
+        try {
+            val open = database.syncEventQueries.findOpen(
+                homeId = event.homeId,
+                module = event.module,
+                peerAgent = event.peer,
+                kind = event.kind,
+                detail = event.detail,
+                since = event.at - CollapseWindowMillis,
+            ).awaitAsOneOrNull()
+            if (open == null) {
+                database.syncEventQueries.insert(
+                    event.homeId, event.at, event.lastAt, event.kind, event.module, event.peer, event.detail, event.count,
+                )
+            } else {
+                database.syncEventQueries.bump(maxOf(open.lastAt, event.lastAt), open.count + event.count, open.id)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // This event is dropped; the log is a courtesy, not a record of truth.
         }
     }
 
@@ -191,7 +201,7 @@ class SyncEventRecorder(
             val now = nowMillis()
             lock.withLock {
                 val same = buffer.lastOrNull {
-                    it.homeId == homeId && it.module == module && it.peer == peer && it.kind == kind &&
+                    it.homeId == homeId && it.module == module && it.peer == peer && it.kind == kind && it.detail == detail &&
                         now - it.lastAt < CollapseWindowMillis
                 }
                 if (same == null) {
@@ -199,7 +209,6 @@ class SyncEventRecorder(
                 } else {
                     same.lastAt = now
                     same.count++
-                    detail?.let { same.detail = it }
                 }
             }
         } catch (e: CancellationException) {

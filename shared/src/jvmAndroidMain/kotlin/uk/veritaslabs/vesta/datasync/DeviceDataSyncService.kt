@@ -48,6 +48,7 @@ import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.profile.ProfileChangeListener
 import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
@@ -94,6 +95,7 @@ class DeviceDataSyncService(
     private val peerBackoff: Duration = 2.minutes,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
     private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
+    activityRefresh: Duration = 20.seconds,
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, pantrySources)
@@ -106,6 +108,7 @@ class DeviceDataSyncService(
         override suspend fun deleted(id: String) {
             registry.deleted(id)
             recorder.forgetHome(id)
+            changesWaiting.forget(id)
         }
     }
     private val join = HomeJoinService(client, database, rosters, homeListener, profiles, recorder = recorder)
@@ -113,6 +116,23 @@ class DeviceDataSyncService(
     private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources, mealPlanSources, calendarSources, taskSources)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
     private val mailboxReader = MailboxReader(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
+
+    private val acknowledgement = SyncAcknowledgement(rosters, pantrySources, shoppingSources, cookbookSources, merchantsSources, mealPlanSources, calendarSources, taskSources)
+
+    private val activityFacts = SyncActivityFacts()
+
+    /** Whether each Home has changes no other device has acknowledged (ADR-033); see [ChangesWaiting] for when it is worked out. */
+    private val changesWaiting = ChangesWaiting(
+        database,
+        sharedDocumentIds = { mailboxDocuments.documentIds(it) },
+        targets = { homeId ->
+            val self = self()
+            val paired = devices.agentIds() - setOfNotNull(self)
+            val members = rosters.devices(homeId).values.flatten()
+            SyncTargets(shared = (paired + members - setOfNotNull(self)).isNotEmpty() || rosters.hubs(homeId).isNotEmpty(), own = paired.isNotEmpty())
+        },
+        heads = { homeId, documentId -> headsOf(homeId, documentId) },
+    )
 
     /**
      * Peers a direct message recently failed to reach, by agent id and the time until which they are left alone. x0xd waits about
@@ -124,6 +144,11 @@ class DeviceDataSyncService(
 
     /** When a sync message last passed between this device and each peer, in [nowMillis] time. */
     private val lastSynced = ConcurrentHashMap<String, Long>()
+
+    override val syncActivity: SyncActivityRepository = SyncActivityService(
+        database, recorder, rosters, profiles, devices, activityFacts, changesWaiting, lastSynced, peerDownUntil,
+        selfAgent = { self() }, requestSync = { syncNow() }, nowMillis = nowMillis, refreshInterval = activityRefresh,
+    )
 
     override suspend fun agentDetails(homeId: String, agentId: String): AgentDetails {
         val discovered = runCatching { client.getDiscoveredAgent(agentId) }.getOrNull()
@@ -240,6 +265,8 @@ class DeviceDataSyncService(
         // at the next round. The timer stays as the fallback, as presence events can be late or missed.
         launch {
             X0xEventHub(client).presence.collect { event ->
+                activityFacts.online[event.agentId] = event.isOnline
+                activityFacts.notifyChanged()
                 if (event.isOnline) {
                     launch { attempt { syncMailboxes() } }
                     attempt { syncWith(event.agentId) }
@@ -257,13 +284,22 @@ class DeviceDataSyncService(
      * One full round: the direct-message sync, and with it the mailboxes. The mailboxes start at once, not after the direct-message
      * sync, which can spend a long time on peers that do not answer; they run again when it is done, for stores it just opened.
      */
-    private suspend fun round() = coroutineScope {
-        launch { attempt { syncMailboxes() } }
-        attempt { syncEverything() }
-        attempt { syncMailboxes() }
-        attempt {
-            recorder.prune(nowMillis())
-            recorder.flush()
+    private suspend fun round() {
+        activityFacts.roundStarted(daemonReachable = runCatching { client.agent() }.isSuccess)
+        try {
+            coroutineScope {
+                launch { attempt { syncMailboxes() } }
+                attempt { syncEverything() }
+                attempt { syncMailboxes() }
+                attempt {
+                    recorder.prune(nowMillis())
+                    recorder.flush()
+                }
+                // Now, with the sync states whole again, not while syncEverything was clearing and refilling them.
+                attempt { refreshChangesWaiting() }
+            }
+        } finally {
+            activityFacts.roundEnded(nowMillis())
         }
     }
 
@@ -311,14 +347,36 @@ class DeviceDataSyncService(
         syncFrom(message)
     }
 
-    private suspend fun syncFrom(message: X0xDirectMessage) = lock.withLock {
-        if (message.verified != true) return@withLock
-        val sender = message.sender ?: return@withLock
-        val bytes = message.payload?.let { runCatching { Base64.Default.decode(it) }.getOrNull() } ?: return@withLock
-        val envelope = SyncEnvelope.decode(bytes) ?: return@withLock
-        if (sender !in peersFor(envelope.documentId)) return@withLock
-        receive(sender, envelope.documentId, envelope.message)
-        noteSynced(sender)
+    private suspend fun syncFrom(message: X0xDirectMessage) {
+        // What the peers have acknowledged is read inside the lock, where the sync states are consistent; it needs no I/O.
+        val acknowledged = lock.withLock {
+            if (message.verified != true) return@withLock null
+            val sender = message.sender ?: return@withLock null
+            val bytes = message.payload?.let { runCatching { Base64.Default.decode(it) }.getOrNull() } ?: return@withLock null
+            val envelope = SyncEnvelope.decode(bytes) ?: return@withLock null
+            if (sender !in peersFor(envelope.documentId)) return@withLock null
+            receive(sender, envelope.documentId, envelope.message)
+            noteSynced(sender)
+            activityFacts.online[sender] = true
+            activityHomeId(envelope.documentId)?.let { it to acknowledgedDocuments(it) }
+        }
+        acknowledged?.let { (homeId, documents) -> attempt { changesWaiting.update(homeId, documents) } }
+        activityFacts.notifyChanged()
+    }
+
+    /** The ids of [homeId]'s documents that some peer's sync state reports in sync. Call it holding [lock]; it reads memory only. */
+    private suspend fun acknowledgedDocuments(homeId: String): Set<String> {
+        val ids = mailboxDocuments.documentIds(homeId) + changesWaiting.privateDocumentIds(homeId)
+        return ids.filterTo(mutableSetOf()) { id ->
+            states.any { (key, state) -> key.first == id && acknowledgement.isInSync(homeId, id, state) }
+        }
+    }
+
+    /** Works out [ChangesWaiting] for every Home. Call it holding no lock: the sync states are read under it, the rest is not. */
+    private suspend fun refreshChangesWaiting() {
+        val homes = database.homeQueries.selectAll().awaitAsList().map { it.id }
+        val acknowledged = lock.withLock { homes.associateWith { acknowledgedDocuments(it) } }
+        acknowledged.forEach { (homeId, documents) -> attempt { changesWaiting.update(homeId, documents) } }
     }
 
     private var selfAgent: String? = null
@@ -376,6 +434,7 @@ class DeviceDataSyncService(
         connected.remove(peer)
         shared.forEach { pump(it, peer) }
         recorder.flush()
+        activityFacts.notifyChanged()
     }
 
     private val syncRequests = Channel<Unit>(Channel.CONFLATED)
@@ -388,8 +447,14 @@ class DeviceDataSyncService(
         syncRequests.trySend(Unit)
     }
 
-    private suspend fun syncDocument(documentId: String) = lock.withLock {
-        peersFor(documentId).forEach { pump(documentId, it) }
+    private suspend fun syncDocument(documentId: String) {
+        // A local change just made the document newer than anything a peer acknowledged. This does not clear the states, so it is safe to read them.
+        val acknowledged = lock.withLock {
+            peersFor(documentId).forEach { pump(documentId, it) }
+            activityHomeId(documentId)?.let { it to acknowledgedDocuments(it) }
+        }
+        acknowledged?.let { (homeId, documents) -> attempt { changesWaiting.update(homeId, documents) } }
+        activityFacts.notifyChanged()
     }
 
     private suspend fun documentIds(): List<String> =
@@ -528,6 +593,7 @@ class DeviceDataSyncService(
             states.keys.removeAll { it.second == peer }
             connected.remove(peer)
             peerDownUntil[peer] = nowMillis() + peerBackoff.inWholeMilliseconds
+            activityFacts.online[peer] = false
             noteFailed(documentId, peer)
         }
     }
@@ -554,7 +620,9 @@ class DeviceDataSyncService(
     }
 
     private suspend fun noteFailed(documentId: String, peer: String) {
-        val homeId = activityHomeId(documentId) ?: return
+        val homeId = activityHomeId(documentId)
+        activityFacts.sendFailed(homeId)
+        if (homeId == null) return
         moduleOfDocumentId(documentId)?.let { recorder.failed(homeId, it, peer, "unreachable") }
     }
 

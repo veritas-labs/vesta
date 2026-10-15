@@ -175,6 +175,39 @@ class SyncEventRecorderTest {
     }
 
     @Test
+    fun `one event that cannot be written does not drop the rest of the batch`() = runBlocking {
+        // Arrange
+        val database = newDatabase()
+        val recorder = recorder(database)
+        recorder.received("home", SyncModules.Pantry, "first")
+        recorder.received("gone", SyncModules.Pantry, "orphan")
+        recorder.received("home", SyncModules.Shopping, "last")
+
+        // Act
+        recorder.flush()
+
+        // Assert
+        assertEquals(setOf("first", "last"), rows(database).mapNotNull { it.peerAgent }.toSet())
+    }
+
+    @Test
+    fun `events that differ only in detail do not fold`() = runBlocking {
+        // Arrange
+        val database = newDatabase()
+        val recorder = recorder(database)
+        recorder.membership("home", "peer", "removed")
+        recorder.flush()
+
+        // Act
+        recorder.membership("home", "peer", "acknowledged")
+        recorder.membership("home", "peer", "acknowledged")
+        recorder.flush()
+
+        // Assert
+        assertEquals(setOf("removed" to 1L, "acknowledged" to 2L), rows(database).map { it.detail to it.count }.toSet())
+    }
+
+    @Test
     fun `prune removes rows older than seven days and keeps newer ones`() = runBlocking {
         // Arrange
         val database = newDatabase()

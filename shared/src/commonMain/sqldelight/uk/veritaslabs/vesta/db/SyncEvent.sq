@@ -25,7 +25,7 @@ SELECT * FROM SyncEvent WHERE homeId = ? AND kind = ? AND lastAt < ? ORDER BY la
 
 findOpen:
 SELECT * FROM SyncEvent
-WHERE homeId = :homeId AND module = :module AND peerAgent IS :peerAgent AND kind = :kind AND lastAt >= :since
+WHERE homeId = :homeId AND module = :module AND peerAgent IS :peerAgent AND kind = :kind AND detail IS :detail AND lastAt >= :since
 ORDER BY lastAt DESC, id DESC LIMIT 1;
 
 bump:

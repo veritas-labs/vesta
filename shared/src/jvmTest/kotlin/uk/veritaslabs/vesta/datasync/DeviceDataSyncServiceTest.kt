@@ -1352,13 +1352,13 @@ class DeviceDataSyncServiceTest {
 
         // Act
         members.removeMember(homeId, y.profiles.current().id)
-        eventually { x.activity(homeId).any { it.kind == "membership" && it.count >= 2 } }
+        eventually { x.activity(homeId).any { it.kind == "membership" && it.detail == "acknowledged" } }
 
-        // Assert: the removal and the acknowledgement of it are the same kind of event with the same device, so they fold into one row
-        val row = x.activity(homeId).single { it.kind == "membership" }
-        assertEquals("agent-y", row.peerAgent)
-        assertEquals(2L, row.count)
-        assertEquals("acknowledged", row.detail)
+        // Assert: the removal and the acknowledgement of it are separate rows for the same device
+        val rows = x.activity(homeId).filter { it.kind == "membership" }
+        assertEquals(setOf("agent-y"), rows.mapNotNull { it.peerAgent }.toSet())
+        assertEquals(setOf("removed", "acknowledged"), rows.mapNotNull { it.detail }.toSet())
+        assertEquals(listOf(1L, 1L), rows.map { it.count })
         scope.cancel()
     }
 
