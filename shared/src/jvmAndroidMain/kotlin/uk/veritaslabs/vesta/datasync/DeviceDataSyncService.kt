@@ -58,6 +58,8 @@ import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
 
+/** The engine's send order for a Home's non-roster documents (the roster goes last); see [DeviceDataSyncService.documentIds]. */
+private val SyncOrder = listOf("pantry", "shopping-list", "cookbook", "merchants", "mealplan", "calendar", "private-calendar", "tasks", "private-tasks")
 private const val PantrySuffix = ":pantry"
 private const val RosterSuffix = ":roster"
 private const val ShoppingListSuffix = ":shopping-list"
@@ -382,7 +384,7 @@ class DeviceDataSyncService(
     /** Notes a document id this version doesn't know, from a peer of the Home it names (`<home id>:<document type>`), as needing a newer Vesta. */
     private suspend fun recordUnknownDocument(sender: String, documentId: String) {
         if (documentId == HomeRegistryDocumentId || documentId == ProfileDocumentId) return
-        if (documentId.endsWith(PrivateCalendarSuffix) || documentId.endsWith(PrivateTasksSuffix) || homeIdOf(documentId) != null) return
+        if (documentRegistry.parse(documentId) != null) return
         val homeId = documentId.substringBeforeLast(':', "").takeIf { it.isNotEmpty() } ?: return
         if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) return
         if (sender !in peersFor(pantryDocumentId(homeId))) return
@@ -433,7 +435,7 @@ class DeviceDataSyncService(
      */
     private suspend fun peersFor(documentId: String): Set<String> {
         val paired = devices.agentIds()
-        val homeId = homeIdOf(documentId) ?: return paired
+        val homeId = homeIdOf(documentId) ?: return paired // a private type or a non-Home document: the user's own devices only
         val members = rosters.devices(homeId).values.flatten()
         return (paired + members) - setOfNotNull(self())
     }
@@ -441,17 +443,9 @@ class DeviceDataSyncService(
     /** The same devices [homeId]'s cookbook syncs with, so a photo reaches whoever can see the recipe that shows it. */
     override suspend fun blobPeers(homeId: String): Set<String> = peersFor(cookbookDocumentId(homeId))
 
-    private fun homeIdOf(documentId: String): String? = when {
-        documentId.endsWith(PantrySuffix) -> documentId.removeSuffix(PantrySuffix)
-        documentId.endsWith(RosterSuffix) -> documentId.removeSuffix(RosterSuffix)
-        documentId.endsWith(ShoppingListSuffix) -> documentId.removeSuffix(ShoppingListSuffix)
-        documentId.endsWith(CookbookSuffix) -> documentId.removeSuffix(CookbookSuffix)
-        documentId.endsWith(MerchantsSuffix) -> documentId.removeSuffix(MerchantsSuffix)
-        documentId.endsWith(MealPlanSuffix) -> documentId.removeSuffix(MealPlanSuffix)
-        documentId.endsWith(CalendarSuffix) -> documentId.removeSuffix(CalendarSuffix)
-        documentId.endsWith(TasksSuffix) -> documentId.removeSuffix(TasksSuffix)
-        else -> null
-    }
+    /** The Home a shared document belongs to; null for a private type's document and for anything the registry doesn't know. */
+    private fun homeIdOf(documentId: String): String? =
+        documentRegistry.parse(documentId)?.takeIf { it.type.scope == Scope.Shared }?.homeId
 
     /**
      * Syncs every document with its peers ([peersFor]), starting each peer's sync over. Automerge's sync state assumes
@@ -502,7 +496,16 @@ class DeviceDataSyncService(
 
     private suspend fun documentIds(): List<String> =
         listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
-            .flatMap { listOf(pantryDocumentId(it.id), shoppingListDocumentId(it.id), cookbookDocumentId(it.id), merchantsDocumentId(it.id), mealPlanDocumentId(it.id), calendarDocumentId(it.id), privateCalendarDocumentId(it.id), tasksDocumentId(it.id), privateTasksDocumentId(it.id), rosterDocumentId(it.id)) }
+            .flatMap { home -> documentRegistry.documentIds(home.id).sortedBy { syncOrderOf(it) } }
+
+    /**
+     * The order a Home's documents are sent in, with the roster last. It is the engine's own and is deliberately not the registry's
+     * (roster first, private types last) nor the mailbox's; a type not listed here goes after the listed ones, in registry order.
+     */
+    private fun syncOrderOf(documentId: String): Int = when (val feature = documentRegistry.parse(documentId)?.type?.feature) {
+        "roster" -> Int.MAX_VALUE
+        else -> SyncOrder.indexOf(feature).takeIf { it >= 0 } ?: SyncOrder.size
+    }
 
     private suspend fun receive(sender: String, documentId: String, message: ByteArray) {
         if (documentId == HomeRegistryDocumentId) {
@@ -650,12 +653,7 @@ class DeviceDataSyncService(
     // The Sync activity log (ADR-033) records Home documents only; the registry and Profile belong to no Home. Recording never
     // changes a sync result: the recorder swallows its own failures, and reading heads is guarded here the same way.
 
-    private fun activityHomeId(documentId: String): String? = when {
-        documentRegistry.moduleOf(documentId) == null -> null
-        documentId.endsWith(PrivateCalendarSuffix) -> documentId.removeSuffix(PrivateCalendarSuffix)
-        documentId.endsWith(PrivateTasksSuffix) -> documentId.removeSuffix(PrivateTasksSuffix)
-        else -> homeIdOf(documentId)
-    }
+    private fun activityHomeId(documentId: String): String? = documentRegistry.parse(documentId)?.homeId
 
     private suspend fun noteSent(documentId: String, peer: String) {
         val homeId = activityHomeId(documentId) ?: return
@@ -671,11 +669,7 @@ class DeviceDataSyncService(
 
     /** The heads of a Home document, or null for anything else, a Home this device doesn't have yet, or a failed read. */
     private suspend fun headsOf(homeId: String, documentId: String): ByteArray? = try {
-        when {
-            documentId.endsWith(PrivateCalendarSuffix) -> calendarSources.privateForHome(homeId)?.heads()
-            documentId.endsWith(PrivateTasksSuffix) -> taskSources.privateForHome(homeId)?.heads()
-            else -> mailboxDocuments.open(homeId, documentId)?.heads()
-        }
+        documentRegistry.open(homeId, documentId)?.heads()
     } catch (e: CancellationException) {
         throw e
     } catch (_: Exception) {
