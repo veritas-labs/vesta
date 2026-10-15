@@ -5,6 +5,8 @@ import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.vesta.profile.ProfileChangeListener
 import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
+import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
+import uk.veritaslabs.vesta.syncactivity.UnavailableSyncActivityRepository
 
 /**
  * What is known about one x0x agent. Each field is null when unknown: [name] is what the device calls itself, as the Home's roster says; [machineId] and [lastSeenMsAgo] come from x0x's discovery
@@ -54,6 +56,9 @@ interface DeviceDataSync {
 
     /** The devices [homeId]'s photos (blobs, ADR-023) move between: its roster's devices and the user's own, this one not among them. Empty where there is no document layer. */
     suspend fun blobPeers(homeId: String): Set<String> = emptySet()
+
+    /** What the Sync activity screen shows (docs/adr/ADR-033-sync-activity.md). The stand-in where there is no sync service. */
+    val syncActivity: SyncActivityRepository get() = UnavailableSyncActivityRepository
 
     /** Asks for a sync round now, e.g. because the app came to the foreground. Returns at once; does nothing until [run] is running. */
     fun syncNow()
