@@ -34,7 +34,7 @@ internal class HomeDocumentRegistry(val types: List<HomeDocumentType>) {
 
     /** The ids of the Home's documents, in registration order, optionally only those of one [scope]. */
     fun documentIds(homeId: String, scope: Scope? = null): List<String> =
-        types.filter { scope == null || it.scope == scope }.map { "$homeId:${it.feature}" }
+        types.filter { scope == null || it.scope == scope }.map { it.documentId(homeId) }
 
     /** Opens [documentId] of the Home [homeId], or null when it is not a registered type's id or the document is absent. */
     suspend fun open(homeId: String, documentId: String): HomeDocument? =

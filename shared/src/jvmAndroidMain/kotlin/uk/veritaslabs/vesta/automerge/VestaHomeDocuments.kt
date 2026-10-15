@@ -20,20 +20,35 @@ internal class VestaHomeDocuments(
     database: VestaDatabase,
     val rosters: HomeRosters,
     publishRosters: suspend () -> Unit,
-    val pantries: PantrySources = PantrySources(database),
-    val shoppingLists: ShoppingListSources = ShoppingListSources(database, pantries),
-    val cookbooks: CookbookSources = CookbookSources(database),
-    val merchants: MerchantsSources = MerchantsSources(database),
-    val mealPlans: MealPlanSources = MealPlanSources(database),
-    val calendars: CalendarSources = CalendarSources(database),
-    val tasks: TaskSources = TaskSources(database),
+    val sources: VestaHomeSources = VestaHomeSources(database),
 ) {
+    constructor(
+        database: VestaDatabase,
+        rosters: HomeRosters,
+        publishRosters: suspend () -> Unit,
+        pantries: PantrySources = PantrySources(database),
+        shoppingLists: ShoppingListSources = ShoppingListSources(database, pantries),
+        cookbooks: CookbookSources = CookbookSources(database),
+        merchants: MerchantsSources = MerchantsSources(database),
+        mealPlans: MealPlanSources = MealPlanSources(database),
+        calendars: CalendarSources = CalendarSources(database),
+        tasks: TaskSources = TaskSources(database),
+    ) : this(database, rosters, publishRosters, VestaHomeSources(database, pantries, shoppingLists, cookbooks, merchants, mealPlans, calendars, tasks))
+
+    val pantries get() = sources.pantries
+    val shoppingLists get() = sources.shoppingLists
+    val cookbooks get() = sources.cookbooks
+    val merchants get() = sources.merchants
+    val mealPlans get() = sources.mealPlans
+    val calendars get() = sources.calendars
+    val tasks get() = sources.tasks
+
     val registry = HomeDocumentRegistry(
         listOf(
             HomeDocumentType(
                 "roster", SyncModules.Members, Scope.Shared, rosters::homeDocument, rosters.changes,
                 afterReceive = { homeId -> rosters.project(homeId) },
-                afterSync = { publishRosters() },
+                afterSync = { publishRosters() }, resyncsHome = true,
             ),
             HomeDocumentType("pantry", SyncModules.Pantry, Scope.Shared, pantries::forHome, pantries.localChanges),
             HomeDocumentType("shopping-list", SyncModules.Shopping, Scope.Shared, shoppingLists::forHome, shoppingLists.localChanges),
@@ -47,3 +62,18 @@ internal class VestaHomeDocuments(
         ),
     )
 }
+
+/**
+ * The per-feature sources of one database: the single object the apps and the sync engine share, so a screen, an agent
+ * command and the sync all edit the same Automerge documents. Public because the apps build it.
+ */
+class VestaHomeSources(
+    database: VestaDatabase,
+    val pantries: PantrySources = PantrySources(database),
+    val shoppingLists: ShoppingListSources = ShoppingListSources(database, pantries),
+    val cookbooks: CookbookSources = CookbookSources(database),
+    val merchants: MerchantsSources = MerchantsSources(database),
+    val mealPlans: MealPlanSources = MealPlanSources(database),
+    val calendars: CalendarSources = CalendarSources(database),
+    val tasks: TaskSources = TaskSources(database),
+)

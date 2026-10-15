@@ -20,6 +20,7 @@ import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
@@ -35,13 +36,7 @@ class AgentCommandService(
     private val allowlist: AgentAllowlist = EnvAgentAllowlist(),
     private val createClient: () -> X0xClient = ::createX0xClient,
 ) {
-    private var current: Pair<VestaDatabase, PantrySources>? = null
-    private var currentShopping: Pair<VestaDatabase, ShoppingListSources>? = null
-    private var currentCookbook: Pair<VestaDatabase, CookbookSources>? = null
-    private var currentCalendars: Pair<VestaDatabase, CalendarSources>? = null
-    private var currentTasks: Pair<VestaDatabase, TaskSources>? = null
-    private var currentMealPlans: Pair<VestaDatabase, MealPlanSources>? = null
-    private var currentMerchants: Pair<VestaDatabase, MerchantsSources>? = null
+    private var currentSources: Pair<VestaDatabase, VestaHomeSources>? = null
     private var currentAssistants: Pair<VestaDatabase, AssistantRepository>? = null
 
     /**
@@ -53,64 +48,49 @@ class AgentCommandService(
         currentAssistants?.takeIf { it.first === database }?.second
             ?: AssistantRepository(database, allowlist).also { currentAssistants = database to it }
 
-    /** The shared Pantry sources of [database]. */
+    /** The one set of per-Home document sources of [database], shared by the UI, the agent commands and the sync. */
     @Synchronized
-    fun pantrySources(database: VestaDatabase): PantrySources =
-        current?.takeIf { it.first === database }?.second
-            ?: PantrySources(database).also { current = database to it }
+    fun homeSources(database: VestaDatabase): VestaHomeSources =
+        currentSources?.takeIf { it.first === database }?.second
+            ?: VestaHomeSources(database).also { currentSources = database to it }
+
+    /** The shared Pantry sources of [database]. */
+    fun pantrySources(database: VestaDatabase): PantrySources = homeSources(database).pantries
 
     /** [homeId]'s shared Pantry source, for the UI; the Home must exist. */
     suspend fun pantry(database: VestaDatabase, homeId: String): PantryDocumentSource =
         checkNotNull(pantrySources(database).forHome(homeId)) { "no Home with id $homeId" }
 
     /** The shared shopping-list sources of [database]. */
-    fun shoppingListSources(database: VestaDatabase): ShoppingListSources {
-        val pantry = pantrySources(database)
-        return synchronized(this) {
-            currentShopping?.takeIf { it.first === database }?.second
-                ?: ShoppingListSources(database, pantry).also { currentShopping = database to it }
-        }
-    }
+    fun shoppingListSources(database: VestaDatabase): ShoppingListSources = homeSources(database).shoppingLists
 
     /** [homeId]'s shared shopping-list source, for the UI; the Home must exist. */
     suspend fun shoppingList(database: VestaDatabase, homeId: String): ShoppingListDocumentSource =
         checkNotNull(shoppingListSources(database).forHome(homeId)) { "no Home with id $homeId" }
 
     /** The shared cookbook sources of [database]. */
-    @Synchronized
-    fun cookbookSources(database: VestaDatabase): CookbookSources =
-        currentCookbook?.takeIf { it.first === database }?.second
-            ?: CookbookSources(database).also { currentCookbook = database to it }
+    fun cookbookSources(database: VestaDatabase): CookbookSources = homeSources(database).cookbooks
 
     /** [homeId]'s shared cookbook source, for the UI; the Home must exist. */
     suspend fun cookbook(database: VestaDatabase, homeId: String): CookbookDocumentSource =
         checkNotNull(cookbookSources(database).forHome(homeId)) { "no Home with id $homeId" }
 
     /** The shared merchants sources of [database]. */
-    @Synchronized
-    fun merchantsSources(database: VestaDatabase): MerchantsSources =
-        currentMerchants?.takeIf { it.first === database }?.second
-            ?: MerchantsSources(database).also { currentMerchants = database to it }
+    fun merchantsSources(database: VestaDatabase): MerchantsSources = homeSources(database).merchants
 
     /** [homeId]'s shared merchants source, for the UI; the Home must exist. */
     suspend fun merchants(database: VestaDatabase, homeId: String): MerchantsDocumentSource =
         checkNotNull(merchantsSources(database).forHome(homeId)) { "no Home with id $homeId" }
 
     /** The shared meal plan sources of [database]. */
-    @Synchronized
-    fun mealPlanSources(database: VestaDatabase): MealPlanSources =
-        currentMealPlans?.takeIf { it.first === database }?.second
-            ?: MealPlanSources(database).also { currentMealPlans = database to it }
+    fun mealPlanSources(database: VestaDatabase): MealPlanSources = homeSources(database).mealPlans
 
     /** [homeId]'s shared meal plan source, for the UI; the Home must exist. */
     suspend fun mealPlan(database: VestaDatabase, homeId: String): MealPlanDocumentSource =
         checkNotNull(mealPlanSources(database).forHome(homeId)) { "no Home with id $homeId" }
 
     /** The shared calendar sources of [database]. */
-    @Synchronized
-    fun calendarSources(database: VestaDatabase): CalendarSources =
-        currentCalendars?.takeIf { it.first === database }?.second
-            ?: CalendarSources(database).also { currentCalendars = database to it }
+    fun calendarSources(database: VestaDatabase): CalendarSources = homeSources(database).calendars
 
     /** [homeId]'s shared calendar source, for the UI; the Home must exist. */
     suspend fun calendar(database: VestaDatabase, homeId: String): CalendarDocumentSource =
@@ -121,10 +101,7 @@ class AgentCommandService(
         checkNotNull(calendarSources(database).privateForHome(homeId)) { "no Home with id $homeId" }
 
     /** The shared task sources of [database] (ADR-031). */
-    @Synchronized
-    fun taskSources(database: VestaDatabase): TaskSources =
-        currentTasks?.takeIf { it.first === database }?.second
-            ?: TaskSources(database).also { currentTasks = database to it }
+    fun taskSources(database: VestaDatabase): TaskSources = homeSources(database).tasks
 
     /** [homeId]'s shared tasks source, for the UI; the Home must exist. */
     suspend fun tasks(database: VestaDatabase, homeId: String): TaskDocumentSource =

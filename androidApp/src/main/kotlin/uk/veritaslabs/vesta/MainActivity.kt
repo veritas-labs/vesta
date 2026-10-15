@@ -42,11 +42,7 @@ class MainActivity : ComponentActivity() {
                 openTasks = { database, homeId -> agentCommands.tasks(database, homeId) },
                 openPrivateTasks = { database, homeId -> agentCommands.privateTasks(database, homeId) },
                 dataSync = { database, client, devices ->
-                    DeviceDataSyncService(
-                        client, database, devices, agentCommands.pantrySources(database), agentCommands.shoppingListSources(database),
-                        agentCommands.cookbookSources(database), agentCommands.merchantsSources(database),
-                        agentCommands.mealPlanSources(database), agentCommands.calendarSources(database), agentCommands.taskSources(database),
-                    )
+                    DeviceDataSyncService(client, database, devices, agentCommands.homeSources(database))
                 },
                 blobRuntime = { database, client, sync ->
                     DeviceBlobRuntime(

@@ -23,6 +23,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.io.encoding.Base64
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.automerge.CalendarSources
 import uk.veritaslabs.vesta.automerge.TaskSources
 import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
@@ -99,7 +100,7 @@ class DeviceDataSyncServiceTest {
         /** The id of every document a sync message has reached this device for. */
         val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
-            node, database, devices, pantries, shopping, cookbook, merchants, mealPlans, calendars, taskSources = tasks, interval = interval,
+            node, database, devices, VestaHomeSources(database, pantries, shopping, cookbook, merchants, mealPlans, calendars, tasks), interval = interval,
             peerBackoff = peerBackoff,
             recorder = if (brokenRecorder) SyncEventRecorder(database, nowMillis = { error("the clock is broken") }) else SyncEventRecorder(database),
         )
@@ -1381,7 +1382,7 @@ class DeviceDataSyncServiceTest {
         eventually { a.database.peerSyncQueries.selectByAgent("agent-b").awaitAsOneOrNull() != null }
 
         // Act
-        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, a.pantries) // never started: no in-memory times
+        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, VestaHomeSources(a.database, a.pantries)) // never started: no in-memory times
         val details = fresh.agentDetails(homeId, "agent-b")
 
         // Assert

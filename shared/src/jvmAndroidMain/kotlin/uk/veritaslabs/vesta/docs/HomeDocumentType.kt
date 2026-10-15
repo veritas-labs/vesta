@@ -26,6 +26,8 @@ internal enum class Scope {
  * messages that arrived before their Home (the roster projects its members).
  * @property afterSync runs once such a message, received live, has been applied and recorded, before the sender is answered; it is
  * not run for a replayed one (the roster publishes this device's own member and devices).
+ * @property resyncsHome true when an edit to this type changes who the Home's documents go to (the roster), so the engine also
+ * syncs every other shared document of that Home after it.
  */
 internal class HomeDocumentType(
     val feature: String,
@@ -35,4 +37,8 @@ internal class HomeDocumentType(
     val localChanges: Flow<String>,
     val afterReceive: suspend (homeId: String) -> Unit = {},
     val afterSync: suspend (homeId: String) -> Unit = {},
-)
+    val resyncsHome: Boolean = false,
+) {
+    /** This type's document id in [homeId]. */
+    fun documentId(homeId: String): String = "$homeId:$feature"
+}

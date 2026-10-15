@@ -17,27 +17,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.automerge.CalendarSources
-import uk.veritaslabs.vesta.automerge.TaskSources
 import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.docs.Scope
-import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
-import uk.veritaslabs.vesta.automerge.tasksDocumentId
-import uk.veritaslabs.vesta.automerge.CookbookSources
-import uk.veritaslabs.vesta.automerge.MealPlanSources
-import uk.veritaslabs.vesta.automerge.MerchantsSources
-import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
-import uk.veritaslabs.vesta.automerge.calendarDocumentId
-import uk.veritaslabs.vesta.automerge.mealPlanDocumentId
-import uk.veritaslabs.vesta.automerge.merchantsDocumentId
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
-import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
-import uk.veritaslabs.vesta.automerge.ShoppingListSources
-import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.automerge.cookbookDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
-import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.AgentDetails
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
@@ -91,13 +77,7 @@ class DeviceDataSyncService(
     private val client: X0xClient,
     private val database: VestaDatabase,
     private val devices: SyncedDeviceRepository,
-    private val pantrySources: PantrySources,
-    private val shoppingSources: ShoppingListSources = ShoppingListSources(database, pantrySources),
-    private val cookbookSources: CookbookSources = CookbookSources(database),
-    private val merchantsSources: MerchantsSources = MerchantsSources(database),
-    private val mealPlanSources: MealPlanSources = MealPlanSources(database),
-    private val calendarSources: CalendarSources = CalendarSources(database),
-    private val taskSources: TaskSources = TaskSources(database),
+    documents: VestaHomeSources = VestaHomeSources(database),
     private val interval: Duration = 30.seconds,
     private val peerBackoff: Duration = 2.minutes,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
@@ -105,7 +85,7 @@ class DeviceDataSyncService(
     activityRefresh: Duration = 20.seconds,
 ) : DeviceDataSync {
 
-    private val registry = HomeRegistry(database, pantrySources)
+    private val registry = HomeRegistry(database, documents.pantries)
     private val profiles = ProfileRepository(database)
     private val profile = ProfileRegistry(database, profiles)
     private val rosters = HomeRosters(database, profiles)
@@ -121,12 +101,8 @@ class DeviceDataSyncService(
     private val join = HomeJoinService(client, database, rosters, homeListener, profiles, recorder = recorder)
     private val groups = HomeGroups(client, database, rosters, profiles)
 
-    /** The one list of Home document types, built from the sources this service was given; the acknowledgement, activity module and private-id lookups go through it. */
-    private val homeDocuments = VestaHomeDocuments(
-        database, rosters, publishRosters = { publishRosters() },
-        pantries = pantrySources, shoppingLists = shoppingSources, cookbooks = cookbookSources, merchants = merchantsSources,
-        mealPlans = mealPlanSources, calendars = calendarSources, tasks = taskSources,
-    )
+    /** The one list of Home document types, built from the [documents] this service was given; the acknowledgement, activity module and private-id lookups go through it. */
+    private val homeDocuments = VestaHomeDocuments(database, rosters, publishRosters = { publishRosters() }, sources = documents)
     private val documentRegistry = homeDocuments.registry
     private val mailboxDocuments = HomeMailboxDocuments(documentRegistry)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
@@ -214,67 +190,22 @@ class DeviceDataSyncService(
         launch { X0xEventHub(client).directMessages.collect { message -> launch { attempt { handle(message) } } } }
         launch { registry.changes.collect { attempt { syncDocument(HomeRegistryDocumentId) } } }
         launch { registry.changes.collect { attempt { publishRosters() } } }
-        launch {
-            // A roster change can add a device to a Home's peers, which then needs everything the Home has.
-            rosters.changes.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, rosterDocumentId(homeId)) } } // not behind sends to absent peers
-                attempt { syncDocument(rosterDocumentId(homeId)) }
-                attempt { syncDocument(pantryDocumentId(homeId)) }
-                attempt { syncDocument(shoppingListDocumentId(homeId)) }
-                attempt { syncDocument(cookbookDocumentId(homeId)) }
-                attempt { syncDocument(merchantsDocumentId(homeId)) }
-                attempt { syncDocument(mealPlanDocumentId(homeId)) }
-                attempt { syncDocument(calendarDocumentId(homeId)) }
-                attempt { syncDocument(tasksDocumentId(homeId)) }
-            }
-        }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
-        launch {
-            pantrySources.localChanges.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, pantryDocumentId(homeId)) } }
-                attempt { syncDocument(pantryDocumentId(homeId)) }
+        documentRegistry.types.forEach { type ->
+            launch {
+                type.localChanges.collect { homeId ->
+                    val documentId = type.documentId(homeId)
+                    // A private document goes to the user's own devices only: no mailbox, and no Home members to add.
+                    if (type.scope == Scope.Shared) launch { attempt { mailboxWriter.deposit(homeId, documentId) } } // not behind sends to absent peers
+                    attempt { syncDocument(documentId) }
+                    // A roster change can add a device to a Home's peers, which then needs everything the Home has.
+                    if (type.resyncsHome) {
+                        documentRegistry.documentIds(homeId, Scope.Shared).filter { it != documentId }.sortedBy { syncOrderOf(it) }
+                            .forEach { attempt { syncDocument(it) } }
+                    }
+                }
             }
         }
-        launch {
-            shoppingSources.localChanges.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, shoppingListDocumentId(homeId)) } }
-                attempt { syncDocument(shoppingListDocumentId(homeId)) }
-            }
-        }
-        launch {
-            cookbookSources.localChanges.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, cookbookDocumentId(homeId)) } }
-                attempt { syncDocument(cookbookDocumentId(homeId)) }
-            }
-        }
-        launch {
-            merchantsSources.localChanges.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, merchantsDocumentId(homeId)) } }
-                attempt { syncDocument(merchantsDocumentId(homeId)) }
-            }
-        }
-        launch {
-            mealPlanSources.localChanges.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, mealPlanDocumentId(homeId)) } }
-                attempt { syncDocument(mealPlanDocumentId(homeId)) }
-            }
-        }
-        launch {
-            calendarSources.localChanges.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, calendarDocumentId(homeId)) } }
-                attempt { syncDocument(calendarDocumentId(homeId)) }
-            }
-        }
-        // A private calendar goes to the user's own devices only: no mailbox, and homeIdOf knows no Home to add members from.
-        launch { calendarSources.privateChanges.collect { homeId -> attempt { syncDocument(privateCalendarDocumentId(homeId)) } } }
-        launch {
-            taskSources.localChanges.collect { homeId ->
-                launch { attempt { mailboxWriter.deposit(homeId, tasksDocumentId(homeId)) } }
-                attempt { syncDocument(tasksDocumentId(homeId)) }
-            }
-        }
-        // Private tasks, like the private calendar, go to the user's own devices only.
-        launch { taskSources.privateChanges.collect { homeId -> attempt { syncDocument(privateTasksDocumentId(homeId)) } } }
         // A newly paired device, or one that has gone, changes who there is to sync with.
         launch { devices.devices.collect { attempt { syncEverything() } } }
         // A peer coming online is the moment a message to it can get through (ADR-020): sync with it now rather than

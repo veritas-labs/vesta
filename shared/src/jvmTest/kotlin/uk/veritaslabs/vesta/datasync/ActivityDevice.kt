@@ -6,6 +6,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.automerge.CalendarSources
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanSources
@@ -53,8 +54,7 @@ internal class ActivityDevice(
                 override suspend fun openGroupStore(groupId: String, name: String): String = error("the group store cannot be opened")
             },
         ),
-        database, devices, pantries, shopping, CookbookSources(database), MerchantsSources(database), MealPlanSources(database),
-        calendars, taskSources = tasks, interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
+        database, devices, VestaHomeSources(database, pantries, shopping, calendars = calendars, tasks = tasks), interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
         activityRefresh = activityRefresh,
     )
     val homes = HomeRepository(database, sync.homeChanges)
