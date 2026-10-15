@@ -2,13 +2,9 @@ package uk.veritaslabs.vesta.automerge
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
-import org.automerge.SyncState
+import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
 import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.mailbox.changesSince
-import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.tasks.Task
 import uk.veritaslabs.vesta.tasks.TaskDone
 import uk.veritaslabs.vesta.tasks.TaskList
@@ -20,66 +16,44 @@ import uk.veritaslabs.vesta.tasks.TaskSource
  * ([TaskList.Private]). Same threading contract as [CalendarDocumentSource]: route every read or write of [document]
  * through this class.
  */
-class TaskDocumentSource(
-    private val document: Document,
+class TaskDocumentSource private constructor(
+    private val core: AutomergeDocumentCore,
     override val list: TaskList,
-    private val persist: suspend (ByteArray) -> Unit = {},
-    private val onLocalChange: () -> Unit = {},
-) : TaskSource, HomeDocument {
+    override val snapshot: Flow<TaskSnapshot>,
+) : TaskSource, HomeDocument by core {
 
-    private val lock = Mutex()
-    private val state = MutableStateFlow(document.readTasks(list))
+    constructor(
+        document: Document,
+        list: TaskList,
+        persist: suspend (ByteArray) -> Unit = {},
+        onLocalChange: () -> Unit = {},
+    ) : this(MutableStateFlow(document.readTasks(list)), document, list, persist, onLocalChange)
 
-    override val snapshot: Flow<TaskSnapshot> = state
+    private constructor(
+        state: MutableStateFlow<TaskSnapshot>,
+        document: Document,
+        list: TaskList,
+        persist: suspend (ByteArray) -> Unit,
+        onLocalChange: () -> Unit,
+    ) : this(
+        AutomergeDocumentCore(document, { state.value = document.readTasks(list) }, persist, onLocalChange),
+        list,
+        state,
+    )
 
-    override suspend fun save(task: Task) = edit { putTask(document, task) }
+    override suspend fun save(task: Task) = edit { putTask(this, task) }
 
-    override suspend fun delete(id: String) = edit { deleteTask(document, id) }
+    override suspend fun delete(id: String) = edit { deleteTask(this, id) }
 
-    override suspend fun setDone(record: TaskDone) = edit { putTaskDone(document, record) }
+    override suspend fun setDone(record: TaskDone) = edit { putTaskDone(this, record) }
 
-    override suspend fun clearDone(taskId: String, occurrence: String) = edit { deleteTaskDone(document, taskId, occurrence) }
+    override suspend fun clearDone(taskId: String, occurrence: String) = edit { deleteTaskDone(this, taskId, occurrence) }
 
-    private suspend fun edit(change: () -> Boolean) {
-        val changed = lock.withLock {
-            change().also { if (it) publishAndPersist() }
-        }
-        if (changed) onLocalChange()
+    /** Publishes and persists only when [change] reports it changed something, as the tasks' edits always did. */
+    private suspend fun edit(change: Document.() -> Boolean) {
+        core.editIfChanged(change)
     }
 
-    /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
-    override suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
-        document.generateSyncMessage(state).orElse(null)
-    }
-
-    /** Applies a sync message from a peer, then republishes and persists the tasks if they changed. */
-    override suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
-
-    /** The document's current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
-    override suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
-
-    /** True once the peer whose progress is [state] has replied with its heads and has everything this document has. */
-    override suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
-
-    /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
-    override suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
-
-    /** Applies changes from [changesSince], as [receiveSync] does a sync message. Applying one again changes nothing. */
-    override suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
-
-    private suspend fun applyIncoming(apply: Document.() -> Unit) {
-        lock.withLock {
-            val before = document.heads
-            document.apply()
-            if (!document.heads.contentEquals(before)) publishAndPersist()
-        }
-    }
-
-    /** Republishes and persists after [document] changed outside the edits above. */
-    suspend fun refresh() = lock.withLock { publishAndPersist() }
-
-    private suspend fun publishAndPersist() {
-        state.value = document.readTasks(list)
-        persist(document.save())
-    }
+    /** Republishes and persists after the document changed outside the edits above. */
+    suspend fun refresh() = core.refresh()
 }
