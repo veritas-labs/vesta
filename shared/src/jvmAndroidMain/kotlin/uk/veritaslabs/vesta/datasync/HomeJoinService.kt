@@ -54,6 +54,7 @@ internal class HomeJoinService(
     private val profiles: ProfileRepository,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val messageLifetime: Duration = 14.days,
+    private val recorder: SyncEventRecorder? = null,
 ) : HomeJoining {
 
     // Serialises the work an Invite does, so two copies of one can't both create the Home.
@@ -75,7 +76,10 @@ internal class HomeJoinService(
                 acceptRemoved(sender, decoded)
                 acknowledge(sender, decoded.homeId, HomeJoinMessage.RemovedKind)
             }
-            is HomeJoinMessage.Ack -> database.pendingMessageQueries.delete(sender, decoded.homeId, decoded.of)
+            is HomeJoinMessage.Ack -> {
+                database.pendingMessageQueries.delete(sender, decoded.homeId, decoded.of)
+                recorder?.membership(decoded.homeId, sender, "acknowledged")
+            }
             is HomeJoinMessage.Request -> receiveRequest(sender, decoded)
             is HomeJoinMessage.Denied -> receiveDenied(sender, decoded)
         }
@@ -90,7 +94,10 @@ internal class HomeJoinService(
         val devices = rosters.devices(homeId)[memberId].orEmpty()
         rosters.remove(homeId, memberId)
         val message = HomeJoinMessage.encode(HomeJoinMessage.Removed(homeId))
-        devices.forEach { send(it, homeId, HomeJoinMessage.RemovedKind, message) }
+        devices.forEach {
+            send(it, homeId, HomeJoinMessage.RemovedKind, message)
+            recorder?.membership(homeId, it, "removed")
+        }
     }
 
     /** The current user, [memberId], leaves [homeId]: the devices of the other members are told (best effort). */
@@ -250,6 +257,7 @@ internal class HomeJoinService(
         rosters.admit(homeId, request.memberId, request.name, MemberRole.Member.storageValue, request.agentId)
         rosters.useInviteHash(homeId, request.secretHash, request.memberId)
         database.joinRequestQueries.delete(homeId, request.memberId)
+        recorder?.membership(homeId, sender, "joined")
     }
 
     private suspend fun isAdminOf(homeId: String): Boolean {
@@ -291,6 +299,7 @@ internal class HomeJoinService(
     private suspend fun acceptLeft(sender: String, message: HomeJoinMessage.Left) {
         if (sender !in rosters.devices(message.homeId)[message.memberId].orEmpty()) return
         rosters.remove(message.homeId, message.memberId)
+        recorder?.membership(message.homeId, sender, "left")
     }
 
     /** This user has been removed from a Home: believed only from a device the roster lists for one of its admins. */
@@ -351,5 +360,6 @@ internal class HomeJoinService(
         rosters.admit(invite.homeId, joiner.memberId, joiner.name, MemberRole.Member.storageValue, joiner.agentId)
         database.pendingJoinQueries.delete(invite.homeId)
         sendQuietly(sender, HomeJoinMessage.encode(HomeJoinMessage.Accepted(invite.homeId)))
+        recorder?.membership(invite.homeId, sender, "joined")
     }
 }

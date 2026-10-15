@@ -93,13 +93,22 @@ class DeviceDataSyncService(
     private val interval: Duration = 30.seconds,
     private val peerBackoff: Duration = 2.minutes,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
+    private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, pantrySources)
     private val profiles = ProfileRepository(database)
     private val profile = ProfileRegistry(database, profiles)
     private val rosters = HomeRosters(database, profiles)
-    private val join = HomeJoinService(client, database, rosters, registry, profiles)
+
+    /** The Home registry, which also forgets a Home's Sync activity (ADR-033) when the Home is deleted or left on this device. */
+    private val homeListener = object : HomeChangeListener by registry {
+        override suspend fun deleted(id: String) {
+            registry.deleted(id)
+            recorder.forgetHome(id)
+        }
+    }
+    private val join = HomeJoinService(client, database, rosters, homeListener, profiles, recorder = recorder)
     private val groups = HomeGroups(client, database, rosters, profiles)
     private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources, mealPlanSources, calendarSources, taskSources)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
@@ -123,11 +132,11 @@ class DeviceDataSyncService(
             name = rosters.deviceNames(homeId)[agentId],
             machineId = discovered?.machineId,
             lastSeenMsAgo = discovered?.lastSeen?.let { (now - it * 1_000).coerceAtLeast(0) },
-            lastSyncedMsAgo = lastSynced[agentId]?.let { (now - it).coerceAtLeast(0) },
+            lastSyncedMsAgo = (lastSynced[agentId] ?: recorder.lastSyncedAt(agentId))?.let { (now - it).coerceAtLeast(0) },
         )
     }
 
-    override val homeChanges: HomeChangeListener get() = registry
+    override val homeChanges: HomeChangeListener get() = homeListener
 
     override val joining: HomeJoining get() = join
 
@@ -252,6 +261,10 @@ class DeviceDataSyncService(
         launch { attempt { syncMailboxes() } }
         attempt { syncEverything() }
         attempt { syncMailboxes() }
+        attempt {
+            recorder.prune(nowMillis())
+            recorder.flush()
+        }
     }
 
     /**
@@ -262,9 +275,13 @@ class DeviceDataSyncService(
     private suspend fun syncMailboxes() {
         var applied = 0
         database.homeQueries.selectAll().awaitAsList().forEach { home ->
-            attempt { mailboxWriter.deposit(home.id) }
+            attempt { if (mailboxWriter.deposit(home.id) > 0) recorder.mailbox(home.id, incoming = false, peer = null) }
             attempt { mailboxWriter.compact(home.id) }
-            attempt { applied += mailboxReader.fetch(home.id) }
+            attempt {
+                val fetched = mailboxReader.fetch(home.id)
+                applied += fetched
+                if (fetched > 0) recorder.mailbox(home.id, incoming = true, peer = null)
+            }
         }
         if (applied > 0) attempt { publishRosters() }
     }
@@ -301,7 +318,7 @@ class DeviceDataSyncService(
         val envelope = SyncEnvelope.decode(bytes) ?: return@withLock
         if (sender !in peersFor(envelope.documentId)) return@withLock
         receive(sender, envelope.documentId, envelope.message)
-        lastSynced[sender] = nowMillis()
+        noteSynced(sender)
     }
 
     private var selfAgent: String? = null
@@ -358,6 +375,7 @@ class DeviceDataSyncService(
         states.keys.removeAll { it.second == peer }
         connected.remove(peer)
         shared.forEach { pump(it, peer) }
+        recorder.flush()
     }
 
     private val syncRequests = Channel<Unit>(Channel.CONFLATED)
@@ -396,9 +414,13 @@ class DeviceDataSyncService(
             profile.project()?.let { rosters.retire(it) }
             publishRosters()
         } else if (documentId.endsWith(PrivateCalendarSuffix)) {
-            calendarSources.privateForHome(documentId.removeSuffix(PrivateCalendarSuffix))?.receiveSync(stateFor(documentId, sender), message)
+            recordingReceived(sender, documentId) {
+                calendarSources.privateForHome(documentId.removeSuffix(PrivateCalendarSuffix))?.receiveSync(stateFor(documentId, sender), message)
+            }
         } else if (documentId.endsWith(PrivateTasksSuffix)) {
-            taskSources.privateForHome(documentId.removeSuffix(PrivateTasksSuffix))?.receiveSync(stateFor(documentId, sender), message)
+            recordingReceived(sender, documentId) {
+                taskSources.privateForHome(documentId.removeSuffix(PrivateTasksSuffix))?.receiveSync(stateFor(documentId, sender), message)
+            }
         } else if (homeIdOf(documentId) != null) {
             val homeId = homeIdOf(documentId)!!
             if (!receiveHomeDocument(sender, documentId, message)) {
@@ -414,7 +436,10 @@ class DeviceDataSyncService(
     }
 
     /** Applies a Pantry, shopping-list, cookbook, merchants, meal plan, calendar, tasks or roster message; false when this device has no such Home yet. */
-    private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
+    private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean =
+        recordingReceived(sender, documentId) { applyHomeDocument(sender, documentId, message) }
+
+    private suspend fun applyHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
         if (documentId.endsWith(RosterSuffix)) {
             val homeId = documentId.removeSuffix(RosterSuffix)
             return rosters.receive(homeId, stateFor(documentId, sender), message).also { if (it) rosters.project(homeId) }
@@ -494,7 +519,8 @@ class DeviceDataSyncService(
                     } else pantrySources.forHome(documentId.removeSuffix(PantrySuffix))?.generateSync(state)
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())
-                lastSynced[peer] = nowMillis()
+                noteSynced(peer)
+                noteSent(documentId, peer)
             }
         } catch (e: CancellationException) {
             throw e
@@ -502,7 +528,60 @@ class DeviceDataSyncService(
             states.keys.removeAll { it.second == peer }
             connected.remove(peer)
             peerDownUntil[peer] = nowMillis() + peerBackoff.inWholeMilliseconds
+            noteFailed(documentId, peer)
         }
+    }
+
+    /** Notes that a sync message just passed between this device and [peer]. */
+    private suspend fun noteSynced(peer: String) {
+        lastSynced[peer] = nowMillis()
+        recorder.lastSynced(peer)
+    }
+
+    // The Sync activity log (ADR-033) records Home documents only; the registry and Profile belong to no Home. Recording never
+    // changes a sync result: the recorder swallows its own failures, and reading heads is guarded here the same way.
+
+    private fun activityHomeId(documentId: String): String? = when {
+        moduleOfDocumentId(documentId) == null -> null
+        documentId.endsWith(PrivateCalendarSuffix) -> documentId.removeSuffix(PrivateCalendarSuffix)
+        documentId.endsWith(PrivateTasksSuffix) -> documentId.removeSuffix(PrivateTasksSuffix)
+        else -> homeIdOf(documentId)
+    }
+
+    private suspend fun noteSent(documentId: String, peer: String) {
+        val homeId = activityHomeId(documentId) ?: return
+        moduleOfDocumentId(documentId)?.let { recorder.sent(homeId, it, peer) }
+    }
+
+    private suspend fun noteFailed(documentId: String, peer: String) {
+        val homeId = activityHomeId(documentId) ?: return
+        moduleOfDocumentId(documentId)?.let { recorder.failed(homeId, it, peer, "unreachable") }
+    }
+
+    /** The heads of a Home document, or null for anything else, a Home this device doesn't have yet, or a failed read. */
+    private suspend fun headsOf(homeId: String, documentId: String): ByteArray? = try {
+        when {
+            documentId.endsWith(PrivateCalendarSuffix) -> calendarSources.privateForHome(homeId)?.heads()
+            documentId.endsWith(PrivateTasksSuffix) -> taskSources.privateForHome(homeId)?.heads()
+            else -> mailboxDocuments.open(homeId, documentId)?.heads()
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
+    }
+
+    /**
+     * Runs [apply], which applies a sync message from [sender] to [documentId], and records that [sender] sent changes if the
+     * document's heads moved. A message that changes nothing is just a handshake and is not recorded.
+     */
+    private suspend fun <T> recordingReceived(sender: String, documentId: String, apply: suspend () -> T): T {
+        val homeId = activityHomeId(documentId) ?: return apply()
+        val before = headsOf(homeId, documentId)
+        val result = apply()
+        headsOf(homeId, documentId)?.takeUnless { it.contentEquals(before) }
+            ?.let { moduleOfDocumentId(documentId)?.let { module -> recorder.received(homeId, module, sender) } }
+        return result
     }
 
     private fun stateFor(documentId: String, peer: String) = states.getOrPut(documentId to peer) { SyncState() }

@@ -9,6 +9,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,7 +72,13 @@ class DeviceDataSyncServiceTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** One of the user's devices: its own x0x node and database, with a running data sync. */
-    private inner class Device(val agentId: String, interval: Duration = 50.milliseconds) {
+    private inner class Device(
+        val agentId: String,
+        interval: Duration = 50.milliseconds,
+        peerBackoff: Duration = 2.minutes,
+        /** Gives the device a Sync activity recorder that fails every time it is asked for the time, to show recording never matters to a sync. */
+        brokenRecorder: Boolean = false,
+    ) {
         val node = network.node(agentId)
         val database: VestaDatabase = openInMemoryDatabase()
         val devices = SyncedDeviceRepository(database)
@@ -86,6 +93,8 @@ class DeviceDataSyncServiceTest {
         val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
             node, database, devices, pantries, shopping, cookbook, merchants, mealPlans, calendars, taskSources = tasks, interval = interval,
+            peerBackoff = peerBackoff,
+            recorder = if (brokenRecorder) SyncEventRecorder(database, nowMillis = { error("the clock is broken") }) else SyncEventRecorder(database),
         )
         /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
         val deviceSync: DeviceSyncService by lazy {
@@ -123,6 +132,8 @@ class DeviceDataSyncServiceTest {
             storeEmptyPantry(database, id)
             storeEmptyShoppingList(database, id)
         }
+
+        suspend fun activity(homeId: String) = database.syncEventQueries.selectPage(homeId, Long.MAX_VALUE, 100).awaitAsList()
 
         suspend fun profileIds() = database.profileQueries.selectAll().awaitAsList().map { it.id }
 
@@ -1243,6 +1254,152 @@ class DeviceDataSyncServiceTest {
         assertTrue(result.isSuccess)
         eventually { "agent-2" !in network.groups.getValue(groupId).members.keys }
         assertTrue("agent-1" in network.groups.getValue(groupId).members.keys)
+        scope.cancel()
+    }
+
+    @Test
+    fun aTasksEditIsLoggedAsSentOnTheEditorAndReceivedOnTheOtherMember() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+
+        // Act
+        x.tasks.forHome(homeId)!!.save(task("t1", "Bins", TaskList.Home))
+        eventually { y.homeTaskTitles(homeId) == listOf("Bins") }
+        eventually { y.activity(homeId).any { it.kind == "received" } && x.activity(homeId).any { it.kind == "sent" } }
+
+        // Assert
+        val received = y.activity(homeId).first { it.kind == "received" && it.module == "tasks" }
+        assertEquals("agent-x", received.peerAgent)
+        val sent = x.activity(homeId).first { it.kind == "sent" && it.module == "tasks" }
+        assertEquals("agent-y", sent.peerAgent)
+        scope.cancel()
+    }
+
+    @Test
+    fun anUnchangedRoundIsOnlyAHandshakeAndAddsNoReceivedEvent() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        x.tasks.forHome(homeId)!!.save(task("t1", "Bins", TaskList.Home))
+        eventually { y.homeTaskTitles(homeId) == listOf("Bins") }
+        eventually { y.activity(homeId).any { it.kind == "received" && it.module == "tasks" } }
+        delay(300.milliseconds) // let the changes and the replies to them settle
+        val before = y.activity(homeId).filter { it.kind == "received" }.sumOf { it.count }
+
+        // Act
+        delay(600.milliseconds) // several more full rounds, each restarting the handshake, with nothing new to send
+        val after = y.activity(homeId).filter { it.kind == "received" }.sumOf { it.count }
+
+        // Assert
+        assertEquals(before, after)
+        scope.cancel()
+    }
+
+    @Test
+    fun anOfflinePeerIsLoggedAsOneUnreachableRowThatCountsEachFailedRound() = runBlocking {
+        // Arrange
+        val a = Device("agent-a", peerBackoff = 1.milliseconds)
+        val b = Device("agent-b")
+        a.pairedWith(b)
+        b.pairedWith(a)
+        network.hanging += b.agentId // a direct message to it fails after hangFor; to an offline one it vanishes without an error
+        network.hangFor = 20.milliseconds
+        a.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+
+        // Act
+        eventually { a.activity(homeId).any { it.kind == "failed" && it.module == "pantry" && it.count >= 2 } }
+
+        // Assert
+        val failed = a.activity(homeId).filter { it.kind == "failed" && it.module == "pantry" }
+        assertEquals("agent-b", failed.single().peerAgent)
+        assertEquals("unreachable", failed.single().detail)
+        scope.cancel()
+    }
+
+    @Test
+    fun aMemberLeavingIsLoggedAsAMembershipEventOnTheMemberWhoStays() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val leaver = HomeRepository(y.database, y.sync.homeChanges, y.profiles, y.sync.rosterChanges)
+
+        // Act
+        leaver.leave(homeId)
+        eventually { x.memberIds(homeId) == listOf(x.profiles.current().id) }
+        eventually { x.activity(homeId).any { it.kind == "membership" && it.detail == "left" } }
+
+        // Assert
+        val left = x.activity(homeId).first { it.kind == "membership" && it.detail == "left" }
+        assertEquals("agent-y", left.peerAgent)
+        assertEquals("members", left.module)
+        scope.cancel()
+    }
+
+    @Test
+    fun aRemovedMemberAndTheirAcknowledgementAreLoggedAsMembershipEventsOnTheAdmin() = runBlocking {
+        // Arrange
+        val (x, y, homeId) = twoPeopleInOneHome()
+        x.start()
+        y.start()
+        eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
+        val members = MemberRepository(x.database, x.profiles, x.sync.rosterChanges)
+
+        // Act
+        members.removeMember(homeId, y.profiles.current().id)
+        eventually { x.activity(homeId).any { it.kind == "membership" && it.count >= 2 } }
+
+        // Assert: the removal and the acknowledgement of it are the same kind of event with the same device, so they fold into one row
+        val row = x.activity(homeId).single { it.kind == "membership" }
+        assertEquals("agent-y", row.peerAgent)
+        assertEquals(2L, row.count)
+        assertEquals("acknowledged", row.detail)
+        scope.cancel()
+    }
+
+    @Test
+    fun theTimeAPeerLastSyncedSurvivesAFreshServiceOnTheSameDatabase() = runBlocking {
+        // Arrange
+        val (a, b) = pair()
+        a.start()
+        b.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames() == listOf("Maple Street") }
+        eventually { a.database.peerSyncQueries.selectByAgent("agent-b").awaitAsOneOrNull() != null }
+
+        // Act
+        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, a.pantries) // never started: no in-memory times
+        val details = fresh.agentDetails(homeId, "agent-b")
+
+        // Assert
+        assertTrue(details.lastSyncedMsAgo != null)
+        scope.cancel()
+    }
+
+    @Test
+    fun aRecorderThatFailsEveryTimeLeavesTheSyncUnchanged() = runBlocking {
+        // Arrange
+        val a = Device("agent-a", brokenRecorder = true)
+        val b = Device("agent-b", brokenRecorder = true)
+        a.pairedWith(b)
+        b.pairedWith(a)
+        a.start()
+        b.start()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        eventually { b.homeNames() == listOf("Maple Street") }
+
+        // Act
+        a.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null) }
+        eventually { b.pantryTitles(homeId) == listOf("Whole Milk") }
+
+        // Assert
+        assertEquals(emptyList(), b.activity(homeId))
+        assertTrue(a.sync.agentDetails(homeId, "agent-b").lastSyncedMsAgo != null)
         scope.cancel()
     }
 }

@@ -64,7 +64,7 @@ internal fun moduleOfDocumentId(documentId: String): String? =
  * Recording must never fail a sync: every method swallows its own failures (cancellation aside), and a failed [flush]
  * drops what it was holding.
  */
-internal class SyncEventRecorder(
+class SyncEventRecorder(
     private val database: VestaDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
