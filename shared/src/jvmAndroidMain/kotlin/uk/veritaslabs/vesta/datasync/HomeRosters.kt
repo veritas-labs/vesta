@@ -38,6 +38,7 @@ import uk.veritaslabs.vesta.automerge.retireRosterMember
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.setRosterRole
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.getDeviceName
 import uk.veritaslabs.vesta.mailbox.changesSince
 import uk.veritaslabs.vesta.mailbox.encodeHeads
@@ -274,6 +275,22 @@ internal class HomeRosters(
         }
         project(homeId)
         return applied
+    }
+
+    /**
+     * [homeId]'s roster as a [HomeDocument], for the registry; null when this device has no roster for it yet (no such
+     * Home), as the mailbox has always treated it.
+     */
+    suspend fun homeDocument(homeId: String): HomeDocument? {
+        if (heads(homeId) == null) return null
+        return object : HomeDocument {
+            override suspend fun generateSync(state: SyncState) = generate(homeId, state)
+            override suspend fun receiveSync(state: SyncState, message: ByteArray) { receive(homeId, state, message) }
+            override suspend fun isInSync(state: SyncState) = this@HomeRosters.isInSync(homeId, state)
+            override suspend fun heads() = this@HomeRosters.heads(homeId) ?: ByteArray(0)
+            override suspend fun changesSince(saved: ByteArray) = this@HomeRosters.changesSince(homeId, saved) ?: ByteArray(0)
+            override suspend fun applyChanges(changes: ByteArray) { this@HomeRosters.applyChanges(homeId, changes) }
+        }
     }
 
     /** Brings [homeId]'s `HomeMember` rows in line with its roster: adds and updates members, and drops the removed. */

@@ -10,7 +10,7 @@ import org.automerge.SyncState
  * The method names are the ones the per-feature document sources already have, so they can adopt the interface without
  * a logic change.
  */
-internal interface HomeDocument {
+interface HomeDocument {
     /** The next sync message for the peer behind [state], or null when there is nothing more to say. */
     suspend fun generateSync(state: SyncState): ByteArray?
 

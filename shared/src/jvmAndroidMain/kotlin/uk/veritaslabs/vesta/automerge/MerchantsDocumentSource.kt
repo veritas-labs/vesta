@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
+import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.mailbox.changesSince
 import uk.veritaslabs.vesta.mailbox.encodeHeads
@@ -34,7 +35,7 @@ class MerchantsDocumentSource(
     private val persist: suspend (ByteArray) -> Unit = {},
     private val onLocalChange: () -> Unit = {},
     private val newKey: () -> String = { Uuid.random().toString() },
-) : MerchantsSource {
+) : MerchantsSource, HomeDocument {
 
     private val lock = Mutex()
     private val state = MutableStateFlow(document.readMerchants())
@@ -63,24 +64,24 @@ class MerchantsDocumentSource(
     }
 
     /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
-    suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
+    override suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
         document.generateSyncMessage(state).orElse(null)
     }
 
     /** Applies a sync message from a peer, then republishes and persists the merchants if it changed. */
-    suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
+    override suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
 
     /** The merchants' current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
-    suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
+    override suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
 
     /** True once the peer whose progress is [state] has replied with its heads and has everything this document has. */
-    suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
+    override suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
 
     /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
-    suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
+    override suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
 
     /** Applies changes from [changesSince], as [receiveSync] does a sync message. Applying one again changes nothing. */
-    suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
+    override suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
 
     private suspend fun applyIncoming(apply: Document.() -> Unit) {
         lock.withLock {
