@@ -87,3 +87,24 @@ screen on a device.
    `withTheDaemonDownTheCardSaysSyncIsNotRunningAndSyncNowIsDisabled`; `SyncActivityServiceTest.syncNowStartsAnotherRound`.
 10. **Recording never breaks syncing.** *Given* a recorder that fails every time, *when* a change is made, *then* it still reaches the other device.
     `DeviceDataSyncServiceTest.aRecorderThatFailsEveryTimeLeavesTheSyncUnchanged`; `SyncEventRecorderTest` (a closed database does not make recording fail).
+
+## Pantry categories migration (ADR-010 amendment, ADR-034 WP3)
+
+1. **My own categories survive the move to the new defaults.** *Given* a Pantry stored with the first default set plus a category I added, *when* the
+   app opens it, *then* I see the new supermarket-aisle categories and my own, and the old defaults the new set dropped (Meat, Dairy) are gone.
+   `PantryDefaultCategoriesAcceptanceTest.aPantryStoredWithTheOldCategoriesShowsTheNewDefaultsAndKeepsMyOwn`;
+   `PantryCategoriesMigrationTest.migrationKeepsWhatTheHouseholdAddedAndRemovesOnlyDroppedDefaults`.
+2. **A category added after the move is kept.** *Given* a Pantry that has been moved once and then given a category of mine, *when* the app reopens it,
+   *then* my category is still there beside the defaults.
+   `PantryDefaultCategoriesAcceptanceTest.aCategoryIAddAfterTheResetSurvivesReopeningThePantry`.
+3. **Two devices that move before they sync lose nothing.** *Given* two devices with the same old Pantry, *when* one adds a category and both open
+   the Pantry (so both move to the new defaults) and then sync, in either order, *then* both show the same categories, including the one added.
+   `PantryCategoriesMigrationTest.aCustomCategoryAddedBeforeBothDevicesMigrateSurvivesTheMerge` and
+   `theMergeIsTheSameWhicheverWayRoundAndHoldsTheCurrentDefaults`.
+4. **Three devices converge.** *Given* three devices that each add something and then move, *when* they all sync in any order, *then* they agree and
+   every addition is present.
+   `PantryCategoriesMigrationTest.threeReplicasThatEachAddSomethingAndMigrateConvergeWithEverythingKept`.
+5. **Opening again changes nothing.** *Given* a Pantry already moved, *when* the app opens it again, *then* nothing is written; *given* one that
+   another device moved first, *when* this device opens it, *then* that device's later additions survive.
+   `PantryCategoriesMigrationTest.migrationIsIdempotentAndASecondRunWritesNothing`, `aVersionTwoDocumentIsNotTouched`,
+   `aCategoryAddedAfterOneDeviceMigratedSurvivesTheOtherDevicesMigration`, `migrationDoesNotReplaceTheCategoriesMap`.
