@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.datasync
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.io.encoding.Base64
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -9,6 +10,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
@@ -27,6 +29,10 @@ class UnsupportedInputActivityTest {
 
     private val network = FakeX0xNetwork()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // The devices' sync loops run on this scope; left running they starve later tests sharing the default dispatcher.
+    @AfterTest
+    fun stopTheDevices() = scope.cancel()
 
     private fun json(text: String) = X0xDirectMessage(sender = "agent-b", payload = Base64.Default.encode(text.encodeToByteArray()), verified = true)
 

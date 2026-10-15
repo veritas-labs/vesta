@@ -103,12 +103,11 @@ class AutomergeFixtureSourceTest {
         assertFalse(saved.get(org.automerge.ObjectId.ROOT, "categories").isPresent)
     }
 
-    // CURRENT BEHAVIOUR THAT ADR-034 INTENDS TO CHANGE (WP3): opening an older Pantry re-seeds its registry in memory
-    // (openPantryDocumentSource calls migratePantryCategories), so the source already publishes the defaults and the
-    // custom category is gone, though the stored bytes are only rewritten by the next save. ADR-034 says a migration must
-    // never run on load and must not replace a shared map.
+    // ADR-010 Amendment 2 / ADR-034 WP3: opening an older Pantry brings its registry up to the current defaults in
+    // memory (openPantryDocumentSource calls migratePantryCategories), keeping the household's own categories. The stored
+    // bytes are only rewritten by the next save.
     @Test
-    fun openingAnUnversionedPantryRegistryReseedsItInMemoryAndTheNextSavePersistsTheLoss() = runBlocking {
+    fun openingAnUnversionedPantryRegistryMigratesItInMemoryKeepingCustomCategories() = runBlocking {
         // Arrange
         val database = database()
         val original = database.store(pantryDocumentId(homeId), "pantry", "pantry-categories-unversioned.automerge")
@@ -122,16 +121,16 @@ class AutomergeFixtureSourceTest {
         val storedAfterSave = database.stored(pantryDocumentId(homeId))
 
         // Assert
-        assertEquals(DefaultPantryCategories.size, categoriesOnOpen.size, "current behaviour: the old registry is replaced on open")
-        assertFalse(categoriesOnOpen.any { it.name == "Pet Supplies" }, "current behaviour: the custom category is dropped")
+        assertTrue(DefaultPantryCategories.all { default -> categoriesOnOpen.any { it.name == default.name } })
+        assertTrue(categoriesOnOpen.any { it.name == "Pet Supplies" }, "the custom category is kept")
         assertEquals(setOf("whole milk", "dog biscuits"), itemsOnOpen.map { it.key }.toSet())
         assertContentEquals(original, storedAfterOpen, "opening itself does not persist")
-        assertNotEquals(heads(original), heads(storedAfterSave), "current behaviour: the first save writes the re-seed")
-        assertFalse(Document.load(storedAfterSave).readPantryCategories().any { it.name == "Pet Supplies" })
+        assertNotEquals(heads(original), heads(storedAfterSave), "the first save writes the migration")
+        assertTrue(Document.load(storedAfterSave).readPantryCategories().any { it.name == "Pet Supplies" })
     }
 
     @Test
-    fun openingAPantryRegistryAtMarkerOneReseedsItInMemoryAndTheNextSavePersistsTheLoss() = runBlocking {
+    fun openingAPantryRegistryAtMarkerOneMigratesItInMemoryKeepingCustomCategories() = runBlocking {
         // Arrange
         val database = database()
         val original = database.store(pantryDocumentId(homeId), "pantry", "pantry-categories-marker-1.automerge")
@@ -144,7 +143,7 @@ class AutomergeFixtureSourceTest {
         val storedAfterSave = database.stored(pantryDocumentId(homeId))
 
         // Assert
-        assertFalse(categoriesOnOpen.any { it.name == "Allotment" }, "current behaviour: the custom category is dropped")
+        assertTrue(categoriesOnOpen.any { it.name == "Allotment" }, "the custom category is kept")
         assertContentEquals(original, storedAfterOpen)
         assertNotEquals(heads(original), heads(storedAfterSave))
         assertEquals(listOf("whole milk"), Document.load(storedAfterSave).readPantry().map { it.id })

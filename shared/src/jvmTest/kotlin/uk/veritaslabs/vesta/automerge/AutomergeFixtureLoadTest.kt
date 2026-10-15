@@ -172,13 +172,10 @@ class AutomergeFixtureLoadTest {
         }
     }
 
-    // CURRENT BEHAVIOUR THAT ADR-034 INTENDS TO CHANGE (WP3): migratePantryCategories re-seeds the registry with
-    // `set(ROOT, "categories", MAP)` on every device that loads an older Pantry. That is a write on load, it replaces the
-    // user's custom categories, and two devices doing it concurrently each create a competing `categories` map (the
-    // loser's subtree is hidden). When WP3 lands these two tests should be replaced by "loading writes nothing" and a
-    // convergence test.
+    // ADR-010 Amendment 2 / ADR-034 WP3: migratePantryCategories edits the existing `categories` map in place at
+    // deterministic keys, keeps what the household added and removes only defaults the current set dropped.
     @Test
-    fun migratingAnUnversionedPantryRegistryWritesAndDropsCustomCategoriesAndKeepsItems() {
+    fun migratingAnUnversionedPantryRegistryKeepsCustomCategoriesAndItems() {
         // Arrange
         val doc = AutomergeFixtures.load("pantry-categories-unversioned.automerge")
         val before = doc.heads.map { it.toString() }
@@ -187,16 +184,17 @@ class AutomergeFixtureLoadTest {
         migratePantryCategories(doc)
 
         // Assert
-        assertNotEquals(before, doc.heads.map { it.toString() }, "current behaviour: loading an old Pantry writes a change")
+        assertNotEquals(before, doc.heads.map { it.toString() }, "an old registry is brought up to the current defaults")
         val categories = doc.readPantryCategories()
-        assertEquals(DefaultPantryCategories.size, categories.size)
-        assertFalse(categories.any { it.name == "Pet Supplies" }, "current behaviour: the custom category is dropped")
+        assertTrue(categories.any { it.name == "Pet Supplies" }, "the household's own category survives")
+        assertTrue(DefaultPantryCategories.all { default -> categories.any { it.name == default.name } })
+        assertFalse(categories.any { it.name == "Meat" }, "a default the current set dropped is removed")
         assertEquals(setOf("whole milk", "dog biscuits"), doc.readPantry().map { it.id }.toSet())
         assertEquals(2, (doc.get(ObjectId.ROOT, "categoriesVersion").getOrNull() as org.automerge.AmValue.Int).value)
     }
 
     @Test
-    fun migratingAPantryRegistryAtMarkerOneWritesAndDropsCustomCategoriesAndKeepsItems() {
+    fun migratingAPantryRegistryAtMarkerOneKeepsCustomCategoriesAndItems() {
         // Arrange
         val doc = AutomergeFixtures.load("pantry-categories-marker-1.automerge")
         val before = doc.heads.map { it.toString() }
@@ -205,13 +203,13 @@ class AutomergeFixtureLoadTest {
         migratePantryCategories(doc)
 
         // Assert
-        assertNotEquals(before, doc.heads.map { it.toString() }, "current behaviour: loading an old Pantry writes a change")
-        assertFalse(doc.readPantryCategories().any { it.name == "Allotment" }, "current behaviour: the custom category is dropped")
+        assertNotEquals(before, doc.heads.map { it.toString() }, "an old registry is brought up to the current defaults")
+        assertTrue(doc.readPantryCategories().any { it.name == "Allotment" }, "the household's own category survives")
         assertEquals(listOf("whole milk"), doc.readPantry().map { it.id })
     }
 
     @Test
-    fun twoDevicesMigratingTheSameOldPantryCreateTwoCompetingCategoryMaps() {
+    fun twoDevicesMigratingTheSameOldPantryKeepOneCategoriesMapAndALaterAddition() {
         // Arrange
         val first = AutomergeFixtures.load("pantry-categories-unversioned.automerge")
         val second = first.fork()
@@ -225,8 +223,10 @@ class AutomergeFixtureLoadTest {
         val conflicts = first.getAll(ObjectId.ROOT, "categories").getOrNull()?.values().orEmpty()
 
         // Assert
-        // ADR-034 context: ADR-010's "identical registries merge to one" is wrong, there are two concurrent map objects.
-        assertEquals(2, conflicts.size, "current behaviour: concurrent migrations leave two conflicting categories maps")
+        assertEquals(1, conflicts.size, "concurrent migrations edit the one map in place, so nothing competes")
+        val names = first.readPantryCategories().map { it.name }
+        assertContains(names, "Custom After Migrating")
+        assertContains(names, "Pet Supplies")
     }
 
     // ---- Shopping list ---------------------------------------------------------------------------------------------
