@@ -428,6 +428,7 @@ private fun PantryItemRow(
             Icon(
                 painter = painterResource(Res.drawable.ic_minus),
                 contentDescription = stringResource(Res.string.pantry_stock_decrease),
+                tint = MaterialTheme.colorScheme.onSurface,
             )
         }
         Text(
@@ -452,6 +453,7 @@ private fun PantryItemRow(
             Icon(
                 painter = painterResource(Res.drawable.ic_plus),
                 contentDescription = stringResource(Res.string.pantry_stock_increase),
+                tint = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
