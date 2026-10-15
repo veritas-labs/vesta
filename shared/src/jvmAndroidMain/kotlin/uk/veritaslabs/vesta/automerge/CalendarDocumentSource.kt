@@ -2,15 +2,11 @@ package uk.veritaslabs.vesta.automerge
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
-import org.automerge.SyncState
-import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.calendar.CalendarEvent
 import uk.veritaslabs.vesta.calendar.EventCalendar
-import uk.veritaslabs.vesta.mailbox.changesSince
-import uk.veritaslabs.vesta.mailbox.encodeHeads
+import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
+import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.ui.screens.CalendarSource
 
 /**
@@ -18,62 +14,40 @@ import uk.veritaslabs.vesta.ui.screens.CalendarSource
  * own ([EventCalendar.Private]). Same threading contract as [MealPlanDocumentSource]: route every read or write of
  * [document] through this class.
  */
-class CalendarDocumentSource(
-    private val document: Document,
+class CalendarDocumentSource private constructor(
+    private val core: AutomergeDocumentCore,
     override val calendar: EventCalendar,
-    private val persist: suspend (ByteArray) -> Unit = {},
-    private val onLocalChange: () -> Unit = {},
-) : CalendarSource, HomeDocument {
+    override val events: Flow<List<CalendarEvent>>,
+) : CalendarSource, HomeDocument by core {
 
-    private val lock = Mutex()
-    private val state = MutableStateFlow(document.readCalendarEvents(calendar))
+    constructor(
+        document: Document,
+        calendar: EventCalendar,
+        persist: suspend (ByteArray) -> Unit = {},
+        onLocalChange: () -> Unit = {},
+    ) : this(MutableStateFlow(document.readCalendarEvents(calendar)), document, calendar, persist, onLocalChange)
 
-    override val events: Flow<List<CalendarEvent>> = state
+    private constructor(
+        state: MutableStateFlow<List<CalendarEvent>>,
+        document: Document,
+        calendar: EventCalendar,
+        persist: suspend (ByteArray) -> Unit,
+        onLocalChange: () -> Unit,
+    ) : this(
+        AutomergeDocumentCore(document, { state.value = document.readCalendarEvents(calendar) }, persist, onLocalChange),
+        calendar,
+        state,
+    )
 
-    override suspend fun save(event: CalendarEvent) = edit { putCalendarEvent(document, event) }
+    override suspend fun save(event: CalendarEvent) = edit { putCalendarEvent(this, event) }
 
-    override suspend fun delete(id: String) = edit { deleteCalendarEvent(document, id) }
+    override suspend fun delete(id: String) = edit { deleteCalendarEvent(this, id) }
 
-    private suspend fun edit(change: () -> Boolean) {
-        val changed = lock.withLock {
-            change().also { if (it) publishAndPersist() }
-        }
-        if (changed) onLocalChange()
+    /** Publishes and persists only when [change] reports it changed something, as the calendar's edits always did. */
+    private suspend fun edit(change: Document.() -> Boolean) {
+        core.editIfChanged(change)
     }
 
-    /** The next Automerge sync message for the peer whose progress is [state], or null when it is up to date. */
-    override suspend fun generateSync(state: SyncState): ByteArray? = lock.withLock {
-        document.generateSyncMessage(state).orElse(null)
-    }
-
-    /** Applies a sync message from a peer, then republishes and persists the events if they changed. */
-    override suspend fun receiveSync(state: SyncState, message: ByteArray) = applyIncoming { receiveSyncMessage(state, message) }
-
-    /** The document's current heads, saved as [encodeHeads] writes them (for the mailbox, ADR-020). */
-    override suspend fun heads(): ByteArray = lock.withLock { encodeHeads(document.heads) }
-
-    /** True once the peer whose progress is [state] has replied with its heads and has everything this document has. */
-    override suspend fun isInSync(state: SyncState): Boolean = lock.withLock { state.isInSync(document) }
-
-    /** The changes made since the heads [saved] by [heads] (everything, for none), for another device's [applyChanges]. */
-    override suspend fun changesSince(saved: ByteArray): ByteArray = lock.withLock { document.changesSince(saved) }
-
-    /** Applies changes from [changesSince], as [receiveSync] does a sync message. Applying one again changes nothing. */
-    override suspend fun applyChanges(changes: ByteArray) = applyIncoming { applyEncodedChanges(changes) }
-
-    private suspend fun applyIncoming(apply: Document.() -> Unit) {
-        lock.withLock {
-            val before = document.heads
-            document.apply()
-            if (!document.heads.contentEquals(before)) publishAndPersist()
-        }
-    }
-
-    /** Republishes and persists after [document] changed outside [save]/[delete]. */
-    suspend fun refresh() = lock.withLock { publishAndPersist() }
-
-    private suspend fun publishAndPersist() {
-        state.value = document.readCalendarEvents(calendar)
-        persist(document.save())
-    }
+    /** Republishes and persists after the document changed outside [save]/[delete]. */
+    suspend fun refresh() = core.refresh()
 }
