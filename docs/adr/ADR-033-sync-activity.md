@@ -1,6 +1,6 @@
 # ADR-033: Sync activity — a local transport log and a per-Home status screen
 
-**Status:** Proposed (2026-10-15); not implemented. Design: [sync-activity.md](../design/sync-activity.md). Builds on ADR-013
+**Status:** Built (2026-10-15); see "As built" for where it differs from the text below. Design: [sync-activity.md](../design/sync-activity.md). Builds on ADR-013
 (device data sync), ADR-017 (retrying messages), ADR-020 (mailbox and hubs).
 
 ## Context
@@ -96,6 +96,47 @@ they were online, which the Members screen already shows. Nothing about the log 
   `Document` private, so each needs a small `isInSync(state)` method.
 - Sync states are cleared at the start of every round, so the verdict must be computed after a round's exchanges, not read cold.
 
+## As built (2026-10-15)
+
+Built across WP0-WP8 (plan: [ADR-033-implementation-plan.md](../plans/ADR-033-implementation-plan.md)). The decision above stands; these are the differences and
+the gaps.
+
+**Differences from the text above**
+
+- **Verdict order.** A round in progress shows Syncing and wins over everything. Otherwise: Problem, Only you, Up to date, **Changes waiting, then Waiting
+  for others** (the reverse of the list in "Verdict"), because "Waiting for others" means nothing is unsent.
+- **Model.** `SyncSnapshot` has a `takenAt` field (the "ms ago" figures are relative to it). `SyncActivityRepository.events` takes an extra `peerAgent`
+  (the device filter). `SyncActivityUiState` has `syncAvailable` (false where no sync service is behind the screen, so Sync now is disabled).
+- **Migration** is `19.sqm`, which migrates 19 to 20; `Schema.version` is 20.
+- **Events.** The `SyncEvent` collapse key includes `detail`, so an `unreachable` and a `retrying` failure do not fold. A module name `mailbox` was
+  added (`SyncModuleName.Mailbox`), shown as "Home" with "via {device}".
+- **`SyncEventRecorder` is public**, because the `DeviceDataSyncService` constructor exposes it.
+- **Changes waiting** uses `SyncState.isInSync` (a peer's acknowledgement) or a covering mailbox deposit. It is evaluated at the end of a round, after each
+  received message and after a local-change sync, and cached. It is a boolean only: automerge-java 0.0.9 has no change-count API.
+- **Snapshot refresh.** The snapshot flow emits again on round start and end, presence, a received message, a local-change sync and `syncWith`, and every
+  20 s (constructor parameter `activityRefresh`).
+
+**UI gaps against the design doc**
+
+- The device detail has no documents list, no "x0x last seen" and no agent id (none are in `PeerActivity`).
+- Sent entries read "sent to {device} (n times)", not "sent to {n} devices". There is no long-press absolute time.
+- The Problem card has no link to Network diagnostics.
+- Previews compile but have not been rendered. The strings have no translations.
+- Back from the invite flow opened from Sync activity returns to Members, not to Sync activity.
+
+**Known gaps in recording**
+
+- `failed` events are recorded only for Home documents. A failing Home registry or profile send (pumped first, which puts the peer into backoff) leaves the
+  Problems log mostly empty even though `lastRoundHadFailures` is set.
+- `lastSynced` is bumped when a message is **sent**, not when the peer replies.
+- Mailbox deposit and fetch event recording has no test.
+- The paging cursor is `lastAt` only, so two rows sharing it can rarely make a page skip one.
+
+**Not done**
+
+- No by-hand run against a real daemon, the desktop app or the Android emulator.
+- No iOS: the stand-in `UnavailableSyncActivityRepository` is used.
+
 ## Acceptance criteria
 
 1. With two other devices, one online and synced a minute ago, the screen says "Up to date" and lists both, the offline one muted.
@@ -110,7 +151,7 @@ they were online, which the Members screen already shows. Nothing about the log 
 9. Sync now runs one round and shows progress; with the daemon down the card says sync isn't running and the button is disabled.
 10. A failure inside the recorder does not stop a sync round.
 
-Tests to write: `SyncEventRecorderTest` (collapsing, retention, no content stored, failure isolation), `PeerSyncRepositoryTest`
+Tests written (the acceptance criteria are backed in [acceptance-tests.md](../testing/acceptance-tests.md), `SyncActivityAcceptanceTest` for the screen): `SyncEventRecorderTest` (collapsing, retention, no content stored, failure isolation), `PeerSyncRepositoryTest`
 (persist, once-a-minute write limit), `ChangesWaitingTest` (heads compared with the mailbox and with peers, restart behaviour),
 `SyncVerdictTest` (each verdict and the precedence), `DeviceDataSyncServiceTest` additions on the fake mesh (events appear for
 received, sent and failed; membership events), `SyncActivityViewModelTest`, `SyncActivityScreenTest`, and Given/When/Then entries

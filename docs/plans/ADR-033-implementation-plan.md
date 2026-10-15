@@ -2,7 +2,7 @@
 
 Written 2026-10-15 so a fresh session can build [ADR-033](../adr/ADR-033-sync-activity.md) without re-deriving context. Read the
 ADR and the [design doc](../design/sync-activity.md) first; this plan says **how to build it in this codebase**, in what order, and how
-to verify it. **Status: not started.**
+to verify it. **Status: WP0-WP8 built (2026-10-15).** As built: see the ADR's "As built" section for the differences (verdict order, model additions, migration `19.sqm` taking the schema to 20), the UI and recording gaps, and what was not done (no by-hand run against a real daemon, the desktop app or Android; no iOS). Acceptance criteria are in `docs/testing/acceptance-tests.md`, backed by `SyncActivityAcceptanceTest` and the service tests it names.
 
 ## Goal
 

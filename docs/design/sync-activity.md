@@ -6,7 +6,7 @@
 > [ADR-013](../adr/ADR-013-device-data-sync.md), [ADR-017](../adr/ADR-017-retrying-messages-to-offline-devices.md),
 > [ADR-020](../adr/ADR-020-syncing-without-overlapping-online-time.md).
 >
-> **Status:** Draft; the decision record is [ADR-033](../adr/ADR-033-sync-activity.md). Open questions decided 2026-10-15 (§12). Nothing here is built. The data section (§8) shapes the
+> **Status:** Built (2026-10-15); the decision record is [ADR-033](../adr/ADR-033-sync-activity.md), whose "As built" section lists where the build differs from this draft. Open questions decided 2026-10-15 (§12). The data section (§8) shapes the
 > design, so read it before the layout.
 
 ## 1. Purpose
@@ -98,7 +98,7 @@ All strings go in `strings.xml`; no hard-coded text.
 
 ## 6. The verdict (status card)
 
-One state at a time, first match wins. This is the most important logic on the screen, so it is derived from data the app
+One state at a time, first match wins (Syncing, while a round runs, wins over the rest). This is the most important logic on the screen, so it is derived from data the app
 actually has, not guessed.
 
 | Verdict               | When                                                                                                         | Copy (draft)                                                      |
@@ -106,11 +106,11 @@ actually has, not guessed.
 | **Problem**           | The x0x daemon is unreachable, or a pending membership message has been failing for more than 1 hour.        | "Sync isn't running. {reason}"                                    |
 | **Only you**          | The Home has no other devices (roster lists only this one, no hub).                                          | "This Home is only on this device. Invite someone to sync."       |
 | **Up to date**        | Last round finished with no failures and at least one peer or hub synced within the last 2 rounds (about 1 min). | "Up to date. Last sync {ago} with {device}."                  |
-| **Waiting for others**| No peer reachable now, but this device has nothing unsent.                                                   | "Nobody else is online right now. Changes will sync when they are." |
 | **Changes waiting**   | This device has local changes it has not been able to send to anyone (and no hub took them).                | "{n} changes are waiting to be sent."                             |
+| **Waiting for others**| No peer reachable now, but this device has nothing unsent.                                                   | "Nobody else is online right now. Changes will sync when they are." |
 | **Syncing…**          | A round is in progress. Replaces the card only while running (spinner), then falls back to the above.      | "Syncing…"                                                        |
 
-"Changes waiting" needs the unsent-change tracking in §8.3, which is in scope. Keep the tone calm ("Your household, your rules"), never alarming.
+As built, **Changes waiting is checked before Waiting for others**, because "Waiting for others" means nothing is unsent; the count in its copy became a plain sentence (the library has no change-count API). "Changes waiting" needs the unsent-change tracking in §8.3, which is in scope. Keep the tone calm ("Your household, your rules"), never alarming.
 
 ## 7. Device detail (bottom sheet on mobile, inline panel on tablet)
 

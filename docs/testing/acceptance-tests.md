@@ -43,3 +43,47 @@ mappers rather than copying them, so the test follows the app.
 ## Example
 
 `ShoppingListTagsAcceptanceTest` (shopping-list tags) is the reference.
+
+## Sync activity (ADR-033)
+
+Criteria from [ADR-033](../adr/ADR-033-sync-activity.md). The screen criteria are driven through the real view model and screen over a fake
+`SyncActivityRepository` in `SyncActivityAcceptanceTest`; the criteria that live in the sync service are backed by the service tests named below,
+which run on the fake mesh and an in-memory database. Not covered by an automated test: a real x0x daemon producing the same events, and the
+screen on a device.
+
+1. **Up to date.** *Given* two other devices, one online and synced a minute ago and one offline, *when* I open Sync activity, *then* the card says
+   "Up to date" naming the device, and both devices are listed with the offline one marked Offline.
+   `SyncActivityAcceptanceTest.withTwoOtherDevicesOneSyncedAMinuteAgoTheScreenSaysUpToDateAndListsBoth`.
+2. **Waiting for others.** *Given* nobody is online and an event from an hour ago, *when* I open Sync activity, *then* the card says "Waiting for
+   others" and the earlier event is still in the log.
+   `SyncActivityAcceptanceTest.withNobodyOnlineTheScreenSaysWaitingForOthersAndEarlierEventsRemain`.
+3. **Only you.** *Given* a Home only on this device, *when* I open Sync activity and tap the Invite row, *then* the card says "Only you", there is
+   no Devices list, and the invite flow is asked for.
+   `SyncActivityAcceptanceTest.theOnlyMemberOfAHomeSeesOnlyYouAndAnInviteRow`.
+4. **A received update is content-free and folds.** *Given* a Tasks update from another device, *when* I open Sync activity, *then* the log reads
+   "Tasks updated by {device}" with its time and no task content, and repeats inside five minutes raise a count and not new rows.
+   `SyncActivityAcceptanceTest.aReceivedTasksUpdateReadsAsTasksUpdatedByTheDeviceWithItsTimeAndNoContent` (the screen);
+   `DeviceDataSyncServiceTest.aTasksEditIsLoggedAsSentOnTheEditorAndReceivedOnTheOtherMember` and `anUnchangedRoundIsOnlyAHandshakeAndAddsNoReceivedEvent`
+   (recording on the fake mesh); `SyncEventRecorderTest` (collapsing; the table has no content columns).
+5. **A failed send is a problem.** *Given* a send to a device that failed, *when* I choose the Problems filter, *then* only "Couldn't reach {device}"
+   with "Will keep trying" is listed.
+   `SyncActivityAcceptanceTest.aFailedSendAppearsUnderProblemsAndTheProblemsFilterShowsOnlyIt` (the screen);
+   `DeviceDataSyncServiceTest.anOfflinePeerIsLoggedAsOneUnreachableRowThatCountsEachFailedRound` and `SyncActivityServiceTest.theFiltersKeepTheirKindsOnly`.
+6. **Changes waiting.** *Given* a local change no peer or hub has taken, *when* I open Sync activity, *then* the card says "Changes waiting" until one
+   takes it.
+   `SyncActivityAcceptanceTest.changesWaitingShowsUntilAPeerOrHubTakesThem` (the screen); `ChangesWaitingTest` and
+   `SyncActivityServiceTest.theVerdictIsChangesWaitingWhenTheyAreAwayAndNothingIsInTheMailbox` (how it is worked out).
+7. **Last synced survives a restart.** *Given* two devices that have synced, *when* the app restarts on the same database, *then* the device still
+   shows when it last synced and not "never".
+   `DeviceDataSyncServiceTest.theTimeAPeerLastSyncedSurvivesAFreshServiceOnTheSameDatabase`; `SyncEventRecorderTest` (last synced is read from memory
+   first and from the table by a new recorder).
+8. **Seven days, and leaving removes the log.** *Given* rows older than seven days, *when* the next round starts, *then* they are gone; *when* I leave
+   the Home, *then* its rows are gone too.
+   `SyncEventRecorderTest` (prune removes rows older than seven days and keeps newer ones; forgetting a home removes its rows and buffered events);
+   the "last 7 days" note on the screen is in `SyncActivityAcceptanceTest.aReceivedTasksUpdateReadsAsTasksUpdatedByTheDeviceWithItsTimeAndNoContent`.
+9. **Sync now.** *Given* an up to date Home, *when* I tap Sync now, *then* one round is asked for and progress shows until it ends; *given* the
+   daemon is down, *then* the card says sync isn't running and the button is disabled.
+   `SyncActivityAcceptanceTest.syncNowRunsOneRoundAndShowsProgressUntilItEnds` and
+   `withTheDaemonDownTheCardSaysSyncIsNotRunningAndSyncNowIsDisabled`; `SyncActivityServiceTest.syncNowStartsAnotherRound`.
+10. **Recording never breaks syncing.** *Given* a recorder that fails every time, *when* a change is made, *then* it still reaches the other device.
+    `DeviceDataSyncServiceTest.aRecorderThatFailsEveryTimeLeavesTheSyncUnchanged`; `SyncEventRecorderTest` (a closed database does not make recording fail).

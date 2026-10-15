@@ -19,6 +19,20 @@ and without one. See [ADR-020](../adr/ADR-020-syncing-without-overlapping-online
   third device that meets both (a tablet, a laptop, another member's phone) carries changes between them.
 - A phone that is asleep, or has Vesta closed, does not sync. It catches up the next time Vesta is opened.
 
+## Seeing what synced
+
+- Open **Sync activity** from the Home's menu (any member can). It says in one line whether the Home is in sync, lists the Home's devices and hubs with
+  when each last synced, and keeps a log of what has come in and gone out. **Sync now** starts a round straight away.
+- What the top line means:
+  - **Up to date**: a sync worked in the last minute or so.
+  - **Waiting for others**: nobody else is online right now, and nothing of yours is left unsent. It will sync when someone is.
+  - **Changes waiting**: you have changes that no other device or hub has taken yet. They go as soon as one is online. It is a yes or no, not a count.
+  - **Only you**: the Home is only on this device. Invite someone to start syncing.
+  - **Sync isn't running**: the app can't reach its sync service on this device, or a message to another device has been failing for over an hour.
+    Changes stay here until it is back.
+- The log is **local to this device** and never sent anywhere. It records only that something synced (for example "Tasks updated by Sam's Pixel"),
+  never the item names, quantities or titles. It is kept for **7 days**, and leaving a Home removes its entries.
+
 ## Photos
 
 - A photo you add to a recipe is shrunk and kept on your device without its location or camera details; the recipe itself, its caption and a small blurred
