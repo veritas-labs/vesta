@@ -53,21 +53,44 @@ internal class HomeDocumentStore<S : HomeDocument>(
             return@withLock null
         }
         sources[homeId]?.let { return@withLock it }
-        val queries = database.automergeDocumentQueries
-        val documentId = homeDocumentId(homeId, feature)
-        val stored = queries.selectById(documentId).awaitAsOneOrNull()
-        val source = create(
-            homeId,
-            Document.load(stored?.bytes ?: Document().save()),
-            { bytes -> queries.upsert(documentId, homeId, feature, bytes, nowMillis()) },
-            { _localChanges.tryEmit(homeId) },
-        )
+        val source = openHomeDocument(database, homeId, feature, nowMillis, refreshNew, create) { _localChanges.tryEmit(homeId) }
         if (source == null) {
             sources.remove(homeId)
             return@withLock null
         }
-        if (stored == null) refreshNew(source)
         sources[homeId] = source
         source
     }
+}
+
+/**
+ * The open path [HomeDocumentStore.forHome] uses, also callable on its own (the `openXDocumentSource` functions): loads
+ * [homeId]'s [feature] document from [database] or starts an empty one, builds the source with [create], and calls
+ * [refreshNew] when nothing was stored so the empty document is stored straight away. Does not check the Home exists.
+ */
+internal suspend fun <S : HomeDocument> openHomeDocument(
+    database: VestaDatabase,
+    homeId: String,
+    feature: String,
+    nowMillis: () -> Long,
+    refreshNew: suspend (S) -> Unit,
+    create: suspend (
+        homeId: String,
+        document: Document,
+        persist: suspend (ByteArray) -> Unit,
+        onLocalChange: () -> Unit,
+    ) -> S?,
+    onLocalChange: () -> Unit,
+): S? {
+    val queries = database.automergeDocumentQueries
+    val documentId = homeDocumentId(homeId, feature)
+    val stored = queries.selectById(documentId).awaitAsOneOrNull()
+    val source = create(
+        homeId,
+        Document.load(stored?.bytes ?: Document().save()),
+        { bytes -> queries.upsert(documentId, homeId, feature, bytes, nowMillis()) },
+        onLocalChange,
+    ) ?: return null
+    if (stored == null) refreshNew(source)
+    return source
 }
