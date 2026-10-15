@@ -181,6 +181,11 @@ sqldelight {
             // AndroidxSqliteDriver (wrapping the bundled SQLite so cr-sqlite loads
             // the same way on every platform) is a suspending driver.
             generateAsync = true
+            // One <version>.db snapshot per schema version, checked in, so
+            // verifyMigrations can prove every .sqm chain reaches the current
+            // schema (docs/testing/database-migrations.md).
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+            verifyMigrations.set(true)
         }
     }
 }
