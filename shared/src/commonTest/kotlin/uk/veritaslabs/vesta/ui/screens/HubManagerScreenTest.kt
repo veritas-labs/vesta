@@ -34,6 +34,21 @@ class HubManagerScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun seeActivityLinkIsOfferedAndInvokesItsCallback() = runComposeUiTest {
+        // Arrange
+        var opens = 0
+        setContent { VestaTheme { HubManagerScreen(HubUiState(loading = false), onSeeActivity = { opens++ }) } }
+
+        // Act
+        onNodeWithTag(HubManagerTestTags.SeeActivity).assertIsDisplayed()
+        onNodeWithTag(HubManagerTestTags.SeeActivity).performClick()
+
+        // Assert
+        assertEquals(1, opens)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun withNoHubsShowsTheEmptyStateAndTheTutorialButton() = runComposeUiTest {
         // Arrange
         var setUps = 0

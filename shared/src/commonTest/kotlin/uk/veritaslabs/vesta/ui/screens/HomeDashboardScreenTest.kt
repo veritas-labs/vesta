@@ -133,13 +133,14 @@ class HomeDashboardScreenTest {
         // Assert
         onNodeWithTag(HomeDashboardTestTags.EditMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.HubMenuItem).assertIsDisplayed()
+        onNodeWithTag(HomeDashboardTestTags.SyncActivityMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.DeleteMenuItem).assertIsDisplayed()
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun aMembersOverflowMenuHasOnlyLeave() = runComposeUiTest {
+    fun aMembersOverflowMenuHasSyncActivityAndLeaveOnly() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = false) } }
 
@@ -147,6 +148,7 @@ class HomeDashboardScreenTest {
         openMenu()
 
         // Assert
+        onNodeWithTag(HomeDashboardTestTags.SyncActivityMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.LeaveMenuItem).assertIsDisplayed()
         onNodeWithTag(HomeDashboardTestTags.EditMenuItem).assertDoesNotExist()
         onNodeWithTag(HomeDashboardTestTags.HubMenuItem).assertDoesNotExist()
@@ -163,6 +165,21 @@ class HomeDashboardScreenTest {
         // Act
         openMenu()
         onNodeWithTag(HomeDashboardTestTags.HubMenuItem).performClick()
+
+        // Assert
+        assertEquals(1, opens)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun syncActivityInTheMenuInvokesOnSyncActivityClick() = runComposeUiTest {
+        // Arrange
+        var opens = 0
+        setContent { VestaTheme { HomeDashboardScreen(homeName = "The Johnsons", isAdmin = false, onSyncActivityClick = { opens++ }) } }
+
+        // Act
+        openMenu()
+        onNodeWithTag(HomeDashboardTestTags.SyncActivityMenuItem).performClick()
 
         // Assert
         assertEquals(1, opens)

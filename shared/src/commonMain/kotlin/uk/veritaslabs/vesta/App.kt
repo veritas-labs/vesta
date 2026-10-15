@@ -102,7 +102,11 @@ import uk.veritaslabs.vesta.ui.screens.MarketplaceScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
 import uk.veritaslabs.vesta.ui.screens.MerchantsViewModel
+import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
+import uk.veritaslabs.vesta.syncactivity.SyncActivityViewModel
+import uk.veritaslabs.vesta.syncactivity.UnavailableSyncActivityRepository
 import uk.veritaslabs.vesta.ui.screens.HubManagerScreen
+import uk.veritaslabs.vesta.ui.screens.SyncActivityScreen
 import uk.veritaslabs.vesta.ui.screens.HubScreen
 import uk.veritaslabs.vesta.ui.screens.HubTutorialScreen
 import uk.veritaslabs.vesta.ui.screens.MemberAgent
@@ -439,6 +443,7 @@ private fun HomeContent(
     onDeleteHome: suspend () -> Unit = {},
     joining: HomeJoining? = null,
     hubs: HomeHub? = null,
+    syncActivity: SyncActivityRepository = UnavailableSyncActivityRepository,
     ownDeviceCanBeHub: Boolean = false,
     onOpened: () -> Unit = {},
 ) {
@@ -500,6 +505,8 @@ private fun HomeContent(
     val tasksState = tasksViewModel?.uiState?.collectAsStateWithLifecycle()
     // Where the categories screen's back arrow returns to: the Pantry, or the item form it was opened from.
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
+    // Where the Sync activity screen's back arrow returns to: the dashboard or the hub manager it was opened from.
+    var syncActivityBackTo by remember { mutableStateOf(HomeDestination.Dashboard) }
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(
             homeName = homeName,
@@ -518,6 +525,10 @@ private fun HomeContent(
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
             onEditHome = onEditHome,
             onHubClick = { destination = HomeDestination.HubManager },
+            onSyncActivityClick = {
+                syncActivityBackTo = HomeDestination.Dashboard
+                destination = HomeDestination.SyncActivity
+            },
             onDeleteHome = { scope.launch { onDeleteHome() } },
             onLeaveHome = { scope.launch { if (onLeave() == LeaveResult.OnlyAdmin) leaveBlocked = true } },
             leaveBlocked = leaveBlocked,
@@ -569,6 +580,19 @@ private fun HomeContent(
                 onHowHubsWork = { destination = HomeDestination.HubTutorial },
                 onSetUpHub = { destination = HomeDestination.Hub },
                 onBack = { destination = HomeDestination.Dashboard },
+                onSeeActivity = {
+                    syncActivityBackTo = HomeDestination.HubManager
+                    destination = HomeDestination.SyncActivity
+                },
+            )
+        }
+        HomeDestination.SyncActivity -> {
+            val syncActivityViewModel = viewModel(key = "sync-activity-$homeId") { SyncActivityViewModel(homeId, syncActivity) }
+            SyncActivityScreen(
+                syncActivityViewModel,
+                homeName = homeName,
+                onBack = { destination = syncActivityBackTo },
+                onInvite = { destination = HomeDestination.InviteLinks },
             )
         }
         HomeDestination.HubTutorial -> HubTutorialScreen(
@@ -836,7 +860,7 @@ class DeviceSyncHost(
 )
 
 private enum class HomeDestination {
-    Dashboard, Members, MemberDetail, InviteLinks, HubManager, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
+    Dashboard, Members, MemberDetail, InviteLinks, HubManager, SyncActivity, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
     ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, MealPlanner, Marketplace, Merchants, Calendar, CalendarSettings, Tasks,
 }
 
@@ -976,6 +1000,7 @@ fun VestaApp(
                     onDeleteHome = { homeRepository.delete(homeId) },
                     joining = deviceDataSync?.joining,
                     hubs = deviceDataSync?.hubs,
+                    syncActivity = deviceDataSync?.syncActivity ?: UnavailableSyncActivityRepository,
                     ownDeviceCanBeHub = ownDeviceCanBeHub,
                     onOpened = { deviceDataSync?.syncNow() },
                 )

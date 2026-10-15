@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -55,6 +56,7 @@ import vesta.shared.generated.resources.hub_manager_empty_body
 import vesta.shared.generated.resources.hub_manager_empty_title
 import vesta.shared.generated.resources.hub_manager_how_title
 import vesta.shared.generated.resources.hub_manager_setup_title
+import vesta.shared.generated.resources.hub_manager_see_activity
 import vesta.shared.generated.resources.hub_manager_title
 import vesta.shared.generated.resources.hub_unavailable
 import vesta.shared.generated.resources.ic_arrow_left
@@ -64,6 +66,7 @@ import vesta.shared.generated.resources.ic_plus
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object HubManagerTestTags {
     const val BackButton = "hub_manager_back_button"
+    const val SeeActivity = "hub_manager_see_activity"
     const val HowButton = "hub_manager_how_button"
     const val SetupButton = "hub_manager_setup_button"
     const val AddHub = "hub_manager_add_hub"
@@ -84,6 +87,7 @@ fun HubManagerScreen(
     onSetUpHub: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onSeeActivity: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) { viewModel.poll() }
@@ -98,6 +102,7 @@ fun HubManagerScreen(
         onRemove = viewModel::onRemove,
         onBack = onBack,
         modifier = modifier,
+        onSeeActivity = onSeeActivity,
     )
 }
 
@@ -117,6 +122,7 @@ fun HubManagerScreen(
     onAddHub: () -> Unit = {},
     onRemove: (String) -> Unit = {},
     onBack: () -> Unit = {},
+    onSeeActivity: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         TopAppBar(
@@ -124,6 +130,11 @@ fun HubManagerScreen(
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag(HubManagerTestTags.BackButton)) {
                     Icon(painter = painterResource(Res.drawable.ic_arrow_left), contentDescription = stringResource(Res.string.common_back))
+                }
+            },
+            actions = {
+                TextButton(onClick = onSeeActivity, modifier = Modifier.testTag(HubManagerTestTags.SeeActivity)) {
+                    Text(stringResource(Res.string.hub_manager_see_activity))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
