@@ -17,9 +17,10 @@ import kotlin.time.Clock
 class DatabaseDowngradeException(
     val storedVersion: Long,
     val supportedVersion: Long,
+    val appName: String = "Vesta",
 ) : IllegalStateException(
-    "The Vesta database is at version $storedVersion but this app only understands up to version $supportedVersion. " +
-        "Update Vesta; the data has not been changed.",
+    "The $appName database is at version $storedVersion but this app only understands up to version $supportedVersion. " +
+        "Update $appName; the data has not been changed.",
 )
 
 /**

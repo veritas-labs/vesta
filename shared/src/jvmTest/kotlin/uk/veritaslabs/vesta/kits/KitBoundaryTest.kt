@@ -140,14 +140,11 @@ class KitBoundaryTest {
         // WP4 seeding hook, WP5 document types, WP9 database, WP16 blobs seam).
         "blobs->vesta: blobs/BlobTransferService -> automerge/CookbookSources",
         "blobs->vesta: blobs/DeviceBlobRuntime -> automerge/CookbookSources",
-        "spaces->vesta: datasync/HomeGroups -> x0x/InviteLifetime",
-        "spaces->vesta: datasync/HomeHubs -> x0x/InviteLifetime",
         "spaces->vesta: datasync/HomeJoinService -> automerge/PantryDocumentSource",
         "spaces->vesta: datasync/HomeJoinService -> automerge/ShoppingListDocumentSource",
         "spaces->vesta: datasync/HomeRegistry -> automerge/PantryDocumentSource",
         "spaces->vesta: datasync/HomeRegistry -> automerge/PantrySources",
         "spaces->vesta: datasync/HomeRegistry -> automerge/ShoppingListDocumentSource",
         "sync->vesta: datasync/DeviceDataSyncService -> automerge/VestaHomeDocuments",
-        "sync->vesta: devicesync/DeviceSyncService -> x0x/InviteLifetime",
     )
 }

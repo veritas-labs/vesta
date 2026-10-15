@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                 openTasks = { database, homeId -> agentCommands.tasks(database, homeId) },
                 openPrivateTasks = { database, homeId -> agentCommands.privateTasks(database, homeId) },
                 dataSync = { database, client, devices ->
-                    DeviceDataSyncService(client, database, devices, ::getDeviceName, agentCommands.homeSources(database))
+                    DeviceDataSyncService(client, database, devices, ::getDeviceName, agentCommands.homeSources(database), homeConfig = VestaKitConfig.home)
                 },
                 blobRuntime = { database, client, sync ->
                     DeviceBlobRuntime(

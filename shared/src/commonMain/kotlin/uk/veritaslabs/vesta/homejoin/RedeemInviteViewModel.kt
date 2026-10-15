@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.homejoin
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlin.time.Clock
@@ -35,7 +36,7 @@ class RedeemInviteViewModel(
     val uiState: StateFlow<RedeemInviteUiState> = _uiState.asStateFlow()
 
     fun onRedeem(raw: String) {
-        val link = InviteLink.decode(raw)
+        val link = InviteLink.decode(raw, VestaKitConfig.home.inviteScheme)
         when {
             link == null -> _uiState.value = RedeemInviteUiState.Failed(RedeemInviteError.InvalidLink)
             link.isExpired(nowMillis()) -> _uiState.value = RedeemInviteUiState.Failed(RedeemInviteError.Expired)

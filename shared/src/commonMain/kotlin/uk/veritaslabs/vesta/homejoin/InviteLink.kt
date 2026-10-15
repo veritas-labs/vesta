@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.homejoin
 
 import kotlin.io.encoding.Base64
+import uk.veritaslabs.vesta.home.HomeConfig
 
 /**
  * What an admin shares to let someone join a Home later (docs/adr/ADR-018-invite-links.md): the [homeId], a random
@@ -21,21 +22,20 @@ data class InviteLink(
 
     fun isExpired(nowMillis: Long): Boolean = nowMillis >= expiresAt
 
-    fun encode(): String {
+    fun encode(scheme: String = HomeConfig.DefaultInviteScheme): String {
         val body = listOf(homeId, secret, expiresAt.toString(), adminAgentIds.joinToString(AgentSeparator), homeName)
             .joinToString(Separator)
-        return "$Scheme/${Base64.UrlSafe.encode(body.encodeToByteArray())}"
+        return "$scheme/${Base64.UrlSafe.encode(body.encodeToByteArray())}"
     }
 
     companion object {
         const val MaxAdminAgents = 5
 
-        private const val Scheme = "vesta://invite"
         private const val Separator = ":"
         private const val AgentSeparator = ","
 
-        fun decode(raw: String): InviteLink? {
-            val token = raw.trim().takeIf { it.startsWith("$Scheme/") }?.substringAfter("$Scheme/") ?: return null
+        fun decode(raw: String, scheme: String = HomeConfig.DefaultInviteScheme): InviteLink? {
+            val token = raw.trim().takeIf { it.startsWith("$scheme/") }?.substringAfter("$scheme/") ?: return null
             val decoded = runCatching { Base64.UrlSafe.decode(token) }.getOrNull()?.decodeToString() ?: return null
             // The name goes last and may itself contain the separator.
             val parts = decoded.split(Separator, limit = 5)

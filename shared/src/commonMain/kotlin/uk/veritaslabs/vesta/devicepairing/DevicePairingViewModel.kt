@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.devicepairing
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
@@ -111,7 +112,7 @@ class DevicePairingViewModel(
     }
 
     fun onSubmitPairingLink(raw: String) {
-        val link = PairingLink.decode(raw)
+        val link = PairingLink.decode(raw, VestaKitConfig.deviceSync.pairingScheme)
         when {
             link == null -> setPasteError(DevicePairingPasteError.InvalidFormat)
             link.isExpired(nowMillis()) -> setPasteError(DevicePairingPasteError.Expired)

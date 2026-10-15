@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import uk.veritaslabs.vesta.home.HomeConfig
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.vesta.db.VestaDatabase
@@ -31,7 +32,6 @@ import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
-private val InviteLifetime = 7.days
 private const val PendingStatus = "pending"
 private const val ApprovedStatus = "approved"
 private const val DeclinedStatus = "declined"
@@ -55,6 +55,7 @@ internal class HomeJoinService(
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val messageLifetime: Duration = 14.days,
     private val recorder: SyncEventRecorder? = null,
+    private val config: HomeConfig = HomeConfig(),
 ) : HomeJoining {
 
     // Serialises the work an Invite does, so two copies of one can't both create the Home.
@@ -145,7 +146,7 @@ internal class HomeJoinService(
 
     override suspend fun createInviteLink(homeId: String): InviteLink? {
         val ownAgent = runCatching { client.agent().agentId }.getOrNull()
-        return rosters.createInvite(homeId, profiles.current().id, InviteLifetime.inWholeMilliseconds, ownAgentId = ownAgent)
+        return rosters.createInvite(homeId, profiles.current().id, config.inviteLinkLifetime.inWholeMilliseconds, ownAgentId = ownAgent)
     }
 
     override suspend fun inviteLinks(homeId: String): List<ActiveInvite> {

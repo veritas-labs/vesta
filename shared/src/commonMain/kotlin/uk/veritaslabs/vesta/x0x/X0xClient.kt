@@ -148,7 +148,7 @@ interface X0xClient {
     /**
      * Creates an invite link (`x0x://invite/…`) for a group this agent administers. It lives [expirySecs] seconds (x0x's default is seven days), and only
      * [intendedJoiner], an agent id, can redeem it when that is given (anyone else is refused with `invite_not_addressed_to_me`). A removed device
-     * could otherwise get back into a group with any unused invite (docs/adr/ADR-020, Spike 9), so [InviteLifetime] says how long Vesta's last.
+     * could otherwise get back into a group with any unused invite (docs/adr/ADR-020, Spike 9), so Vesta's `InviteLifetime` says how long Vesta's last.
      */
     suspend fun createGroupInvite(groupId: String, expirySecs: Long? = null, intendedJoiner: String? = null): String
 

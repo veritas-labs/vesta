@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -99,7 +100,7 @@ fun InviteLinksScreen(
     when {
         state.managing -> ManageLinks(state.links, onRevoke = onRevoke, onBack = onStopManaging, modifier = modifier)
         created != null -> DevicePairingGeneratedScreen(
-            pairingLink = created.encode(),
+            pairingLink = created.encode(VestaKitConfig.home.inviteScheme),
             modifier = modifier,
             title = stringResource(Res.string.invite_links_created_title),
             body = stringResource(Res.string.invite_links_created_body),

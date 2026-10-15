@@ -29,6 +29,7 @@ import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
 import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
+import uk.veritaslabs.vesta.home.HomeConfig
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
@@ -74,6 +75,7 @@ class DeviceDataSyncService(
     private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
     activityRefresh: Duration = 20.seconds,
     extraTypes: List<HomeDocumentType> = emptyList(),
+    homeConfig: HomeConfig = HomeConfig(),
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, documents.pantries)
@@ -89,8 +91,8 @@ class DeviceDataSyncService(
             changesWaiting.forget(id)
         }
     }
-    private val join = HomeJoinService(client, database, rosters, homeListener, profiles, recorder = recorder)
-    private val groups = HomeGroups(client, database, rosters, profiles)
+    private val join = HomeJoinService(client, database, rosters, homeListener, profiles, recorder = recorder, config = homeConfig)
+    private val groups = HomeGroups(client, database, rosters, profiles, config = homeConfig)
 
     /** The one list of Home document types, built from the [documents] this service was given; the acknowledgement, activity module and private-id lookups go through it. */
     private val homeDocuments = VestaHomeDocuments(database, rosters, publishRosters = { publishRosters() }, sources = documents, extraTypes = extraTypes)
@@ -148,7 +150,7 @@ class DeviceDataSyncService(
 
     override val joining: HomeJoining get() = join
 
-    override val hubs: HomeHub = HomeHubs(client, database, rosters, profiles)
+    override val hubs: HomeHub = HomeHubs(client, database, rosters, profiles, config = homeConfig)
 
     override suspend fun memberAgents(homeId: String, memberId: String): List<String> =
         rosters.devices(homeId)[memberId].orEmpty().sorted()

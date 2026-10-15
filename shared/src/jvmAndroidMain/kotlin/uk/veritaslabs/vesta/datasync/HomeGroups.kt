@@ -8,19 +8,17 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import uk.veritaslabs.vesta.home.HomeConfig
 import uk.veritaslabs.vesta.automerge.RosterMember
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.x0x.X0xApiException
-import uk.veritaslabs.vesta.x0x.InviteLifetime
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
 
-private const val GroupName = "Vesta Home"
-private const val MailboxStore = "mailbox"
 private const val AdminRole = "admin"
 private const val MemberRoleName = "member"
 private const val ActiveState = "active"
@@ -48,6 +46,7 @@ internal class HomeGroups(
     private val profiles: ProfileRepository,
     private val pollInterval: Duration = 1.seconds,
     private val joinTimeout: Duration = 10.seconds,
+    private val config: HomeConfig = HomeConfig(),
 ) {
 
     // Reconciling, answering and replacing all read-modify-write the same group, so run one at a time.
@@ -138,7 +137,7 @@ internal class HomeGroups(
     }
 
     private suspend fun create(homeId: String) {
-        val groupId = client.createGroup(GroupName)
+        val groupId = client.createGroup(config.groupName)
         rosters.setGroup(homeId, groupId)
         database.homeGroupQueries.upsert(homeId, groupId, null)
         attempt { openStore(homeId, groupId) }
@@ -163,7 +162,7 @@ internal class HomeGroups(
         if (sender !in activeDevices(rosters.members(homeId))) return
         val members = client.getGroupMembers(local.groupId)
         if (members.firstOrNull { it.agentId == selfId() }?.role != AdminRole) return
-        val invite = client.createGroupInvite(local.groupId, InviteLifetime.HomeJoin.inWholeSeconds, intendedJoiner = sender)
+        val invite = client.createGroupInvite(local.groupId, config.joinInviteLifetime.inWholeSeconds, intendedJoiner = sender)
         sendQuietly(sender, HomeGroupMessage.encode(HomeGroupMessage.Invite(homeId, local.groupId, invite)))
     }
 
@@ -186,7 +185,7 @@ internal class HomeGroups(
     }
 
     private suspend fun openStore(homeId: String, groupId: String) {
-        val storeId = client.openGroupStore(groupId, MailboxStore)
+        val storeId = client.openGroupStore(groupId, config.mailboxStoreName)
         database.homeGroupQueries.setStore(storeId, homeId)
     }
 
@@ -238,7 +237,7 @@ internal class HomeGroups(
      * different group, leave the old one and ask for an invite; those offline do so when they next sync.
      */
     private suspend fun replaceGroup(homeId: String, oldGroup: String) {
-        val groupId = client.createGroup(GroupName)
+        val groupId = client.createGroup(config.groupName)
         rosters.setGroup(homeId, groupId)
         database.homeGroupQueries.upsert(homeId, groupId, null)
         attempt { client.leaveGroup(oldGroup) }

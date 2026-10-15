@@ -5,6 +5,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
+import uk.veritaslabs.vesta.home.HomeConfig
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homegroup.HubEnrolment
@@ -12,14 +13,12 @@ import uk.veritaslabs.vesta.homegroup.HubResult
 import uk.veritaslabs.vesta.homegroup.HubState
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
-import uk.veritaslabs.vesta.x0x.InviteLifetime
 import uk.veritaslabs.vesta.x0x.X0xApiException
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
 
 private const val AdminRole = "admin"
 private const val ActiveState = "active"
-private const val MailboxStore = "mailbox"
 private const val KeyPackagePending = "member_key_package_pending"
 
 /**
@@ -34,13 +33,14 @@ internal class HomeHubs(
     private val profiles: ProfileRepository,
     private val removeRetryDelay: Duration = 3.seconds,
     private val removeAttempts: Int = 5,
+    private val config: HomeConfig = HomeConfig(),
 ) : HomeHub {
 
     override suspend fun enrolment(homeId: String): HubEnrolment? {
         val group = readyGroup(homeId) ?: return null
         if (!isAdminOfHome(homeId) || !isAdminOfGroup(group)) return null
-        val invite = client.createGroupInvite(group, InviteLifetime.HubEnrolment.inWholeSeconds)
-        return HubEnrolment(group, "x0x group join $invite\nx0x group store create $group $MailboxStore")
+        val invite = client.createGroupInvite(group, config.hubEnrolmentLifetime.inWholeSeconds)
+        return HubEnrolment(group, "x0x group join $invite\nx0x group store create $group ${config.mailboxStoreName}")
     }
 
     override suspend fun hubs(homeId: String): List<HubState> {

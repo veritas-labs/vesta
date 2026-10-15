@@ -17,13 +17,11 @@ import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.x0x.X0xApiException
-import uk.veritaslabs.vesta.x0x.InviteLifetime
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
 
-private const val GroupName = "DeviceSync"
 private const val ApiKeyPackagePending = "member_key_package_pending"
 
 /**
@@ -59,6 +57,7 @@ class DeviceSyncService(
     private val onDeviceUnpaired: suspend (agentId: String) -> Unit = {},
     /** Called when the user pairs a device this one did not list: [pairWith], accepting an invite, or a greeting from a device it had not met. Not for devices merely seen in the group. */
     private val onDevicePaired: suspend (agentId: String) -> Unit = {},
+    private val config: DeviceSyncConfig = DeviceSyncConfig(),
 ) {
     // Pairing, message handling, reconciling and removal all read-modify-write the same group, so run one at a time.
     private val lock = Mutex()
@@ -100,11 +99,11 @@ class DeviceSyncService(
                 begin(PairingStep.PrepareGroup)
                 val self = selfId()
                 require(link.agentId != self) { "that is this device's own pairing link" }
-                val groupId = currentGroup() ?: client.createGroup(GroupName).also { setGroup(it) }
+                val groupId = currentGroup() ?: client.createGroup(config.groupName).also { setGroup(it) }
                 finish(PairingStep.PrepareGroup)
 
                 begin(PairingStep.CreateInvite)
-                val invite = client.createGroupInvite(groupId, InviteLifetime.Pairing.inWholeSeconds, intendedJoiner = link.agentId)
+                val invite = client.createGroupInvite(groupId, config.pairingInviteLifetime.inWholeSeconds, intendedJoiner = link.agentId)
                 val message = DeviceSyncMessage.encode(DeviceSyncMessage.Invite(invite, deviceName()))
                 finish(PairingStep.CreateInvite)
 
@@ -267,11 +266,11 @@ class DeviceSyncService(
     private suspend fun replaceGroupWithout(oldGroup: String, removed: String) {
         val self = selfId()
         val remaining = members(oldGroup).filter { it.state == "active" && it.agentId != removed && it.agentId != self }
-        val newGroup = client.createGroup(GroupName)
+        val newGroup = client.createGroup(config.groupName)
         val moved = remaining.filter { member ->
             runCatching {
                 // One invite for each device, made for it alone.
-                val invite = client.createGroupInvite(newGroup, InviteLifetime.Pairing.inWholeSeconds, intendedJoiner = member.agentId)
+                val invite = client.createGroupInvite(newGroup, config.pairingInviteLifetime.inWholeSeconds, intendedJoiner = member.agentId)
                 val message = DeviceSyncMessage.encode(DeviceSyncMessage.Rotate(invite, oldGroup, deviceName()))
                 awaitActive(newGroup, member.agentId) { send(member.agentId, message) }
             }.isSuccess

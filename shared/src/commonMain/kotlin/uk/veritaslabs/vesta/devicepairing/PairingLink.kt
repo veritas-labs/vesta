@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.devicepairing
 
 import kotlin.io.encoding.Base64
+import uk.veritaslabs.vesta.devicesync.DeviceSyncConfig
 
 /**
  * The payload encoded into a device pairing link/QR code
@@ -28,17 +29,16 @@ data class PairingLink(
 
     fun isExpired(nowMillis: Long): Boolean = nowMillis >= expiresAt
 
-    fun encode(): String {
+    fun encode(scheme: String = DeviceSyncConfig.DefaultPairingScheme): String {
         val body = listOfNotNull(agentId, expiresAt.toString(), deviceName).joinToString(Separator)
-        return "$Scheme/${Base64.UrlSafe.encode(body.encodeToByteArray())}"
+        return "$scheme/${Base64.UrlSafe.encode(body.encodeToByteArray())}"
     }
 
     companion object {
-        private const val Scheme = "vesta://pair"
         private const val Separator = ":"
 
-        fun decode(raw: String): PairingLink? {
-            val token = raw.takeIf { it.startsWith("$Scheme/") }?.substringAfter("$Scheme/") ?: return null
+        fun decode(raw: String, scheme: String = DeviceSyncConfig.DefaultPairingScheme): PairingLink? {
+            val token = raw.takeIf { it.startsWith("$scheme/") }?.substringAfter("$scheme/") ?: return null
             val decoded = runCatching { Base64.UrlSafe.decode(token) }.getOrNull()?.decodeToString() ?: return null
 
             // The name goes last and may itself contain the separator.

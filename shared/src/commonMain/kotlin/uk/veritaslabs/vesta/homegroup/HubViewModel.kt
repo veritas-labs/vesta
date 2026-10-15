@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import uk.veritaslabs.vesta.x0x.InviteLifetime
+import uk.veritaslabs.vesta.VestaKitConfig
 
 /**
  * One of the Home's hubs as the screen shows it: its agent id, whether it is in the Home's group right now, and whether it is
@@ -105,7 +105,7 @@ class HubViewModel(
         // Enrolment is shown with no hub yet, or when the admin asked to add another: only then is an invite made.
         val enrolling = items.isEmpty() || _uiState.value.adding
         // The commands carry an invite that lapses (InviteLifetime), so ones made a while ago are made again.
-        val cached = _uiState.value.commands?.takeIf { nowMillis() - commandsMadeAt < InviteLifetime.HubCommandsRefresh.inWholeMilliseconds }
+        val cached = _uiState.value.commands?.takeIf { nowMillis() - commandsMadeAt < VestaKitConfig.home.hubCommandsRefresh.inWholeMilliseconds }
         val commands = if (!enrolling) null else cached ?: runCatchingNotCancelled { service.enrolment(homeId) }?.commands?.also { commandsMadeAt = nowMillis() }
         val candidates = if (commands == null) emptyList() else runCatchingNotCancelled { service.candidates(homeId) }.orEmpty()
         val ownDevices = if (!enrolling || !offerOwnDevice) emptyList() else runCatchingNotCancelled { service.ownDeviceCandidates(homeId) }.orEmpty()

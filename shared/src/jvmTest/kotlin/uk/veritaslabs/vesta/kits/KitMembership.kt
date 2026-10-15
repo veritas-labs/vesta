@@ -24,7 +24,7 @@ object KitMembership {
 
     /** Whole directories that belong to one kit, with the files that stay behind in Vesta. */
     private val directories: Map<String, Pair<Kit, Set<String>>> = mapOf(
-        "x0x/" to (Kit.X0x to setOf("x0x/X0xStatusCard", "x0x/X0xConnectivityIndicator", "x0x/InviteLifetime")),
+        "x0x/" to (Kit.X0x to setOf("x0x/X0xStatusCard", "x0x/X0xConnectivityIndicator")),
         "db/" to (Kit.Store to emptySet()),
         "docs/" to (Kit.Docs to emptySet()),
         "mailbox/" to (Kit.Docs to emptySet()),
@@ -45,7 +45,7 @@ object KitMembership {
             "automerge/HomeRosterDocument", "automerge/HomeRegistryDocument",
             "automerge/InviteSecrets", "automerge/ProfileRegistryDocument",
             "home/HomeRepository", "home/MemberRepository", "home/HomeChangeListener",
-            "home/RosterChangeListener", "home/MemberRole", "home/HomeListItem", "home/HomeDetails",
+            "home/RosterChangeListener", "home/MemberRole", "home/HomeListItem", "home/HomeDetails", "home/HomeConfig",
             "homejoin/HomeJoining", "homejoin/HomeJoinMessage", "homejoin/InviteLink",
             "homegroup/HomeHub", "homegroup/HomeGroupMessage",
         ),
@@ -92,8 +92,8 @@ object KitMembership {
         Kit.X0x to 15,
         Kit.Store to 9,
         Kit.Docs to 17,
-        Kit.Spaces to 24, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1)
-        Kit.Sync to 12, // plus SyncedDevice (WP1)
+        Kit.Spaces to 25, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1) and HomeConfig (WP3)
+        Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
         Kit.Blobs to 16, // plus MediaKind (WP1)
         Kit.Assistants to 5,
     )

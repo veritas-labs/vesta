@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.x0x
+package uk.veritaslabs.vesta
 
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes

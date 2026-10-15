@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.flows
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,7 +42,7 @@ fun DevicePairingFlow(viewModel: DevicePairingViewModel, modifier: Modifier = Mo
             onBack = onExit,
         )
         is DevicePairingUiState.Generated -> DevicePairingGeneratedScreen(
-            pairingLink = state.link.encode(),
+            pairingLink = state.link.encode(VestaKitConfig.deviceSync.pairingScheme),
             modifier = modifier,
             onCancel = { viewModel.onCancelGenerated(state.link) },
         )

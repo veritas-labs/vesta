@@ -960,6 +960,7 @@ fun VestaApp(
         val service = DeviceSyncService(
             client, database, devices,
             deviceName = ::getDeviceName,
+            config = VestaKitConfig.deviceSync,
             onDeviceUnpaired = { agentId -> deviceDataSync?.deviceUnpaired(agentId) },
             onDevicePaired = { agentId -> deviceDataSync?.devicePaired(agentId) },
         )
