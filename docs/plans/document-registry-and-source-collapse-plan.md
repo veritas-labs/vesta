@@ -90,6 +90,43 @@ All paths are under `shared/src/jvmAndroidMain/kotlin/uk/veritaslabs/vesta/` unl
 
 *Done when:* new tests pass on unchanged production code, and `git diff` touches only tests.
 
+#### Coverage found (WP0, 2026-10-15)
+
+**Baseline** (`./gradlew :shared:jvmTest`, unchanged code): 1816 tests, 1 failed, 0 test skips. The failure is pre-existing and unrelated: `CalendarEventsAcceptanceTest.aPrivateEventIsSavedOnThePrivateCalendarMarkedWithAPadlockAndHasNoParticipants` (a Compose UI test, `CalendarEventsAcceptanceTest.kt:114`). Not fixed here. The Android and desktop app compile was not part of this test-only change.
+
+What `DeviceDataSyncServiceTest` already proved, per document:
+
+| Document | (a) direct message to a second device | (b) mailbox catch-up | (c) Home arrives after the document | (d) in Sync activity |
+|---|---|---|---|---|
+| pantry | yes (paired, and unpaired members) | yes | no | no |
+| shopping-list | yes | yes | no | no |
+| cookbook | yes | no | no | no |
+| merchants | yes | no | no | no |
+| mealplan | yes | no | no | no |
+| calendar | yes | no | no | no |
+| private-calendar | yes (own device; never reaches another member) | n/a | no | no |
+| tasks | yes | no | no | yes (sent and received) |
+| private-tasks | yes (own device; never reaches another member) | n/a | no | no |
+| roster | yes (rename, membership, roles; no single per-document test) | no | no | no |
+
+`MailboxTest` covers the mailbox at the document level for pantry, shopping list, roster and merchants only, with no engine and no Sync activity per type. Nothing anywhere covered (c) for any type.
+
+What WP0 added (all against the current code):
+
+- `DocumentIdsTest`: the literal id of each of the ten documents, its Sync activity module, which are private, which the mailbox lists, the mailbox order (roster first), that a mailbox built without the four optional sources silently omits them, and that Home ids contain no `:`.
+- `DeviceDataSyncServiceTest`, one loop-style test per behaviour over the same ten-case table (`documentCases`):
+  - (b) `everyDocumentCatchesUpAMemberWhoWasAwayThroughTheMailbox`: the nine shared documents.
+  - (c) `everySharedDocumentThatArrivesBeforeItsHomeIsKeptAndAppliedWhenTheHomeArrives`: the nine shared documents (private documents are not buffered, see below).
+  - (d) `everyDocumentsEditIsLoggedInSyncActivityUnderItsModule`: all ten. The "received" assertion is discriminating; the "sent" one is weak, because a handshake is logged as sent too.
+  - ordering: `theEngineSyncsAHomesDocumentsInOneFixedOrderWithTheRosterLast` (the engine's `documentIds()` is private, so its order is read off the order a round's first messages reach a peer) and `DocumentIdsTest.theMailboxListsTheRosterFirst`.
+  - (a) needed nothing new.
+
+Findings the refactor has to preserve or consciously change:
+
+1. **The `waiting` buffer is fragile.** `receive` runs `waiting.keys.retainAll(existing)` after every registry message, so buffered document messages for a Home that does not exist yet are dropped by the first registry message that does not itself create the Home. The buffer only helps when the very next registry message creates the Home. The test therefore hands B the document messages and then a single registry message that carries the Home. After the buffer drains, nothing replies to the sender; recovery otherwise relies on a later round or roster publish.
+2. **Private documents are not buffered.** A private-calendar or private-tasks message for a Home the device lacks is simply dropped (`calendarSources.privateForHome(...)?.receiveSync`), and recovered by a later round. Case (c) is therefore N/A for them, as (b) is.
+3. **Engine order**: pantry, shopping-list, cookbook, merchants, mealplan, calendar, private-calendar, tasks, private-tasks, roster (roster last). **Mailbox order**: roster, pantry, shopping-list, cookbook, then merchants, mealplan, calendar, tasks (roster first). Neither order is known to matter.
+
 ### WP1. The interface, descriptor and registry
 
 - Create `docs/HomeDocument.kt`, `docs/HomeDocumentType.kt`, `docs/HomeDocumentRegistry.kt`.

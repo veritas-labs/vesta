@@ -3,6 +3,7 @@ package uk.veritaslabs.vesta.datasync
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -57,7 +58,13 @@ import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
+import org.automerge.SyncState
+import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
+import uk.veritaslabs.vesta.automerge.merchantsDocumentId
+import uk.veritaslabs.vesta.automerge.cookbookDocumentId
+import uk.veritaslabs.vesta.automerge.mealPlanDocumentId
+import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
@@ -69,7 +76,7 @@ import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 class DeviceDataSyncServiceTest {
 
     private val network = FakeX0xNetwork()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** One of the user's devices: its own x0x node and database, with a running data sync. */
     private inner class Device(
@@ -108,6 +115,7 @@ class DeviceDataSyncServiceTest {
         var routeDeviceSyncMessages = false
         val homes = HomeRepository(database, sync.homeChanges)
         val profiles = ProfileRepository(database, changes = sync.profileChanges)
+
 
         init {
             node.onDirect = { message: X0xDirectMessage ->
@@ -654,9 +662,9 @@ class DeviceDataSyncServiceTest {
     }
 
     /** Two people who are not paired: X made the Home and admitted Y; Y has the Home and knows X invited it. */
-    private suspend fun twoPeopleInOneHome(): Triple<Device, Device, String> {
-        val x = Device("agent-x")
-        val y = Device("agent-y")
+    private suspend fun twoPeopleInOneHome(suffix: String = ""): Triple<Device, Device, String> {
+        val x = Device("agent-x$suffix")
+        val y = Device("agent-y$suffix")
         val homeId = x.homes.create("Maple Street", HomeShape.Family)
         val xMember = x.profiles.current()
         val yMember = y.profiles.current()
@@ -1037,10 +1045,10 @@ class DeviceDataSyncServiceTest {
     // --- The mailbox (ADR-020) ---
 
     /** Waits until both devices of [homeId] are in the Home's group with its mailbox store open, then adds an always-on hub to it. */
-    private suspend fun withHub(x: Device, y: Device, homeId: String): String {
+    private suspend fun withHub(x: Device, y: Device, homeId: String, hubName: String = "agent-hub"): String {
         eventually { x.mailboxStore(homeId) != null && y.mailboxStore(homeId) != null }
         val groupId = x.database.homeGroupQueries.selectByHome(homeId).awaitAsOneOrNull()!!.groupId
-        val hub = network.node("agent-hub")
+        val hub = network.node(hubName)
         hub.joinGroup(x.node.createGroupInvite(groupId))
         hub.openGroupStore(groupId, "mailbox")
         return groupId
@@ -1400,6 +1408,249 @@ class DeviceDataSyncServiceTest {
         // Assert
         assertEquals(emptyList(), b.activity(homeId))
         assertTrue(a.sync.agentDetails(homeId, "agent-b").lastSyncedMsAgo != null)
+        scope.cancel()
+    }
+
+    // --- Every Home document, one test per behaviour (docs/plans/document-registry-and-source-collapse-plan.md, WP0) ---
+
+    /** One kind of Home document: how to edit it on a device, how to see that edit on another, and where it is named. */
+    private inner class DocumentCase(
+        val name: String,
+        val idFor: (String) -> String,
+        val module: String,
+        val private: Boolean,
+        val edit: suspend Device.(homeId: String) -> Unit,
+        val seen: suspend Device.(homeId: String) -> Boolean,
+        val heads: suspend Device.(homeId: String) -> ByteArray?,
+        /** The document's side of a sync exchange on a device, null when the device has no such document. */
+        val peer: suspend Device.(homeId: String) -> SyncPeer?,
+        /** Gives a device with a bare Home row the document, for those that don't exist until something writes them. */
+        val prime: suspend Device.(homeId: String) -> Unit = {},
+    )
+
+    private class SyncPeer(val generate: suspend (SyncState) -> ByteArray?, val receive: suspend (SyncState, ByteArray) -> Unit)
+
+    private val tuesday = CalendarDate(2026, 10, 13)
+
+    private val documentCases = listOf(
+        DocumentCase(
+            "pantry", ::pantryDocumentId, SyncModules.Pantry, private = false,
+            edit = { pantries.forHome(it)!!.mutate { doc -> upsertPantryItem(doc, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null) } },
+            seen = { pantryTitles(it) == listOf("Whole Milk") },
+            heads = { pantries.forHome(it)?.heads() },
+            peer = { pantries.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "shopping-list", ::shoppingListDocumentId, SyncModules.Shopping, private = false,
+            edit = { shopping.forHome(it)!!.save(ShoppingItemDetails(primaryCategory = "Dairy", title = "Whole Milk")) },
+            seen = { shoppingTitles(it) == listOf("Whole Milk") },
+            heads = { shopping.forHome(it)?.heads() },
+            peer = { shopping.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "cookbook", ::cookbookDocumentId, SyncModules.Cookbook, private = false,
+            edit = { cookbook.forHome(it)!!.save(Recipe(title = "Shepherd's Pie")) },
+            seen = { recipeTitles(it) == listOf("Shepherd's Pie") },
+            heads = { cookbook.forHome(it)?.heads() },
+            peer = { cookbook.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "merchants", ::merchantsDocumentId, SyncModules.Merchants, private = false,
+            edit = { merchants.forHome(it)!!.save(Merchant(name = "Hargreaves")) },
+            seen = { merchantNames(it) == listOf("Hargreaves") },
+            heads = { merchants.forHome(it)?.heads() },
+            peer = { merchants.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "mealplan", ::mealPlanDocumentId, SyncModules.MealPlan, private = false,
+            edit = { mealPlans.forHome(it)!!.add(tuesday, MealSlot.Dinner, "pie") },
+            seen = { plannedDinners(it, tuesday) == listOf("pie") },
+            heads = { mealPlans.forHome(it)?.heads() },
+            peer = { mealPlans.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "calendar", ::calendarDocumentId, SyncModules.Calendar, private = false,
+            edit = { calendars.forHome(it)!!.save(event("e1", "Bin day", EventCalendar.Home)) },
+            seen = { homeEventTitles(it) == listOf("Bin day") },
+            heads = { calendars.forHome(it)?.heads() },
+            peer = { calendars.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "private-calendar", ::privateCalendarDocumentId, SyncModules.Calendar, private = true,
+            edit = { calendars.privateForHome(it)!!.save(event("p1", "Surprise party planning", EventCalendar.Private)) },
+            seen = { privateEventTitles(it) == listOf("Surprise party planning") },
+            heads = { calendars.privateForHome(it)?.heads() },
+            peer = { calendars.privateForHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "tasks", ::tasksDocumentId, SyncModules.Tasks, private = false,
+            edit = { tasks.forHome(it)!!.save(task("t1", "Bins", TaskList.Home)) },
+            seen = { homeTaskTitles(it) == listOf("Bins") },
+            heads = { tasks.forHome(it)?.heads() },
+            peer = { tasks.forHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "private-tasks", ::privateTasksDocumentId, SyncModules.Tasks, private = true,
+            edit = { tasks.privateForHome(it)!!.save(task("p1", "Buy a present", TaskList.Private)) },
+            seen = { privateTaskTitles(it) == listOf("Buy a present") },
+            heads = { tasks.privateForHome(it)?.heads() },
+            peer = { tasks.privateForHome(it)?.let { s -> SyncPeer(s::generateSync, s::receiveSync) } },
+        ),
+        DocumentCase(
+            "roster", ::rosterDocumentId, SyncModules.Members, private = false,
+            edit = { profiles.rename("Xavier") },
+            seen = { memberNames(it).contains("Xavier") },
+            heads = { HomeRosters(database, profiles).heads(it) },
+            peer = {
+                val rosters = HomeRosters(database, profiles)
+                rosters.heads(it)?.let { _ -> SyncPeer({ state -> rosters.generate(it, state) }, { state, message -> rosters.receive(it, state, message) }) }
+            },
+            prime = { HomeRosters(database, profiles).publish(it, agentId, emptySet()) },
+        ),
+    )
+
+    private fun directMessage(sender: String, documentId: String, message: ByteArray) = X0xDirectMessage(
+        sender = sender, payload = Base64.Default.encode(SyncEnvelope(documentId, message).encode()), verified = true, trustDecision = "accept",
+    )
+
+    private suspend fun Device.memberNames(homeId: String) =
+        database.homeMemberQueries.selectByHome(homeId).awaitAsList().map { it.name }
+
+    /** Whether everything this device has of [case]'s document in [homeId] is already in the mailbox. */
+    private suspend fun Device.deposited(case: DocumentCase, homeId: String): Boolean {
+        val heads = case.heads(this, homeId) ?: return false
+        return database.mailboxQueries.selectHeads(homeId, case.idFor(homeId)).awaitAsOneOrNull()?.contentEquals(heads) == true
+    }
+
+    private suspend fun Device.eventCount(homeId: String, kind: String, module: String) =
+        activity(homeId).filter { it.kind == kind && it.module == module }.sumOf { it.count }
+
+    /** [eventually], but a check that throws counts as not yet true, and a timeout names the document and what never happened. */
+    private suspend fun eventuallyFor(case: DocumentCase, what: String, check: suspend () -> Boolean) {
+        try {
+            eventually { runCatching { check() }.getOrDefault(false) }
+        } catch (e: TimeoutCancellationException) {
+            throw AssertionError("${case.name}: $what never happened", e)
+        }
+    }
+
+    /** Each case gets its own scope, so one case's devices stop before the next case's start. */
+    private fun freshScope() {
+        scope.cancel()
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
+
+    @Test
+    fun everyDocumentCatchesUpAMemberWhoWasAwayThroughTheMailbox() = runBlocking {
+        documentCases.filterNot { it.private }.forEachIndexed { index, case ->
+            // Arrange: private documents are not in the mailbox, so only the shared ones are here
+            freshScope()
+            val (x, y, homeId) = twoPeopleInOneHome("-mailbox$index")
+            x.start()
+            y.start()
+            withHub(x, y, homeId, "agent-hub-mailbox$index")
+            network.offline += y.agentId
+
+            // Act: X edits while Y is away, and is gone by the time Y is back, so no direct message can carry it
+            case.edit(x, homeId)
+            eventuallyFor(case, "deposit in the mailbox") { x.deposited(case, homeId) }
+            network.offline += x.agentId
+            network.comeOnline(y.agentId)
+
+            // Assert
+            eventuallyFor(case, "catching up through the mailbox") { case.seen(y, homeId) }
+        }
+        scope.cancel()
+    }
+
+    @Test
+    fun everySharedDocumentThatArrivesBeforeItsHomeIsKeptAndAppliedWhenTheHomeArrives() = runBlocking {
+        documentCases.filterNot { it.private }.forEachIndexed { index, case ->
+            // Arrange: neither A nor B is running; every message is built and handed to B by hand. A message that carries changes
+            // can't come from a real round before B has the Home (B never replies to a document it can't open), so A's document
+            // and A's Home registry are each primed with the "have" of an empty replica on a third device first.
+            freshScope()
+            val a = Device("agent-a-waiting$index")
+            val b = Device("agent-b-waiting$index")
+            b.pairedWith(a)
+            val homeId = a.homes.create("Maple Street", HomeShape.Family)
+            case.edit(a, homeId)
+            val replica = Device("agent-e-waiting$index")
+            replica.database.homeQueries.insert(homeId, "Maple Street", HomeShape.Family.storageValue, 1L) // a bare Home row: its documents start empty, with no history in common with A's
+            replica.pantries.forHome(homeId) // the shopping list needs the Pantry to exist
+            case.prime(replica, homeId)
+            val aDocument = case.peer(a, homeId)!!
+            val aState = SyncState()
+            aDocument.receive(aState, case.peer(replica, homeId)!!.generate(SyncState())!!)
+            val documentMessages = mutableListOf<ByteArray>()
+            while (true) documentMessages += aDocument.generate(aState) ?: break
+            val aRegistry = HomeRegistry(a.database, a.pantries)
+            val registryState = SyncState()
+            aRegistry.receive(registryState, HomeRegistry(replica.database, replica.pantries).generate(SyncState())!!)
+            val registryMessages = mutableListOf<ByteArray>()
+            while (true) registryMessages += aRegistry.generate(registryState) ?: break
+            val sender = a.agentId
+            documentMessages.forEach { b.sync.handle(directMessage(sender, case.idFor(homeId), it)) }
+            val homesBeforeRegistry = b.homeNames()
+
+            // Act
+            registryMessages.forEach { b.sync.handle(directMessage(sender, HomeRegistryDocumentId, it)) }
+
+            // Assert
+            assertTrue(documentMessages.isNotEmpty() && registryMessages.isNotEmpty(), "${case.name}: nothing to hand to B")
+            assertEquals(emptyList(), homesBeforeRegistry, "${case.name}: B had the Home before the registry arrived")
+            assertEquals(listOf("Maple Street"), b.homeNames())
+            eventuallyFor(case, "being applied once the Home arrived") { case.seen(b, homeId) }
+        }
+        scope.cancel()
+    }
+
+    @Test
+    fun everyDocumentsEditIsLoggedInSyncActivityUnderItsModule() = runBlocking {
+        documentCases.forEachIndexed { index, case ->
+            // Arrange: X and Y share a Home, and X2 is X's own second device, which is who a private document goes to
+            freshScope()
+            val (x, y, homeId) = twoPeopleInOneHome("-activity$index")
+            val x2 = Device("agent-x2-activity$index")
+            x.pairedWith(x2)
+            x2.pairedWith(x)
+            x.start()
+            x2.start()
+            y.start()
+            eventuallyFor(case, "everyone having the Home") { y.memberIds(homeId).size == 2 && x2.homeNames().isNotEmpty() }
+            delay(400.milliseconds) // let the first exchanges settle, so only this case's edit adds to its module
+            val observer = if (case.private) x2 else y
+            val receivedBefore = observer.eventCount(homeId, "received", case.module)
+
+            // Act
+            case.edit(x, homeId)
+            eventuallyFor(case, "the edit reaching the other device") { case.seen(observer, homeId) }
+
+            // Assert: a sent row is not proof, as a handshake is logged as sent too; a received row is, as it needs the document to change
+            eventuallyFor(case, "a received event in ${case.module}") { observer.eventCount(homeId, "received", case.module) > receivedBefore }
+            eventuallyFor(case, "a sent event in ${case.module}") { x.eventCount(homeId, "sent", case.module) > 0 }
+        }
+        scope.cancel()
+    }
+
+    @Test
+    fun theEngineSyncsAHomesDocumentsInOneFixedOrderWithTheRosterLast() = runBlocking {
+        // Arrange: documentIds() is private, so its order shows in the order a round's first messages reach a peer
+        val (a, b) = pair()
+        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+
+        // Act
+        a.sync.syncEverything()
+
+        // Assert
+        val order = b.receivedDocuments.filter { it.startsWith("$homeId:") }.distinct()
+        assertEquals(
+            listOf(
+                "$homeId:pantry", "$homeId:shopping-list", "$homeId:cookbook", "$homeId:merchants", "$homeId:mealplan",
+                "$homeId:calendar", "$homeId:private-calendar", "$homeId:tasks", "$homeId:private-tasks", "$homeId:roster",
+            ),
+            order,
+        )
         scope.cancel()
     }
 }
