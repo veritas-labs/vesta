@@ -890,6 +890,8 @@
     <string name="sync_activity_verdict_problem_title">Sync isn't running</string>
     <string name="sync_activity_verdict_problem_daemon">Vesta can't reach its sync service on this device. Changes stay here until it is back.</string>
     <string name="sync_activity_verdict_problem_stalled">A message to another device has been failing for over an hour. Vesta will keep trying.</string>
+    <string name="sync_activity_verdict_newer_title">Some changes need a newer Vesta</string>
+    <string name="sync_activity_verdict_newer_body">Another device sent changes this version can't read yet. Update Vesta and they will apply.</string>
     <string name="sync_activity_verdict_only_you_title">Only you</string>
     <string name="sync_activity_verdict_only_you_body">This Home is only on this device. Invite someone to sync.</string>
     <string name="sync_activity_verdict_up_to_date_title">Up to date</string>
@@ -924,6 +926,14 @@
     <string name="sync_activity_direction_sent">Sent</string>
     <string name="sync_activity_direction_problem">Problem</string>
     <string name="sync_activity_direction_membership">Members</string>
+    <plurals name="sync_activity_event_unsupported_version">
+        <item quantity="one">%1$s sent changes this version can't read</item>
+        <item quantity="other">%1$s sent changes this version can't read (%2$d times)</item>
+    </plurals>
+    <plurals name="sync_activity_event_unknown_message">
+        <item quantity="one">%1$s sent a message this version doesn't know</item>
+        <item quantity="other">%1$s sent a message this version doesn't know (%2$d times)</item>
+    </plurals>
     <plurals name="sync_activity_event_received">
         <item quantity="one">%1$s updated by %2$s</item>
         <item quantity="other">%1$s updated by %2$s (%3$d times)</item>

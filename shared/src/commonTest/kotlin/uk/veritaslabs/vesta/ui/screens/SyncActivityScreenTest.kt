@@ -272,6 +272,40 @@ class SyncActivityScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun changesFromANewerVersionSaySoOnTheCard() = runComposeUiTest {
+        // Arrange
+        show(state(verdict = SyncVerdict.NeedsNewerVersion))
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithTag(SyncActivityTestTags.VerdictTitle).assertTextContains("Some changes need a newer Vesta", substring = true)
+        onNodeWithTag(SyncActivityTestTags.VerdictBody).assertTextContains("Update Vesta", substring = true)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun anUnsupportedVersionEntryNamesTheDeviceAndWhatItSent() = runComposeUiTest {
+        // Arrange
+        val events = listOf(
+            event(1, SyncEventKind.UnsupportedVersion, SyncModuleName.Mailbox, "tom", detail = "v2", count = 2),
+            event(2, SyncEventKind.UnknownMessage, SyncModuleName.Members, "sam", detail = "devicesync.teleport"),
+        )
+        show(state(events = events, filter = SyncEventFilter.Problems))
+
+        // Act
+        // (no user interaction — checking the screen's initial state)
+
+        // Assert
+        onNodeWithText("Tom's phone sent changes this version can't read (2 times)").assertIsDisplayed()
+        onNodeWithTag(SyncActivityTestTags.eventRow(1)).assertTextContains("v2", substring = true)
+        onNodeWithText("Sam's Pixel sent a message this version doesn't know").assertIsDisplayed()
+        onNodeWithTag(SyncActivityTestTags.eventRow(2)).assertTextContains("devicesync.teleport", substring = true)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun aProblemEntryNamesTheDeviceAndSaysItWillKeepTrying() = runComposeUiTest {
         // Arrange
         val events = listOf(event(1, SyncEventKind.Failed, SyncModuleName.Pantry, "tom", detail = "unreachable"))

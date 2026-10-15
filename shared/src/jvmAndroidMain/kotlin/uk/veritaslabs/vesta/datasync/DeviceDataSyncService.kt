@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
 import java.util.concurrent.ConcurrentHashMap
@@ -38,6 +39,8 @@ import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.devicesync.AgentDetails
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
+import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
+import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
@@ -115,7 +118,7 @@ class DeviceDataSyncService(
     private val groups = HomeGroups(client, database, rosters, profiles)
     private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources, mealPlanSources, calendarSources, taskSources)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
-    private val mailboxReader = MailboxReader(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
+    private val mailboxReader = MailboxReader(client, database, mailboxDocuments, recorder) { groups.mailboxStoreId(it) }
 
     private val acknowledgement = SyncAcknowledgement(rosters, pantrySources, shoppingSources, cookbookSources, merchantsSources, mealPlanSources, calendarSources, taskSources)
 
@@ -344,7 +347,35 @@ class DeviceDataSyncService(
         if (message.verified == true) message.sender?.let { peerDownUntil.remove(it) } // it is evidently there
         if (join.handle(message)) return // a Home-join message, not a sync message
         if (groups.handle(message)) return // a Home-group message (ADR-021)
+        attempt { recordUnknownMessage(message) } // noted in Sync activity (ADR-034), then handled as before: dropped
         syncFrom(message)
+    }
+
+    /**
+     * Notes a verified peer's message of a family this version knows (device-sync, Home-group) but with a `kind` it doesn't, which a newer
+     * Vesta may send. Anything else, such as an agent command on the same stream, is not a message of those families and is not noted.
+     * It goes on the Home the message names when it names one, otherwise on every Home the sender is a peer of.
+     */
+    private suspend fun recordUnknownMessage(message: X0xDirectMessage) {
+        if (message.verified != true) return
+        val sender = message.sender ?: return
+        val payload = message.payload
+        val (kind, homeId) = DeviceSyncMessage.unrecognisedKind(payload)?.let { it to null }
+            ?: HomeGroupMessage.unrecognisedKind(payload)?.let { it to HomeGroupMessage.stringField(payload, "homeId") }
+            ?: return
+        val homes = homeId?.let { listOfNotNull(database.homeQueries.selectById(it).awaitAsOneOrNull()?.id) }
+            ?: database.homeQueries.selectAll().awaitAsList().map { it.id }
+        homes.filter { sender in peersFor(pantryDocumentId(it)) }.forEach { recorder.unknownMessage(it, sender, kind) }
+    }
+
+    /** Notes a document id this version doesn't know, from a peer of the Home it names (`<home id>:<document type>`), as needing a newer Vesta. */
+    private suspend fun recordUnknownDocument(sender: String, documentId: String) {
+        if (documentId == HomeRegistryDocumentId || documentId == ProfileDocumentId) return
+        if (documentId.endsWith(PrivateCalendarSuffix) || documentId.endsWith(PrivateTasksSuffix) || homeIdOf(documentId) != null) return
+        val homeId = documentId.substringBeforeLast(':', "").takeIf { it.isNotEmpty() } ?: return
+        if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) return
+        if (sender !in peersFor(pantryDocumentId(homeId))) return
+        recorder.unsupportedVersion(homeId, SyncModules.Mailbox, sender, documentId.substringAfterLast(':'))
     }
 
     private suspend fun syncFrom(message: X0xDirectMessage) {
@@ -354,6 +385,7 @@ class DeviceDataSyncService(
             val sender = message.sender ?: return@withLock null
             val bytes = message.payload?.let { runCatching { Base64.Default.decode(it) }.getOrNull() } ?: return@withLock null
             val envelope = SyncEnvelope.decode(bytes) ?: return@withLock null
+            attempt { recordUnknownDocument(sender, envelope.documentId) } // noted (ADR-034); handled as before
             if (sender !in peersFor(envelope.documentId)) return@withLock null
             receive(sender, envelope.documentId, envelope.message)
             noteSynced(sender)

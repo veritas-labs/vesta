@@ -15,6 +15,7 @@ class SyncVerdictTest {
         lastRoundHadFailures: Boolean = false,
         changesWaiting: Boolean = false,
         stalledMessageAgeMs: Long? = null,
+        needsNewerVersion: Boolean = false,
         lastSyncedMsAgo: Long? = 10_000L,
     ) = SyncSnapshot(
         takenAt = now,
@@ -25,9 +26,34 @@ class SyncVerdictTest {
         lastRoundHadFailures = lastRoundHadFailures,
         changesWaiting = changesWaiting,
         stalledMessageAgeMs = stalledMessageAgeMs,
+        needsNewerVersion = needsNewerVersion,
         lastSyncedPeerName = "Sam's phone",
         lastSyncedMsAgo = lastSyncedMsAgo,
     )
+
+    @Test
+    fun changesFromANewerVersionOutrankUpToDate() {
+        // Arrange
+        val snapshot = snapshot(needsNewerVersion = true)
+
+        // Act
+        val verdict = SyncVerdict.of(snapshot, now)
+
+        // Assert
+        assertEquals(SyncVerdict.NeedsNewerVersion, verdict)
+    }
+
+    @Test
+    fun aProblemOutranksChangesFromANewerVersion() {
+        // Arrange
+        val snapshot = snapshot(needsNewerVersion = true, daemonReachable = false)
+
+        // Act
+        val verdict = SyncVerdict.of(snapshot, now)
+
+        // Assert
+        assertEquals(SyncVerdict.Problem(ProblemReason.DaemonUnreachable), verdict)
+    }
 
     @Test
     fun aRecentSyncWithNoFailuresIsUpToDate() {

@@ -46,6 +46,9 @@ internal class MailboxEntry(
             }
         }
 
+        /** The version byte of [bytes] when it is newer than this version reads (an entry to keep and read after an update), else null. */
+        fun newerVersion(bytes: ByteArray): Int? = bytes.firstOrNull()?.let { it.toInt() and 0xFF }?.takeIf { it > Version }
+
         /** Null when [bytes] isn't an entry this version understands: a newer format, or damaged. */
         fun decode(bytes: ByteArray): MailboxEntry? {
             if (bytes.size < 2 || bytes[0] != Version) return null
