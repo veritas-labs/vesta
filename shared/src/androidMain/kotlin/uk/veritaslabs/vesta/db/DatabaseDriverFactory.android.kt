@@ -8,10 +8,7 @@ actual class DatabaseDriverFactory {
         "VestaAndroid.install(context) must be called before the database is opened"
     }
 
-    actual fun databaseType(): AndroidxSqliteDatabaseType {
-        val appContext = context().applicationContext
-        return AndroidxSqliteDatabaseType.FileProvider {
-            appContext.getDatabasePath("vesta.db").absolutePath
-        }
-    }
+    actual fun databasePath(): String = context().applicationContext.getDatabasePath("vesta.db").absolutePath
+
+    actual fun databaseType(): AndroidxSqliteDatabaseType = AndroidxSqliteDatabaseType.FileProvider { databasePath() }
 }

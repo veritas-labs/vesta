@@ -8,12 +8,14 @@ import platform.Foundation.NSUserDomainMask
 // Stores under the app's sandboxed NSDocumentDirectory — private storage by
 // construction, no extra configuration needed.
 actual class DatabaseDriverFactory {
-    actual fun databaseType(): AndroidxSqliteDatabaseType {
+    actual fun databaseType(): AndroidxSqliteDatabaseType = AndroidxSqliteDatabaseType.File(databasePath())
+
+    actual fun databasePath(): String {
         val documentDirectory = NSSearchPathForDirectoriesInDomains(
             directory = NSDocumentDirectory,
             domainMask = NSUserDomainMask,
             expandTilde = true,
         ).first() as String
-        return AndroidxSqliteDatabaseType.File("$documentDirectory/vesta.db")
+        return "$documentDirectory/vesta.db"
     }
 }

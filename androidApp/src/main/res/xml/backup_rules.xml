@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and below (android:fullBackupContent). Vesta backs up NOTHING, deliberately.
+
+  A device's data is only coherent as a set: the database (databases/vesta.db) records which devices
+  are paired and which groups this device belongs to, and that only works with the x0x identity that
+  made those pairings (files/x0x-identity) and the x0x group state (files/x0x). Restoring the database
+  onto a phone with a different or missing identity leaves it paired with devices that no longer
+  recognise it, and restoring the identity as well would clone this device's identity onto a second
+  phone while the first may still be running. Backing up only some of these is the worst case, so none
+  are. The pre-migration safety copies (vesta.db.pre-v*.bak) are also never backed up.
+-->
+<full-backup-content>
+    <exclude domain="root" path="."/>
+    <exclude domain="file" path="."/>
+    <exclude domain="database" path="."/>
+    <exclude domain="sharedpref" path="."/>
+    <exclude domain="external" path="."/>
+</full-backup-content>
