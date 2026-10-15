@@ -43,7 +43,7 @@ import uk.veritaslabs.vesta.getDeviceName
 import uk.veritaslabs.vesta.mailbox.changesSince
 import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberRole
 
 private const val RosterFeature = "roster"
 

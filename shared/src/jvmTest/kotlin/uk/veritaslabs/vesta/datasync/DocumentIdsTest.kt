@@ -163,7 +163,7 @@ class DocumentIdsTest {
     fun aHomeIdWithoutAColonIsWhatTheIdsAssume() = runBlocking {
         // Arrange
         val homes = HomeRepository(openInMemoryDatabase())
-        val generated = (1..50).map { homes.create("Home $it", HomeShape.Family) }
+        val generated = (1..50).map { homes.create("Home $it", HomeShape.Family.storageValue) }
 
         // Act
         val withColon = generated.filter { ':' in it }

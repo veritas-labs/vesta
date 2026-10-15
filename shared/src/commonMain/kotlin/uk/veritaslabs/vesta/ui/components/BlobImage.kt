@@ -43,7 +43,7 @@ import uk.veritaslabs.vesta.blobs.BlobReference
 import uk.veritaslabs.vesta.blobs.LocalBlobs
 import uk.veritaslabs.vesta.blobs.Placeholder
 import uk.veritaslabs.vesta.blobs.PlaceholderPixels
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.blob_waiting_for_photo

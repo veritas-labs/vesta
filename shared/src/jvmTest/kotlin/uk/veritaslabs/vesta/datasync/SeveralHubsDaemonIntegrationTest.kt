@@ -46,7 +46,7 @@ class SeveralHubsDaemonIntegrationTest {
                     val bId = b.agentId()
                     val hub1Id = hub1.client.agent().agentId!!
                     val hub2Id = hub2.client.agent().agentId!!
-                    val homeId = a.homes.create("Maple Street", HomeShape.Family)
+                    val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
                     b.joinedHome(homeId)
                     a.sync.admit(homeId, b.profiles.current().id, b.profiles.current().displayName, "member", bId)
                     b.sync.admit(homeId, a.profiles.current().id, a.profiles.current().displayName, "admin", aId)

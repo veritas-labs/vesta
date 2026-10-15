@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.blobs
 
 import kotlin.math.max
 import kotlin.math.min
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 
 /** Where a photo to add comes from: its bytes, or a file this process can read (the platform picker hands over one or the other). */
 sealed interface PhotoSource {

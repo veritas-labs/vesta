@@ -20,7 +20,7 @@ import uk.veritaslabs.vesta.tasks.Task
 import uk.veritaslabs.vesta.tasks.TaskDone
 import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.ui.screens.MealSlot
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Merchant
 import uk.veritaslabs.vesta.ui.screens.MerchantService
 import uk.veritaslabs.vesta.ui.screens.MerchantType

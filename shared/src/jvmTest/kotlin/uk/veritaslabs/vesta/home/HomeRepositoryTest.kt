@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.ui.screens.MemberListItem
-import uk.veritaslabs.vesta.ui.screens.MemberRole
-import uk.veritaslabs.vesta.ui.screens.HomeDetails
-import uk.veritaslabs.vesta.ui.screens.HomeListItem
+import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.vesta.home.MemberRole
+import uk.veritaslabs.vesta.home.HomeDetails
+import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
 class HomeRepositoryTest {
@@ -64,10 +64,10 @@ class HomeRepositoryTest {
         val repository = HomeRepository(openInMemoryDatabase(), nowMillis = { 42L })
 
         // Act
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Assert
-        assertEquals(HomeDetails(id = id, name = "Flat 4B", shape = HomeShape.Flatshare), repository.get(id))
+        assertEquals(HomeDetails(id = id, name = "Flat 4B", shape = HomeShape.Flatshare.storageValue), repository.get(id))
     }
 
     @Test
@@ -78,7 +78,7 @@ class HomeRepositoryTest {
         val repository = HomeRepository(db, profiles = profiles, nowMillis = { 42L })
 
         // Act
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Assert
         val me = profiles.current()
@@ -102,20 +102,20 @@ class HomeRepositoryTest {
     fun updateChangesTheNameAndShape() = runTest {
         // Arrange
         val repository = HomeRepository(openInMemoryDatabase())
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
-        repository.update(id, "Family Home", HomeShape.Family)
+        repository.update(id, "Family Home", HomeShape.Family.storageValue)
 
         // Assert
-        assertEquals(HomeDetails(id = id, name = "Family Home", shape = HomeShape.Family), repository.get(id))
+        assertEquals(HomeDetails(id = id, name = "Family Home", shape = HomeShape.Family.storageValue), repository.get(id))
     }
 
     @Test
     fun deleteRemovesTheHome() = runTest {
         // Arrange
         val repository = HomeRepository(openInMemoryDatabase())
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
         repository.delete(id)
@@ -130,7 +130,7 @@ class HomeRepositoryTest {
         // Arrange
         val db = openInMemoryDatabase()
         val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
         val result = repository.leave(id)
@@ -145,7 +145,7 @@ class HomeRepositoryTest {
         // Arrange
         val db = openInMemoryDatabase()
         val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         db.homeMemberQueries.insert(id, "sam", "Sam", null, "member", 2L)
 
         // Act
@@ -161,7 +161,7 @@ class HomeRepositoryTest {
         // Arrange
         val db = openInMemoryDatabase()
         val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         db.homeMemberQueries.insert(id, "sam", "Sam", null, "admin", 2L)
 
         // Act
@@ -205,7 +205,7 @@ class HomeRepositoryTest {
             }
         }
         val repository = HomeRepository(db, profiles = profiles, rosterChanges = listener)
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
         repository.leave(id)
@@ -227,7 +227,7 @@ class HomeRepositoryTest {
             override suspend fun memberLeft(homeId: String, memberId: String) { told++ }
         }
         val repository = HomeRepository(db, profiles = profiles, rosterChanges = listener)
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         db.homeMemberQueries.insert(id, "sam", "Sam", null, "member", 2L)
 
         // Act

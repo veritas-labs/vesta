@@ -18,7 +18,7 @@ import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
-import uk.veritaslabs.vesta.ui.screens.SyncedDevice
+import uk.veritaslabs.vesta.devicesync.SyncedDevice
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
 class DeviceSyncServiceTest {

@@ -20,7 +20,7 @@ import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeMedia
 

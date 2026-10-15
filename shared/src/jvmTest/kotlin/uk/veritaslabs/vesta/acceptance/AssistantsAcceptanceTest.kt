@@ -56,7 +56,7 @@ import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.components.AgentApprovalCardTestTags
 import uk.veritaslabs.vesta.ui.screens.AssistantEditTestTags
 import uk.veritaslabs.vesta.ui.screens.AssistantsTestTags
-import uk.veritaslabs.vesta.ui.screens.HomeListItem
+import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.x0x.FakeX0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage

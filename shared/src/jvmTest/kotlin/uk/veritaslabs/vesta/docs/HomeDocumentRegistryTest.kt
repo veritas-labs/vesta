@@ -153,7 +153,7 @@ class HomeDocumentRegistryTest {
         val homes = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
 
         // Act
-        val ids = List(50) { homes.create("Home $it", HomeShape.Flatshare) }
+        val ids = List(50) { homes.create("Home $it", HomeShape.Flatshare.storageValue) }
 
         // Assert
         assertTrue(ids.isNotEmpty() && ids.none { ':' in it })

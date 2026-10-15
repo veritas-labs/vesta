@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.automerge.Document
 import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeIngredient
 import uk.veritaslabs.vesta.ui.screens.RecipeMedia

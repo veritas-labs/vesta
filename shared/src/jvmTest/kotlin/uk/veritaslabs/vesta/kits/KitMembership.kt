@@ -45,7 +45,7 @@ object KitMembership {
             "automerge/HomeRosterDocument", "automerge/HomeRegistryDocument",
             "automerge/InviteSecrets", "automerge/ProfileRegistryDocument",
             "home/HomeRepository", "home/MemberRepository", "home/HomeChangeListener",
-            "home/RosterChangeListener",
+            "home/RosterChangeListener", "home/MemberRole", "home/HomeListItem", "home/HomeDetails",
             "homejoin/HomeJoining", "homejoin/HomeJoinMessage", "homejoin/InviteLink",
             "homegroup/HomeHub", "homegroup/HomeGroupMessage",
         ),
@@ -92,9 +92,9 @@ object KitMembership {
         Kit.X0x to 15,
         Kit.Store to 9,
         Kit.Docs to 17,
-        Kit.Spaces to 21,
-        Kit.Sync to 11,
-        Kit.Blobs to 15,
+        Kit.Spaces to 24, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1)
+        Kit.Sync to 12, // plus SyncedDevice (WP1)
+        Kit.Blobs to 16, // plus MediaKind (WP1)
         Kit.Assistants to 5,
     )
 }

@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta.blobs
 import kotlin.io.encoding.Base64
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 
 /** A 1x1 PNG, a real image any platform's decoder reads, standing in for a stored photo. */
 val TinyImageBytes: ByteArray = Base64.Default.decode(

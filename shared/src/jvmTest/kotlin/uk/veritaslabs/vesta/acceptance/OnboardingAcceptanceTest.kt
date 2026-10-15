@@ -26,7 +26,7 @@ import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.settings.AppSettingsRepository
-import uk.veritaslabs.vesta.ui.screens.HomeListItem
+import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomePickerTestTags
 import uk.veritaslabs.vesta.ui.screens.OnboardingSlides
 import uk.veritaslabs.vesta.ui.screens.OnboardingTestTags

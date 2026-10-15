@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.home.HomeDetails
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -34,7 +35,7 @@ class HomeEditViewModelTest {
 
         // Act
         val initial = viewModel.uiState.value
-        viewModel.save(HomeDetails(name = "The Johnsons", shape = HomeShape.Family))
+        viewModel.save(HomeDetails(name = "The Johnsons", shape = HomeShape.Family.storageValue))
         val state = viewModel.uiState.first { it.isFinished }
 
         // Assert
@@ -49,14 +50,14 @@ class HomeEditViewModelTest {
         // Arrange
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val repository = HomeRepository(openInMemoryDatabase())
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
         val viewModel = HomeEditViewModel(repository, SelectedHome(), homeId = id)
         val state = viewModel.uiState.first { !it.isLoading }
 
         // Assert
-        assertEquals(HomeDetails(id = id, name = "Flat 4B", shape = HomeShape.Flatshare), state.home)
+        assertEquals(HomeDetails(id = id, name = "Flat 4B", shape = HomeShape.Flatshare.storageValue), state.home)
     }
 
     @Test
@@ -64,15 +65,15 @@ class HomeEditViewModelTest {
         // Arrange
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val repository = HomeRepository(openInMemoryDatabase())
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         val viewModel = HomeEditViewModel(repository, SelectedHome(), homeId = id)
 
         // Act
-        viewModel.save(HomeDetails(id = id, name = "Flat 4C", shape = HomeShape.Other))
+        viewModel.save(HomeDetails(id = id, name = "Flat 4C", shape = HomeShape.Other.storageValue))
         viewModel.uiState.first { it.isFinished }
 
         // Assert
-        assertEquals(HomeDetails(id = id, name = "Flat 4C", shape = HomeShape.Other), repository.get(id))
+        assertEquals(HomeDetails(id = id, name = "Flat 4C", shape = HomeShape.Other.storageValue), repository.get(id))
         assertEquals(1, repository.homes.first().size)
     }
 
@@ -81,7 +82,7 @@ class HomeEditViewModelTest {
         // Arrange
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val repository = HomeRepository(openInMemoryDatabase())
-        val id = repository.create("Flat 4B", HomeShape.Flatshare)
+        val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         val selectedHome = SelectedHome().apply { select(id) }
         val viewModel = HomeEditViewModel(repository, selectedHome, homeId = id)
 

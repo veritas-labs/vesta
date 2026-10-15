@@ -6,7 +6,7 @@ import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.ui.screens.SyncedDevice
+import uk.veritaslabs.vesta.devicesync.SyncedDevice
 
 /**
  * Reads and writes the user's synced devices in the local [VestaDatabase]: this device's cache of the other

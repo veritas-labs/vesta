@@ -52,7 +52,7 @@ import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.MemberRepository
 import uk.veritaslabs.vesta.home.RoleChangeResult
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.home.RemoveMemberResult
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
@@ -199,7 +199,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames() == listOf("Maple Street") }
         eventually { a.sync.agentDetails(homeId, "agent-b").name != null } // b's roster entry reaches a a round later
 
@@ -225,7 +225,7 @@ class DeviceDataSyncServiceTest {
         b.start()
 
         // Act
-        val id = a.homes.create("Maple Street", HomeShape.Family)
+        val id = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Assert
         eventually { b.homeNames() == listOf("Maple Street") }
@@ -237,7 +237,7 @@ class DeviceDataSyncServiceTest {
     fun aHomeThatExistedBeforePairingIsSyncedOnceDevicesAreRunning() = runBlocking {
         // Arrange
         val (a, b) = pair()
-        a.homes.create("Old Home", HomeShape.Flatshare)
+        a.homes.create("Old Home", HomeShape.Flatshare.storageValue)
 
         // Act
         a.start()
@@ -254,7 +254,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames().isNotEmpty() }
 
         // Act
@@ -274,7 +274,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames().isNotEmpty() }
 
         // Act
@@ -293,7 +293,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames().isNotEmpty() }
 
         // Act
@@ -312,7 +312,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames().isNotEmpty() }
         val tuesday = CalendarDate(2026, 10, 13)
 
@@ -379,7 +379,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames().isNotEmpty() }
         a.calendars.privateForHome(homeId)!!.save(event("p1", "Gym", EventCalendar.Private))
         eventually { b.privateEventTitles(homeId) == listOf("Gym") }
@@ -462,7 +462,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames().isNotEmpty() }
 
         // Act
@@ -481,11 +481,11 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val id = a.homes.create("Maple Street", HomeShape.Family)
+        val id = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames() == listOf("Maple Street") }
 
         // Act
-        b.homes.update(id, "Oak Avenue", HomeShape.Family)
+        b.homes.update(id, "Oak Avenue", HomeShape.Family.storageValue)
         eventually { a.homeNames() == listOf("Oak Avenue") }
         a.homes.delete(id)
 
@@ -505,7 +505,7 @@ class DeviceDataSyncServiceTest {
         stranger.start()
 
         // Act
-        stranger.homes.create("Not Yours", HomeShape.Other)
+        stranger.homes.create("Not Yours", HomeShape.Other.storageValue)
         delay(500.milliseconds)
 
         // Assert
@@ -524,7 +524,7 @@ class DeviceDataSyncServiceTest {
         a.start()
         b.start()
         delay(300.milliseconds) // both have run their first round and opened their presence streams
-        a.homes.create("Maple Street", HomeShape.Family)
+        a.homes.create("Maple Street", HomeShape.Family.storageValue)
         delay(300.milliseconds)
         assertTrue(b.homeNames().isEmpty())
 
@@ -547,7 +547,7 @@ class DeviceDataSyncServiceTest {
         a.start()
         b.start()
         delay(300.milliseconds)
-        a.homes.create("Maple Street", HomeShape.Family)
+        a.homes.create("Maple Street", HomeShape.Family.storageValue)
         delay(300.milliseconds)
         network.offline -= b.agentId // back, but no presence event arrives
 
@@ -568,7 +568,7 @@ class DeviceDataSyncServiceTest {
         b.start()
 
         // Act
-        a.homes.create("While Away", HomeShape.Family)
+        a.homes.create("While Away", HomeShape.Family.storageValue)
         delay(300.milliseconds)
         network.offline -= b.agentId
 
@@ -586,7 +586,7 @@ class DeviceDataSyncServiceTest {
         eventually { a.profileIds().isNotEmpty() }
         val aProfile = a.profileIds().single()
         delay(20.milliseconds) // so b's Profile is unambiguously the younger
-        val bHome = b.homes.create("Made On B", HomeShape.Other)
+        val bHome = b.homes.create("Made On B", HomeShape.Other.storageValue)
         val bProfileBefore = b.profileIds().single()
 
         // Act
@@ -606,7 +606,7 @@ class DeviceDataSyncServiceTest {
         // Arrange
         val (a, b) = pair()
         a.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         val aProfile = a.profileIds().single()
         delay(20.milliseconds)
 
@@ -629,7 +629,7 @@ class DeviceDataSyncServiceTest {
         eventually { a.profileIds().isNotEmpty() }
         val aProfile = a.profileIds().single()
         delay(20.milliseconds)
-        val bHome = b.homes.create("Made On B", HomeShape.Other)
+        val bHome = b.homes.create("Made On B", HomeShape.Other.storageValue)
 
         // Act
         network.offline -= b.agentId
@@ -647,7 +647,7 @@ class DeviceDataSyncServiceTest {
         // Arrange
         val (a, b) = pair()
         a.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         val aProfile = a.profileIds().single()
         delay(20.milliseconds)
         b.start()
@@ -666,7 +666,7 @@ class DeviceDataSyncServiceTest {
     private suspend fun twoPeopleInOneHome(suffix: String = ""): Triple<Device, Device, String> {
         val x = Device("agent-x$suffix")
         val y = Device("agent-y$suffix")
-        val homeId = x.homes.create("Maple Street", HomeShape.Family)
+        val homeId = x.homes.create("Maple Street", HomeShape.Family.storageValue)
         val xMember = x.profiles.current()
         val yMember = y.profiles.current()
         y.joinedHome(homeId, "Maple Street", HomeShape.Family)
@@ -717,7 +717,7 @@ class DeviceDataSyncServiceTest {
         y.start()
 
         // Act
-        val private = x.homes.create("X Only", HomeShape.Other)
+        val private = x.homes.create("X Only", HomeShape.Other.storageValue)
         eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
         delay(300.milliseconds)
 
@@ -787,7 +787,7 @@ class DeviceDataSyncServiceTest {
         // Arrange
         val x = Device("agent-x")
         val y = Device("agent-y")
-        val homeId = x.homes.create("Maple Street", HomeShape.Family)
+        val homeId = x.homes.create("Maple Street", HomeShape.Family.storageValue)
         x.pantries.forHome(homeId)!!.mutate { upsertPantryItem(it, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null) }
         x.start()
         y.start()
@@ -1219,7 +1219,7 @@ class DeviceDataSyncServiceTest {
     fun unpairingADeviceLeavesItOutOfTheRosterOfEveryHomeAndPairingItAgainBringsItBack() = runBlocking {
         // Arrange: X's Home lists a second device of X's
         val x = Device("agent-x")
-        val homeId = x.homes.create("Maple Street", HomeShape.Family)
+        val homeId = x.homes.create("Maple Street", HomeShape.Family.storageValue)
         x.sync.admit(homeId, x.profiles.current().id, "X", "admin", "agent-x")
         x.sync.admit(homeId, x.profiles.current().id, "X", "admin", "agent-x-tablet")
         val before = x.sync.rosterDevices(homeId).values.single()
@@ -1250,7 +1250,7 @@ class DeviceDataSyncServiceTest {
         eventually { second.devices.agentIds().contains(first.agentId) }
         first.start()
         second.start()
-        val homeId = first.homes.create("Maple Street", HomeShape.Family)
+        val homeId = first.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { second.homeNames() == listOf("Maple Street") && first.profiles.current().id == second.profiles.current().id }
         eventually { first.mailboxStore(homeId) != null && second.mailboxStore(homeId) != null }
         val groupId = first.database.homeGroupQueries.selectByHome(homeId).awaitAsOneOrNull()!!.groupId
@@ -1317,7 +1317,7 @@ class DeviceDataSyncServiceTest {
         network.hanging += b.agentId // a direct message to it fails after hangFor; to an offline one it vanishes without an error
         network.hangFor = 20.milliseconds
         a.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         eventually { a.activity(homeId).any { it.kind == "failed" && it.module == "pantry" && it.count >= 2 } }
@@ -1377,7 +1377,7 @@ class DeviceDataSyncServiceTest {
         val (a, b) = pair()
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames() == listOf("Maple Street") }
         eventually { a.database.peerSyncQueries.selectByAgent("agent-b").awaitAsOneOrNull() != null }
 
@@ -1399,7 +1399,7 @@ class DeviceDataSyncServiceTest {
         b.pairedWith(a)
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         eventually { b.homeNames() == listOf("Maple Street") }
 
         // Act
@@ -1574,7 +1574,7 @@ class DeviceDataSyncServiceTest {
             val a = Device("agent-a-waiting$index")
             val b = Device("agent-b-waiting$index")
             b.pairedWith(a)
-            val homeId = a.homes.create("Maple Street", HomeShape.Family)
+            val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
             case.edit(a, homeId)
             val replica = Device("agent-e-waiting$index")
             replica.database.homeQueries.insert(homeId, "Maple Street", HomeShape.Family.storageValue, 1L) // a bare Home row: its documents start empty, with no history in common with A's
@@ -1638,7 +1638,7 @@ class DeviceDataSyncServiceTest {
     fun theEngineSyncsAHomesDocumentsInOneFixedOrderWithTheRosterLast() = runBlocking {
         // Arrange: documentIds() is private, so its order shows in the order a round's first messages reach a peer
         val (a, b) = pair()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.sync.syncEverything()

@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import uk.veritaslabs.vesta.db.openInMemoryDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberRole
 
 class MemberRepositoryTest {
 

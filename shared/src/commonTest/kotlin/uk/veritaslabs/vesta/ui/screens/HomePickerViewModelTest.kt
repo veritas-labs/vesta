@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.home.HomeListItem
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

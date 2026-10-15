@@ -42,14 +42,14 @@ class UnsupportedInputActivityTest {
     private suspend fun device(): Pair<ActivityDevice, String> {
         val a = ActivityDevice(network, scope, "agent-a")
         a.devices.add("agent-b", "agent-b")
-        return a to a.homes.create("Maple Street", HomeShape.Family)
+        return a to a.homes.create("Maple Street", HomeShape.Family.storageValue)
     }
 
     @Test
     fun anUnknownDeviceSyncKindFromAPairedDeviceIsNotedOnItsHomes() = runBlocking {
         // Arrange
         val (a, home) = device()
-        val second = a.homes.create("Beach House", HomeShape.Family)
+        val second = a.homes.create("Beach House", HomeShape.Family.storageValue)
 
         // Act
         a.sync.handle(json("""{"kind":"devicesync.teleport","name":"Bob"}"""))
@@ -69,7 +69,7 @@ class UnsupportedInputActivityTest {
     fun anUnknownHomeGroupKindIsNotedOnlyOnTheHomeItNames() = runBlocking {
         // Arrange
         val (a, home) = device()
-        val other = a.homes.create("Beach House", HomeShape.Family)
+        val other = a.homes.create("Beach House", HomeShape.Family.storageValue)
 
         // Act
         a.sync.handle(json("""{"kind":"homegroup.invite.v2","homeId":"$home"}"""))
@@ -167,7 +167,7 @@ class UnsupportedInputActivityTest {
     fun theUnsupportedVersionMakesTheVerdictSayANewerVersionIsNeededAndShowsUnderProblems() = runBlocking {
         // Arrange
         val (a, home) = device()
-        val quiet = a.homes.create("Beach House", HomeShape.Family)
+        val quiet = a.homes.create("Beach House", HomeShape.Family.storageValue)
         a.recorder.unsupportedVersion(home, SyncModules.Mailbox, "agent-b", "v2")
         a.recorder.unknownMessage(home, "agent-b", "devicesync.teleport")
         a.recorder.flush()

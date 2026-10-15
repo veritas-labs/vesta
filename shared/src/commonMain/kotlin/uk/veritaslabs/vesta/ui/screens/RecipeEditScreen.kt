@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke

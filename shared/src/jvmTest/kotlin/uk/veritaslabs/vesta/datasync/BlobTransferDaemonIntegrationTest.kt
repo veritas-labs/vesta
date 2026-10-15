@@ -18,7 +18,7 @@ import uk.veritaslabs.vesta.blobs.BlobRepository
 import uk.veritaslabs.vesta.blobs.BlobStore
 import uk.veritaslabs.vesta.blobs.BlobTransferService
 import uk.veritaslabs.vesta.ui.screens.HomeShape
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeMedia
 
@@ -47,7 +47,7 @@ class BlobTransferDaemonIntegrationTest {
                     b.daemon.start()
                     val aId = a.agentId()
                     val bId = b.agentId()
-                    val homeId = a.homes.create("Maple Street", HomeShape.Family)
+                    val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
                     b.joinedHome(homeId)
                     a.sync.admit(homeId, b.profiles.current().id, b.profiles.current().displayName, "member", bId)
                     b.sync.admit(homeId, a.profiles.current().id, a.profiles.current().displayName, "admin", aId)

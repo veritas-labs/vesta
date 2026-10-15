@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.home.HomeListItem
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -100,13 +101,6 @@ internal object HomePickerTestTags {
     /** Tag for the list row of the home with the given [homeId], independent of its display name. */
     fun homeItem(homeId: String) = "home_picker_item_$homeId"
 }
-
-/** A single row of the home picker screen's home list — see [HomePickerScreen]. */
-data class HomeListItem(
-    val id: String,
-    val name: String,
-    val avatar: DrawableResource? = null,
-)
 
 /**
  * Home picker backed by [viewModel]: picking a home records it as the selected Home. Blank until the

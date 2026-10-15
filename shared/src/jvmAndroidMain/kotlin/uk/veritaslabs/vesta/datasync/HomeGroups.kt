@@ -12,7 +12,7 @@ import uk.veritaslabs.vesta.automerge.RosterMember
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.x0x.X0xApiException
 import uk.veritaslabs.vesta.x0x.InviteLifetime
 import uk.veritaslabs.vesta.x0x.X0xClient

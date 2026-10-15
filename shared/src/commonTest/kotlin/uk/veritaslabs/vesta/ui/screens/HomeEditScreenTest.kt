@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.home.HomeDetails
 import uk.veritaslabs.vesta.ui.components.ConfirmDeleteTestTags
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
@@ -18,7 +19,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
 class HomeEditScreenTest {
 
-    private val existingHome = HomeDetails(id = "flat-4b", name = "Flat 4B", shape = HomeShape.Flatshare)
+    private val existingHome = HomeDetails(id = "flat-4b", name = "Flat 4B", shape = HomeShape.Flatshare.storageValue)
 
     @OptIn(ExperimentalTestApi::class)
     @Test
@@ -46,7 +47,7 @@ class HomeEditScreenTest {
         onNodeWithTag(HomeEditTestTags.SaveButton).assertIsEnabled().performClick()
 
         // Assert
-        assertEquals(HomeDetails(id = null, name = "The Johnsons", shape = HomeShape.Other), saved)
+        assertEquals(HomeDetails(id = null, name = "The Johnsons", shape = HomeShape.Other.storageValue), saved)
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -61,7 +62,7 @@ class HomeEditScreenTest {
         onNodeWithTag(HomeEditTestTags.SaveButton).assertIsEnabled().performClick()
 
         // Assert
-        assertEquals(HomeDetails(id = "flat-4b", name = "Flat 4B Annex", shape = HomeShape.Flatshare), saved)
+        assertEquals(HomeDetails(id = "flat-4b", name = "Flat 4B Annex", shape = HomeShape.Flatshare.storageValue), saved)
     }
 
     @OptIn(ExperimentalTestApi::class)

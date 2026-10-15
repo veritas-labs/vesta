@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.devicesync.SyncedDevice
 import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -73,9 +74,6 @@ internal object SyncedDevicesTestTags {
     fun device(agentId: String) = "synced_device_$agentId"
     fun remove(agentId: String) = "synced_device_remove_$agentId"
 }
-
-/** A device belonging to this user that their Homes sync to; unrelated to Home members. */
-data class SyncedDevice(val name: String, val agentId: String)
 
 /**
  * The devices that belong to this user and sync with this one: each [devices] row shows the device's name and

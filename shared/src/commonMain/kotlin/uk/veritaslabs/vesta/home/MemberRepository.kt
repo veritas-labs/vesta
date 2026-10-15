@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.ui.screens.MemberListItem
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.vesta.home.MemberRole
 
 /** What happened when the current user tried to change a member's role. */
 enum class RoleChangeResult {

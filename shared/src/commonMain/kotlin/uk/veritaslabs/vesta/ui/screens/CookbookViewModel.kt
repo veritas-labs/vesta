@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.blobs.MediaKind
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlin.math.roundToInt
@@ -17,8 +18,6 @@ private const val StopTimeoutMillis = 5_000L
 
 /** What kind of meal or dish a [Recipe] is (ADR-022). Stored by [name]. */
 enum class RecipeType { Breakfast, Lunch, Dinner, Starter, Side, Dessert, Baking, Snack, Drink, Other }
-
-enum class MediaKind { Photo, Video }
 
 /**
  * A photo or video attached to a recipe: a reference, not the bytes. A [blob] is a photo stored on the devices and moved between them (ADR-023),

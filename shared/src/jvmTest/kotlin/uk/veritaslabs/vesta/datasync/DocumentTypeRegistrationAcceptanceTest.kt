@@ -145,7 +145,7 @@ class DocumentTypeRegistrationAcceptanceTest {
     private suspend fun twoPeopleInOneHome(): Triple<Device, Device, String> {
         val x = Device("agent-x")
         val y = Device("agent-y")
-        val homeId = x.homes.create("Maple Street", HomeShape.Family)
+        val homeId = x.homes.create("Maple Street", HomeShape.Family.storageValue)
         val xMember = x.profiles.current()
         val yMember = y.profiles.current()
         y.joinedHome(homeId, "Maple Street", HomeShape.Family)

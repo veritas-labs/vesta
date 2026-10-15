@@ -61,7 +61,7 @@ class SyncActivityServiceTest {
         b.pairedWith(a)
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         eventually { a.snapshot(homeId).peers.any { it.agentId == "agent-b" && it.online && it.lastSyncedMsAgo != null } }
@@ -85,7 +85,7 @@ class SyncActivityServiceTest {
     fun aHubIsListedAsAHubAndIsOfflineUntilPresenceSaysOtherwise() = runBlocking {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a")
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         HomeRosters(a.database, a.profiles).addHub(homeId, "agent-hub")
 
         // Act
@@ -110,7 +110,7 @@ class SyncActivityServiceTest {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a")
         a.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.eventuallyVerdict(homeId) { it == SyncVerdict.OnlyYou }
@@ -130,7 +130,7 @@ class SyncActivityServiceTest {
         a.pairedWith(b)
         network.hanging += "agent-b"
         network.hangFor = 400.milliseconds
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.start()
@@ -155,7 +155,7 @@ class SyncActivityServiceTest {
         b.pairedWith(a)
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.addToPantry(homeId, "Whole Milk")
@@ -176,7 +176,7 @@ class SyncActivityServiceTest {
         a.pairedWith(b)
         network.hanging += "agent-b"
         network.hangFor = 20.milliseconds
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         a.addToPantry(homeId, "Whole Milk")
 
         // Act
@@ -195,7 +195,7 @@ class SyncActivityServiceTest {
         a.pairedWith(b)
         network.hanging += "agent-b"
         network.hangFor = 20.milliseconds
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         a.addToPantry(homeId, "Whole Milk")
 
         // Act
@@ -218,7 +218,7 @@ class SyncActivityServiceTest {
             },
         )
         a.pairedWith(ActivityDevice(network, scope, "agent-b"))
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.start()
@@ -233,7 +233,7 @@ class SyncActivityServiceTest {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a")
         a.pairedWith(ActivityDevice(network, scope, "agent-b"))
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         val twoHoursAgo = System.currentTimeMillis() - 2.hours.inWholeMilliseconds
         a.database.pendingMessageQueries.upsert("agent-b", homeId, "removed", byteArrayOf(1), twoHoursAgo)
         a.database.pendingMessageQueries.upsert("agent-b", "another-home", "removed", byteArrayOf(1), twoHoursAgo - 1.hours.inWholeMilliseconds)
@@ -253,7 +253,7 @@ class SyncActivityServiceTest {
     fun theSnapshotFlowEmitsAgainOnItsRefreshInterval() = runBlocking {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a", activityRefresh = 50.milliseconds)
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         val snapshots = withTimeout(5.seconds) { a.sync.syncActivity.snapshot(homeId).take(3).toList() }
@@ -268,7 +268,7 @@ class SyncActivityServiceTest {
     fun theSnapshotFlowEmitsAgainWhenARoundBeginsAndEnds() = runBlocking {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a", activityRefresh = 1.hours)
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         val collecting = scope.async { a.sync.syncActivity.snapshot(homeId).transformWhile { emit(it); it.lastRoundAt == null }.toList() }
         delay(100.milliseconds)
 
@@ -287,7 +287,7 @@ class SyncActivityServiceTest {
     fun syncNowStartsAnotherRound() = runBlocking {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a", interval = 1.hours)
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         a.start()
         eventually { a.snapshot(homeId).lastRoundAt != null }
         val first = a.snapshot(homeId).lastRoundAt!!
@@ -307,7 +307,7 @@ class SyncActivityServiceTest {
 
     private suspend fun seeded(): Pair<ActivityDevice, String> {
         val a = ActivityDevice(network, scope, "agent-a", nowMillis = { clock })
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         val recorder = a.recorder
         recorder.received(homeId, SyncModules.Pantry, "peer-1") // oldest
         clock += 6 * minute
@@ -413,7 +413,7 @@ class SyncActivityServiceTest {
     fun anotherHomesEventsAreNotShown() = runBlocking {
         // Arrange
         val (a, _) = seeded()
-        val other = a.homes.create("Second Home", HomeShape.Family)
+        val other = a.homes.create("Second Home", HomeShape.Family.storageValue)
 
         // Act
         val events = a.sync.syncActivity.events(other, SyncEventFilter.All, null, null, 50)

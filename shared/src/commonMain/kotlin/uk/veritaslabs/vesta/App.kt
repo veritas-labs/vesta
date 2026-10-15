@@ -128,7 +128,7 @@ import uk.veritaslabs.vesta.home.SelectedHome
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeEditScreen
 import uk.veritaslabs.vesta.ui.screens.HomeEditViewModel
-import uk.veritaslabs.vesta.ui.screens.HomeListItem
+import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomePickerScreen
 import uk.veritaslabs.vesta.ui.screens.HomePickerViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesScreen
@@ -150,8 +150,8 @@ import uk.veritaslabs.vesta.ui.screens.ShoppingListScreen
 import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
 import uk.veritaslabs.vesta.ui.screens.ShoppingListViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
-import uk.veritaslabs.vesta.ui.screens.MemberListItem
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.ui.screens.ProfileNameMode
 import uk.veritaslabs.vesta.ui.screens.ProfileNameScreen
 import uk.veritaslabs.vesta.ui.screens.MemberDetailScreen

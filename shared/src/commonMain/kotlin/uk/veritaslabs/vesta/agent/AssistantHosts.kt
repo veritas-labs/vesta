@@ -14,7 +14,7 @@ import uk.veritaslabs.vesta.ui.screens.AssistantEditScreen
 import uk.veritaslabs.vesta.ui.screens.AssistantListItem
 import uk.veritaslabs.vesta.ui.screens.AssistantsScreen
 import uk.veritaslabs.vesta.ui.screens.HomeAccess
-import uk.veritaslabs.vesta.ui.screens.HomeListItem
+import uk.veritaslabs.vesta.home.HomeListItem
 
 /** The Assistants list (ADR-027), fed from [assistants]. */
 @Composable

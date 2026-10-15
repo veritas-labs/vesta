@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.home.MemberRole
+import uk.veritaslabs.vesta.home.MemberListItem
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -71,25 +73,6 @@ internal object MembersTestTags {
     /** The Decline button of the request from [memberId]. */
     fun decline(memberId: String) = "members_request_decline_$memberId"
 }
-
-/** The role a member has in a Home; [storageValue] is the `HomeMember.role` column's value. */
-enum class MemberRole(val storageValue: String) {
-    Admin("admin"),
-    Member("member");
-
-    companion object {
-        /** The role stored as [value]; anything unrecognised is an ordinary [Member]. */
-        fun fromStorageValue(value: String): MemberRole = entries.firstOrNull { it.storageValue == value } ?: Member
-    }
-}
-
-/** One person in a Home. A person is one row however many devices they have; [isYou] marks the current user. */
-data class MemberListItem(
-    val memberId: String,
-    val name: String,
-    val role: MemberRole,
-    val isYou: Boolean = false,
-)
 
 /**
  * The Members tab of a Home: the [members] (name and role badge, the current user marked "You") followed by an

@@ -42,8 +42,8 @@ import uk.veritaslabs.vesta.tasks.Task
 import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.tasks.isoText
 import uk.veritaslabs.vesta.ui.flows.TasksFlow
-import uk.veritaslabs.vesta.ui.screens.MemberListItem
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.ui.screens.TaskEditTestTags
 import uk.veritaslabs.vesta.ui.screens.TasksTestTags
 import uk.veritaslabs.vesta.ui.screens.TasksViewModel

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.home.HomeDetails
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.text.KeyboardOptions
 import uk.veritaslabs.vesta.ui.components.NarrowContentMaxWidth
@@ -110,16 +111,6 @@ enum class HomeShape(
 }
 
 /**
- * The editable fields of a Home. [id] is null while creating a new Home — the
- * caller assigns one on save — and set to the existing Home's id while editing.
- */
-data class HomeDetails(
-    val id: String? = null,
-    val name: String = "",
-    val shape: HomeShape? = null,
-)
-
-/**
  * Home edit form backed by [viewModel]: saving or deleting persists via the view model, then calls
  * [onFinished]. Blank while an existing Home is still loading, so the form doesn't flash empty.
  */
@@ -168,7 +159,7 @@ fun HomeEditScreen(
     var name by remember(home) { mutableStateOf(home?.name.orEmpty()) }
     // Shape selection is parked for now (see the commented-out block below): new Homes are "Other",
     // and an existing Home keeps whatever shape it has.
-    val shape = home?.shape ?: HomeShape.Other
+    val shape = home?.shape ?: HomeShape.Other.storageValue
     var nameTouched by remember(home) { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
 
@@ -311,7 +302,7 @@ fun HomeEditScreen(
 //     }
 // }
 
-private val HomeEditPreviewHome = HomeDetails(id = "flat-4b", name = "Flat 4B", shape = HomeShape.Flatshare)
+private val HomeEditPreviewHome = HomeDetails(id = "flat-4b", name = "Flat 4B", shape = HomeShape.Flatshare.storageValue)
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable

@@ -47,8 +47,8 @@ import uk.veritaslabs.vesta.ui.screens.CalendarSettingsTestTags
 import uk.veritaslabs.vesta.ui.screens.CalendarViewModel
 import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.ui.screens.EventEditTestTags
-import uk.veritaslabs.vesta.ui.screens.MemberListItem
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
 /**

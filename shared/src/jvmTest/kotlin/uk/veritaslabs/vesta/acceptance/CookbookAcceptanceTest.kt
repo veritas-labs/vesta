@@ -42,7 +42,7 @@ import uk.veritaslabs.vesta.ui.flows.CookbookFlow
 import uk.veritaslabs.vesta.ui.screens.CookbookTestTags
 import uk.veritaslabs.vesta.ui.screens.CookbookViewModel
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardTestTags
-import uk.veritaslabs.vesta.ui.screens.MediaKind
+import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeDetailTestTags
 import uk.veritaslabs.vesta.ui.screens.RecipeEditTestTags

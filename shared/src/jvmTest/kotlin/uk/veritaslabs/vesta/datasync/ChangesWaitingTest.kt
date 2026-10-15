@@ -42,7 +42,7 @@ class ChangesWaitingTest {
         a.pairedWith(b)
         network.offline += "agent-b"
         a.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.addToPantry(homeId, "Whole Milk")
@@ -63,7 +63,7 @@ class ChangesWaitingTest {
         network.offline += "agent-b"
         a.start()
         b.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         a.addToPantry(homeId, "Whole Milk")
         delay(300.milliseconds)
         assertTrue(a.waiting(homeId))
@@ -85,7 +85,7 @@ class ChangesWaitingTest {
         network.hanging += "agent-b"
         network.hangFor = 20.milliseconds
         a.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.addToPantry(homeId, "Whole Milk")
@@ -106,7 +106,7 @@ class ChangesWaitingTest {
         a.pairedWith(b)
         network.offline += "agent-b"
         a.start()
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
 
         // Act
         a.addToPantry(homeId, "Whole Milk")
@@ -123,7 +123,7 @@ class ChangesWaitingTest {
         val a = ActivityDevice(network, scope, "agent-a", mailbox = false)
         val b = ActivityDevice(network, scope, "agent-b", mailbox = false)
         a.pairedWith(b)
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         a.addToPantry(homeId, "Whole Milk")
 
         // Act
@@ -138,7 +138,7 @@ class ChangesWaitingTest {
     fun aHomeWithNoOtherDeviceNeverHasChangesWaiting() = runBlocking {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a", mailbox = false)
-        val homeId = a.homes.create("Maple Street", HomeShape.Family)
+        val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
         a.addToPantry(homeId, "Whole Milk")
 
         // Act

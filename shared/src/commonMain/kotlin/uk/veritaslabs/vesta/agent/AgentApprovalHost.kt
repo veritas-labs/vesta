@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.ui.screens.HomeListItem
+import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.components.AgentApprovalCard
 import uk.veritaslabs.vesta.ui.components.abbreviateAgentId
 import vesta.shared.generated.resources.Res

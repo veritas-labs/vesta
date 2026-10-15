@@ -50,7 +50,7 @@ class UnpairDaemonIntegrationTest {
                     tablet.database.devicePairingLinkQueries.insert(link.agentId, link.agentId, now, link.expiresAt)
                     assertTrue(a.deviceSync.pairWith(link).isSuccess)
                     until("the tablet to know A") { tablet.devices.agentIds().contains(aId) }
-                    val homeId = a.homes.create("Maple Street", HomeShape.Family)
+                    val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
                     b.joinedHome(homeId)
                     a.sync.admit(homeId, b.profiles.current().id, b.profiles.current().displayName, "member", bId)
                     b.sync.admit(homeId, a.profiles.current().id, a.profiles.current().displayName, "admin", aId)

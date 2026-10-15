@@ -27,7 +27,7 @@ import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.homejoin.RedeemResult
 import uk.veritaslabs.vesta.homejoin.RequestResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.ui.screens.MemberRole
+import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 
