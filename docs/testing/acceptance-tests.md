@@ -137,3 +137,22 @@ Unknown input is still ignored, but now shows in Sync activity. Not covered by a
     newer document type, or a Home not here yet), *when* this device reads the mailbox, *then* it is noted in Sync activity with the document type and the
     saved place stays before it; *when* Vesta is updated (or the Home arrives), *then* the entry is applied.
     `MailboxTest.anEntryForADocumentThisDeviceCannotOpenIsNotedKeptAndAppliedOnceItCan`.
+
+## Document type registry (this plan)
+
+Criteria for docs/plans/document-registry-and-source-collapse-plan.md, WP9. A throwaway `probe` document type, defined only in the test, is
+registered through `HomeDocumentType` and handed to the engine as `extraTypes`; the engine, mailbox, acknowledgement, Sync activity and
+Changes waiting are not edited for it. All in `DocumentTypeRegistrationAcceptanceTest`.
+
+1. **A new type syncs directly.** *Given* a Home on two devices with the `probe` type registered on both, *when* one device edits its probe document,
+   *then* the other has the edit through a direct sync message.
+   `aDocumentTypeTheEngineNeverHeardOfSyncsDirectlyBetweenTwoDevicesOfAHome`.
+2. **A new type catches up through the mailbox.** *Given* a member was away, *when* the other edits and leaves before the first is back, *then* the
+   member has the edit through the Home's mailbox.
+   `aMemberWhoWasAwayCatchesUpOnTheNewDocumentTypeThroughTheMailbox`.
+3. **A private type stays private.** *Given* a `Private` probe type, *when* I edit it, *then* it reaches my other paired device, and never another
+   member's device nor the mailbox.
+   `aPrivateDocumentTypeReachesTheUsersOtherDeviceButNeverAnotherMemberOrTheMailbox`.
+4. **Sync activity and Changes waiting cover it.** *Given* my other device is away, *when* I edit a private probe document, *then* the Home shows
+   changes waiting until the device is back; *when* it syncs, *then* Sync activity lists the sent and received events under the probe's module.
+   `syncActivityShowsTheNewTypesEventsUnderItsModuleAndChangesWaitingFollowsItsUnacknowledgedEdit`.
