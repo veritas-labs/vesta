@@ -727,3 +727,37 @@ Paths relative to `shared/src/<set>/kotlin/uk/veritaslabs/vesta/`. `(c)` commonM
 | x0x, store | none | 0 | |
 
 Everything above rests on greps and a symbol scan, not on a compiler run per kit; the first compile of a kit in WP14 and later is the final check, and the WP0 test keeps it from drifting.
+
+# Baseline (WP0, measured 2026-10-16 on `main` at `871ce26`, before the boundary test was added)
+
+**Gate V, exact command** (all task names exist; confirmed with `./gradlew tasks --all`):
+
+```
+./gradlew :shared:jvmTest :shared:testAndroidHostTest :shared:verifyCommonMainVestaDatabaseMigration :desktopApp:compileKotlin :androidApp:compileDebugKotlin --continue
+```
+
+Use `--continue` so one red task does not hide the others. About 2 minutes warm on an idle machine.
+
+| Task | Result |
+|---|---|
+| `:shared:jvmTest` | 1,861 tests, 1 failed, 0 skipped |
+| `:shared:testAndroidHostTest` | 199 tests, 0 failed, 0 skipped |
+| `:shared:verifyCommonMainVestaDatabaseMigration` | passes |
+| `:desktopApp:compileKotlin` | passes |
+| `:androidApp:compileDebugKotlin` | passes |
+
+Total 2,060 tests (the registry plan's 1,816 predates later work; re-measured as the plan asked).
+
+**Known failure (pre-existing, intermittent):** `CalendarEventsAcceptanceTest.aPrivateEventIsSavedOnThePrivateCalendarMarkedWithAPadlockAndHasNoParticipants` failed on the first baseline run and passed on the second run (after WP0's test was added: 1,865 tests, 0 failed, `BUILD SUCCESSFUL`). Treat it as flaky; if it is the only red test, rerun `--tests '*CalendarEventsAcceptanceTest'` alone.
+
+**Known flaky under load:** `DeviceDataSyncServiceTest` and the Compose UI acceptance tests. Both passed on the baseline run. Rerun the one class alone before calling a failure a regression.
+
+**iOS:** the iOS targets are disabled on this Linux host ("Cross Compilation with Cinterop Not Supported"; `iosSimulatorArm64Test` disabled), so no iOS task runs here. Gate M is the human's.
+
+**Boundary test (added by WP0):** `KitBoundaryTest` adds 4 tests to `:shared:jvmTest` (1,865 after WP0). Its `expectedViolations` starts with 26 entries, normalised to file level with platform suffixes folded (`Platform.kt` stands for the expect and its three actuals), and matches the leak table in section 3. Notes from writing it:
+
+- It also found `store -> x0x`: `db/DatabaseDriverFactory.android` imports `VestaAndroid` from `EmbeddedX0xClient.android` (the plan lists this leak under x0x, fixed by WP2).
+- Imports of `ui/screens/*Screen.kt` types by spaces and sync files are the WP1 leaks; `x0x/InviteLifetime` is WP3; `Platform` is WP2.
+- It resolves an import through the file that declares the top-level name, so `SyncTargets` and `HomeMailboxDocuments`, which sit inside other files, resolve correctly.
+- Same-package references and wildcard imports are invisible to it, as the plan said.
+- A fourth test pins the Appendix A file counts per kit (x0x 15, store 9, docs 17, spaces 21, sync 11, blobs 15, assistants 5) so a rename cannot silently move a file out of a kit.
