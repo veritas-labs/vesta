@@ -24,13 +24,6 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
-        // ant-android (embedded Autonomi bindings) isn't on Maven Central yet —
-        // published to a GitHub Pages-hosted repo instead.
-        maven("https://withautonomi.github.io/ant-maven/") {
-            mavenContent {
-                includeGroup("com.autonomi")
-            }
-        }
     }
 }
 

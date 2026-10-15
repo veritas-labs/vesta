@@ -97,11 +97,6 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
-            // Embedded Autonomi client (in-process, UniFFI-generated; JNA and
-            // kotlinx-coroutines-core come transitively from its POM).
-            implementation(libs.ant.android)
-            // Dispatchers.Main used internally by the generated suspend bindings;
-            // not transitive from ant-android's POM (see its README).
             implementation(libs.kotlinx.coroutinesAndroid)
             // Automerge CRDT (JNI bindings, see the libs.versions.toml comment);
             // androidnative adds the Android .so — the main jar's bundled

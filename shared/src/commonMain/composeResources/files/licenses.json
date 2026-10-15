@@ -769,14 +769,6 @@
         "url": "https://github.com/sqldelight/sqldelight/"
     },
     {
-        "name": "com.autonomi:ant-android",
-        "version": "0.0.8-rc.1",
-        "licenses": [
-            "Not declared"
-        ],
-        "url": ""
-    },
-    {
         "name": "com.eygraber:sqldelight-androidx-driver",
         "version": "0.2.2",
         "licenses": [

@@ -74,8 +74,7 @@ fun gradleLicenses(): List<Map<String, Any>> {
         val url = (dependency["moduleUrls"] as List<String>).firstOrNull()
         mapOf(
             "name" to (dependency["moduleName"] as String).let { name ->
-                // ant-android is the library's real name, not a per-target artifact.
-                if (name == "com.autonomi:ant-android") name else name.replace(targetSuffix, "")
+                name.replace(targetSuffix, "")
             },
             "version" to (dependency["moduleVersion"] as String),
             "licenses" to licenses.distinct().ifEmpty { listOf(UNDECLARED_LICENSE) },
