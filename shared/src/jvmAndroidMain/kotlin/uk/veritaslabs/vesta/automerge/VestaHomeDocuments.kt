@@ -20,29 +20,16 @@ internal class VestaHomeDocuments(
     database: VestaDatabase,
     val rosters: HomeRosters,
     publishRosters: suspend () -> Unit,
-    val sources: VestaHomeSources = VestaHomeSources(database),
+    sources: VestaHomeSources = VestaHomeSources(database),
     extraTypes: List<HomeDocumentType> = emptyList(),
 ) {
-    constructor(
-        database: VestaDatabase,
-        rosters: HomeRosters,
-        publishRosters: suspend () -> Unit,
-        pantries: PantrySources = PantrySources(database),
-        shoppingLists: ShoppingListSources = ShoppingListSources(database, pantries),
-        cookbooks: CookbookSources = CookbookSources(database),
-        merchants: MerchantsSources = MerchantsSources(database),
-        mealPlans: MealPlanSources = MealPlanSources(database),
-        calendars: CalendarSources = CalendarSources(database),
-        tasks: TaskSources = TaskSources(database),
-    ) : this(database, rosters, publishRosters, VestaHomeSources(database, pantries, shoppingLists, cookbooks, merchants, mealPlans, calendars, tasks))
-
-    val pantries get() = sources.pantries
-    val shoppingLists get() = sources.shoppingLists
-    val cookbooks get() = sources.cookbooks
-    val merchants get() = sources.merchants
-    val mealPlans get() = sources.mealPlans
-    val calendars get() = sources.calendars
-    val tasks get() = sources.tasks
+    private val pantries = sources.pantries
+    private val shoppingLists = sources.shoppingLists
+    private val cookbooks = sources.cookbooks
+    private val merchants = sources.merchants
+    private val mealPlans = sources.mealPlans
+    private val calendars = sources.calendars
+    private val tasks = sources.tasks
 
     val registry = HomeDocumentRegistry(
         listOf(
