@@ -28,14 +28,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -98,9 +96,6 @@ fun ShoppingListFilterScreen(
         val contentPadding = if (maxWidth >= FilterTabletBreakpoint) 24.dp else 16.dp
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
-                modifier = Modifier
-                    .zIndex(1f)
-                    .shadow(elevation = 16.dp, ambientColor = ShoppingAccent, spotColor = ShoppingAccent),
                 title = { Text(stringResource(Res.string.shopping_filter_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag(ShoppingListFilterTestTags.BackButton)) {

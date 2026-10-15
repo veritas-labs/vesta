@@ -766,16 +766,14 @@ private fun HomeContent(
                     backToForm()
                 },
                 onBack = backToForm,
-                accent = ShoppingAccent,
             )
         }
         HomeDestination.PantryCategories -> {
             val onBack = { destination = categoriesBackTo }
-            val accent = if (categoriesBackTo == HomeDestination.ShoppingItemEdit) ShoppingAccent else PantryAccent
             if (categoriesViewModel != null) {
-                PantryCategoriesScreen(categoriesViewModel, onBack = onBack, accent = accent)
+                PantryCategoriesScreen(categoriesViewModel, onBack = onBack)
             } else {
-                PantryCategoriesScreen(categories = emptyList(), onBack = onBack, accent = accent)
+                PantryCategoriesScreen(categories = emptyList(), onBack = onBack)
             }
         }
         HomeDestination.PantryItemEdit -> PantryItemEditScreen(

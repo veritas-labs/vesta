@@ -47,15 +47,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -184,8 +181,6 @@ data class ItemFormLabels(
     val decreaseDescription: StringResource,
     val increaseDescription: StringResource,
     val minCount: Int = 0,
-    /** The colour of the app bar's drop shadow, or null for none. */
-    val accent: Color? = null,
 )
 
 /** [PantryItemEditScreen]'s wording for a Pantry entry's stock count. */
@@ -195,7 +190,6 @@ val PantryItemFormLabels = ItemFormLabels(
     Res.string.pantry_edit_stock_count_label,
     Res.string.pantry_stock_decrease,
     Res.string.pantry_stock_increase,
-    accent = PantryAccent,
 )
 
 /** [PantryItemEditScreen]'s wording for a shopping-list item's quantity. */
@@ -206,7 +200,6 @@ val ShoppingItemFormLabels = ItemFormLabels(
     Res.string.shopping_quantity_decrease,
     Res.string.shopping_quantity_increase,
     minCount = 1,
-    accent = ShoppingAccent,
 )
 
 /**
@@ -316,9 +309,6 @@ fun PantryItemEditScreen(
 
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
-                modifier = labels.accent?.let { accent ->
-                    Modifier.zIndex(1f).shadow(elevation = 16.dp, ambientColor = accent, spotColor = accent)
-                } ?: Modifier,
                 title = {
                     Text(
                         text = stringResource(if (item?.key == null) labels.addTitle else labels.editTitle),
