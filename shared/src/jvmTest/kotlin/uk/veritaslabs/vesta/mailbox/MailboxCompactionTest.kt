@@ -38,7 +38,7 @@ class MailboxCompactionTest {
         val lists = ShoppingListSources(database, pantries)
         val node = network.node(agentId)
         var storeId: String? = null
-        val documents = HomeMailboxDocuments(pantries, lists, uk.veritaslabs.vesta.automerge.CookbookSources(database), rosters)
+        val documents = HomeMailboxDocuments(uk.veritaslabs.vesta.automerge.VestaHomeDocuments(database, rosters, publishRosters = {}, pantries = pantries, shoppingLists = lists).registry)
         val writer = MailboxWriter(node, database, documents, nowMillis = { now }) { storeId }
         val reader = MailboxReader(node, database, documents) { storeId }
 

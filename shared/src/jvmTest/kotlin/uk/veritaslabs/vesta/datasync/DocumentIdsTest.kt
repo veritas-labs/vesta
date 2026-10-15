@@ -62,18 +62,7 @@ class DocumentIdsTest {
         Expected("$homeId:roster", SyncModules.Members, private = false, inMailbox = true, idFor = ::rosterDocumentId),
     )
 
-    private fun mailbox(database: VestaDatabase, withOptionalDocuments: Boolean): HomeMailboxDocuments {
-        val pantries = PantrySources(database)
-        val rosters = HomeRosters(database, ProfileRepository(database))
-        return if (withOptionalDocuments) {
-            HomeMailboxDocuments(
-                pantries, ShoppingListSources(database, pantries), CookbookSources(database), rosters,
-                MerchantsSources(database), MealPlanSources(database), CalendarSources(database), TaskSources(database),
-            )
-        } else {
-            HomeMailboxDocuments(pantries, ShoppingListSources(database, pantries), CookbookSources(database), rosters)
-        }
-    }
+    private fun mailbox(database: VestaDatabase) = HomeMailboxDocuments(documents(database).registry)
 
     private fun documents(database: VestaDatabase) =
         VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database)), publishRosters = {})
@@ -128,7 +117,7 @@ class DocumentIdsTest {
     @Test
     fun theMailboxListsEveryDocumentButThePrivateOnes() {
         // Arrange
-        val mailbox = mailbox(openInMemoryDatabase(), withOptionalDocuments = true)
+        val mailbox = mailbox(openInMemoryDatabase())
 
         // Act
         val listed = mailbox.documentIds(homeId).toSet()
@@ -139,25 +128,23 @@ class DocumentIdsTest {
     }
 
     @Test
-    fun aMailboxBuiltWithoutTheOptionalSourcesSilentlyOmitsTheirDocuments() {
+    fun theMailboxListsExactlyTheRegistrysSharedDocumentsSoNoTypeCanBeLeftOut() {
         // Arrange
-        val mailbox = mailbox(openInMemoryDatabase(), withOptionalDocuments = false)
+        val documents = documents(openInMemoryDatabase())
+        val mailbox = HomeMailboxDocuments(documents.registry)
 
         // Act
         val listed = mailbox.documentIds(homeId)
 
         // Assert
-        assertEquals(listOf("$homeId:roster", "$homeId:pantry", "$homeId:shopping-list", "$homeId:cookbook"), listed)
-        assertFalse("$homeId:merchants" in listed)
-        assertFalse("$homeId:mealplan" in listed)
-        assertFalse("$homeId:calendar" in listed)
-        assertFalse("$homeId:tasks" in listed)
+        assertEquals(documents.registry.documentIds(homeId, Scope.Shared), listed)
+        assertEquals(8, listed.size)
     }
 
     @Test
     fun theMailboxListsTheRosterFirst() {
         // Arrange
-        val mailbox = mailbox(openInMemoryDatabase(), withOptionalDocuments = true)
+        val mailbox = mailbox(openInMemoryDatabase())
 
         // Act
         val listed = mailbox.documentIds(homeId)

@@ -118,9 +118,6 @@ class DeviceDataSyncService(
     }
     private val join = HomeJoinService(client, database, rosters, homeListener, profiles, recorder = recorder)
     private val groups = HomeGroups(client, database, rosters, profiles)
-    private val mailboxDocuments = HomeMailboxDocuments(pantrySources, shoppingSources, cookbookSources, rosters, merchantsSources, mealPlanSources, calendarSources, taskSources)
-    private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
-    private val mailboxReader = MailboxReader(client, database, mailboxDocuments, recorder) { groups.mailboxStoreId(it) }
 
     /** The one list of Home document types, built from the sources this service was given; the acknowledgement, activity module and private-id lookups go through it. */
     private val homeDocuments = VestaHomeDocuments(
@@ -129,6 +126,9 @@ class DeviceDataSyncService(
         mealPlans = mealPlanSources, calendars = calendarSources, tasks = taskSources,
     )
     private val documentRegistry = homeDocuments.registry
+    private val mailboxDocuments = HomeMailboxDocuments(documentRegistry)
+    private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
+    private val mailboxReader = MailboxReader(client, database, mailboxDocuments, recorder) { groups.mailboxStoreId(it) }
 
     private val acknowledgement = SyncAcknowledgement(documentRegistry)
 
