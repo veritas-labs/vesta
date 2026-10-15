@@ -30,6 +30,15 @@ class MailboxTest {
     private val homeId = "home-1"
     private val network = FakeX0xNetwork()
 
+    /** The documents of a Home, except one a test can hide to stand for a document this version doesn't have. */
+    private class HidingDocuments(private val inner: MailboxDocuments) : MailboxDocuments {
+        var hidden: String? = null
+
+        override fun documentIds(homeId: String) = inner.documentIds(homeId)
+
+        override suspend fun open(homeId: String, documentId: String) = if (documentId == hidden) null else inner.open(homeId, documentId)
+    }
+
     /** One device: its own database, documents, writer and reader, with the Home's mailbox store once [open]. */
     private inner class Device(val agentId: String, val creator: Boolean = false) {
         val database: VestaDatabase = openInMemoryDatabase()
@@ -40,7 +49,7 @@ class MailboxTest {
         val node = network.node(agentId)
         var storeId: String? = null
         val merchants = uk.veritaslabs.vesta.automerge.MerchantsSources(database)
-        val documents = HomeMailboxDocuments(pantries, lists, uk.veritaslabs.vesta.automerge.CookbookSources(database), rosters, merchants)
+        val documents = HidingDocuments(HomeMailboxDocuments(pantries, lists, uk.veritaslabs.vesta.automerge.CookbookSources(database), rosters, merchants))
         var writer = MailboxWriter(node, database, documents) { storeId }
         val recorder = SyncEventRecorder(database)
         val reader = MailboxReader(node, database, documents, recorder) { storeId }
@@ -358,6 +367,31 @@ class MailboxTest {
         val noted = home.bob.activity().single()
         assertEquals("v3", noted.detail)
         assertEquals(3L, noted.count)
+    }
+
+    @Test
+    fun anEntryForADocumentThisDeviceCannotOpenIsNotedKeptAndAppliedOnceItCan() = runBlocking {
+        // Arrange
+        val home = Household().open()
+        home.ann.addToPantry("Flour")
+        val changes = home.ann.pantries.forHome(homeId)!!.changesSince(ByteArray(0))
+        home.plant(0, MailboxEntry.split(pantryDocumentId(homeId), changes).single().encode())
+        home.bob.documents.hidden = pantryDocumentId(homeId) // as if this version had no Pantry document
+
+        // Act
+        val whileUnknown = home.bob.reader.fetch(homeId)
+        val place = home.bob.database.mailboxQueries.selectLastRead(homeId, "agent-ann").awaitAsOneOrNull()
+        home.bob.documents.hidden = null
+        val afterTheUpdate = home.bob.reader.fetch(homeId)
+
+        // Assert
+        assertEquals(0, whileUnknown)
+        assertEquals(null, place, "the saved place stays before the entry")
+        assertEquals(1, afterTheUpdate)
+        assertEquals(listOf("Flour"), home.bob.pantryTitles())
+        val noted = home.bob.activity().single()
+        assertEquals(SyncEventKinds.UnsupportedVersion, noted.kind)
+        assertEquals("pantry", noted.detail)
     }
 
     @Test

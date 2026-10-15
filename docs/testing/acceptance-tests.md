@@ -133,3 +133,7 @@ Unknown input is still ignored, but now shows in Sync activity. Not covered by a
     `SyncVerdictTest.changesFromANewerVersionOutrankUpToDate` and `aProblemOutranksChangesFromANewerVersion`;
     `UnsupportedInputActivityTest.theUnsupportedVersionMakesTheVerdictSayANewerVersionIsNeededAndShowsUnderProblems`;
     the screen: `SyncActivityScreenTest.changesFromANewerVersionSaySoOnTheCard`.
+15. **A mailbox entry for a document this version lacks is kept.** *Given* a device leaves a mailbox entry for a document this version can't open (a
+    newer document type, or a Home not here yet), *when* this device reads the mailbox, *then* it is noted in Sync activity with the document type and the
+    saved place stays before it; *when* Vesta is updated (or the Home arrives), *then* the entry is applied.
+    `MailboxTest.anEntryForADocumentThisDeviceCannotOpenIsNotedKeptAndAppliedOnceItCan`.

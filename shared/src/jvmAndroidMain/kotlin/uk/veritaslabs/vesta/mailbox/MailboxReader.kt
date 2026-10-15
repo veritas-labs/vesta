@@ -25,6 +25,7 @@ private const val AutomergeExceptionClass = "org.automerge.AutomergeException"
  * newer deposit is skipped, and a damaged one is skipped. An entry from a newer format is noted in Sync activity (ADR-034) and
  * not read, and the saved place stays before it, so a Vesta that can read it later still finds it; entries after it are read as usual,
  * and this run remembers how far ([Held]) so it doesn't apply them again every round. Only a snapshot that covers it ends the wait.
+ * The same holds for an entry (or snapshot document) for a document this version doesn't have, or a Home it doesn't have yet.
  *
  * A gap that the writer's newest complete snapshot ([SnapshotKeys]) covers is not waited for: the writer has deleted those
  * entries, or they are about to be, and the snapshot holds everything they did, so it is applied and the place moves to the end
@@ -80,6 +81,7 @@ internal class MailboxReader(
         var earlier = held[key]?.takeIf { start + 1 <= it.at } // an entry in a newer format an earlier round stopped the saved place at
         var holding = false // an entry in a newer format was seen: the saved place stays before it
         var heldAt = -1L
+        var groupStart = -1L // the sequence of the current group's first part, where the place must stay if its document is unknown
         var through = start // how far the place would have moved, were nothing held
         fun advance(to: Long) {
             through = to
@@ -93,11 +95,20 @@ internal class MailboxReader(
                         snapshot = latestCompleteSnapshot(homeId, store, writer, listing)
                     }
                     val covering = snapshot?.takeIf { it.coversThrough >= sequence } ?: break
-                    applied += applySnapshot(homeId, covering)
+                    val gapStart = sequence
+                    val result = applySnapshot(homeId, covering)
+                    applied += result.applied
                     assembler = Assembler()
-                    mark = covering.coversThrough
-                    through = mark
-                    holding = false // the snapshot holds everything the writer did up to here
+                    through = covering.coversThrough
+                    if (result.unknown.isEmpty()) {
+                        mark = through
+                        holding = false // the snapshot holds everything the writer did up to here
+                    } else {
+                        // It holds a document this version lacks: keep the place before the gap, so the snapshot is read again once it is known.
+                        result.unknown.forEach { recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, it) }
+                        if (!holding) heldAt = gapStart
+                        holding = true
+                    }
                     earlier = null
                     sequence = covering.coversThrough + 1
                     continue
@@ -132,11 +143,21 @@ internal class MailboxReader(
                     sequence++
                     continue
                 }
+                if (entry.part == 0) groupStart = sequence
                 when (val outcome = assembler.offer(entry)) {
                     Assembler.Outcome.Stray -> advance(sequence) // the rest of its group was lost or replaced
                     Assembler.Outcome.Pending -> Unit
                     is Assembler.Outcome.Complete -> {
-                        if (apply(homeId, outcome.documentId, outcome.changes)) applied++
+                        when (apply(homeId, outcome.documentId, outcome.changes)) {
+                            Applied.Yes -> applied++
+                            Applied.Damaged -> Unit
+                            Applied.UnknownDocument -> {
+                                // A document this version lacks (or a Home it doesn't have yet): keep the place before the group, so an update reads it.
+                                recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, documentType(outcome.documentId))
+                                if (!holding) heldAt = groupStart
+                                holding = true
+                            }
+                        }
                         advance(sequence)
                     }
                 }
@@ -166,29 +187,41 @@ internal class MailboxReader(
         return null
     }
 
-    /** Applies every document of [snapshot]; returns how many were applied. A chunk that has gone (it was replaced) applies none. */
-    private suspend fun applySnapshot(homeId: String, snapshot: Snapshot): Int {
+    /** What applying a snapshot did: how many documents were applied, and the types of those this version has no document for. */
+    private class SnapshotResult(val applied: Int, val unknown: Set<String>)
+
+    private enum class Applied { Yes, Damaged, UnknownDocument }
+
+    /** The document type of a mailbox document id (`<home id>:<type>`), for the log. */
+    private fun documentType(documentId: String): String = documentId.substringAfterLast(':')
+
+    /** Applies every document of [snapshot]. A chunk that has gone (it was replaced) applies none. */
+    private suspend fun applySnapshot(homeId: String, snapshot: Snapshot): SnapshotResult {
         val assembler = Assembler()
         val documentsAndChanges = mutableListOf<Pair<String, ByteArray>>()
         for (chunk in 0 until snapshot.chunkCount) {
-            val bytes = client.getValue(snapshot.store, SnapshotKeys.chunk(snapshot.writer, snapshot.generation, chunk)) ?: return 0
+            val bytes = client.getValue(snapshot.store, SnapshotKeys.chunk(snapshot.writer, snapshot.generation, chunk)) ?: return SnapshotResult(0, emptySet())
             val entry = MailboxEntry.decode(bytes) ?: continue
             (assembler.offer(entry) as? Assembler.Outcome.Complete)?.let { documentsAndChanges += it.documentId to it.changes }
         }
-        return documentsAndChanges.count { (documentId, changes) -> apply(homeId, documentId, changes) }
+        val results = documentsAndChanges.map { (documentId, changes) -> documentId to apply(homeId, documentId, changes) }
+        return SnapshotResult(
+            results.count { it.second == Applied.Yes },
+            results.filter { it.second == Applied.UnknownDocument }.map { documentType(it.first) }.toSet(),
+        )
     }
 
-    /** True when the changes were applied; false when skipped (a document this version doesn't know, or damaged changes). */
-    private suspend fun apply(homeId: String, documentId: String, changes: ByteArray): Boolean {
-        val document = documents.open(homeId, documentId) ?: return false
+    /** Applies the changes; [Applied.UnknownDocument] when this version has no such document (keep the entry), [Applied.Damaged] when the changes are invalid. */
+    private suspend fun apply(homeId: String, documentId: String, changes: ByteArray): Applied {
+        val document = documents.open(homeId, documentId) ?: return Applied.UnknownDocument
         return try {
             document.applyChanges(changes)
-            true
+            Applied.Yes
         } catch (e: RuntimeException) {
             // Automerge's exception class isn't visible outside its package. Anything else (a failed save, say) is not the
             // changes' fault, so it goes on up and the entries are read again next time.
             if (e.javaClass.name != AutomergeExceptionClass) throw e
-            false // not valid changes; reading them again would not help
+            Applied.Damaged // not valid changes; reading them again would not help
         }
     }
 
