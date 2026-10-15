@@ -30,7 +30,7 @@ fun main() = application {
             backgroundServices = { database -> agentCommands.run(database) },
             assistantsFor = agentCommands::assistants,
             dataSync = { database, client, devices ->
-                DeviceDataSyncService(client, database, devices, agentCommands.homeSources(database))
+                DeviceDataSyncService(client, database, devices, ::getDeviceName, agentCommands.homeSources(database))
             },
             blobRuntime = { database, client, sync ->
                 DeviceBlobRuntime(

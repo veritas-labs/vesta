@@ -66,6 +66,7 @@ class DeviceDataSyncService(
     private val client: X0xClient,
     private val database: VestaDatabase,
     private val devices: SyncedDeviceRepository,
+    private val deviceName: () -> String,
     documents: VestaHomeSources = VestaHomeSources(database),
     private val interval: Duration = 30.seconds,
     private val peerBackoff: Duration = 2.minutes,
@@ -76,9 +77,9 @@ class DeviceDataSyncService(
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, documents.pantries)
-    private val profiles = ProfileRepository(database)
+    private val profiles = ProfileRepository(database, deviceName = deviceName)
     private val profile = ProfileRegistry(database, profiles)
-    private val rosters = HomeRosters(database, profiles)
+    private val rosters = HomeRosters(database, profiles, deviceName = deviceName)
 
     /** The Home registry, which also forgets a Home's Sync activity (ADR-033) when the Home is deleted or left on this device. */
     private val homeListener = object : HomeChangeListener by registry {

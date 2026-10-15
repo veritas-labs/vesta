@@ -26,13 +26,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * App-level init installed by `MainActivity` before the UI is created, so
- * shared code can reach app-private storage: the embedded x0x daemon's data
- * and identity directories, and the local SQLite database
- * (`uk.veritaslabs.vesta.db.DatabaseDriverFactory`) both live there — never
- * written anywhere else.
+ * The Android context the embedded x0x daemon needs to reach app-private storage: its data and identity
+ * directories live there, and nowhere else. The app installs it (`uk.veritaslabs.vesta.VestaAndroid.install`)
+ * before the client starts.
  */
-object VestaAndroid {
+object X0xAndroid {
     @Volatile
     var context: Context? = null
         private set
@@ -227,11 +225,11 @@ private object SharedDaemon {
     }
 
     suspend fun daemon(): EmbeddedX0x? = mutex.withLock {
-        val context = VestaAndroid.context ?: return@withLock null
+        val context = X0xAndroid.context ?: return@withLock null
         startGuard(context)
         if (blocked(context)) return@withLock null
         started ?: run {
-            val appDir = VestaAndroid.filesDir ?: return@withLock null
+            val appDir = X0xAndroid.filesDir ?: return@withLock null
             // First run generates the agent's ML-DSA-65 identity, so this can
             // take a moment — keep it off the UI thread.
             withContext(Dispatchers.IO) {

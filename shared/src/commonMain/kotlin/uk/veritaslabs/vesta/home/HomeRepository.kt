@@ -26,7 +26,7 @@ enum class LeaveResult {
 class HomeRepository(
     private val database: VestaDatabase,
     private val changes: HomeChangeListener? = null,
-    private val profiles: ProfileRepository = ProfileRepository(database),
+    private val profiles: ProfileRepository,
     private val rosterChanges: RosterChangeListener? = null,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {

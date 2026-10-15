@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.home.homeRepository
+import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -98,14 +100,14 @@ class DocumentTypeRegistrationAcceptanceTest {
         private val personal = store(privateProbe)
 
         val sync = DeviceDataSyncService(
-            node, database, devices, interval = 50.milliseconds, activityRefresh = 20.milliseconds,
+            node, database, devices, ::getDeviceName, interval = 50.milliseconds, activityRefresh = 20.milliseconds,
             extraTypes = listOf(
                 HomeDocumentType(probe, probeModule, Scope.Shared, shared::forHome, shared.localChanges),
                 HomeDocumentType(privateProbe, probeModule, Scope.Private, personal::forHome, personal.localChanges),
             ),
         )
-        val homes = HomeRepository(database, sync.homeChanges)
-        val profiles = ProfileRepository(database, changes = sync.profileChanges)
+        val homes = homeRepository(database, sync.homeChanges)
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
 
         init {
             node.onDirect = { message: X0xDirectMessage ->

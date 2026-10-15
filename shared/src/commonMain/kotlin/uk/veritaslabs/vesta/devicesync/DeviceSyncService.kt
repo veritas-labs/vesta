@@ -22,7 +22,6 @@ import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
 import uk.veritaslabs.vesta.x0x.X0xGroupMember
-import uk.veritaslabs.vesta.getDeviceName
 
 private const val GroupName = "DeviceSync"
 private const val ApiKeyPackagePending = "member_key_package_pending"
@@ -47,7 +46,7 @@ class DeviceSyncService(
     private val client: X0xClient,
     private val database: VestaDatabase,
     private val devices: SyncedDeviceRepository,
-    private val deviceName: () -> String = ::getDeviceName,
+    private val deviceName: () -> String,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val pollInterval: Duration = 2.seconds,
     private val joinTimeout: Duration = 90.seconds,

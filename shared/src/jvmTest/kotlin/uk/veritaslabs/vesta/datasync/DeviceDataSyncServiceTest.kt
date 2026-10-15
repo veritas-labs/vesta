@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.home.homeRepository
+import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
@@ -100,7 +102,7 @@ class DeviceDataSyncServiceTest {
         /** The id of every document a sync message has reached this device for. */
         val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
-            node, database, devices, VestaHomeSources(database, pantries, shopping, cookbook, merchants, mealPlans, calendars, tasks), interval = interval,
+            node, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbook, merchants, mealPlans, calendars, tasks), interval = interval,
             peerBackoff = peerBackoff,
             recorder = if (brokenRecorder) SyncEventRecorder(database, nowMillis = { error("the clock is broken") }) else SyncEventRecorder(database),
         )
@@ -114,8 +116,8 @@ class DeviceDataSyncServiceTest {
             )
         }
         var routeDeviceSyncMessages = false
-        val homes = HomeRepository(database, sync.homeChanges)
-        val profiles = ProfileRepository(database, changes = sync.profileChanges)
+        val homes = homeRepository(database, sync.homeChanges)
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
 
 
         init {
@@ -933,7 +935,7 @@ class DeviceDataSyncServiceTest {
         val (x, y, homeId) = twoPeopleInOneHome()
         var now = 1_000L
         val join = HomeJoinService(
-            x.node, x.database, HomeRosters(x.database, x.profiles), x.sync.homeChanges, x.profiles,
+            x.node, x.database, HomeRosters(x.database, x.profiles, deviceName = ::getDeviceName), x.sync.homeChanges, x.profiles,
             nowMillis = { now }, messageLifetime = 10.seconds,
         )
         network.offline += y.agentId
@@ -1382,7 +1384,7 @@ class DeviceDataSyncServiceTest {
         eventually { a.database.peerSyncQueries.selectByAgent("agent-b").awaitAsOneOrNull() != null }
 
         // Act
-        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, VestaHomeSources(a.database, a.pantries)) // never started: no in-memory times
+        val fresh = DeviceDataSyncService(a.node, a.database, a.devices, ::getDeviceName, VestaHomeSources(a.database, a.pantries)) // never started: no in-memory times
         val details = fresh.agentDetails(homeId, "agent-b")
 
         // Assert
@@ -1501,12 +1503,12 @@ class DeviceDataSyncServiceTest {
             "roster", ::rosterDocumentId, SyncModules.Members, private = false,
             edit = { profiles.rename("Xavier") },
             seen = { memberNames(it).contains("Xavier") },
-            heads = { HomeRosters(database, profiles).heads(it) },
+            heads = { HomeRosters(database, profiles, deviceName = ::getDeviceName).heads(it) },
             peer = {
-                val rosters = HomeRosters(database, profiles)
+                val rosters = HomeRosters(database, profiles, deviceName = ::getDeviceName)
                 rosters.heads(it)?.let { _ -> SyncPeer({ state -> rosters.generate(it, state) }, { state, message -> rosters.receive(it, state, message) }) }
             },
-            prime = { HomeRosters(database, profiles).publish(it, agentId, emptySet()) },
+            prime = { HomeRosters(database, profiles, deviceName = ::getDeviceName).publish(it, agentId, emptySet()) },
         ),
     )
 

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
@@ -38,8 +39,8 @@ class HomeJoinRedeemTest {
     /** One person's device: its own database and join service on the shared fake mesh. */
     private inner class Party(val agentId: String) {
         val database: VestaDatabase = openInMemoryDatabase()
-        val profiles = ProfileRepository(database)
-        val rosters = HomeRosters(database, profiles, nowMillis = { now })
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
+        val rosters = HomeRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
         val node = network.node(agentId)
         val join = HomeJoinService(
             node, database, rosters,

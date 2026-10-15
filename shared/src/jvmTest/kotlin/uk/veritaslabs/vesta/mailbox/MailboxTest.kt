@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.mailbox
 
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -42,8 +43,8 @@ class MailboxTest {
     /** One device: its own database, documents, writer and reader, with the Home's mailbox store once [open]. */
     private inner class Device(val agentId: String, val creator: Boolean = false) {
         val database: VestaDatabase = openInMemoryDatabase()
-        val profiles = ProfileRepository(database)
-        val rosters = HomeRosters(database, profiles)
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
+        val rosters = HomeRosters(database, profiles, deviceName = ::getDeviceName)
         val pantries = PantrySources(database)
         val lists = ShoppingListSources(database, pantries)
         val node = network.node(agentId)

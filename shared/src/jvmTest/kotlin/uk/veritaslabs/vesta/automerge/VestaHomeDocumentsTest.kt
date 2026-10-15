@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.automerge
 
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -18,7 +19,7 @@ class VestaHomeDocumentsTest {
     )
 
     private fun documents(database: uk.veritaslabs.vesta.db.VestaDatabase) =
-        VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database)), publishRosters = {})
+        VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
 
     @Test
     fun registersTheTenTypesUnderTheirWireFeatureKeys() {

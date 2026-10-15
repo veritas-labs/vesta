@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.home.homeRepository
 import uk.veritaslabs.vesta.home.HomeDetails
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -30,7 +31,7 @@ class HomeEditViewModelTest {
     fun creatingStartsBlankAndSavingPersistsANewHome() = runTest {
         // Arrange
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
         val viewModel = HomeEditViewModel(repository, SelectedHome())
 
         // Act
@@ -49,7 +50,7 @@ class HomeEditViewModelTest {
     fun editingLoadsTheExistingHome() = runTest {
         // Arrange
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
@@ -64,7 +65,7 @@ class HomeEditViewModelTest {
     fun savingAnExistingHomeUpdatesItInPlace() = runTest {
         // Arrange
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         val viewModel = HomeEditViewModel(repository, SelectedHome(), homeId = id)
 
@@ -81,7 +82,7 @@ class HomeEditViewModelTest {
     fun deletingRemovesTheHomeAndClearsItFromTheSelection() = runTest {
         // Arrange
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         val selectedHome = SelectedHome().apply { select(id) }
         val viewModel = HomeEditViewModel(repository, selectedHome, homeId = id)

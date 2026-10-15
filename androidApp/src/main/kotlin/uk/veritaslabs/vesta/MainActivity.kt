@@ -12,7 +12,6 @@ import uk.veritaslabs.vesta.blobs.AndroidPhotoEncoder
 import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
 import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
 import uk.veritaslabs.vesta.recipes.HttpRecipeImporter
-import uk.veritaslabs.vesta.x0x.VestaAndroid
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +41,7 @@ class MainActivity : ComponentActivity() {
                 openTasks = { database, homeId -> agentCommands.tasks(database, homeId) },
                 openPrivateTasks = { database, homeId -> agentCommands.privateTasks(database, homeId) },
                 dataSync = { database, client, devices ->
-                    DeviceDataSyncService(client, database, devices, agentCommands.homeSources(database))
+                    DeviceDataSyncService(client, database, devices, ::getDeviceName, agentCommands.homeSources(database))
                 },
                 blobRuntime = { database, client, sync ->
                     DeviceBlobRuntime(

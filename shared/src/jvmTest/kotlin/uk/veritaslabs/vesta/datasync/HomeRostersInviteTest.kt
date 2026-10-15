@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -23,7 +24,7 @@ class HomeRostersInviteTest {
     /** A Home with admin "mark" (two devices), admin "jo" and ordinary member "sam", each with their device(s). */
     private suspend fun fixture(): Fixture {
         val database = openInMemoryDatabase()
-        val rosters = HomeRosters(database, ProfileRepository(database), nowMillis = { now })
+        val rosters = HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), nowMillis = { now }, deviceName = ::getDeviceName)
         database.homeQueries.insert(homeId, "Maple Street", "family", 1L)
         rosters.admit(homeId, "mark", "Mark", "admin", "agent-mark-1")
         rosters.admit(homeId, "mark", "Mark", "admin", "agent-mark-2")
@@ -205,8 +206,8 @@ class HomeRostersInviteTest {
     /** A Home as just created: its creator is an admin in the roster, but no device of theirs has been published yet. */
     private suspend fun justMadeHome(publishedMember: Boolean = true): Triple<HomeRosters, String, VestaDatabase> {
         val database = openInMemoryDatabase()
-        val profiles = ProfileRepository(database)
-        val rosters = HomeRosters(database, profiles, nowMillis = { now })
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
+        val rosters = HomeRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
         val me = profiles.current().id
         database.homeQueries.insert(homeId, "Maple Street", "family", 1L)
         database.homeMemberQueries.upsert(homeId, me, "Mark", null, "admin", 1L)

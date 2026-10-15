@@ -39,7 +39,6 @@ import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.setRosterRole
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.getDeviceName
 import uk.veritaslabs.vesta.mailbox.changesSince
 import uk.veritaslabs.vesta.mailbox.encodeHeads
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -57,7 +56,7 @@ internal class HomeRosters(
     private val database: VestaDatabase,
     private val profiles: ProfileRepository,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-    private val deviceName: () -> String = ::getDeviceName,
+    private val deviceName: () -> String,
 ) {
 
     private val lock = Mutex()

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -86,7 +87,7 @@ class SyncActivityServiceTest {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a")
         val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
-        HomeRosters(a.database, a.profiles).addHub(homeId, "agent-hub")
+        HomeRosters(a.database, a.profiles, deviceName = ::getDeviceName).addHub(homeId, "agent-hub")
 
         // Act
         val before = a.snapshot(homeId)

@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.home.homeRepository
+import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -92,9 +94,9 @@ internal class Phone(val daemon: Daemon, private val scope: CoroutineScope, priv
     val pantries = PantrySources(database)
     val shopping = ShoppingListSources(database, pantries)
     val cookbooks = CookbookSources(database)
-    val sync = DeviceDataSyncService(daemon.client, database, devices, VestaHomeSources(database, pantries, shopping, cookbooks), interval = 3.seconds)
-    val homes = HomeRepository(database, sync.homeChanges)
-    val profiles = ProfileRepository(database, changes = sync.profileChanges)
+    val sync = DeviceDataSyncService(daemon.client, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbooks), interval = 3.seconds)
+    val homes = homeRepository(database, sync.homeChanges)
+    val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
     private var running: Job? = null
     private var pairing: Job? = null
 

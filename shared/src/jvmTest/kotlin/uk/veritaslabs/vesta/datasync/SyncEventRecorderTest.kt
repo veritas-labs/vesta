@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteConfiguration
@@ -306,7 +307,7 @@ class SyncEventRecorderTest {
         )
 
         val database = newDatabase()
-        val registry = VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database)), publishRosters = {}).registry
+        val registry = VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {}).registry
 
         // Act
         val actual = expected.keys.associateWith { registry.moduleOf(it) }

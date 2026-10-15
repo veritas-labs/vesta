@@ -22,7 +22,9 @@ import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.vesta.getDeviceName
 import uk.veritaslabs.vesta.home.HomeRepository
+import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xEventHub
 import uk.veritaslabs.vesta.x0x.createX0xClient
@@ -118,7 +120,7 @@ class AgentCommandService(
         val sources = pantrySources(database)
         val handler = PantryCommandHandler(
             resolveSource = sources::forHome,
-            listHomes = { HomeRepository(database).homes.first().map { HomeRef(it.id, it.name) } },
+            listHomes = { HomeRepository(database, profiles = ProfileRepository(database, deviceName = ::getDeviceName)).homes.first().map { HomeRef(it.id, it.name) } },
             access = assistants(database),
             commandLog = DatabaseCommandLog(database),
             client = client,

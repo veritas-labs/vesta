@@ -147,11 +147,7 @@ class KitBoundaryTest {
         "spaces->vesta: datasync/HomeRegistry -> automerge/PantryDocumentSource",
         "spaces->vesta: datasync/HomeRegistry -> automerge/PantrySources",
         "spaces->vesta: datasync/HomeRegistry -> automerge/ShoppingListDocumentSource",
-        "spaces->vesta: datasync/HomeRosters -> Platform",
-        "spaces->vesta: profile/ProfileRepository -> Platform",
-        "store->x0x: db/DatabaseDriverFactory -> x0x/EmbeddedX0xClient",
         "sync->vesta: datasync/DeviceDataSyncService -> automerge/VestaHomeDocuments",
-        "sync->vesta: devicesync/DeviceSyncService -> Platform",
         "sync->vesta: devicesync/DeviceSyncService -> x0x/InviteLifetime",
     )
 }

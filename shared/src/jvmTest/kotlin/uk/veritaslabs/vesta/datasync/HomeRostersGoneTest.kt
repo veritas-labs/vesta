@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.Dispatchers
@@ -17,8 +18,8 @@ class HomeRostersGoneTest {
     /** Two Homes. In both, this user has two devices; in "home-1" Sam's device is listed too, and in "home-2" only this user is. */
     private suspend fun fixture(): Fixture {
         val database = openInMemoryDatabase()
-        val profiles = ProfileRepository(database)
-        val rosters = HomeRosters(database, profiles)
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
+        val rosters = HomeRosters(database, profiles, deviceName = ::getDeviceName)
         val me = profiles.current().id
         listOf("home-1", "home-2").forEach { id ->
             database.homeQueries.insert(id, id, "family", 1L)

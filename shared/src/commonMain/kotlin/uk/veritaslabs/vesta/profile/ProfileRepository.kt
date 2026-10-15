@@ -11,7 +11,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.db.VestaDatabase
 import uk.veritaslabs.vesta.db.Profile as ProfileRow
-import uk.veritaslabs.vesta.getDeviceName
 
 /**
  * The person using the app: their [id] is their member id in every Home (docs/adr/ADR-014-home-membership.md).
@@ -42,7 +41,7 @@ enum class RenameResult { Renamed, InvalidName }
  */
 class ProfileRepository(
     private val database: VestaDatabase,
-    private val deviceName: () -> String = ::getDeviceName,
+    private val deviceName: () -> String,
     private val changes: ProfileChangeListener? = null,
 ) {
     /** The current Profile, creating it if the device has none. */

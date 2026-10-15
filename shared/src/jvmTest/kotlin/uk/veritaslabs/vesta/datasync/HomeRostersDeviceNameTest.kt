@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.runBlocking
@@ -10,7 +11,7 @@ class HomeRostersDeviceNameTest {
 
     private suspend fun rosterFor(name: () -> String): HomeRosters {
         val database = openInMemoryDatabase()
-        val profiles = ProfileRepository(database)
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
         val rosters = HomeRosters(database, profiles, deviceName = name)
         database.homeQueries.insert("home-1", "Home", "family", 1L)
         rosters.admit("home-1", profiles.current().id, "Me", "admin", "agent-me")

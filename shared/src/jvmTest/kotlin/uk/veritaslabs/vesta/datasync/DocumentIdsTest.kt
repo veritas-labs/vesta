@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.home.homeRepository
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -65,7 +67,7 @@ class DocumentIdsTest {
     private fun mailbox(database: VestaDatabase) = HomeMailboxDocuments(documents(database).registry)
 
     private fun documents(database: VestaDatabase) =
-        VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database)), publishRosters = {})
+        VestaHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
 
     private fun changesWaiting(database: VestaDatabase, documents: VestaHomeDocuments) = ChangesWaiting(
         database,
@@ -162,7 +164,7 @@ class DocumentIdsTest {
     @Test
     fun aHomeIdWithoutAColonIsWhatTheIdsAssume() = runBlocking {
         // Arrange
-        val homes = HomeRepository(openInMemoryDatabase())
+        val homes = homeRepository(openInMemoryDatabase())
         val generated = (1..50).map { homes.create("Home $it", HomeShape.Family.storageValue) }
 
         // Act

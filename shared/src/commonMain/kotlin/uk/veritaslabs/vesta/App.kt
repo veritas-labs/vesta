@@ -951,7 +951,7 @@ fun VestaApp(
     LaunchedEffect(blobs) { blobs?.run() }
     // Coming back to the app is a moment other devices may be up (ADR-020), so sync then, not at the next timer round.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { deviceDataSync?.syncNow() }
-    val profiles = remember { ProfileRepository(database, changes = deviceDataSync?.profileChanges) }
+    val profiles = remember { ProfileRepository(database, deviceName = ::getDeviceName, changes = deviceDataSync?.profileChanges) }
     val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val assistants = remember { assistantsFor?.invoke(database) ?: AssistantRepository(database) }
@@ -959,6 +959,7 @@ fun VestaApp(
     val deviceSync = remember {
         val service = DeviceSyncService(
             client, database, devices,
+            deviceName = ::getDeviceName,
             onDeviceUnpaired = { agentId -> deviceDataSync?.deviceUnpaired(agentId) },
             onDevicePaired = { agentId -> deviceDataSync?.devicePaired(agentId) },
         )

@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
@@ -34,8 +35,8 @@ class HomeJoinRequestsTest {
 
     private inner class Admin {
         val database: VestaDatabase = openInMemoryDatabase()
-        val profiles = ProfileRepository(database)
-        val rosters = HomeRosters(database, profiles, nowMillis = { now })
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
+        val rosters = HomeRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
         val node = network.node("agent-admin")
         val join = HomeJoinService(
             node, database, rosters,

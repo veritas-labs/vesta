@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.home.homeRepository
+import uk.veritaslabs.vesta.getDeviceName
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
@@ -54,11 +56,11 @@ internal class ActivityDevice(
                 override suspend fun openGroupStore(groupId: String, name: String): String = error("the group store cannot be opened")
             },
         ),
-        database, devices, VestaHomeSources(database, pantries, shopping, calendars = calendars, tasks = tasks), interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
+        database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, calendars = calendars, tasks = tasks), interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
         activityRefresh = activityRefresh,
     )
-    val homes = HomeRepository(database, sync.homeChanges)
-    val profiles = ProfileRepository(database, changes = sync.profileChanges)
+    val homes = homeRepository(database, sync.homeChanges)
+    val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
 
     init {
         node.onDirect = { message: X0xDirectMessage ->

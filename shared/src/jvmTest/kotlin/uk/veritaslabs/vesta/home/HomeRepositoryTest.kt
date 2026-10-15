@@ -19,7 +19,7 @@ class HomeRepositoryTest {
     @Test
     fun emitsEmptyWhenThereAreNoHomes() = runTest {
         // Arrange
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
 
         // Act
         val homes = repository.homes.first()
@@ -33,7 +33,7 @@ class HomeRepositoryTest {
         // Arrange
         val db = openInMemoryDatabase()
         db.homeQueries.insert("the-johnsons", "The Johnsons", "family", 1L)
-        val repository = HomeRepository(db)
+        val repository = homeRepository(db)
 
         // Act
         val homes = repository.homes.first()
@@ -46,7 +46,7 @@ class HomeRepositoryTest {
     fun reEmitsWhenAHomeIsInserted() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
-        val repository = HomeRepository(db)
+        val repository = homeRepository(db)
         val before = repository.homes.first()
 
         // Act
@@ -61,7 +61,7 @@ class HomeRepositoryTest {
     @Test
     fun createStoresTheHomeAndReturnsItsId() = runTest {
         // Arrange
-        val repository = HomeRepository(openInMemoryDatabase(), nowMillis = { 42L })
+        val repository = homeRepository(openInMemoryDatabase(), nowMillis = { 42L })
 
         // Act
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
@@ -89,7 +89,7 @@ class HomeRepositoryTest {
     @Test
     fun getReturnsNullForAnUnknownHome() = runTest {
         // Arrange
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
 
         // Act
         val home = repository.get("missing")
@@ -101,7 +101,7 @@ class HomeRepositoryTest {
     @Test
     fun updateChangesTheNameAndShape() = runTest {
         // Arrange
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
@@ -114,7 +114,7 @@ class HomeRepositoryTest {
     @Test
     fun deleteRemovesTheHome() = runTest {
         // Arrange
-        val repository = HomeRepository(openInMemoryDatabase())
+        val repository = homeRepository(openInMemoryDatabase())
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act

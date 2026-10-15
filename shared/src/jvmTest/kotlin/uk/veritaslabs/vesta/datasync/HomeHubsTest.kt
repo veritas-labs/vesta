@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,8 +34,8 @@ class HomeHubsTest {
 
     private inner class Device(val agentId: String) {
         val database: VestaDatabase = openInMemoryDatabase()
-        val profiles = ProfileRepository(database)
-        val rosters = HomeRosters(database, profiles, nowMillis = { clock++ })
+        val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
+        val rosters = HomeRosters(database, profiles, nowMillis = { clock++ }, deviceName = ::getDeviceName)
         val node = network.node(agentId)
         val groups = HomeGroups(node, database, rosters, profiles, pollInterval = 1.milliseconds, joinTimeout = 100.milliseconds)
         val hubs = HomeHubs(node, database, rosters, profiles, removeRetryDelay = 1.milliseconds, removeAttempts = 2)
