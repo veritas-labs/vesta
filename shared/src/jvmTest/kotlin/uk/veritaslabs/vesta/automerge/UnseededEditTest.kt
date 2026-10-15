@@ -79,7 +79,7 @@ class UnseededEditTest {
     }
 
     @Test
-    fun anItemAddedToTheShoppingListBeforeItsCreatorsListArrivesIsKeptAndLandsInThePantry() = runBlocking {
+    fun anItemAddedToTheShoppingListBeforeItsCreatorsListArrivesIsKept() = runBlocking {
         // Arrange: the creator has seeded both documents and listed an item; the joiner has placeholders
         val creatorPantry = PantryDocumentSource(Document.load(newPantryDocument()))
         val creatorList = ShoppingListDocumentSource(Document.load(newShoppingListDocument()), creatorPantry)
@@ -90,13 +90,10 @@ class UnseededEditTest {
         // Act: the joiner lists an item before anything has synced, then the two meet
         joinerList.save(mince)
         sync(creatorList, joinerList)
-        sync(creatorPantry, joinerPantry)
 
-        // Assert: both devices have both items on the list and in the Pantry
+        // Assert: both devices have both items on the list
         val expected = listOf("Beef Mince", "Whole Milk")
         assertEquals(expected, creatorList.items.first().map { it.title }.sorted(), "creator list")
         assertEquals(expected, joinerList.items.first().map { it.title }.sorted(), "joiner list")
-        assertEquals(expected, titles(creatorPantry), "creator pantry")
-        assertEquals(expected, titles(joinerPantry), "joiner pantry")
     }
 }

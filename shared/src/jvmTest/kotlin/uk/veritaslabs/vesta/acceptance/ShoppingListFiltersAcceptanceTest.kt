@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.automerge.Document
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
+import uk.veritaslabs.vesta.automerge.ensurePantryItem
 import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
 import uk.veritaslabs.vesta.automerge.newShoppingListDocument
@@ -70,7 +71,13 @@ class ShoppingListFiltersAcceptanceTest {
         val pantry = PantryDocumentSource(Document.load(newPantryDocument()))
         val shopping = ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
         runBlocking {
-            listOf(milk, sausages, beans).forEach { shopping.save(it) }
+            // The products are already in the Pantry (bought before): merchants are set on Pantry entries
+            listOf(milk, sausages, beans).forEach { item ->
+                pantry.mutate { doc ->
+                    ensurePantryItem(doc, item.primaryCategory, item.secondaryCategory, item.title, item.packageSize, item.barcode)
+                }
+                shopping.save(item)
+            }
             pantry.changeMerchants(setOf("whole milk", "baked beans"), MerchantLinkChange.Replace(listOf("tesco")))
             pantry.changeMerchants(setOf("sausages"), MerchantLinkChange.Replace(listOf("butcher")))
         }

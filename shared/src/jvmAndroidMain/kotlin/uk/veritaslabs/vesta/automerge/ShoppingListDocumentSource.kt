@@ -22,7 +22,7 @@ fun shoppingListDocumentId(homeId: String): String = "$homeId:$ShoppingListFeatu
 
 /**
  * A [ShoppingListSource] backed by a shopping-list Automerge [document] (ADR-008, fourth amendment), downstream of
- * the Home's [pantry]: saving an item also makes sure the Pantry has it. Same threading contract as
+ * the Home's [pantry]: saving an item leaves the Pantry alone; [addCheckedToPantry] is what puts bought items in it. Same threading contract as
  * [PantryDocumentSource] — route every read or write of [document] through this class.
  *
  * Use [openShoppingListDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
@@ -49,8 +49,8 @@ class ShoppingListDocumentSource(
 
     override suspend fun save(item: ShoppingItemDetails) {
         if (queuedUntilSeeded { save(item) }) return
-        val key = lock.withLock {
-            val key = if (item.key == null) {
+        lock.withLock {
+            if (item.key == null) {
                 addShoppingItem(
                     document, item.primaryCategory, item.secondaryCategory, item.title,
                     item.quantity, item.packageSize, item.barcode, item.tags,
@@ -62,18 +62,6 @@ class ShoppingListDocumentSource(
                 )
             }
             publishAndPersist()
-            key
-        }
-        if (key == null) return
-        // The Pantry is written after the list: a crash in between leaves an item the Pantry doesn't know yet, which
-        // the next add or edit of it repairs, rather than a Pantry entry for something never listed.
-        pantry.edit { doc ->
-            ensurePantryCategories(doc, item.primaryCategory, item.secondaryCategory)
-            ensurePantryItem(
-                doc, item.primaryCategory, item.secondaryCategory, item.title, item.packageSize, item.barcode,
-                countUse = item.key == null,
-                refreshFields = item.key != null,
-            )
         }
         onLocalChange()
     }
@@ -102,8 +90,18 @@ class ShoppingListDocumentSource(
         }
         if (bought.isEmpty()) return 0
         // The Pantry is written first: a crash in between leaves the items checked, to be added again, rather than
-        // taking them off the list without their stock ever arriving.
-        pantry.edit { doc -> bought.forEach { adjustStock(doc, it.key, it.got.coerceAtMost(it.quantity)) } }
+        // taking them off the list without their stock ever arriving. This is the only point an item reaches the Pantry:
+        // listing something doesn't put it there, buying it does.
+        pantry.edit { doc ->
+            bought.forEach { item ->
+                ensurePantryCategories(doc, item.primaryCategory, item.secondaryCategory)
+                val key = ensurePantryItem(
+                    doc, item.primaryCategory, item.secondaryCategory, item.title, item.packageSize, item.barcode,
+                    refreshFields = true,
+                )
+                adjustStock(doc, key, item.got.coerceAtMost(item.quantity))
+            }
+        }
         lock.withLock {
             bought.forEach { item ->
                 val got = item.got.coerceAtMost(item.quantity)

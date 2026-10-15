@@ -39,16 +39,30 @@ class ShoppingListDocumentSourceTest {
     }
 
     @Test
-    fun anItemTheListGainsIsAddedToThePantryWithNoStock() = runBlocking {
+    fun anItemTheListGainsIsNotAddedToThePantryUntilItIsBought() = runBlocking {
         // Arrange
         val (pantry, shopping) = newSources()
 
         // Act
         shopping.save(milk)
+
+        // Assert
+        assertEquals(emptyList(), pantry.contents.first().items)
+    }
+
+    @Test
+    fun aBoughtItemIsAddedToThePantryWithItsStock() = runBlocking {
+        // Arrange
+        val (pantry, shopping) = newSources()
+        shopping.save(milk)
+        shopping.setProgress("whole milk", 2, false)
+
+        // Act
+        shopping.addCheckedToPantry()
         val pantryItems = pantry.contents.first().items
 
         // Assert
-        assertEquals(listOf("whole milk" to 0), pantryItems.map { it.key to it.stockCount })
+        assertEquals(listOf("whole milk" to 2), pantryItems.map { it.key to it.stockCount })
         assertEquals("Dairy", pantryItems.single().primaryCategory)
     }
 
@@ -84,7 +98,7 @@ class ShoppingListDocumentSourceTest {
     }
 
     @Test
-    fun editingAnItemChangesItInPlaceWithoutTouchingThePantryUseCount() = runBlocking {
+    fun editingAnItemChangesItInPlaceWithoutTouchingThePantry() = runBlocking {
         // Arrange
         val (pantry, shopping) = newSources()
         shopping.save(milk)
@@ -96,28 +110,34 @@ class ShoppingListDocumentSourceTest {
         val item = shopping.items.first().single()
         assertEquals(6, item.quantity)
         assertEquals("4 pint", item.packageSize)
-        assertEquals(listOf("whole milk"), pantry.contents.first().items.map { it.key })
+        assertEquals(emptyList(), pantry.contents.first().items)
     }
 
     @Test
-    fun editingAnItemsCategoriesAndPackageSizeUpdatesItsPantryEntryKeepingStock() = runBlocking {
+    fun buyingAnEditedItemTakesItsEditsToTheExistingPantryEntryKeepingStock() = runBlocking {
         // Arrange
         val (pantry, shopping) = newSources()
-        shopping.save(milk)
+        pantry.mutate {
+            val key = upsertPantryItem(it, "Dairy", "Milk", "Whole Milk", "2 pint", barcode = null)
+            adjustStock(it, key, 3)
+        }
+        shopping.save(milk.copy(quantity = 1))
+        shopping.save(milk.copy(key = "whole milk", quantity = 1, primaryCategory = "Chilled", secondaryCategory = null, packageSize = "4 pint"))
+        shopping.setProgress("whole milk", 1, false)
 
         // Act
-        shopping.save(milk.copy(key = "whole milk", primaryCategory = "Chilled", secondaryCategory = null, packageSize = "4 pint"))
+        shopping.addCheckedToPantry()
 
         // Assert
         val entry = pantry.contents.first().items.single()
         assertEquals("Chilled", entry.primaryCategory)
         assertNull(entry.secondaryCategory)
         assertEquals("4 pint", entry.packageSize)
-        assertEquals(0, entry.stockCount)
+        assertEquals(4, entry.stockCount)
     }
 
     @Test
-    fun removedItemLeavesTheListButStaysInThePantry() = runBlocking {
+    fun removedItemLeavesTheListAndNeverReachesThePantry() = runBlocking {
         // Arrange
         val (pantry, shopping) = newSources()
         shopping.save(milk)
@@ -127,7 +147,7 @@ class ShoppingListDocumentSourceTest {
 
         // Assert
         assertEquals(emptyList(), shopping.items.first())
-        assertEquals(1, pantry.contents.first().items.size)
+        assertEquals(emptyList(), pantry.contents.first().items)
     }
 
     @Test

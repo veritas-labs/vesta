@@ -29,13 +29,15 @@ class ShoppingListEditUpdatesPantryAcceptanceTest {
     }
 
     @Test
-    fun changingAListItemsCategoriesChangesThemInThePantry() = runBlocking {
-        // Arrange — Given "Whole Milk" on the list, and so in the Pantry under Dairy / Milk
+    fun changingAListItemsCategoriesChangesThemInThePantryOnceBought() = runBlocking {
+        // Arrange — Given "Whole Milk" on the list under Dairy / Milk
         val (pantry, shopping) = newSources()
         shopping.save(milk)
 
-        // Act — When I edit the list item to be under Chilled with no secondary category
+        // Act — When I edit the list item to be under Chilled with no secondary category and add it to the Pantry
         shopping.save(milk.copy(key = "whole milk", primaryCategory = "Chilled", secondaryCategory = null))
+        shopping.setProgress("whole milk", 2, false)
+        shopping.addCheckedToPantry()
 
         // Assert — Then the Pantry's "Whole Milk" is under Chilled with no secondary category, still one entry
         val entry = pantry.contents.first().items.single()
@@ -44,13 +46,15 @@ class ShoppingListEditUpdatesPantryAcceptanceTest {
     }
 
     @Test
-    fun changingAListItemsPackageSizeChangesItInThePantry() = runBlocking {
+    fun changingAListItemsPackageSizeChangesItInThePantryOnceBought() = runBlocking {
         // Arrange — Given "Whole Milk", 2 pint, on the list
         val (pantry, shopping) = newSources()
         shopping.save(milk)
 
-        // Act — When I edit the list item's package size to 4 pint
+        // Act — When I edit the list item's package size to 4 pint and add it to the Pantry
         shopping.save(milk.copy(key = "whole milk", packageSize = "4 pint"))
+        shopping.setProgress("whole milk", 2, false)
+        shopping.addCheckedToPantry()
 
         // Assert — Then the Pantry's "Whole Milk" is 4 pint
         assertEquals("4 pint", pantry.contents.first().items.single().packageSize)

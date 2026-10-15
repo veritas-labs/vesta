@@ -22,7 +22,7 @@ class ShoppingListFlowTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun anItemSavedThroughTheSourceAppearsOnTheScreenAndInThePantry() = runComposeUiTest {
+    fun anItemSavedThroughTheSourceAppearsOnTheScreenButNotInThePantry() = runComposeUiTest {
         // Arrange
         val pantry = PantryDocumentSource(Document.load(newPantryDocument()))
         val source = ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
@@ -38,6 +38,6 @@ class ShoppingListFlowTest {
         // Assert
         onNodeWithText("Whole Milk").assertIsDisplayed()
         onNodeWithText("×2").assertIsDisplayed()
-        kotlin.test.assertEquals(listOf("Whole Milk"), runBlocking { pantry.contents.let { it.first() } }.items.map { it.title })
+        kotlin.test.assertEquals(emptyList(), runBlocking { pantry.contents.first() }.items.map { it.title })
     }
 }

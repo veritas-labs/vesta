@@ -109,7 +109,7 @@ class MailboxTest {
         // Assert
         assertEquals(listOf("Milk"), home.bob.listTitles())
         assertEquals(setOf("member-ann"), home.bob.rosters.devices(homeId).keys)
-        assertEquals(listOf("Milk"), home.bob.pantryTitles()) // saving a list item also puts it in the Pantry
+        assertEquals(emptyList(), home.bob.pantryTitles()) // listing an item does not put it in the Pantry
     }
 
     @Test

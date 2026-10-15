@@ -216,7 +216,7 @@
     <string name="shopping_title">Shopping list</string>
     <string name="shopping_add_item">Add shopping item</string>
     <string name="shopping_empty_title">Nothing to buy</string>
-    <string name="shopping_empty_subtitle">Items you add here are added to the pantry too.</string>
+    <string name="shopping_empty_subtitle">Tick items off as you shop, then add them to the pantry.</string>
     <string name="shopping_quantity">×%1$d</string>
     <string name="shopping_edit_add_title">Add shopping item</string>
     <string name="shopping_edit_edit_title">Edit shopping item</string>

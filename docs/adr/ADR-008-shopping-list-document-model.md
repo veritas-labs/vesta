@@ -470,6 +470,17 @@ to normal). A long press opens a bottom sheet with a got-count stepper, an out-o
 edit of the item's other fields and a progress change made on another device don't overwrite each other; an edit never
 resets them. Progress is not reset when a list is "finished" — there is no such step yet — and does not touch the Pantry.
 
+### Sixth amendment: the Pantry only gains an item when it is bought (2026-10-15)
+
+Saving a shopping-list item no longer touches the Pantry. Listing something means "I want this", a Pantry entry means
+"I have this", and a mistyped or later-deleted list item used to leave a stray Pantry entry behind. The one place an
+item reaches the Pantry is "Add checked items to Pantry" (`addCheckedToPantry`): for each bought item it creates the
+entry if absent (otherwise refreshes its categories, title, package size and barcode from the list item, which is how
+a list edit now reaches the Pantry), counts a use, then adds the stock. Consequences: an item's Pantry-only fields
+(merchants, for the list's merchant filter) exist only once the product has been bought before; and an item added by a synced device no longer populates the
+local Pantry (the earlier "any item received over the wire" rule now means any *bought* item, since the Pantry is
+itself a synced document). `useCount` now counts purchases rather than additions.
+
 ## Consequences
 
 - **Vesta's second real feature document, and the first to use a `Map`-of-`Map` shape.** `TaskListDocument`'s

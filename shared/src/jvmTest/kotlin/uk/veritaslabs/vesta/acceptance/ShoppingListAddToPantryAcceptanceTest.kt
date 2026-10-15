@@ -67,6 +67,8 @@ class ShoppingListAddToPantryAcceptanceTest {
 
     private fun stock(title: String) = runBlocking { pantry.contents.first().items.first { it.title == title }.stockCount }
 
+    private fun inPantry(title: String) = runBlocking { pantry.contents.first().items.any { it.title == title } }
+
     private fun listed() = runBlocking { source.items.first() }
 
     private fun ComposeUiTest.show() {
@@ -105,8 +107,8 @@ class ShoppingListAddToPantryAcceptanceTest {
             onNodeWithTag(AddedToPantryTestTags.Animation).assertExists()
             assertEquals(4, stock("Whole Milk"))
             assertEquals(1, stock("Brie"))
-            assertEquals(0, stock("Sausages"))
-            assertEquals(0, stock("Bananas"))
+            assertEquals(false, inPantry("Sausages"))
+            assertEquals(false, inPantry("Bananas"))
         }
     }
 
