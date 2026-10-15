@@ -21,6 +21,7 @@ internal class VestaHomeDocuments(
     val rosters: HomeRosters,
     publishRosters: suspend () -> Unit,
     val sources: VestaHomeSources = VestaHomeSources(database),
+    extraTypes: List<HomeDocumentType> = emptyList(),
 ) {
     constructor(
         database: VestaDatabase,
@@ -59,7 +60,7 @@ internal class VestaHomeDocuments(
             HomeDocumentType("tasks", SyncModules.Tasks, Scope.Shared, tasks::forHome, tasks.localChanges),
             HomeDocumentType("private-calendar", SyncModules.Calendar, Scope.Private, calendars::privateForHome, calendars.privateChanges),
             HomeDocumentType("private-tasks", SyncModules.Tasks, Scope.Private, tasks::privateForHome, tasks.privateChanges),
-        ),
+        ) + extraTypes,
     )
 }
 

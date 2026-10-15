@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta.docs
 import kotlinx.coroutines.flow.Flow
 
 /** Who a [HomeDocumentType] is shared with. */
-internal enum class Scope {
+enum class Scope {
     /** Synced with the user's paired devices and the Home's members and hubs, carried by the mailbox, acknowledged. */
     Shared,
 
@@ -29,7 +29,7 @@ internal enum class Scope {
  * @property resyncsHome true when an edit to this type changes who the Home's documents go to (the roster), so the engine also
  * syncs every other shared document of that Home after it.
  */
-internal class HomeDocumentType(
+class HomeDocumentType(
     val feature: String,
     val module: String,
     val scope: Scope,

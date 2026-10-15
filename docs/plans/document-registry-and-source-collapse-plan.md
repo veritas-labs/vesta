@@ -198,6 +198,8 @@ Still in `DeviceDataSyncService`, but with the registry passed in alongside the 
 
 ### WP9. Prove the goal: a type the engine never heard of
 
+- **Seam (added during WP9):** `DeviceDataSyncService` and `VestaHomeDocuments` take a defaulted `extraTypes: List<HomeDocumentType>` appended to the registry, so a device (or a test) can register a type without editing the engine; `HomeDocumentType` and `Scope` became public for that. Committed separately, behaviour unchanged.
+
 - `DocumentTypeRegistrationAcceptanceTest` (jvmTest): a throwaway `probe` document type, defined only in the test (a trivial Automerge map with a counter), registered through the same `HomeDocumentType` API. On the fake mesh with two devices in one Home:
   - **Given** a Home on two devices and a `probe` type registered on both, **When** device A edits it, **Then** device B has the edit through direct sync, with no engine change;
   - **Given** B was offline, **When** A edits and later B reconnects, **Then** B has it through the mailbox;

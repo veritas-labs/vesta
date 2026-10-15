@@ -19,6 +19,7 @@ import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.VestaHomeDocuments
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
+import uk.veritaslabs.vesta.docs.HomeDocumentType
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
@@ -71,6 +72,7 @@ class DeviceDataSyncService(
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
     private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
     activityRefresh: Duration = 20.seconds,
+    extraTypes: List<HomeDocumentType> = emptyList(),
 ) : DeviceDataSync {
 
     private val registry = HomeRegistry(database, documents.pantries)
@@ -90,7 +92,7 @@ class DeviceDataSyncService(
     private val groups = HomeGroups(client, database, rosters, profiles)
 
     /** The one list of Home document types, built from the [documents] this service was given; the acknowledgement, activity module and private-id lookups go through it. */
-    private val homeDocuments = VestaHomeDocuments(database, rosters, publishRosters = { publishRosters() }, sources = documents)
+    private val homeDocuments = VestaHomeDocuments(database, rosters, publishRosters = { publishRosters() }, sources = documents, extraTypes = extraTypes)
     private val documentRegistry = homeDocuments.registry
     private val mailboxDocuments = HomeMailboxDocuments(documentRegistry)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
