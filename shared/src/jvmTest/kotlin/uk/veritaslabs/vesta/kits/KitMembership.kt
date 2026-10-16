@@ -15,6 +15,7 @@ enum class Kit(val label: String) {
     Store("store"),
     /** Extracted in WP20: consumed as the published `uk.veritaslabs.kits:docs-kit` (JVM and Android only). */
     Docs("docs"),
+    /** Extracted in WP22: consumed as the published `uk.veritaslabs.kits:spaces-kit` (common part with iOS, services JVM and Android). */
     Spaces("spaces"),
     Sync("sync"),
     /** Extracted in WP18: consumed as the published `uk.veritaslabs.kits:blobs-kit`. */
@@ -25,7 +26,7 @@ enum class Kit(val label: String) {
 
 object KitMembership {
     /** Kits that have been extracted: `:shared` imports them but must not contain their sources. */
-    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store, Kit.Blobs, Kit.Docs)
+    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store, Kit.Blobs, Kit.Docs, Kit.Spaces)
 
     /** The package each extracted kit publishes, so a stray copy of its sources is noticed. */
     val extractedPackages: Map<Kit, String> = mapOf(
@@ -33,13 +34,13 @@ object KitMembership {
         Kit.Store to "uk.veritaslabs.kits.store",
         Kit.Blobs to "uk.veritaslabs.kits.blobs",
         Kit.Docs to "uk.veritaslabs.kits.docs",
+        Kit.Spaces to "uk.veritaslabs.kits.spaces",
     )
 
     private val platformSuffix = Regex("\\.(android|jvm|ios)$")
 
     /** Whole directories that belong to one kit, with the files that stay behind in Vesta. */
     private val directories: Map<String, Pair<Kit, Set<String>>> = mapOf(
-        "spaces/" to (Kit.Spaces to emptySet()), // WP21: the spaces files, moving here from home/, homejoin/, homegroup/, profile/, datasync/ and automerge/
         "devicesync/" to (Kit.Sync to emptySet()),
         "blobs/" to (Kit.Blobs to emptySet()),
     )
@@ -86,7 +87,6 @@ object KitMembership {
 
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
-        Kit.Spaces to 24, // Appendix A's 21 plus MemberRole (WP1), SpacesConfig (WP3) and SpaceSeeding (WP4); HomeListItem and HomeDetails stay in Vesta (a Compose DrawableResource, the Home shape)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
         Kit.Assistants to 5,
     )

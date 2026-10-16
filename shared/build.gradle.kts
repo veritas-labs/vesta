@@ -102,6 +102,9 @@ kotlin {
             api(libs.kits.store)
             // Photo storage, placeholders, encoders and the blob transfer service, extracted to vesta-kits.
             api(libs.kits.blobs)
+            // Membership: Spaces, rosters, invites, the registries, profiles and the join/group services, extracted to vesta-kits.
+            // Its common part has an iOS variant; the Automerge-based services are JVM and Android only.
+            api(libs.kits.spaces)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

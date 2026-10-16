@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.kits.spaces.SpaceJoinMessage
+import uk.veritaslabs.kits.spaces.JoinDenial
 import uk.veritaslabs.kits.spaces.PendingJoin
 import uk.veritaslabs.vesta.ui.components.ActionCard
 import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
@@ -310,9 +310,9 @@ fun HomePickerScreen(
 private fun PendingJoinCard(join: PendingJoin, networkConnected: Boolean, onCancel: () -> Unit) {
     val status = when (join.denial) {
         null -> if (networkConnected) Res.string.pending_join_waiting else Res.string.pending_join_no_network
-        SpaceJoinMessage.DeniedExpired -> Res.string.pending_join_denied_expired
-        SpaceJoinMessage.DeniedRevoked -> Res.string.pending_join_denied_revoked
-        SpaceJoinMessage.DeniedUsed -> Res.string.pending_join_denied_used
+        JoinDenial.Expired -> Res.string.pending_join_denied_expired
+        JoinDenial.Revoked -> Res.string.pending_join_denied_revoked
+        JoinDenial.Used -> Res.string.pending_join_denied_used
         else -> Res.string.pending_join_denied_declined
     }
     Surface(
@@ -342,7 +342,7 @@ private fun PendingJoinCard(join: PendingJoin, networkConnected: Boolean, onCanc
 
 private val HomePickerPreviewPendingJoins = listOf(
     PendingJoin("maple", "Maple Street", expiresAt = 1L, denial = null),
-    PendingJoin("elm", "Elm Court", expiresAt = 1L, denial = SpaceJoinMessage.DeniedDeclined),
+    PendingJoin("elm", "Elm Court", expiresAt = 1L, denial = JoinDenial.Declined),
 )
 
 private val HomePickerPreviewHomes = listOf(

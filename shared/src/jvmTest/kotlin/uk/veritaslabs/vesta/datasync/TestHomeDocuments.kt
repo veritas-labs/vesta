@@ -1,3 +1,5 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.datasync
 
 import uk.veritaslabs.vesta.automerge.VestaHomeSources

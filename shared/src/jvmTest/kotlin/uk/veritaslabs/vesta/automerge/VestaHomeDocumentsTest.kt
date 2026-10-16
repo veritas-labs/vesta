@@ -1,3 +1,5 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.automerge
 
 import uk.veritaslabs.vesta.getDeviceName
