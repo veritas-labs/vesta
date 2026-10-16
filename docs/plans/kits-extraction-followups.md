@@ -50,12 +50,18 @@ Prioritised. "Owner" says who can do it. Source: [ADR-038](../adr/ADR-038-kits-e
 
 ## 5. Test health
 
-14. **Flaky families.** `DeviceDataSyncServiceTest` (timeouts, `everyDocumentsEditIsLoggedInSyncActivityUnderItsModule` this run),
-    Compose UI acceptance tests (`CookingAcceptanceTest`, three failures this run with `UncaughtExceptionsBeforeTest` from `TestMainDispatcher`,
-    which looks like a leaked main-dispatcher from a previous test and is a new member of the family), and
-    `CalendarEventsAcceptanceTest.aPrivateEventIsSavedOnThePrivateCalendarMarkedWithAPadlockAndHasNoParticipants` (line 114). All five passed on a
-    rerun of their classes alone. They fail more under load (a parallel kits build was not running at the time, so it is not only load).
-    Worth a pass: use `runTest` with injected dispatchers and reset `Dispatchers.setMain` consistently in the UI tests.
+14. **Flaky families.** `DeviceDataSyncServiceTest` was the worst: about 1 run in 8 alone and 44% (11 of 25) of runs under CPU load. **Fixed
+    2026-10-16** (veritas-kits `2591a9a`..`5fae3d5`, and the Vesta copy): every mode was either a real engine race (a rename lost
+    when a roster or registry message was projected over the row between the user's write and its publication, `SpaceRosters.publish` and
+    `SpaceRepository.update`; `removeDevice` telling the data sync only after the pairing list had changed, so the unpairing found no claim to
+    mark; the early-message buffer dropped by the next registry message) or a test problem (a fake x0x mesh that was not thread safe; tests of
+    a direct sync's activity rows racing the mailbox, which delivers the same edit without a per-module row; a test that took a group id
+    before the two devices had settled on one; an uncaught exception from the harness's own message handler leaking into the next test).
+    After: 0 failures in 50 loaded runs (25 each with 16 and 48 busy processes) and in 30 unloaded runs of the class, and none from this class in 6 full Vesta runs.
+    The Compose UI acceptance tests remain (`CookingAcceptanceTest`, `TasksAcceptanceTest.aRepeatNeedsAnIntervalOfAtLeastOne`,
+    `MealPlannerAcceptanceTest`, `CalendarEventsAcceptanceTest...PrivateCalendar...`): 3 of 6 full runs still fail in them (`Failed to inject
+    mouse input`, a `CompletionHandlerException`), which looks like a leaked main dispatcher from a previous test and is a separate, open
+    family. Worth a pass: use `runTest` with injected dispatchers and reset `Dispatchers.setMain` consistently in the UI tests.
 15. **Test totals dropped** from 2,060 (WP0 baseline) to 1,439 jvm + 118 android host, because the moved tests now run in the kits
     (`./gradlew build` there). Gate K plus Gate V is the new full gate; neither alone is.
 16. **Build-cache caveat.** Gate V's two compile tasks were served from the Gradle build cache after `clean`. Add `--no-build-cache` for a
