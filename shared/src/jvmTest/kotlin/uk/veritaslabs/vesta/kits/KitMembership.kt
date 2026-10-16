@@ -11,6 +11,7 @@ package uk.veritaslabs.vesta.kits
 enum class Kit(val label: String) {
     /** Extracted in WP14: consumed as the published `uk.veritaslabs.kits:x0x-kit`, no source of it lives in `:shared`. */
     X0x("x0x"),
+    /** Extracted in WP15: consumed as the published `uk.veritaslabs.kits:store-kit` (the schema lives there). */
     Store("store"),
     Docs("docs"),
     Spaces("spaces"),
@@ -22,16 +23,15 @@ enum class Kit(val label: String) {
 
 object KitMembership {
     /** Kits that have been extracted: `:shared` imports them but must not contain their sources. */
-    val extracted: Set<Kit> = setOf(Kit.X0x)
+    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store)
 
     /** The package each extracted kit publishes, so a stray copy of its sources is noticed. */
-    val extractedPackages: Map<Kit, String> = mapOf(Kit.X0x to "uk.veritaslabs.kits.x0x")
+    val extractedPackages: Map<Kit, String> = mapOf(Kit.X0x to "uk.veritaslabs.kits.x0x", Kit.Store to "uk.veritaslabs.kits.store")
 
     private val platformSuffix = Regex("\\.(android|jvm|ios)$")
 
     /** Whole directories that belong to one kit, with the files that stay behind in Vesta. */
     private val directories: Map<String, Pair<Kit, Set<String>>> = mapOf(
-        "db/" to (Kit.Store to emptySet()),
         "docs/" to (Kit.Docs to emptySet()),
         "mailbox/" to (Kit.Docs to emptySet()),
         "profile/" to (Kit.Spaces to emptySet()),
@@ -95,7 +95,6 @@ object KitMembership {
 
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
-        Kit.Store to 10, // Appendix A's 9 plus DatabaseLocation (WP9)
         Kit.Docs to 17,
         Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)

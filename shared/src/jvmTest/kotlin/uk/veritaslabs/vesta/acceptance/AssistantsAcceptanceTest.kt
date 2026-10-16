@@ -52,7 +52,7 @@ import uk.veritaslabs.vesta.agent.PantryCommandHandler
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.components.AgentApprovalCardTestTags
 import uk.veritaslabs.vesta.ui.screens.AssistantEditTestTags
 import uk.veritaslabs.vesta.ui.screens.AssistantsTestTags

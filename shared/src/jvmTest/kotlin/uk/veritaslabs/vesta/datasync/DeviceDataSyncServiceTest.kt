@@ -48,7 +48,7 @@ import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork

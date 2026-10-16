@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
 class AssistantRepositoryTest {
 

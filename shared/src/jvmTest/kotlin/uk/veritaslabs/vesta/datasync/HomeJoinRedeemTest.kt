@@ -19,7 +19,7 @@ import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome

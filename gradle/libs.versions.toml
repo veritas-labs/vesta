@@ -39,12 +39,13 @@ kotlinx-serialization = "1.11.0"
 # on the 1.12 line (there is no material3 1.12.1).
 material3 = "1.12.0-alpha03"
 qrose = "1.3.0"
-sqldelight = "2.4.0"
 webcam-capture = "0.3.12"
 zxing = "3.5.4"
 
 [libraries]
 kits-x0x = { module = "uk.veritaslabs.kits:x0x-kit", version.ref = "kits" }
+kits-store = { module = "uk.veritaslabs.kits:store-kit", version.ref = "kits" }
+kits-storeTesting = { module = "uk.veritaslabs.kits:store-kit-testing", version.ref = "kits" }
 kits-x0xTesting = { module = "uk.veritaslabs.kits:x0x-kit-testing", version.ref = "kits" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -86,9 +87,6 @@ automerge-androidnative = { module = "org.automerge:androidnative", version.ref 
 # bundled SQLite build (androidx.sqlite) on every platform — so the cr-sqlite
 # CRDT extension (see shared/src/*Main/.../db/DatabaseDriverFactory.*.kt) loads
 # the same way everywhere, unlike each platform's own system SQLite.
-sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
-sqldelight-coroutinesExtensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
-sqldelight-asyncExtensions = { module = "app.cash.sqldelight:async-extensions", version.ref = "sqldelight" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "androidx-sqlite" }
 eygraber-sqldelightAndroidxDriver = { module = "com.eygraber:sqldelight-androidx-driver", version.ref = "eygraber-sqldelightAndroidxDriver" }
 # Executable Gherkin specs (BDD) for feature-level behavior — JVM-only, so
@@ -116,5 +114,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 licenseReport = { id = "com.github.jk1.dependency-license-report", version.ref = "licenseReport" }

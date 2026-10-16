@@ -10,7 +10,7 @@ import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.automerge.InviteStatus
 import uk.veritaslabs.vesta.automerge.inviteSecretHash
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.profile.ProfileRepository
 

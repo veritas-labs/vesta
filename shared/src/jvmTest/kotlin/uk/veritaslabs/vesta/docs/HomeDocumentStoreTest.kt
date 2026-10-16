@@ -16,7 +16,7 @@ import org.automerge.Document
 import org.automerge.ObjectId
 import org.automerge.SyncState
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
 class HomeDocumentStoreTest {
 

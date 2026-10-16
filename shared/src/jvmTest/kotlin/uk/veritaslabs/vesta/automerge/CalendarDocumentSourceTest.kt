@@ -9,7 +9,7 @@ import org.automerge.Document
 import uk.veritaslabs.vesta.calendar.CalendarEvent
 import uk.veritaslabs.vesta.calendar.EventCalendar
 import uk.veritaslabs.vesta.calendar.EventRepeat
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
 class CalendarDocumentSourceTest {
 

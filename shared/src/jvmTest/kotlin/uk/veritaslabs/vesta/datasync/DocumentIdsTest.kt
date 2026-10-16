@@ -30,7 +30,7 @@ import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.automerge.tasksDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.profile.ProfileRepository

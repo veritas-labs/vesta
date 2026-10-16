@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.automerge.Document
 import uk.veritaslabs.vesta.calendar.CalendarDate
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.screens.MealSlot
 
 class MealPlanDocumentSourceTest {

@@ -13,7 +13,7 @@ import kotlinx.coroutines.runBlocking
 import org.automerge.Document
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.EventRepeat
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.tasks.Task
 import uk.veritaslabs.vesta.tasks.TaskDone
 import uk.veritaslabs.vesta.tasks.TaskList

@@ -7,7 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.home.StoredHome
 
 /** The seeding hook (docs/plans/kits-extraction-implementation-plan.md, WP4): when it is called, and in what order. */

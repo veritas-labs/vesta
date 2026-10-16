@@ -17,7 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
 import uk.veritaslabs.vesta.ui.screens.DevicePairingGeneratedTestTags
 import uk.veritaslabs.vesta.ui.screens.DevicePairingPasteTestTags

@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.sqldelight)
 }
 
 // --- x0x embedded daemon (mobile only; desktop talks to the x0xd REST API) --
@@ -95,6 +94,9 @@ kotlin {
         commonMain.dependencies {
             // The x0x client, extracted to vesta-kits. api: Vesta's own public types expose its types.
             api(libs.kits.x0x)
+            // The database (KitsDatabase, its schema and migrations, the open path), extracted to vesta-kits. api: the
+            // generated queries expose SQLDelight's runtime types to Vesta's own code.
+            api(libs.kits.store)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -108,16 +110,12 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.coroutinesCore)
             implementation(libs.kotlinx.serializationJson)
-            implementation(libs.sqldelight.runtime)
-            implementation(libs.sqldelight.asyncExtensions)
-            implementation(libs.sqldelight.coroutinesExtensions)
-            implementation(libs.androidx.sqlite.bundled)
-            implementation(libs.eygraber.sqldelightAndroidxDriver)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.compose.uiTest)
             implementation(libs.kits.x0xTesting)
+            implementation(libs.kits.storeTesting)
         }
         jvmMain.dependencies {
             // Automerge CRDT (JNI bindings, see the libs.versions.toml comment);
@@ -141,30 +139,9 @@ kotlin {
             // alongside JUnit Platform engines under one test task.
             runtimeOnly(libs.junitVintage.engine)
             implementation(libs.kotlinx.coroutinesTest)
-        }
-    }
-}
-
-// Local-first SQLite database — see shared/src/commonMain/sqldelight for the
-// schema and shared/src/*Main/kotlin/.../db for the per-platform SqlDriver.
-sqldelight {
-    // androidx.sqlite:sqlite-bundled already statically bundles its own SQLite;
-    // without this, SQLDelight's default `-lsqlite3` linker flag makes the iOS
-    // framework link fail looking for the system library (see the
-    // sqldelight-androidx-driver README).
-    linkSqlite = false
-
-    databases {
-        create("KitsDatabase") {
-            packageName.set("uk.veritaslabs.kits.store")
-            // AndroidxSqliteDriver (wrapping the bundled SQLite so cr-sqlite loads
-            // the same way on every platform) is a suspending driver.
-            generateAsync = true
-            // One <version>.db snapshot per schema version, checked in, so
-            // verifyMigrations can prove every .sqm chain reaches the current
-            // schema (docs/testing/database-migrations.md).
-            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
-            verifyMigrations.set(true)
+            // The compatibility tests open database files with the bundled driver themselves.
+            implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.eygraber.sqldelightAndroidxDriver)
         }
     }
 }

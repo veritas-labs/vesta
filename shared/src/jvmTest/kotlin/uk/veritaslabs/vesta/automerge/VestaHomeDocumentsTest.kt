@@ -8,7 +8,7 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.datasync.HomeRosters
 import uk.veritaslabs.vesta.datasync.TestHomeDocuments
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.profile.ProfileRepository
 

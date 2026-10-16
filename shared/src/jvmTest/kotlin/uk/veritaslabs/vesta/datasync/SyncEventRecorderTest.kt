@@ -16,7 +16,7 @@ import uk.veritaslabs.vesta.automerge.ProfileDocumentId
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.db.SyncEvent
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
 class SyncEventRecorderTest {
 

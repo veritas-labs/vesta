@@ -19,7 +19,7 @@ import org.automerge.ObjectType
 import uk.veritaslabs.vesta.automerge.openPantryDocumentSource
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesScreen
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesTestTags
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesViewModel

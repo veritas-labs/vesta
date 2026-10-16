@@ -22,7 +22,7 @@ import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository

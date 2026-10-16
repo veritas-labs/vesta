@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.db
 
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openInMemoryDatabase
+import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
