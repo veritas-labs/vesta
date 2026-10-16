@@ -8,7 +8,8 @@ description: >-
   tasks and chores and its shared calendar (household stock / shopping). Use
   when the user asks you to add, restock or put an item in their pantry or
   household inventory in Vesta, or asks which homes they have in Vesta.
-  Everything goes over x0x; never read Vesta's files or database.
+  Needs x0x installed on both the agent's and the user's machine. Everything
+  goes over x0x; never read Vesta's files or database.
 ---
 
 # Vesta over x0x
@@ -33,12 +34,60 @@ And the **meal plan**: **read** what is planned, **plan** a cookbook recipe for 
 You can also keep a Home's **shared calendar**: **read** its events, **add** one, **change** one or **remove** one. Those
 are the user's Calendar Read and Calendar Write switches; their private calendar is never visible to you.
 
+## Requires x0x
+
+Everything here travels over [x0x](https://github.com/saorsa-labs/x0x), a peer-to-peer messaging network for agents.
+**x0x must be installed and running on both sides**, or no command can reach Vesta and none of the scripts will work:
+
+- **You (the agent)** need your own x0x daemon, started with its own name (below).
+- **The user's Vesta** needs one too. On Linux desktop Vesta does not bundle x0x, so the user installs and starts it
+  themselves (**x0x 0.46.3 or newer**). The Android app has x0x built in, but note that assistant commands only work in
+  the desktop app today.
+
+The scripts also need `curl`, `jq` and `base64`.
+
+### Install x0x
+
+Check first: `x0x --version` and `x0xd --version`. If both print 0.46.3 or newer, skip to [Start it](#start-it).
+
+Otherwise use the x0x installer. It downloads the latest release, verifies its SHA-256 checksum and (when `gpg` is
+installed) its signature, puts `x0x` and `x0xd` in `~/.local/bin`, and **starts the daemon**. It needs no root access.
+
+```sh
+# you, the agent: a named instance with its own identity (leaves any other x0x instance on the machine alone)
+curl -sfL https://x0x.md | sh -s -- --name <name>
+
+# the user, for Vesta: the default instance (restarts it if it is already running)
+curl -sfL https://x0x.md | sh
+```
+
+Make sure `~/.local/bin` is on your `PATH`. The installer needs `curl` (or `wget`), `tar` and `sha256sum` or `shasum`;
+`gpg` is strongly recommended. It supports Linux and macOS on x64 and arm64. Add `--autostart` to also start x0x on
+boot. If you would rather read the script before running it, save it with `curl -sfL -o install.sh https://x0x.md`,
+read it, then `sh install.sh` (add `--name <name>` for the agent).
+To build from source instead (needs Rust), see [github.com/saorsa-labs/x0x](https://github.com/saorsa-labs/x0x).
+
+### Start it
+
+The installer already started the daemon. If it is installed but not running (after a reboot, say):
+
+```sh
+x0x start --name <name>     # you, the agent
+x0x start                   # the user, for Vesta
+x0x health                  # should report it is healthy
+x0x agent --name <name>     # prints the agent id (for the user, plain `x0x agent`)
+```
+
+The first start generates the instance's keys and connects to the network, which can take a moment; the scripts retry
+for up to two minutes while it settles. If you cannot install software on this machine, tell the user what is missing
+(x0x, `curl`, `jq` or `base64`) instead of trying other routes.
+
 ## Before you start — ask the user, don't guess
 
 You need all of these. If any is missing, tell the user exactly what to do
 (with their values filled in) instead of trying things:
 
-1. **Your x0x instance name** (e.g. `my-agent`), running: `x0x start --name <name>`.
+1. **Your x0x instance name** (e.g. `my-agent`), running: `x0x start --name <name>` (install x0x first: see above).
 2. **Vesta's agent id** — the user runs `x0x agent` on the machine running Vesta
    (their default daemon) and gives it to you.
 3. **Mutual trust** — x0x needs each side to trust the other. Your id is
@@ -47,7 +96,7 @@ You need all of these. If any is missing, tell the user exactly what to do
    x0x trust set <vesta-agent-id> trusted --name <name>
    x0x trust set <your-agent-id> trusted
    ```
-4. **The Vesta app is running** on that machine.
+4. **The Vesta app is running** on that machine, with x0x installed and started there too (the user may need to do that).
 
 The user decides what you may do in Vesta (Settings → Assistants): which Homes,
 which features (Read and Write are separate switches per feature; only
