@@ -201,6 +201,44 @@ Reply: an `Accept` whose `result` is `{"type": "schema:Recipe", "id": "<recipeId
 
 Both writes are recorded by command `id`, so a re-sent id is answered, not applied twice.
 
+## Calendar — `Read` (needs Calendar **Read**), `Add` / `Update` / `Remove` (need Calendar **Write**)
+
+The address is `urn:vesta:document:<homeId>:calendar` (the Home's shared calendar; the user's private calendar has no address).
+
+**Times.** A timed event's `schema:startDate` / `schema:endDate` are UTC instants like `2026-10-20T18:30:00Z`; an offset
+(`2026-10-20T19:30:00+01:00`) is accepted and converted, a time with no offset is refused (Vesta shows each device's own zone, so it
+will not guess one). An all-day event uses plain dates `2026-10-20`, and its `schema:endDate` is the **last** day, inclusive. Both ends
+of an event are the same kind. Replies always give instants in UTC (timed) or dates (all-day) and `"allDay": true|false`.
+
+**Read** — `{"@context": CONTEXT, "type": "Read", "id": "urn:uuid:…", "object": {"type": "Collection", "id": "urn:vesta:document:<homeId>:calendar"}}`,
+optionally with `"schema:startDate"` and/or `"schema:endDate"` on the object to keep only events touching that range, both ends
+inclusive (a plain date covers the whole day, UTC). Answered fresh each time. The `Accept` result is a `Collection` (earliest first, at
+most 200; `totalItems` is the real count) of
+
+```json
+{"type": "schema:Event", "id": "<eventId>", "schema:identifier": "<eventId>", "schema:name": "Dentist",
+ "schema:startDate": "2026-10-20T10:00:00Z", "schema:endDate": "2026-10-20T11:00:00Z", "allDay": false,
+ "schema:location": "High St", "schema:description": "…",
+ "schema:eventSchedule": {"type": "schema:Schedule", "schema:repeatFrequency": "P1W"}}
+```
+
+`schema:location`, `schema:description` and `schema:eventSchedule` are left out when empty / not repeating. Who an event is for and its
+colour are not exposed.
+
+**Add** — `Add` of a `schema:Event` to `target` `urn:vesta:document:<homeId>:calendar`: `schema:name` and `schema:startDate` required;
+`schema:endDate` (default: the same day for an all-day event, one hour for a timed one), `schema:location` (≤ 500 characters),
+`schema:description` (≤ 2000), and `schema:eventSchedule` with `schema:repeatFrequency` `P1D` / `P1W` / `P1M` / `P1Y` are optional.
+An event with the same title (any case) and the same times is refused: "event already exists".
+
+**Update** — `Update` with `schema:identifier` (the event id) and any of the fields above; only the fields you give change. A new
+`schema:startDate` without a new `schema:endDate` moves the whole event (a timed one keeps its length). An `schema:eventSchedule`
+with no `schema:repeatFrequency` makes it stop repeating; a blank `schema:location` / `schema:description` clears it.
+
+**Remove** — `Remove` with `schema:identifier`.
+
+Each write replies with an `Accept` whose `result` is the event afterwards (for a remove, as it was). Writes are recorded by command
+`id`, so a re-sent id is answered, not applied twice. Unknown id → `Reject` "unknown event".
+
 ## Rejections
 
 `{"type": "Reject", "inReplyTo": "<your id>", "summary": "<human-readable reason>", …}`. Summaries include:
@@ -209,6 +247,7 @@ Both writes are recorded by command `id`, so a re-sent id is answered, not appli
 - `not permitted for this home` — you have no grant for that Home (a Home that doesn't exist looks the same)
 - `waiting for approval: the user has been asked, retry once they have answered` — re-send the **same** command id after the user taps Allow once
 - `unknown item` — a `Remove`/`Update` named an item that isn't in that Pantry
+- `unknown event` — a calendar `Update` or `Remove` named an event that isn't on that calendar
 - `unknown recipe` — a cookbook `Read` of one recipe, or a `Remove`, named a recipe that isn't there
 - `recipe already exists` — a recipe with that name (ignoring case) is already in the cookbook
 - `unknown home`

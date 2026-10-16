@@ -5,7 +5,7 @@ description: >-
   direct messages: lists their Homes, reads a Home's Pantry, adds items to it,
   takes items out and sets exact stock, keeps its shopping list, and reads the
   cookbook and adds or removes recipes
-  (household stock / shopping). Use when the user asks you to add, restock or
+  and keeps the Home's shared calendar (household stock / shopping). Use when the user asks you to add, restock or
   put an item in their pantry or household inventory in Vesta, or asks which
   homes they have in Vesta. Everything goes over x0x; never read Vesta's
   files or database.
@@ -26,6 +26,9 @@ grants per feature (Pantry Read/Write, Cookbook Read/Write).
 
 You can also keep a Home's **shopping list**: **read** it, **add** an item, **tick** it off (say how many are
 picked up) or **remove** it. Those are the user's Shopping list Read and Shopping list Write switches.
+
+You can also keep a Home's **shared calendar**: **read** its events, **add** one, **change** one or **remove** one. Those
+are the user's Calendar Read and Calendar Write switches; their private calendar is never visible to you.
 
 ## Before you start — ask the user, don't guess
 
@@ -108,6 +111,21 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
    The list prints `<recipeId>` TAB `<name>` TAB `<category>` TAB `<servings>` TAB `<time>` TAB `<keywords>` (at most 200). Read
    the cookbook first so you don't add a duplicate (names are unique, any case). Photos and videos are never sent or accepted.
    Removing is permanent for the whole household: only on the user's request, and say which recipe went.
+   **Calendar.** The Home's shared calendar; Calendar **Read** and **Write** are their own switches. Times are UTC instants
+   (`2026-10-20T18:30:00Z`, an offset such as `+01:00` is fine, a time with no offset is refused: ask the user their zone) and an
+   all-day event uses plain dates (`2026-10-20`) whose end is the LAST day:
+   ```sh
+   scripts/agent-calendar-read.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> --from 2026-10-20 --until 2026-10-27
+   scripts/agent-calendar-add.sh    --agent-instance <name> --to <vesta-agent-id> --home <homeId> --title "Dentist" \
+     --start 2026-10-20T10:00:00Z --end 2026-10-20T11:00:00Z --location "High St" [--repeat weekly]
+   scripts/agent-calendar-update.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId> --event <eventId> --start 2026-10-20T14:00:00Z
+   scripts/agent-calendar-remove.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId> --event <eventId>
+   ```
+   `read` prints `<start>` TAB `<end>` TAB `<title>` TAB `<eventId>` TAB `<all-day yes|no>` TAB `<repeat>` TAB `<location>` (at most 200,
+   earliest first; `--from`/`--until` are optional and inclusive). Read before you add, so you don't duplicate an event; an
+   identical title and time is refused. `update` changes only the fields you give (a new `--start` alone moves the whole event).
+   `update` and `remove` need the `<eventId>` from `read` or `add`. Removing is permanent for the whole household: only on the
+   user's request, and say which event went.
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes
@@ -120,6 +138,7 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
 | exit 3, "waiting for approval…" | The user set your access to *ask each time* and has been asked. | Tell the user to tap **Allow once** in Vesta, then re-send the **same** command (same `--id`). |
 | exit 3, "unknown item" | Reduce/set named an item that isn't in that Pantry. | Read the Pantry for the exact name, or add it first. |
 | exit 3, "unknown recipe" | A cookbook read or remove named a recipe that isn't in that cookbook. | List the cookbook again for the recipe id. |
+| exit 3, "unknown event" | A calendar update or remove named an event that isn't on that calendar. | Read the calendar again for the event id. |
 | exit 3, "recipe already exists" | A recipe with that name (any case) is already in the cookbook. | Read it instead of adding it again. |
 | exit 3, "unknown home" | That Home id doesn't exist. | List the Homes again and re-ask. |
 | exit 3, anything else | Vesta says the request was malformed; the reason is printed. | Fix the request (e.g. quantity out of range, empty title). Don't retry unchanged. |

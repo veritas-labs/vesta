@@ -139,7 +139,7 @@ class AgentCommandParserTest {
     @Test
     fun rejectsAReadOfAnythingButTheHomesCollectionOrAPantry() {
         // Arrange
-        val payload = read(objectId = "urn:vesta:document:home-1:calendar")
+        val payload = read(objectId = "urn:vesta:document:home-1:merchants")
 
         // Act
         val result = invalid(payload)

@@ -51,6 +51,7 @@ object AgentCommandParser {
                 ?.let { return ShoppingListCommandParser.parseWrite(root, commandId, type, it) }
         }
         CookbookCommandParser.parse(root, commandId)?.let { return it }
+        CalendarCommandParser.parse(root, commandId)?.let { return it }
         return when (root.string("type")) {
             "Add" -> parseAdd(root, commandId)
             "Remove" -> parseStockChange(root, commandId, set = false)

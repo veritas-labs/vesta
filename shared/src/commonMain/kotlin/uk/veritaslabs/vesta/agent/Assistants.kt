@@ -31,8 +31,11 @@ enum class AssistantCapability(val feature: AssistantFeature?, val kind: Assista
     MealPlannerWrite(AssistantFeature.MealPlanner, AssistantAccessKind.Write, false),
     TasksRead(AssistantFeature.Tasks, AssistantAccessKind.Read, false),
     TasksWrite(AssistantFeature.Tasks, AssistantAccessKind.Write, false),
-    CalendarRead(AssistantFeature.Calendar, AssistantAccessKind.Read, false),
-    CalendarWrite(AssistantFeature.Calendar, AssistantAccessKind.Write, false),
+    /** Read the Home's shared calendar ([ReadCalendar]). */
+    CalendarRead(AssistantFeature.Calendar, AssistantAccessKind.Read, true),
+
+    /** Add, change and remove events on the Home's shared calendar ([AddCalendarEvent] and friends). */
+    CalendarWrite(AssistantFeature.Calendar, AssistantAccessKind.Write, true),
     MerchantsRead(AssistantFeature.Merchants, AssistantAccessKind.Read, false),
     MerchantsWrite(AssistantFeature.Merchants, AssistantAccessKind.Write, false),
     ;

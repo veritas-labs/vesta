@@ -48,6 +48,16 @@ Settings → Assistants shows a Read and a Write switch per feature. `ListHomes`
   duplicates; a missing recipe is "unknown recipe". Rating, favourite and notes are not exposed. Code: `CookbookCommands.kt` (parser,
   replies, commands) and `CookbookCommandHandler.kt`, hooked into `PantryCommandHandler` by two calls. Skill: `agent-cookbook-read.sh`,
   `agent-cookbook-add.sh`, `agent-cookbook-remove.sh`.
+- **Calendar Read and Write (2026-10-16)** reach only the Home's **shared** calendar, `urn:vesta:document:<homeId>:calendar`; the user's
+  private calendar (ADR-029, `private-calendar`) has no address in the vocabulary and the handler is given only the shared source, so it
+  stays unreachable whatever the grants. `Read` returns up to 200 `schema:Event`s earliest first (real `totalItems`), optionally
+  restricted to an inclusive `schema:startDate`..`schema:endDate` range. Times: timed events are UTC instants (`...Z`; input may carry an
+  offset, a time with no offset is refused because Vesta shows each device's own zone, ADR-029), all-day events are plain dates with the
+  last day as `schema:endDate`, plus `allDay`. `Add`, `Update` (only the fields given; a new start alone moves the whole event) and
+  `Remove` (by `schema:identifier`) are under **Calendar Write**, replayed by command id; an identical title and time is "event already
+  exists", a missing event "unknown event". Location, description and a simple repeat (`schema:eventSchedule`) are carried; participants,
+  colour, notifications and exceptions are not. Code: `CalendarCommands.kt`, `CalendarCommandHandler.kt`. Skill: `agent-calendar-read.sh`,
+  `-add.sh`, `-update.sh`, `-remove.sh`.
 
 The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
 
