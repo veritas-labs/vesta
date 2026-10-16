@@ -27,13 +27,17 @@ bathroom in 12 days." Tools should inform, not nag. The user is in control.
 
 ### 5. Full Calendar / Scheduling Platform
 
-We won't replace Google Calendar or Outlook. If a tool needs basic date/time coordination (e.g., chore schedules),
-fine. A full family calendar with external integrations is a separate product.
+We won't replace Google Calendar or Outlook, and we won't build external calendar integrations. Vesta has its own
+calendar (ADR-025, ADR-029): a shared Home calendar, plus a private calendar per Home that syncs only between your own
+devices. A full family-calendar product with external integrations is a separate product.
 
-### 6. Meal Planning / Recipe Management
+### 6. Deep Meal-Planning / Recipe Platform
 
-Meal planning and recipe management are out of scope — for v1 and beyond. It's a deep, competitive domain (Mealime,
-Paprika, etc.) and doesn't align with our core coordination focus. Confirmed: not a differentiator for Vesta.
+*(Amended 2026-10-16: earlier, all meal planning and recipe management was out of scope. That was reversed: the Cookbook
+(ADR-022) and Meal Planner (ADR-028) are built, because a household's meals, pantry and shopping list belong together.)*
+
+We still won't compete with dedicated recipe apps (Mealime, Paprika, etc.): no recipe discovery or import marketplace,
+no nutrition tracking, no diet coaching. The Cookbook and Meal Planner stay simple and shared by the Home.
 
 ### 7. Pet Management, Plant Care, Vehicle Maintenance...
 
