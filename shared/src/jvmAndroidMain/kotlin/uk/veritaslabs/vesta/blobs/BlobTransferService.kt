@@ -1,6 +1,5 @@
 package uk.veritaslabs.vesta.blobs
 
-import app.cash.sqldelight.async.coroutines.awaitAsList
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
@@ -18,8 +17,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uk.veritaslabs.vesta.automerge.CookbookSources
-import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
@@ -51,8 +48,8 @@ import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
 class BlobTransferService(
     private val client: X0xClient,
     private val repository: BlobRepository,
-    private val cookbookSources: CookbookSources,
-    private val database: KitsDatabase,
+    private val references: BlobReferenceSource,
+    private val homes: suspend () -> List<String>,
     private val peersFor: suspend (homeId: String) -> Set<String>,
     private val onArrived: (hash: String) -> Unit = {},
     private val interval: Duration = 30.seconds,
@@ -113,7 +110,7 @@ class BlobTransferService(
                 }
             }
         }
-        launch { cookbookSources.localChanges.collect { homeId -> attempt { scan(homeId) } } }
+        launch { references.localChanges.collect { homeId -> attempt { scan(homeId) } } }
         while (true) {
             attempt { watchHomes() }
             attempt { round() }
@@ -123,8 +120,7 @@ class BlobTransferService(
 
     /** One pass of everything that is time-driven. Public so a foreground event can ask for it. */
     suspend fun round() {
-        val homes = database.homeQueries.selectAll().awaitAsList().map { it.id }
-        homes.forEach { attempt { scan(it) } }
+        homes().forEach { attempt { scan(it) } }
         attempt { checkAccepted() }
         attempt { askRound() }
         attempt { collectGarbage() }
@@ -134,9 +130,9 @@ class BlobTransferService(
 
     /** Starts watching each Home's cookbook that is not watched yet: a change that arrives from another device (a sync) is scanned at once, not at the next round. */
     private suspend fun CoroutineScope.watchHomes() {
-        database.homeQueries.selectAll().awaitAsList().map { it.id }.forEach { homeId ->
+        homes().forEach { homeId ->
             if (lock.withLock { watching.add(homeId) }) {
-                launch { cookbookSources.forHome(homeId)?.recipes?.collect { attempt { scan(homeId) } } }
+                launch { references.watch(homeId) { attempt { scan(homeId) } } }
             }
         }
     }
@@ -151,11 +147,10 @@ class BlobTransferService(
     suspend fun collectGarbage() {
         val stale = repository.unreferencedSince(nowMillis() - gracePeriod.inWholeMilliseconds)
         if (stale.isEmpty()) return
-        val homes = database.homeQueries.selectAll().awaitAsList().map { it.id }
         val referenced = mutableSetOf<String>()
-        for (homeId in homes) {
-            val source = cookbookSources.forHome(homeId) ?: return
-            source.blobReferences().mapTo(referenced) { it.hash }
+        for (homeId in homes()) {
+            val found = references.references(homeId) ?: return
+            found.mapTo(referenced) { it.hash }
         }
         val wanted = repository.wants().mapTo(mutableSetOf()) { it.hash }
         stale.filter { it !in referenced && it !in wanted }.forEach { repository.delete(it) }
@@ -165,7 +160,7 @@ class BlobTransferService(
 
     /** Reads [homeId]'s references: wants the missing, touches the held, and pushes the held that are new to the cookbook. */
     suspend fun scan(homeId: String) {
-        val references = cookbookSources.forHome(homeId)?.blobReferences().orEmpty()
+        val references = references.references(homeId).orEmpty()
             .filter { it.size in 1..PhotoLimits.MaxInputBytes }
         val now = nowMillis()
         val toPush = mutableListOf<BlobReference>()
@@ -215,7 +210,7 @@ class BlobTransferService(
         if (message.verified != true) return
         val sender = message.sender ?: return
         if (!BlobStore.isHash(want.hash) || sender !in peersFor(want.homeId)) return
-        val referenced = cookbookSources.forHome(want.homeId)?.blobReferences().orEmpty().any { it.hash == want.hash }
+        val referenced = references.references(want.homeId).orEmpty().any { it.hash == want.hash }
         if (!referenced) return
         val file = repository.file(want.hash)?.takeIf { it.isFile } ?: return
         val now = nowMillis()

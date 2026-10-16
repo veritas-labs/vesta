@@ -33,6 +33,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.jetbrains.skia.Image
+import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
+import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.blobs.BlobTransferService
 import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
@@ -96,7 +98,7 @@ class CookbookPhotosAcceptanceTest {
         val cookbooks = CookbookSources(database)
         val directory = Files.createTempDirectory("photos-$id").toFile().also { it.deleteOnExit() }
         val runtime = DeviceBlobRuntime(
-            database, node, cookbooks,
+            database, node, CookbookBlobReferences(cookbooks), homeIdsOf(database),
             peersFor = { members - id },
             directory = directory,
             encoder = SkiaPhotoEncoder(),

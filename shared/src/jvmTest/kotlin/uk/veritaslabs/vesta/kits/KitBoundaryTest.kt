@@ -151,11 +151,5 @@ class KitBoundaryTest {
         assertEquals(emptyList(), offenders)
     }
 
-    private val expectedViolations: Set<String> = setOf(
-        // Leaks listed in the plan's "What the dependency analysis found", section 3. Each WP deletes
-        // the lines it fixes (WP1 domain types out of ui.*, WP2 platform inputs, WP3 constants,
-        // WP4 seeding hook, WP5 document types, WP9 database, WP16 blobs seam).
-        "blobs->vesta: blobs/BlobTransferService -> automerge/CookbookSources",
-        "blobs->vesta: blobs/DeviceBlobRuntime -> automerge/CookbookSources",
-    )
+    private val expectedViolations: Set<String> = emptySet()
 }

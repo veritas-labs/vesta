@@ -94,7 +94,7 @@ object KitMembership {
         Kit.Docs to 17,
         Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
-        Kit.Blobs to 16, // plus MediaKind (WP1)
+        Kit.Blobs to 17, // plus MediaKind (WP1) and BlobReferenceSource (WP16)
         Kit.Assistants to 5,
     )
 }

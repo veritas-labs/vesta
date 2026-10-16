@@ -7,6 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import java.io.File
+import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
+import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.agent.AgentCommandService
 import uk.veritaslabs.vesta.blobs.AndroidPhotoEncoder
 import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
@@ -48,7 +50,7 @@ class MainActivity : ComponentActivity() {
                 },
                 blobRuntime = { database, client, sync ->
                     DeviceBlobRuntime(
-                        database, client, agentCommands.cookbookSources(database),
+                        database, client, CookbookBlobReferences(agentCommands.cookbookSources(database)), homeIdsOf(database),
                         peersFor = { homeId -> sync?.blobPeers(homeId).orEmpty() },
                         directory = File(filesDir, "blobs"),
                         encoder = AndroidPhotoEncoder(),

@@ -17,6 +17,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
+import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
@@ -48,8 +50,8 @@ class BlobTransferServiceTest {
         val service = BlobTransferService(
             client = node,
             repository = repository,
-            cookbookSources = cookbooks,
-            database = database,
+            references = CookbookBlobReferences(cookbooks),
+            homes = homeIdsOf(database),
             peersFor = { members - id },
             onArrived = { arrived += it },
             interval = 60.milliseconds,

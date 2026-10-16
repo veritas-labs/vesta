@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
+import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.blobs.BlobReference
 import uk.veritaslabs.vesta.blobs.BlobRepository
 import uk.veritaslabs.vesta.blobs.BlobStore
@@ -60,8 +62,8 @@ class BlobTransferDaemonIntegrationTest {
                     fun service(phone: Phone, repository: BlobRepository, arrived: (String) -> Unit = {}) = BlobTransferService(
                         client = phone.daemon.client,
                         repository = repository,
-                        cookbookSources = phone.cookbooks,
-                        database = phone.database,
+                        references = CookbookBlobReferences(phone.cookbooks),
+                        homes = homeIdsOf(phone.database),
                         peersFor = { phone.sync.blobPeers(it) },
                         onArrived = arrived,
                         interval = 5.seconds,

@@ -4,18 +4,18 @@ import java.io.File
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
 
 /**
- * The blob machinery of one device (ADR-023): the store under [directory], the photo [encoder] of this platform, and the [BlobTransferService] that
+ * The blob machinery of one device (ADR-023): the store under [directory], [references] (which blobs a Home's documents refer to) and [homes] (every Home's id), the photo [encoder] of this platform, and the [BlobTransferService] that
  * moves photos to and from the Home's other devices ([peersFor] says which). [transfersDir] is the x0x daemon's `transfers/` folder, which the service sweeps ([TransfersJanitor]); null when this device can't reach it. Built by the platform entry points and handed to `VestaApp`.
  */
 class DeviceBlobRuntime(
     database: KitsDatabase,
     client: X0xClient,
-    cookbookSources: CookbookSources,
+    references: BlobReferenceSource,
+    homes: suspend () -> List<String>,
     peersFor: suspend (homeId: String) -> Set<String>,
     directory: File,
     encoder: PhotoEncoder,
@@ -32,8 +32,8 @@ class DeviceBlobRuntime(
     private val service = BlobTransferService(
         client = client,
         repository = repository,
-        cookbookSources = cookbookSources,
-        database = database,
+        references = references,
+        homes = homes,
         peersFor = peersFor,
         onArrived = { hash -> runtimeBlobs.notifyArrived(hash) },
         interval = interval,
