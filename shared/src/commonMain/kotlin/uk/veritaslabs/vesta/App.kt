@@ -20,7 +20,7 @@ import uk.veritaslabs.vesta.files.LocalFileImporter
 import uk.veritaslabs.vesta.files.LocalFileExporter
 import uk.veritaslabs.vesta.recipes.LocalRecipeImporter
 import uk.veritaslabs.vesta.recipes.RecipeImporter
-import uk.veritaslabs.vesta.blobs.BlobRuntime
+import uk.veritaslabs.kits.blobs.BlobRuntime
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf

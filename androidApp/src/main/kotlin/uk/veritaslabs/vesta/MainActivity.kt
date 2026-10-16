@@ -10,8 +10,8 @@ import java.io.File
 import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
 import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.agent.AgentCommandService
-import uk.veritaslabs.vesta.blobs.AndroidPhotoEncoder
-import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
+import uk.veritaslabs.kits.blobs.AndroidPhotoEncoder
+import uk.veritaslabs.kits.blobs.DeviceBlobRuntime
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
 import uk.veritaslabs.vesta.recipes.HttpRecipeImporter

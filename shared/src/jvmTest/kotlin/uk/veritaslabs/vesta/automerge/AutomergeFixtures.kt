@@ -9,8 +9,8 @@ import org.automerge.NewValue
 import org.automerge.ObjectId
 import org.automerge.ObjectType
 import org.automerge.Transaction
-import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.blobs.BlobStore
+import uk.veritaslabs.kits.blobs.BlobReference
+import uk.veritaslabs.kits.blobs.BlobStore
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.CalendarEvent
 import uk.veritaslabs.vesta.calendar.EventCalendar
@@ -20,7 +20,7 @@ import uk.veritaslabs.vesta.tasks.Task
 import uk.veritaslabs.vesta.tasks.TaskDone
 import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.ui.screens.MealSlot
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Merchant
 import uk.veritaslabs.vesta.ui.screens.MerchantService
 import uk.veritaslabs.vesta.ui.screens.MerchantType

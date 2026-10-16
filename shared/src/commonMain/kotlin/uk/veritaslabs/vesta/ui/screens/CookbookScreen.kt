@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
@@ -45,8 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.blobs.Placeholder
+import uk.veritaslabs.kits.blobs.BlobReference
+import uk.veritaslabs.kits.blobs.Placeholder
 import uk.veritaslabs.vesta.ui.components.BlobImage
 import uk.veritaslabs.vesta.ui.components.EmptyState
 import uk.veritaslabs.vesta.ui.components.EmptyStateArt

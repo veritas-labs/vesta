@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

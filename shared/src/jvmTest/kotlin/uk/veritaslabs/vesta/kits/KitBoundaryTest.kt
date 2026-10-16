@@ -32,11 +32,11 @@ class KitBoundaryTest {
     )
     /**
      * The packages whose files moved out of `uk.veritaslabs.vesta` inside `:shared`; their path is read as the
-     * directory they came from, so [KitMembership] keeps one spelling. None now: store (WP9) was extracted in WP15.
+     * directory they came from, so [KitMembership] keeps one spelling. Store (WP9) was extracted in WP15; blobs moved in WP17.
      */
-    private val movedPackages = emptyMap<String, String>()
-    private val packageRoots = setOf(vestaPackage, "uk.veritaslabs.kits", "uk.veritaslabs.kits.store")
-    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.(?:vesta|kits\\.store)\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
+    private val movedPackages = mapOf("uk/veritaslabs/kits/blobs/" to "blobs/")
+    private val packageRoots = setOf(vestaPackage, "uk.veritaslabs.kits", "uk.veritaslabs.kits.store", "uk.veritaslabs.kits.blobs")
+    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.(?:vesta|kits\\.store|kits\\.blobs)\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
 
     private fun mainFiles(): List<SourceFile> {
         val src = listOf(File("src"), File("shared/src")).first { it.isDirectory }

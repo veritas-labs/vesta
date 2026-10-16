@@ -11,8 +11,8 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import uk.veritaslabs.vesta.blobs.PhotoLimits
-import uk.veritaslabs.vesta.blobs.PhotoSource
+import uk.veritaslabs.kits.blobs.PhotoLimits
+import uk.veritaslabs.kits.blobs.PhotoSource
 
 @Composable
 actual fun rememberPhotoPicker(onPicked: (PhotoSource) -> Unit): PhotoPicker {

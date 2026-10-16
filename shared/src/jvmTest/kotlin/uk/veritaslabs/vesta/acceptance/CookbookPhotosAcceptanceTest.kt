@@ -36,12 +36,12 @@ import org.jetbrains.skia.Image
 import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
 import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.automerge.CookbookSources
-import uk.veritaslabs.vesta.blobs.BlobTransferService
-import uk.veritaslabs.vesta.blobs.DeviceBlobRuntime
+import uk.veritaslabs.kits.blobs.BlobTransferService
+import uk.veritaslabs.kits.blobs.DeviceBlobRuntime
 import uk.veritaslabs.vesta.ui.components.LocalBlobs
-import uk.veritaslabs.vesta.blobs.PhotoSource
-import uk.veritaslabs.vesta.blobs.SkiaPhotoEncoder
-import uk.veritaslabs.vesta.blobs.testJpeg
+import uk.veritaslabs.kits.blobs.PhotoSource
+import uk.veritaslabs.kits.blobs.SkiaPhotoEncoder
+import uk.veritaslabs.kits.blobs.testJpeg
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.ui.components.BlobImageTestTags

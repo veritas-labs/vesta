@@ -9,7 +9,7 @@ import java.awt.Frame
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import uk.veritaslabs.vesta.blobs.PhotoSource
+import uk.veritaslabs.kits.blobs.PhotoSource
 
 private val PhotoExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic")
 

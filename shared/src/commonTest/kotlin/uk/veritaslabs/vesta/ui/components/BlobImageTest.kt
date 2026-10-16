@@ -9,10 +9,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
-import uk.veritaslabs.vesta.blobs.FakeBlobs
+import uk.veritaslabs.kits.blobs.FakeBlobs
 import uk.veritaslabs.vesta.ui.components.LocalBlobs
-import uk.veritaslabs.vesta.blobs.TinyImageBytes
-import uk.veritaslabs.vesta.blobs.testBlobReference
+import uk.veritaslabs.kits.blobs.TinyImageBytes
+import uk.veritaslabs.kits.blobs.testBlobReference
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
 @OptIn(ExperimentalTestApi::class)

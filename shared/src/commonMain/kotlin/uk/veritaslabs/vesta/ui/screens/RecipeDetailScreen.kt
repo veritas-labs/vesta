@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,8 +42,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.blobs.Placeholder
+import uk.veritaslabs.kits.blobs.BlobReference
+import uk.veritaslabs.kits.blobs.Placeholder
 import uk.veritaslabs.vesta.ui.components.BlobImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

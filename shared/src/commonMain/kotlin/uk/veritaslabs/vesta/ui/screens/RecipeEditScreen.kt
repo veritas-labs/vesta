@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -41,8 +41,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.ui.components.LocalBlobs
-import uk.veritaslabs.vesta.blobs.PhotoAddResult
-import uk.veritaslabs.vesta.blobs.PhotoRejection
+import uk.veritaslabs.kits.blobs.PhotoAddResult
+import uk.veritaslabs.kits.blobs.PhotoRejection
 import uk.veritaslabs.vesta.recipes.LocalRecipeImporter
 import uk.veritaslabs.vesta.recipes.RecipeImportFailure
 import uk.veritaslabs.vesta.recipes.RecipeImportResult

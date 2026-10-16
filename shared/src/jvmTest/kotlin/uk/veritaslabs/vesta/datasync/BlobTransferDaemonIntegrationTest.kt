@@ -15,12 +15,12 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
 import uk.veritaslabs.vesta.automerge.homeIdsOf
-import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.blobs.BlobRepository
-import uk.veritaslabs.vesta.blobs.BlobStore
-import uk.veritaslabs.vesta.blobs.BlobTransferService
+import uk.veritaslabs.kits.blobs.BlobReference
+import uk.veritaslabs.kits.blobs.BlobRepository
+import uk.veritaslabs.kits.blobs.BlobStore
+import uk.veritaslabs.kits.blobs.BlobTransferService
 import uk.veritaslabs.vesta.ui.screens.HomeShape
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeMedia
 
@@ -63,7 +63,7 @@ class BlobTransferDaemonIntegrationTest {
                         client = phone.daemon.client,
                         repository = repository,
                         references = CookbookBlobReferences(phone.cookbooks),
-                        homes = homeIdsOf(phone.database),
+                        spaces = homeIdsOf(phone.database),
                         peersFor = { phone.sync.blobPeers(it) },
                         onArrived = arrived,
                         interval = 5.seconds,

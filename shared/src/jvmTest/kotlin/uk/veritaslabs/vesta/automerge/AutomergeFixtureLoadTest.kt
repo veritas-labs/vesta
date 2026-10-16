@@ -18,7 +18,7 @@ import uk.veritaslabs.vesta.calendar.EventCalendar
 import uk.veritaslabs.vesta.calendar.EventRepeat
 import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.ui.screens.MealSlot
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.MerchantService
 import uk.veritaslabs.vesta.ui.screens.MerchantType
 import uk.veritaslabs.vesta.ui.screens.PlannedMeal

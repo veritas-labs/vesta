@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
@@ -151,8 +151,8 @@ class RecipeDetailScreenTest {
     @Test
     fun aBlobPhotoShowsItsPlaceholderUntilThePhotoArrives() = runComposeUiTest {
         // Arrange
-        val blobs = uk.veritaslabs.vesta.blobs.FakeBlobs()
-        val reference = uk.veritaslabs.vesta.blobs.testBlobReference()
+        val blobs = uk.veritaslabs.kits.blobs.FakeBlobs()
+        val reference = uk.veritaslabs.kits.blobs.testBlobReference()
         val withPhoto = recipe.copy(media = listOf(RecipeMedia("", MediaKind.Photo, "Fresh", reference)))
         setContent {
             VestaTheme {

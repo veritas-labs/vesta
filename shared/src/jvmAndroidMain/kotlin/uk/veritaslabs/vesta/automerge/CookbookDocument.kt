@@ -8,9 +8,9 @@ import org.automerge.ObjectId
 import org.automerge.ObjectType
 import org.automerge.Read
 import org.automerge.Transaction
-import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.blobs.BlobStore
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.BlobReference
+import uk.veritaslabs.kits.blobs.BlobStore
+import uk.veritaslabs.kits.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeIngredient
 import uk.veritaslabs.vesta.ui.screens.RecipeMedia

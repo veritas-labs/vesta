@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.MediaKind
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -11,12 +11,12 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import uk.veritaslabs.vesta.blobs.FakeBlobs
+import uk.veritaslabs.kits.blobs.FakeBlobs
 import uk.veritaslabs.vesta.ui.components.LocalBlobs
-import uk.veritaslabs.vesta.blobs.PhotoAddResult
-import uk.veritaslabs.vesta.blobs.PhotoRejection
-import uk.veritaslabs.vesta.blobs.PhotoSource
-import uk.veritaslabs.vesta.blobs.testBlobReference
+import uk.veritaslabs.kits.blobs.PhotoAddResult
+import uk.veritaslabs.kits.blobs.PhotoRejection
+import uk.veritaslabs.kits.blobs.PhotoSource
+import uk.veritaslabs.kits.blobs.testBlobReference
 import uk.veritaslabs.vesta.ui.components.LocalPhotoPickerFactory
 import uk.veritaslabs.vesta.ui.components.PhotoPicker
 import uk.veritaslabs.vesta.ui.theme.VestaTheme

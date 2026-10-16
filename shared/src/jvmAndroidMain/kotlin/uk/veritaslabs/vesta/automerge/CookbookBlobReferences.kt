@@ -4,8 +4,8 @@ import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.blobs.BlobReferenceSource
+import uk.veritaslabs.kits.blobs.BlobReference
+import uk.veritaslabs.kits.blobs.BlobReferenceSource
 
 /** Vesta's blob references are the photos in each Home's cookbook (ADR-022, ADR-023). */
 class CookbookBlobReferences(private val cookbooks: CookbookSources) : BlobReferenceSource {

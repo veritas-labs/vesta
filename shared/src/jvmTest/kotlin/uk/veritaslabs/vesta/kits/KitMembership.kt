@@ -36,7 +36,7 @@ object KitMembership {
         "mailbox/" to (Kit.Docs to emptySet()),
         "profile/" to (Kit.Spaces to emptySet()),
         "devicesync/" to (Kit.Sync to emptySet()),
-        "blobs/" to (Kit.Blobs to setOf("blobs/Placeholder")),
+        "blobs/" to (Kit.Blobs to emptySet()),
     )
 
     /** Individual files of directories that are split between kits. */
@@ -98,7 +98,7 @@ object KitMembership {
         Kit.Docs to 17,
         Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
-        Kit.Blobs to 17, // plus MediaKind (WP1) and BlobReferenceSource (WP16)
+        Kit.Blobs to 18, // plus MediaKind (WP1), BlobReferenceSource (WP16) and Placeholder (WP17: pure encoder code, moves with the photo encoder)
         Kit.Assistants to 5,
     )
 }

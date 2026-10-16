@@ -4,7 +4,7 @@ import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
-import uk.veritaslabs.vesta.blobs.BlobMessage
+import uk.veritaslabs.kits.blobs.BlobMessage
 import uk.veritaslabs.vesta.datasync.SyncEnvelope
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage

@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
-import uk.veritaslabs.vesta.blobs.PhotoSource
+import uk.veritaslabs.kits.blobs.PhotoSource
 
 /** Opens the platform's way of choosing a photo; [launch] returns at once and the choice arrives through the callback given to [rememberPhotoPicker]. */
 fun interface PhotoPicker {

@@ -39,11 +39,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.blobs.BlobReference
+import uk.veritaslabs.kits.blobs.BlobReference
 import uk.veritaslabs.vesta.ui.components.LocalBlobs
-import uk.veritaslabs.vesta.blobs.Placeholder
-import uk.veritaslabs.vesta.blobs.PlaceholderPixels
-import uk.veritaslabs.vesta.blobs.MediaKind
+import uk.veritaslabs.kits.blobs.Placeholder
+import uk.veritaslabs.kits.blobs.PlaceholderPixels
+import uk.veritaslabs.kits.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.blob_waiting_for_photo
