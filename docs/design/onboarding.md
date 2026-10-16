@@ -230,7 +230,7 @@ in **style** (outline, not fill) — size parity avoids penalizing joiners; styl
 primary/secondary relationship.
 
 > **Design decision (ties to CORE-EXPERIENCE §2 opinionated decision):** this screen intentionally has zero dashboard
-> chrome — no member list preview, no module gallery, no settings icon. It is rendered as a **decision point**, visually
+> chrome — no member list preview, no tool gallery, no settings icon. It is rendered as a **decision point**, visually
 > closer to a modal-style choice screen than to the eventual Home Dashboard it will be replaced by. Nothing here should
 > visually resemble the dashboard, so the contrast between "no Home" and "has Home" is unmistakable at a glance.
 

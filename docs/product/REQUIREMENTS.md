@@ -12,7 +12,7 @@ criteria later.
 | ID   | Requirement                                                                                                            | Priority |
 |------|------------------------------------------------------------------------------------------------------------------------|----------|
 | FR-1 | A user can create a "home" and define its members                                                                      | Must     |
-| FR-2 | A home can have different shapes/types (family, flat share, single, etc.) and this affects which modules are suggested | Must     |
+| FR-2 | A home can have different shapes/types (family, flat share, single, etc.) and this affects how the Home is described and presented | Must     |
 | FR-3 | Members can be invited to join a home via link or code                                                                 | Must     |
 | FR-4 | A home admin can assign roles (admin, member) with appropriate permissions                                             | Must     |
 | FR-5 | Members can leave a home, and their data is handled cleanly                                                            | Should   |
@@ -22,7 +22,7 @@ criteria later.
 CEO has defined a clear multi-user model: users create multiple **homes**, each user has their own identity, and joins a
 home to work in a **shared workspace**. The term "home" replaces "household" in the user-facing model.
 
-### Core Modules (V1)
+### Core Tools (V1)
 
 #### Task/Chore Management
 
@@ -136,7 +136,7 @@ can do via Skills / MCP servers.
 | ID     | Requirement                                                                 |
 |--------|-----------------------------------------------------------------------------|
 | NFR-30 | System supports 10,000 households at launch without performance degradation |
-| NFR-31 | Architecture allows adding new modules without core system changes          |
+| NFR-31 | Architecture allows adding new tools without core system changes          |
 
 ### Usability
 

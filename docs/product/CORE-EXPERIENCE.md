@@ -1,7 +1,7 @@
 # Vesta — Core Entry Experience Spec
 
 > First-run, Profiles, create-or-join a Home, and the "in a Home / not yet in a Home" states.
-> This is the foundation layer. Modules come later.
+> This is the foundation layer. The tools (Pantry, Shopping List and the rest) sit on top of it.
 
 ---
 
@@ -93,7 +93,7 @@ in a Home to get value from Vesta. The screen is not a dashboard — it is a dec
 
 ### What is NOT shown
 
-- No module gallery (modules don't exist yet in the user's journey)
+- No tool gallery (the Home's tools are on the Home Dashboard once the user is in a Home)
 - No settings (nothing to configure yet)
 - No "What's new" or onboarding tour (the flow IS the onboarding)
 
@@ -108,7 +108,7 @@ A single form screen. Not a wizard. One screen, all fields visible.
 | Field          | Required | Detail                                                                                                                   |
 |----------------|----------|--------------------------------------------------------------------------------------------------------------------------|
 | **Home Name**  | Yes      | Free text. 2–50 characters. Examples: "The Johnsons", "Flat 4B", "Mum's Place"                                           |
-| **Home Shape** | Yes      | Choose from a fixed set (see table below). This shapes module suggestions later.                                         |
+| **Home Shape** | Yes      | Choose from a fixed set (see table below). It describes the Home to its members; it does not change which tools are available.                                         |
 | **Your Role**  | Auto-set | The creator is always **Admin**. No choice offered. Displayed as informational text: "You'll be the admin of this Home." |
 
 ### Home Shapes
@@ -125,9 +125,9 @@ one is excluded. Shape can be changed later in Home Settings (out of scope for t
 support it).
 
 **Why shape is required at creation (not deferrable):**
-Shape is the primary signal for module suggestions. Deferring it means the user lands in an empty Home with no guidance.
-Requiring it at creation means the first "Add a module" prompt is already contextual. The cost is one extra tap during
-creation. The benefit is a non-empty, relevant dashboard on arrival.
+Every Home has all of Vesta's tools; shape does not switch any of them on or off. It is the signal for how the Home is
+described and presented (badge, wording, defaults), and it is cheapest to ask once, when the Home is created, rather than
+leave Homes without one. The cost is one extra tap during creation.
 
 ### Success State
 
@@ -238,7 +238,7 @@ member cannot generate codes.
 
 ## 5. "In a Home" State
 
-### Home Dashboard (Empty — No Modules)
+### Home Dashboard
 
 After creating or joining a Home, the user lands here. This is the persistent base screen of the app.
 
@@ -246,14 +246,14 @@ After creating or joining a Home, the user lands here. This is the persistent ba
 |-----------------------|--------------------------------------------------------------------------------------------------------------|
 | **Header**            | Home name + Home shape badge (e.g., "Family")                                                                |
 | **Members**           | The Home's members — the app users who have joined. Visible immediately, populated from creation. See below. |
-| **Module area**       | Empty. Shows: "No modules yet. Add your first tool to get started."                                          |
-| **Add Module button** | Prominent CTA. (Module selection flow is out of scope for this spec.)                                        |
+| **Tool tiles**        | A grid of tiles, one per tool (Pantry, Shopping List, Cookbook, Meal Planner, Calendar, Tasks…). Every tool is always present; nothing is added or chosen. |
 | **Home switcher**     | Visible if user belongs to >1 Home. Dropdown or tab in the header.                                           |
 | **Settings icon**     | Top-right. Leads to Home Settings (name, shape, members, invite, leave).                                     |
 
-**Opinionated decision:** The empty dashboard is not a dead end. It shows the member list (always populated — social
-proof the Home is real) plus exactly one clear next action: Add Module. There is no tutorial, no carousel, no "here's
-what you could do." The module flow will handle its own onboarding. This screen's job is to orient and direct.
+**Opinionated decision:** The dashboard is never a dead end. It shows the member list (always populated — social
+proof the Home is real) and every tool as a tile, so the next action is always one tap away. There is no "Add Module"
+step: users do not choose which tools they get, the app ships them all, and a tool the Home hasn't used yet simply opens
+to its own empty state. This screen's job is to orient and direct.
 
 ### Member List (accessible from dashboard)
 
@@ -292,7 +292,7 @@ Enumerated states for BDD scenario seeding. Each state is a distinct screen or m
 | `S3`     | **EmptyHome**        | "You're not in a Home yet" decision point       | Profile set, user belongs to 0 Homes       | Tap "Create" → `S4`, Tap "Join" → `S5`                                                                  |
 | `S4`     | **CreateHomeForm**   | Form to create a new Home                       | From `S3` or Home Switcher                 | Submit valid form → `S6`                                                                                |
 | `S5`     | **JoinHomeForm**     | Enter 6-digit invite code                       | From `S3` or Home Switcher                 | Valid code → confirmation → `S6`                                                                        |
-| `S6`     | **HomeDashboard**    | Home shell with member list + empty module area | User belongs to ≥1 Home                    | Tap "Add Module" (out of scope), Members → `S7`, Settings → `S8`, Switch Home → `S6` (new Home context) |
+| `S6`     | **HomeDashboard**    | Home shell with member list + tool tiles | User belongs to ≥1 Home                    | Open a tool, Members → `S7`, Settings → `S8`, Switch Home → `S6` (new Home context) |
 | `S7`     | **MemberList**       | View members of current Home                    | From `S6`                                  | Back → `S6`, Leave Home → `S3` (if last Home) or `S6` (if >1 Home)                                      |
 | `S8`     | **HomeSettings**     | Home name, shape, members, invite, roles        | From `S6`                                  | Back → `S6`                                                                                             |
 | `S9`     | **InviteMember**     | Display/regenerate invite code                  | From `S8` or `S7`                          | Back → `S8`                                                                                             |
@@ -441,7 +441,7 @@ This spec deliberately does NOT cover:
 
 | Excluded                                                  | Why                                                                                            |
 |-----------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| Module selection / creation flow                          | Separate spec. This spec ends at the empty dashboard.                                          |
+| Individual tools (Pantry, Shopping List, …)               | Each has its own spec. This spec ends at the dashboard that opens them.                        |
 | Permission matrix (admin vs member capabilities in depth) | Covered at a high level here. Detailed RBAC is a separate concern.                             |
 | Invite link / deep link handling                          | Codes only in v1. Links require platform-specific intent handling.                             |
 | Invite security (rate limiting, abuse prevention)         | Security hardening is a separate workstream.                                                   |

@@ -2,10 +2,10 @@
 
 ## Philosophy
 
-Ship the smallest thing that proves the core hypothesis: **households will adopt a modular tool if the first module
+Ship the smallest thing that proves the core hypothesis: **households will adopt a tool if the first one
 delivers immediate, obvious value.**
 
-One module. Done well. Then iterate.
+One tool. Done well. Then iterate. (Tools ship together in one app; users do not pick which to install.)
 
 ---
 
@@ -14,7 +14,7 @@ One module. Done well. Then iterate.
 > If we give a household a single tool that solves their most painful coordination problem — and make it dead simple —
 > they'll adopt it and ask for more.
 
-The first module must:
+The first tool must:
 
 1. Deliver value on day one (no setup-heavy prerequisites)
 2. Involve multiple household members (prove the coordination model)
@@ -26,8 +26,8 @@ The first module must:
 
 - Every household type needs it
 - It immediately surfaces the coordination problem Vesta solves
-- It's simple enough to build quickly, complex enough to demonstrate modularity
-- It creates a natural hook for the next module (shared lists for supplies)
+- It's simple enough to build quickly, complex enough to demonstrate the coordination model
+- It creates a natural hook for the next tool (shared lists for supplies)
 
 ---
 
@@ -43,7 +43,7 @@ The first module must:
 - Basic UI shell (navigation, household switcher)
 - **Exit criteria:** Two users can create a household, invite each other, and see each other as members.
 
-### Phase 1 — First Module: Tasks (Weeks 5-10)
+### Phase 1 — First Tool: Tasks (Weeks 5-10)
 
 *Goal: A household can coordinate chores using Vesta.*
 
@@ -56,7 +56,7 @@ The first module must:
 - **Exit criteria:** A real household uses Vesta for chore management for 1+ weeks and can articulate why it's better
   than their previous method.
 
-### Phase 2 — Second Module: Shared Lists (Weeks 11-14)
+### Phase 2 — Second Tool: Shared Lists (Weeks 11-14)
 
 *Goal: The household can manage shared supplies.*
 
@@ -111,18 +111,18 @@ The first module must:
 | Week-1 retention     | >50% of households active after 7 days                  | Proves immediate value                        |
 | Month-1 retention    | >30% of households active after 30 days                 | Proves sustained value                        |
 | Task completion rate | >60% of created tasks marked complete                   | Proves the tool drives action, not just lists |
-| Module adoption      | >50% of active households add the Lists module in v1    | Proves modularity model works                 |
+| Tool adoption        | >50% of active households use the Lists tool in v1      | Proves the tools work together                |
 
 ---
 
 ## What Comes After V1 (V2 Directions — Not Committed)
 
-Based on user feedback and retention data, potential v2 modules:
+Based on user feedback and retention data, potential v2 tools:
 
 1. **Chore gamification** — points, rewards, friendly competition (if data supports it)
 2. **Calendar integration** — basic household event coordination
-3. **Third-party module API** — let others build modules for Vesta
-4. **Household messaging** — structured notes/communication as a first-class module
+3. **Third-party API** — let others build on Vesta
+4. **Household messaging** — structured notes/communication as a first-class tool
 
 > **Note:** Financial / expense sharing and meal planning are permanently out of scope (see NON-GOALS.md). They are not
 > V2 candidates.

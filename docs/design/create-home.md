@@ -63,7 +63,7 @@ assumes one scroll-free (or minimally-scrolling) screen with all fields visible 
 **Home Name** is the entry point — the first thing the eye and cursor land on, and the field that personalizes the Home
 immediately. **Home Shape**, however, occupies the most vertical space and interactive richness on the screen, and
 should be treated as the primary *visual weight* of the screen: it's the harder, more consequential decision (per
-CORE-EXPERIENCE §3, shape is "the primary signal for module suggestions" and is deliberately required at creation
+CORE-EXPERIENCE §3, shape describes the Home to its members (it does not choose tools) and is deliberately required at creation
 despite the added friction). Design should give the Shape options generous spacing and clear selection affordance — this
 is the one decision on the screen worth slowing down for, even though the whole flow should still complete in seconds.
 

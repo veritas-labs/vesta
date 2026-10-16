@@ -27,7 +27,7 @@ bathroom in 12 days." Tools should inform, not nag. The user is in control.
 
 ### 5. Full Calendar / Scheduling Platform
 
-We won't replace Google Calendar or Outlook. If a module needs basic date/time coordination (e.g., chore schedules),
+We won't replace Google Calendar or Outlook. If a tool needs basic date/time coordination (e.g., chore schedules),
 fine. A full family calendar with external integrations is a separate product.
 
 ### 6. Meal Planning / Recipe Management
@@ -37,7 +37,7 @@ Paprika, etc.) and doesn't align with our core coordination focus. Confirmed: no
 
 ### 7. Pet Management, Plant Care, Vehicle Maintenance...
 
-The temptation will be to keep adding niche modules. For v1, we draw the line. Every new module has to justify itself
+The temptation will be to keep adding niche tools. For v1, we draw the line. Every new tool has to justify itself
 against our core use cases.
 
 ---
@@ -45,7 +45,7 @@ against our core use cases.
 ## Decision Rule
 
 If a proposed feature doesn't directly help **a household coordinate, communicate, or manage recurring tasks**, it
-doesn't belong in Vesta's core. It might belong in a module eventually, but the bar is high.
+doesn't belong in Vesta's core. It might become its own tool eventually, but the bar is high.
 
 ---
 
