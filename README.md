@@ -1,7 +1,7 @@
 # Vesta
 
-**Vesta** is a modular, local-first household app: a shared pantry and shopping list, a cookbook, a meal planner, tasks
-and chores, and a calendar. Pick the tools you need and ignore the rest. There is no account and no central server.
+**Vesta** is a local-first household app: a shared pantry and shopping list, a cookbook, a meal planner, tasks
+and chores, and a calendar. They ship together as one app. There is no account and no central server.
 Your home lives on your devices and they sync directly with each other, peer to peer, over
 [x0x](https://github.com/saorsa-labs/x0x).
 

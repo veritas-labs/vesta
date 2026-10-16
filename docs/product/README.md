@@ -1,11 +1,12 @@
 # Vesta — Household Management, Your Way
 
-**Vesta** is a modular household management app that adapts to how you live.
+**Vesta** is a household management app that adapts to how you live.
 
 A family of five, a Grandma on her own, flatmates splitting groceries — they all run households, but none of them the
-same way. Vesta gives people the specific tools they need without forcing them into a one-size-fits-all workflow.
+same way. Vesta gives them a set of connected tools (Pantry, Shopping List, Cookbook, Meal Planner, Tasks and Chores, Calendar)
+without forcing them into a one-size-fits-all workflow.
 
-**Modular.** Pick the tools that matter to you. Ignore the rest.  
+**Connected tools.** Pantry, shopping list, cookbook and more, all in one app. Use the ones that matter to you and ignore the rest; every tool ships with the app.  
 **Adaptive.** Works for one person or ten. Defined by the people in it, not by assumptions.  
 **Practical.** Built for the actual tasks of running a home — not an idealised version of one.  
 **Local-first.** No account, no sign-up, no data harvesting. Your home lives on your devices, synced peer-to-peer.  
@@ -21,10 +22,10 @@ fall apart at scale.
 
 ### Core principles
 
-- Modular tools — pick what you need
+- One app of connected tools — all included, use what you need
 - No account required to use the app
 - Offline / local-first, with P2P syncing (no central servers)
-- Freemium modules
+- Monetisation: not yet decided
 - Accessible to all ages (8–100) with themed experiences
 - Equally usable by humans (GUI) and AI agents (Skills / MCP servers)
 

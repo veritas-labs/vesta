@@ -25,7 +25,7 @@ sense."**
 Every existing product starts from a template and forces you into it. Vesta starts from the user's reality and builds
 outward.
 
-**The gap in one sentence:** Modular, adaptive household management that respects that every home is different — without
+**The gap in one sentence:** Adaptive household management that respects that every home is different — without
 requiring a weekend of setup or a computer science degree.
 
 ## Why Now?
@@ -52,20 +52,20 @@ people still rely on ad-hoc, manual processes. It's an unglamorous problem — w
 
 | Competitor            | What they do well               | Where they fall short                                           |
 |-----------------------|---------------------------------|-----------------------------------------------------------------|
-| **Cozi**              | Shared family calendar, lists   | Dated UX. Assumes nuclear family. No modularity.                |
+| **Cozi**              | Shared family calendar, lists   | Dated UX. Assumes nuclear family. No household-shape flexibility.                |
 | **OurHome**           | Gamified chores for families    | Child-focused. Doesn't serve non-family households.             |
 | **Tody**              | Cleaning schedule visualisation | Single-purpose. No multi-user coordination.                     |
 | **Sweepy**            | Chores with rotation            | Narrow scope. Limited household types.                          |
 | **Todoist / AnyTask** | General task management         | Not designed for households. No shared accountability built in. |
 
-**Vesta's differentiation:** Modularity + household-shape awareness. No competitor starts from "what kind of household
+**Vesta's differentiation:** Connected tools + household-shape awareness. No competitor starts from "what kind of household
 is this?" and adapts.
 
 ## Definition of Product-Market Fit (for Vesta)
 
 We'll know we have PMF when:
 
-1. **Activation:** >40% of sign-ups complete onboarding AND add their first module within 24 hours.
+1. **Activation:** >40% of sign-ups complete onboarding AND add their first item within 24 hours.
 2. **Retention:** >30% of users are still active in their household after 30 days.
 3. **Qualitative signal:** Users describe Vesta to others without us prompting them. Specifically, they mention it by
    describing what it *does for them*, not what it *is*.
