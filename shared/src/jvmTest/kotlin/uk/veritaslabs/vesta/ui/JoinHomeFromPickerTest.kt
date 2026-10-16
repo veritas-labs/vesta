@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
@@ -68,7 +69,7 @@ class JoinHomeFromPickerTest {
         onNodeWithTag(HomePickerTestTags.JoinHomeButton).performClick()
 
         // Act
-        onNodeWithTag(RedeemInviteTestTags.LinkField).performTextInput(invite.encode())
+        onNodeWithTag(RedeemInviteTestTags.LinkField).performTextInput(invite.encode(VestaKitConfig.home.inviteScheme))
         onNodeWithTag(RedeemInviteTestTags.SubmitButton).performClick()
         waitUntilExactlyOneExists(hasTestTag(HomePickerTestTags.JoinHomeButton))
 

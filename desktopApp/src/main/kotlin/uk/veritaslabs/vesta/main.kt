@@ -4,6 +4,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import java.io.File
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
 import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.agent.AgentCommandService
@@ -43,6 +44,7 @@ fun main() = application {
                     peersFor = { homeId -> sync?.blobPeers(homeId).orEmpty() },
                     directory = File(System.getProperty("user.home"), ".vesta/blobs"),
                     encoder = SkiaPhotoEncoder(),
+                    userAgent = VestaKitConfig.userAgent,
                     transfersDir = x0xTransfersDir(),
                 )
             },

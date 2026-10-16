@@ -11,17 +11,15 @@ import uk.veritaslabs.vesta.InviteLifetime
 import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.store.DatabaseDowngradeException
 import uk.veritaslabs.kits.sync.PairingLink
-import uk.veritaslabs.kits.sync.DeviceSyncConfig
-import uk.veritaslabs.kits.spaces.SpacesConfig
 import uk.veritaslabs.kits.spaces.InviteLink
 
-/** The values existing installs were made with: the config defaults and Vesta's choices must reproduce them exactly. */
+/** The values existing installs were made with: Vesta's choices in [VestaKitConfig] must reproduce them exactly (the kits default none of them). */
 class KitConfigDefaultsTest {
 
     @Test
-    fun theHomeConfigDefaultsAreTheValuesVestaHasAlwaysUsed() {
+    fun vestasHomeConfigIsTheValuesVestaHasAlwaysUsed() {
         // Arrange
-        val config = SpacesConfig()
+        val config = VestaKitConfig.home
 
         // Act
         val values = listOf(
@@ -34,9 +32,9 @@ class KitConfigDefaultsTest {
     }
 
     @Test
-    fun theDeviceSyncConfigDefaultsAreTheValuesVestaHasAlwaysUsed() {
+    fun vestasDeviceSyncConfigIsTheValuesVestaHasAlwaysUsed() {
         // Arrange
-        val config = DeviceSyncConfig()
+        val config = VestaKitConfig.deviceSync
 
         // Act
         val values = listOf(config.pairingScheme, config.groupName, config.pairingInviteLifetime)
@@ -46,7 +44,16 @@ class KitConfigDefaultsTest {
     }
 
     @Test
-    fun vestasChoicesAreTheDefaultsAndMatchTheInviteLifetimes() {
+    fun vestasNameAndUserAgentAreWhatTheKitsPrintAndSend() {
+        // Arrange / Act
+        val values = listOf(VestaKitConfig.appName, VestaKitConfig.userAgent)
+
+        // Assert
+        assertEquals(listOf("Vesta", "Vesta"), values)
+    }
+
+    @Test
+    fun vestasChoicesMatchTheInviteLifetimes() {
         // Arrange
         val lifetimes = listOf(InviteLifetime.HomeJoin, InviteLifetime.HubEnrolment, InviteLifetime.HubCommandsRefresh, InviteLifetime.Pairing)
 
@@ -57,8 +64,6 @@ class KitConfigDefaultsTest {
         )
 
         // Assert
-        assertEquals(SpacesConfig(), VestaKitConfig.home)
-        assertEquals(DeviceSyncConfig(), VestaKitConfig.deviceSync)
         assertEquals(lifetimes, chosen)
     }
 
@@ -94,7 +99,7 @@ class KitConfigDefaultsTest {
         val encoded = InviteLink("home-1", "sec", 100L, listOf("agent-a"), "Flat").encode("other://invite")
 
         // Act
-        val decoded = InviteLink.decode(encoded)
+        val decoded = InviteLink.decode(encoded, VestaKitConfig.home.inviteScheme)
 
         // Assert
         assertNull(decoded)
@@ -102,9 +107,9 @@ class KitConfigDefaultsTest {
     }
 
     @Test
-    fun theDowngradeMessageNamesVestaUnlessAnotherAppIsGiven() {
+    fun theDowngradeMessageNamesTheAppItIsGiven() {
         // Arrange
-        val vesta = DatabaseDowngradeException(storedVersion = 21, supportedVersion = 20)
+        val vesta = DatabaseDowngradeException(storedVersion = 21, supportedVersion = 20, appName = VestaKitConfig.appName)
         val other = DatabaseDowngradeException(storedVersion = 21, supportedVersion = 20, appName = "Sample")
 
         // Act

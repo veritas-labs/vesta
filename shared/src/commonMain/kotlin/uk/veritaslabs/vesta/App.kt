@@ -59,7 +59,7 @@ import uk.veritaslabs.kits.store.DatabaseDowngradeException
 import uk.veritaslabs.kits.store.DatabaseDriverFactory
 import uk.veritaslabs.kits.store.DatabaseOpenResult
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.kits.store.openVestaDatabase
+import uk.veritaslabs.kits.store.openKitsDatabase
 import uk.veritaslabs.vesta.licenses.OpenSourceLicense
 import uk.veritaslabs.vesta.licenses.loadOpenSourceLicenses
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
@@ -933,7 +933,7 @@ fun VestaApp(
     fileImporter: FileImporter? = null,
     ownDeviceCanBeHub: Boolean = false,
 ) {
-    val opened = remember { openVestaDatabase(DatabaseDriverFactory(VestaDatabaseLocation)) }
+    val opened = remember { openKitsDatabase(DatabaseDriverFactory(VestaDatabaseLocation), VestaKitConfig.appName) }
     val database = when (opened) {
         is DatabaseOpenResult.Opened -> opened.database
         // The file is from a newer Vesta and was left untouched; say so rather than run against a schema this build doesn't know.

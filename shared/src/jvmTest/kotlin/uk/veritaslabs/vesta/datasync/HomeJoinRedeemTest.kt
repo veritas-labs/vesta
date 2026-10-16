@@ -2,6 +2,7 @@
 
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.io.encoding.Base64
@@ -54,7 +55,7 @@ class HomeJoinRedeemTest {
                 override suspend fun saved(home: StoredSpace) = Unit
                 override suspend fun deleted(id: String) = Unit
             },
-            profiles, VestaHomeSeeding(VestaHomeSources(database), database), nowMillis = { now },
+            profiles, VestaHomeSeeding(VestaHomeSources(database), database), config = VestaKitConfig.home, nowMillis = { now },
         )
 
         init {

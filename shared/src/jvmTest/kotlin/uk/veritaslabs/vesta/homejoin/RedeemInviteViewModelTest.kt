@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.homejoin
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,7 +34,7 @@ class RedeemInviteViewModelTest {
         val viewModel = RedeemInviteViewModel(joining, nowMillis = { 0L })
 
         // Act
-        viewModel.onRedeem(link.encode())
+        viewModel.onRedeem(link.encode(VestaKitConfig.home.inviteScheme))
 
         // Assert
         assertEquals(RedeemInviteUiState.Started, viewModel.uiState.value)
@@ -76,7 +77,7 @@ class RedeemInviteViewModelTest {
         val viewModel = RedeemInviteViewModel(joining, nowMillis = { 2_000L })
 
         // Act
-        viewModel.onRedeem(link.encode())
+        viewModel.onRedeem(link.encode(VestaKitConfig.home.inviteScheme))
 
         // Assert
         assertEquals(RedeemInviteUiState.Failed(RedeemInviteError.Expired), viewModel.uiState.value)
@@ -91,7 +92,7 @@ class RedeemInviteViewModelTest {
         val viewModel = RedeemInviteViewModel(joining, nowMillis = { 0L })
 
         // Act
-        viewModel.onRedeem(link.encode())
+        viewModel.onRedeem(link.encode(VestaKitConfig.home.inviteScheme))
 
         // Assert
         assertEquals(RedeemInviteUiState.Failed(RedeemInviteError.AlreadyInHome), viewModel.uiState.value)
@@ -104,7 +105,7 @@ class RedeemInviteViewModelTest {
         val viewModel = RedeemInviteViewModel(null, nowMillis = { 0L })
 
         // Act
-        viewModel.onRedeem(link.encode())
+        viewModel.onRedeem(link.encode(VestaKitConfig.home.inviteScheme))
 
         // Assert
         assertEquals(RedeemInviteUiState.Failed(RedeemInviteError.Failed), viewModel.uiState.value)

@@ -126,7 +126,7 @@ class DeviceDataSyncServiceTest {
         /** The pairing service, for the tests that unpair a device; it only handles messages once [routeDeviceSyncMessages] is set. */
         val deviceSync: DeviceSyncService by lazy {
             DeviceSyncService(
-                client = node, database = database, devices = devices, deviceName = { agentId },
+                client = node, database = database, devices = devices, deviceName = { agentId }, config = VestaKitConfig.deviceSync,
                 pollInterval = 1.milliseconds, joinTimeout = 5.seconds, ownViewTimeout = 20.milliseconds,
                 resendInterval = 5.milliseconds, removeRetryDelay = 1.milliseconds,
                 onDeviceUnpaired = sync::deviceUnpaired, onDevicePaired = sync::devicePaired,

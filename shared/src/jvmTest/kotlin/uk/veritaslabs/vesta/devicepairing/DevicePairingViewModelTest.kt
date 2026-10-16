@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.devicepairing
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.sync.PairingLink
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.AfterTest
@@ -78,7 +79,7 @@ class DevicePairingViewModelTest {
         viewModel.onPastePairingLink()
 
         // Act
-        viewModel.onSubmitPairingLink(generatedLink.encode())
+        viewModel.onSubmitPairingLink(generatedLink.encode(VestaKitConfig.deviceSync.pairingScheme))
         viewModel.awaitUiState { it is DevicePairingUiState.Paste && it.redeemedLink != null }
 
         // Assert
@@ -115,7 +116,7 @@ class DevicePairingViewModelTest {
         val expiredLink = PairingLink(agentId = "ee33ff", expiresAt = 1_000L)
 
         // Act
-        viewModel.onSubmitPairingLink(expiredLink.encode())
+        viewModel.onSubmitPairingLink(expiredLink.encode(VestaKitConfig.deviceSync.pairingScheme))
 
         // Assert
         val state = assertIs<DevicePairingUiState.Paste>(viewModel.uiState.value)

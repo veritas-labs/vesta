@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.acceptance
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -102,6 +103,7 @@ class CookbookPhotosAcceptanceTest {
             peersFor = { members - id },
             directory = directory,
             encoder = SkiaPhotoEncoder(),
+            userAgent = VestaKitConfig.userAgent,
             interval = 100.milliseconds,
             askBackoff = BlobTransferService.Backoff(200.milliseconds, 800.milliseconds),
         )

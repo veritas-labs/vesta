@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.compat
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -123,8 +124,8 @@ class GoldenWireStringsTest {
         val literal = "vesta://invite/aG9tZS0xOnMzY3JldDoxNzAwMDAwMDAwMDAwOmFnZW50LTEsYWdlbnQtMjpUaGU6IEpvaG5zb25z"
 
         // Act
-        val encoded = link.encode()
-        val decoded = InviteLink.decode(literal)
+        val encoded = link.encode(VestaKitConfig.home.inviteScheme)
+        val decoded = InviteLink.decode(literal, VestaKitConfig.home.inviteScheme)
 
         // Assert
         assertEquals(literal, encoded)
@@ -140,8 +141,8 @@ class GoldenWireStringsTest {
         val bareLiteral = "vesta://pair/YWdlbnQtMToxNzAwMDAwMDAwMDAw"
 
         // Act
-        val encoded = listOf(named.encode(), bare.encode())
-        val decoded = listOf(PairingLink.decode(namedLiteral), PairingLink.decode(bareLiteral))
+        val encoded = listOf(named.encode(VestaKitConfig.deviceSync.pairingScheme), bare.encode(VestaKitConfig.deviceSync.pairingScheme))
+        val decoded = listOf(PairingLink.decode(namedLiteral, VestaKitConfig.deviceSync.pairingScheme), PairingLink.decode(bareLiteral, VestaKitConfig.deviceSync.pairingScheme))
 
         // Assert
         assertEquals(listOf(namedLiteral, bareLiteral), encoded)

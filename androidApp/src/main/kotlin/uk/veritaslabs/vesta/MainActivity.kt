@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import java.io.File
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
 import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.agent.AgentCommandService
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
                         peersFor = { homeId -> sync?.blobPeers(homeId).orEmpty() },
                         directory = File(filesDir, "blobs"),
                         encoder = AndroidPhotoEncoder(),
+                        userAgent = VestaKitConfig.userAgent,
                         transfersDir = File(filesDir, "x0x/transfers"), // the embedded daemon's data dir is filesDir/x0x; unverified that it lands files here
                     )
                 },

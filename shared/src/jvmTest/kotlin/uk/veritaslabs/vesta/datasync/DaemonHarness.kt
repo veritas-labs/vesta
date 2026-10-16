@@ -106,7 +106,7 @@ internal class Phone(val daemon: Daemon, private val scope: CoroutineScope, priv
     /** The pairing service, wired to the Home sync as `App` does; it runs beside the sync when the phone is made [withPairing]. */
     val deviceSync: DeviceSyncService by lazy {
         DeviceSyncService(
-            daemon.client, database, devices, deviceName = { daemon.name },
+            daemon.client, database, devices, deviceName = { daemon.name }, config = VestaKitConfig.deviceSync,
             onDeviceUnpaired = sync::deviceUnpaired, onDevicePaired = sync::devicePaired,
         )
     }
