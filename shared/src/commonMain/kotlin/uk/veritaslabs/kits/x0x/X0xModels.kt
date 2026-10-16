@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.x0x
+package uk.veritaslabs.kits.x0x
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

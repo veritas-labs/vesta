@@ -10,8 +10,8 @@ import uk.veritaslabs.vesta.automerge.pantryDedupKey
 import uk.veritaslabs.vesta.automerge.readPantryItem
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.vesta.pantry.PackageSize
-import uk.veritaslabs.vesta.x0x.X0xClient
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /** Category given to an item an agent adds without one; the Pantry UI otherwise requires a primary category. */
 const val UncategorizedCategory = "Uncategorized"

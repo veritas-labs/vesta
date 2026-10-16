@@ -19,7 +19,7 @@ import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.SyncedDevice
-import uk.veritaslabs.vesta.x0x.AbstractX0xClient
+import uk.veritaslabs.kits.x0x.AbstractX0xClient
 
 /**
  * Drives three real x0xd daemons through pairing and removal. Skipped unless `VESTA_X0X_DEVICE_DIRS` lists three

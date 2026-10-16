@@ -18,7 +18,7 @@ import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
 import uk.veritaslabs.vesta.syncactivity.SyncVerdict
 import uk.veritaslabs.vesta.ui.screens.HomeShape
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /**
  * Input this version can't use is noted in Sync activity and otherwise dropped as before (docs/adr/ADR-034-document-format-versioning.md, WP4):

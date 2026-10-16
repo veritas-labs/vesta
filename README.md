@@ -103,7 +103,7 @@ Wiring:
 
 ### Using it from Kotlin
 
-`EmbeddedX0x` (package `uk.veritaslabs.vesta.x0x`, present in the Android
+`EmbeddedX0x` (package `uk.veritaslabs.kits.x0x`, present in the Android
 and iOS source sets of `:shared`) starts the daemon and exposes its endpoint:
 
 ```kotlin

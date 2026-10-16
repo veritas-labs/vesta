@@ -32,7 +32,7 @@ import uk.veritaslabs.vesta.ui.screens.SettingsTestTags
 import uk.veritaslabs.vesta.ui.theme.AppTheme
 import uk.veritaslabs.vesta.ui.theme.ThemeMode
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xConnectivity
 
 /**
  * Acceptance tests for Settings (see docs/testing/acceptance-tests.md). Acceptance criteria:

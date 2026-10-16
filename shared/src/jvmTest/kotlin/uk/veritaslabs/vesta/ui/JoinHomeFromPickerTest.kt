@@ -23,7 +23,7 @@ import uk.veritaslabs.vesta.homejoin.FakeHomeJoining
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.ui.screens.HomePickerTestTags
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteTestTags
 
 /** Joining a Home from the picker (docs/adr/ADR-019-one-way-to-join.md): Join a home goes straight to the invite link screen. */

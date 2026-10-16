@@ -9,10 +9,10 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
-import uk.veritaslabs.vesta.x0x.X0xLogEntry
-import uk.veritaslabs.vesta.x0x.X0xLogEvent
-import uk.veritaslabs.vesta.x0x.X0xNetworkDiagnostics
+import uk.veritaslabs.kits.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xLogEntry
+import uk.veritaslabs.kits.x0x.X0xLogEvent
+import uk.veritaslabs.kits.x0x.X0xNetworkDiagnostics
 
 class NetworkDiagnosticsScreenTest {
 

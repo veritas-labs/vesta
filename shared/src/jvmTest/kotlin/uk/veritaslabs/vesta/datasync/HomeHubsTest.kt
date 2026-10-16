@@ -22,7 +22,7 @@ import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.homegroup.HubResult
 import uk.veritaslabs.vesta.homegroup.HubState
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.x0x.X0xApiException
+import uk.veritaslabs.kits.x0x.X0xApiException
 
 /** A Home's always-on hub (docs/adr/ADR-020, slice 6): enrolling it, recording it in the roster, and removing it. */
 class HomeHubsTest {

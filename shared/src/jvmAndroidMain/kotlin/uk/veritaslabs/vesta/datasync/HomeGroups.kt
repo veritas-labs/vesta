@@ -14,10 +14,10 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
-import uk.veritaslabs.vesta.x0x.X0xApiException
-import uk.veritaslabs.vesta.x0x.X0xClient
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
-import uk.veritaslabs.vesta.x0x.X0xGroupMember
+import uk.veritaslabs.kits.x0x.X0xApiException
+import uk.veritaslabs.kits.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xGroupMember
 
 private const val AdminRole = "admin"
 private const val MemberRoleName = "member"

@@ -13,7 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBarTestTags
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xConnectivity
 
 class HomeDashboardScreenTest {
 

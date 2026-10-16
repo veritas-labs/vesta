@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.x0x
+package uk.veritaslabs.kits.x0x
 
 /** Whether this device currently has a working link to the x0x network. */
 sealed interface X0xConnectivity {

@@ -12,7 +12,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.homegroup.HubResult
 import uk.veritaslabs.vesta.ui.screens.HomeShape
-import uk.veritaslabs.vesta.x0x.X0xApiException
+import uk.veritaslabs.kits.x0x.X0xApiException
 
 /**
  * Drives three real x0xd daemons through a Home's mailbox and hub (docs/plans/ADR-020-implementation-plan.md, slice 7): two

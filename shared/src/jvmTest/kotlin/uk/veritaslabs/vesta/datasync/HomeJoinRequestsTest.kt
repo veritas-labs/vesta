@@ -26,7 +26,7 @@ import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.homejoin.JoinRequest
 import uk.veritaslabs.vesta.homejoin.RequestResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /** The admin side of invite links (docs/adr/ADR-018-invite-links.md): requests, approval and admission. */
 class HomeJoinRequestsTest {

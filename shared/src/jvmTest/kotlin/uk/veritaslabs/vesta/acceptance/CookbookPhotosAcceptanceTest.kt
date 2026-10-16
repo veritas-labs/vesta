@@ -54,7 +54,7 @@ import uk.veritaslabs.vesta.ui.screens.RecipeDetailTestTags
 import uk.veritaslabs.vesta.ui.screens.RecipeEditTestTags
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
+import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
 
 /**
  * Acceptance tests for photos in the Cookbook (docs/adr/ADR-023-blob-storage-and-transfer.md; see docs/testing/acceptance-tests.md). Each test is one

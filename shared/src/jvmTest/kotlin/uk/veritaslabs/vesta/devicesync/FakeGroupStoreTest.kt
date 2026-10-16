@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.x0x.X0xApiException
+import uk.veritaslabs.kits.x0x.X0xApiException
 
 /** Pins the fake mesh's group stores to what ADR-020 Spikes 1, 4 and 6 saw on real daemons. */
 class FakeGroupStoreTest {

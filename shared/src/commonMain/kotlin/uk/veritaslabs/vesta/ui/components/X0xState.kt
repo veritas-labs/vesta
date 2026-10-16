@@ -8,12 +8,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlin.time.Clock
 import kotlinx.coroutines.delay
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
-import uk.veritaslabs.vesta.x0x.X0xNetworkDiagnostics
-import uk.veritaslabs.vesta.x0x.X0xNetworkMonitor
-import uk.veritaslabs.vesta.x0x.X0xPeer
-import uk.veritaslabs.vesta.x0x.X0xPeers
-import uk.veritaslabs.vesta.x0x.createX0xClient
+import uk.veritaslabs.kits.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xNetworkDiagnostics
+import uk.veritaslabs.kits.x0x.X0xNetworkMonitor
+import uk.veritaslabs.kits.x0x.X0xPeer
+import uk.veritaslabs.kits.x0x.X0xPeers
+import uk.veritaslabs.kits.x0x.createX0xClient
 
 // Compose wrappers that poll the local x0x daemon while composed. They live here, not beside the client, so the x0x code has no UI dependency.
 

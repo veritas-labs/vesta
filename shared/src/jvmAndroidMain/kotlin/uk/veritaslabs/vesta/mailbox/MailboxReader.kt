@@ -6,7 +6,7 @@ import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.datasync.SyncEventRecorder
 import uk.veritaslabs.vesta.datasync.SyncModules
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xClient
 
 private const val AutomergeExceptionClass = "org.automerge.AutomergeException"
 

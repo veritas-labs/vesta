@@ -30,7 +30,7 @@ import uk.veritaslabs.vesta.homegroup.HubResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
-import uk.veritaslabs.vesta.x0x.AbstractX0xClient
+import uk.veritaslabs.kits.x0x.AbstractX0xClient
 
 /**
  * What the opt-in real-daemon tests share ([HubDaemonIntegrationTest], [SeveralHubsDaemonIntegrationTest]): named x0xd daemons

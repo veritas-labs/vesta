@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalForeignApi::class)
 
-package uk.veritaslabs.vesta.x0x
+package uk.veritaslabs.kits.x0x
 
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.CPointer

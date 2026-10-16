@@ -62,7 +62,7 @@ import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBar
 import uk.veritaslabs.vesta.ui.components.HomeTab
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.x0x.X0xConnectivityIndicator
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.common_back

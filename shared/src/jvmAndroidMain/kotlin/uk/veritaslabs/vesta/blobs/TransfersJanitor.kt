@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta.blobs
 import java.io.File
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
-import uk.veritaslabs.vesta.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xClient
 
 /**
  * Sweeps the x0x daemon's `transfers/` folder (docs/adr/ADR-023-blob-storage-and-transfer.md, Spike 4). The daemon never deletes what it lands there,

@@ -67,9 +67,9 @@ import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
-import uk.veritaslabs.vesta.x0x.X0xClient
-import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
-import uk.veritaslabs.vesta.x0x.createX0xClient
+import uk.veritaslabs.kits.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
+import uk.veritaslabs.kits.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.homejoin.HomeJoining
@@ -163,8 +163,8 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import uk.veritaslabs.vesta.settings.AppSettingsRepository
 import uk.veritaslabs.vesta.ui.theme.AppTheme
 import uk.veritaslabs.vesta.ui.theme.ThemeMode
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
-import uk.veritaslabs.vesta.x0x.isReachingNetwork
+import uk.veritaslabs.kits.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.isReachingNetwork
 import uk.veritaslabs.vesta.ui.components.rememberX0xConnectivity
 import uk.veritaslabs.vesta.ui.components.rememberX0xNetworkDiagnostics
 import uk.veritaslabs.vesta.ui.components.rememberX0xPeers

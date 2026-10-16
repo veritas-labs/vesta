@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
-import uk.veritaslabs.vesta.x0x.X0xFileEvent
+import uk.veritaslabs.kits.x0x.X0xFileEvent
 
 class FakeX0xNetworkFilesTest {
 

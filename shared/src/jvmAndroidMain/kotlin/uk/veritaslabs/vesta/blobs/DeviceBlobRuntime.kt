@@ -5,7 +5,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xClient
 
 /**
  * The blob machinery of one device (ADR-023): the store under [directory], [references] (which blobs a Home's documents refer to) and [homes] (every Home's id), the photo [encoder] of this platform, and the [BlobTransferService] that

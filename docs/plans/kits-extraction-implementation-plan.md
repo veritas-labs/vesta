@@ -599,6 +599,8 @@ This is the largest and most entangled kit (21 files, 2,625 lines; `HomeRosters`
 
 ## WP26. Native packaging (the Rust crate) — human-owned
 
+**JNI exports still use the Vesta package; rename together with the Rust crate when native packaging is done by a human.** That means: rename the package of `X0xBridge` to `uk.veritaslabs.kits.x0x`, rename the five `Java_uk_veritaslabs_vesta_x0x_X0xBridge_*` exports in `lib.rs`, change the proguard keep rule in `androidApp/proguard-rules.pro`, then run Gate D on an emulator. `X0xBridgeSymbolsTest` goes red if only one half is changed.
+
 **Goal.** `x0x-kit` is self-contained on mobile: the `.so` for Android and the static library for iOS come from the kit, not from Vesta's `ffi/` and scripts.
 
 **What it involves.** Move `ffi/x0x-ffi`, `scripts/build-android-ffi.sh`, `scripts/build-ios-ffi.sh` and the cinterop def to `vesta-kits`; package the `.so` into the `x0x-kit` Android artifact (unverified whether AGP 9.1.1's KMP library plugin accepts `jniLibs`; the fallback is a separate `x0x-kit-native` Android AAR); publish the iOS static libraries as an XCFramework for Xcode to link, because a klib cannot carry the archive; move the Rust half of Vesta's `generateLicenses`.

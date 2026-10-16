@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.x0x
+package uk.veritaslabs.kits.x0x
 
 import kotlin.io.encoding.Base64
 import kotlinx.serialization.decodeFromString
@@ -13,7 +13,7 @@ import kotlinx.serialization.json.put
 
 /**
  * Implements every [X0xClient] method except [X0xClient.endpoint] in terms of one abstract seam,
- * [resolveDaemon] — so the per-platform subclasses ([EmbeddedX0xClient][uk.veritaslabs.vesta.x0x],
+ * [resolveDaemon] — so the per-platform subclasses ([EmbeddedX0xClient][uk.veritaslabs.kits.x0x],
  * `StandaloneX0xClient`) only need to know how to find their daemon's base URL and bearer token;
  * every REST call, JSON envelope and error path is implemented once here, ported from Colo's
  * `town.colo.x0x.X0xClient`.

@@ -17,11 +17,11 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uk.veritaslabs.vesta.x0x.X0xClient
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
-import uk.veritaslabs.vesta.x0x.X0xEventHub
-import uk.veritaslabs.vesta.x0x.X0xFileEvent
-import uk.veritaslabs.vesta.x0x.X0xNetworkPolicy
+import uk.veritaslabs.kits.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xEventHub
+import uk.veritaslabs.kits.x0x.X0xFileEvent
+import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
 
 /**
  * Moves the blobs the documents refer to between a Home's devices (docs/adr/ADR-023-blob-storage-and-transfer.md), by native x0x file transfer, and

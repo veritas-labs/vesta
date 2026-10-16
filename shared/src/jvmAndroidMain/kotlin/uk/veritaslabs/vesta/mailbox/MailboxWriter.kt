@@ -7,7 +7,7 @@ import kotlin.time.Duration.Companion.days
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xClient
 
 /**
  * Puts what this device has changed in a Home's documents into the Home's `mailbox` store, so a device that is offline

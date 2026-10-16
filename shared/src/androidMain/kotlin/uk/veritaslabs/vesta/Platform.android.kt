@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta
 import android.content.Context
 import android.os.Build
 import uk.veritaslabs.kits.store.DatabaseAndroid
-import uk.veritaslabs.vesta.x0x.X0xAndroid
+import uk.veritaslabs.kits.x0x.X0xAndroid
 
 class AndroidPlatform : Platform {
     override val name: String = "Android ${Build.VERSION.SDK_INT}"

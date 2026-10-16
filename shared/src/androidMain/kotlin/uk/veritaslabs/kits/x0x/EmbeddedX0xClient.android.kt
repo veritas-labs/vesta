@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.x0x
+package uk.veritaslabs.kits.x0x
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -127,7 +127,7 @@ internal actual suspend fun openSseStream(
         }
     }
 
-private const val LogTag = "VestaX0x"
+private const val LogTag = "KitsX0x"
 private const val WatchdogIntervalMillis = 15_000L
 
 /**

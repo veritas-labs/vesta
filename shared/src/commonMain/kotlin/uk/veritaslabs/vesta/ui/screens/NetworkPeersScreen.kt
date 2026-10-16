@@ -59,8 +59,8 @@ import kotlin.math.sqrt
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xPeer
-import uk.veritaslabs.vesta.x0x.X0xPeerStatus
+import uk.veritaslabs.kits.x0x.X0xPeer
+import uk.veritaslabs.kits.x0x.X0xPeerStatus
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.common_back

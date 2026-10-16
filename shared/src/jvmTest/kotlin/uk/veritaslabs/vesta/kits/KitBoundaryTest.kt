@@ -30,9 +30,16 @@ class KitBoundaryTest {
             "(?:class|interface|object|typealias|fun|val|var)\\s+(?:<[^>]*>\\s*)?(?:[\\w<>?,. ]*\\.)?(\\w+)",
         RegexOption.MULTILINE,
     )
-    /** The package the store files moved to in WP9; their path is read as the `db/` directory they came from. */
-    private val storePackage = "uk.veritaslabs.kits.store"
-    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.(?:vesta|kits\\.store)\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
+    /**
+     * The packages whose files moved out of `uk.veritaslabs.vesta` (store in WP9, x0x in WP13); their
+     * path is read as the directory they came from, so [KitMembership] keeps one spelling.
+     */
+    private val movedPackages = mapOf(
+        "uk/veritaslabs/kits/store/" to "db/",
+        "uk/veritaslabs/kits/x0x/" to "x0x/",
+    )
+    private val packageRoots = setOf(vestaPackage, "uk.veritaslabs.kits", "uk.veritaslabs.kits.store", "uk.veritaslabs.kits.x0x")
+    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.(?:vesta|kits\\.store|kits\\.x0x)\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
 
     private fun mainFiles(): List<SourceFile> {
         val src = listOf(File("src"), File("shared/src")).first { it.isDirectory }
@@ -40,8 +47,10 @@ class KitBoundaryTest {
         return src.listFiles { f -> f.isDirectory && f.name.endsWith("Main") }.orEmpty().flatMap { set ->
             set.walkTopDown().filter { it.isFile && it.extension == "kt" }.map { file ->
                 val text = file.readText()
-                val path = file.invariantSeparatorsPath.let {
-                    if ("uk/veritaslabs/kits/store/" in it) "db/" + it.substringAfter("uk/veritaslabs/kits/store/") else it.substringAfter(root)
+                val path = file.invariantSeparatorsPath.let { full ->
+                    movedPackages.entries.firstOrNull { it.key in full }
+                        ?.let { it.value + full.substringAfter(it.key) }
+                        ?: full.substringAfter(root)
                 }
                 val pkg = Regex("^package\\s+([\\w.]+)", RegexOption.MULTILINE).find(text)?.groupValues?.get(1).orEmpty()
                 SourceFile(path, pkg, text)
@@ -69,7 +78,7 @@ class KitBoundaryTest {
                 val imported = match.groupValues[1]
                 // Nested imports (pkg.Outer.Inner) resolve through their longest declared prefix.
                 val targets = generateSequence(imported) { it.substringBeforeLast('.', "").ifEmpty { null } }
-                    .takeWhile { it != vestaPackage && it != storePackage && it != "uk.veritaslabs.kits" }
+                    .takeWhile { it !in packageRoots }
                     .firstNotNullOfOrNull { declared[it] }
                     .orEmpty()
                 targets.filter { it !== from }.forEach { to ->

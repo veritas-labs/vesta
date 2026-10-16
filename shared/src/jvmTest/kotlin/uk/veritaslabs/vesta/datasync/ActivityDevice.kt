@@ -23,8 +23,8 @@ import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.x0x.X0xClient
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /**
  * One of the user's devices on the fake mesh, for the Sync activity tests: its own node and database, with a data sync that runs once

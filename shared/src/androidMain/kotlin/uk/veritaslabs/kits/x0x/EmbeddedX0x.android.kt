@@ -1,32 +1,6 @@
-package uk.veritaslabs.vesta.x0x
+package uk.veritaslabs.kits.x0x
 
-/**
- * JNI surface of the embedded x0x daemon.
- *
- * The native library (`libx0x_ffi.so`, built from `ffi/x0x-ffi` by
- * `scripts/build-android-ffi.sh`, wired into `:androidApp:preBuild`) wraps
- * `x0x::server::serve` behind a C ABI — see `ffi/x0x-ffi/src/lib.rs`.
- */
-private object X0xBridge {
-    init {
-        System.loadLibrary("x0x_ffi")
-    }
-
-    /** Returns a handle (> 0), or 0 on failure (see [nativeLastError]). */
-    external fun nativeStart(dataDir: String, identityDir: String?): Long
-
-    /** Bound loopback port of the REST API, or 0 for an unknown handle. */
-    external fun nativePort(handle: Long): Int
-
-    /** Durable API bearer token, or null for an unknown handle. */
-    external fun nativeApiToken(handle: Long): String?
-
-    /** 0 on graceful shutdown, -1 unknown handle, -2 supervisor error. */
-    external fun nativeShutdown(handle: Long): Int
-
-    /** Last error recorded on this thread, or null. */
-    external fun nativeLastError(): String?
-}
+import uk.veritaslabs.vesta.x0x.X0xBridge
 
 /**
  * An x0x daemon running embedded in this process.

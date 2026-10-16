@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.kits.x0x.X0xConnectivity
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.x0x_connectivity_connected
 import vesta.shared.generated.resources.x0x_connectivity_connecting

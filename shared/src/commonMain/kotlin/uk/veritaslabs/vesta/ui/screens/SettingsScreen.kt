@@ -50,7 +50,7 @@ import uk.veritaslabs.vesta.getPlatform
 import uk.veritaslabs.vesta.ui.theme.AppTheme
 import uk.veritaslabs.vesta.ui.theme.ThemeMode
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xConnectivity
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_chevron_right

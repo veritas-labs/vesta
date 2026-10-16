@@ -39,9 +39,9 @@ import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.profile.ProfileChangeListener
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
-import uk.veritaslabs.vesta.x0x.X0xClient
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
-import uk.veritaslabs.vesta.x0x.X0xEventHub
+import uk.veritaslabs.kits.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xEventHub
 
 /**
  * The roster's document type. The roster is membership machinery, so the engine registers it, first (the mailbox's order),

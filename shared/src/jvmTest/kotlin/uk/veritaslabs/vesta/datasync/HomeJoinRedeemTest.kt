@@ -28,7 +28,7 @@ import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.homejoin.RedeemResult
 import uk.veritaslabs.vesta.profile.ProfileRepository
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /** The joiner side of invite links (docs/adr/ADR-018-invite-links.md), alone and against a real admin service. */
 class HomeJoinRedeemTest {

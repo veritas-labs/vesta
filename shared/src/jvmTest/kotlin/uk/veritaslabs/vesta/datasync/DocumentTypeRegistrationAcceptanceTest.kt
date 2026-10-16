@@ -43,7 +43,7 @@ import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /** A throwaway document type that exists only in this test: a map of note ids to text, as an Automerge document. */
 private class ProbeDocument(document: Document, persist: suspend (ByteArray) -> Unit, onLocalChange: () -> Unit) : HomeDocument {

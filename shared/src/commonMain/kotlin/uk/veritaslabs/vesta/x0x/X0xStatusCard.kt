@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import uk.veritaslabs.kits.x0x.X0xHealth
+import uk.veritaslabs.kits.x0x.createX0xClient
 
 private sealed interface X0xStatus {
     data object Starting : X0xStatus

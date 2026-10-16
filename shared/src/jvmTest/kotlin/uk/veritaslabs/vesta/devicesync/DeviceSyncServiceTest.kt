@@ -19,7 +19,7 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.SyncedDevice
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 class DeviceSyncServiceTest {
 

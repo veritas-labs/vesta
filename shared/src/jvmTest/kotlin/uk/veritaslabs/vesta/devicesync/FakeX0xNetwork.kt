@@ -8,17 +8,17 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
-import uk.veritaslabs.vesta.x0x.FakeX0xClient
-import uk.veritaslabs.vesta.x0x.X0xAgent
-import uk.veritaslabs.vesta.x0x.X0xApiException
-import uk.veritaslabs.vesta.x0x.X0xClient
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
-import uk.veritaslabs.vesta.x0x.X0xEventStream
-import uk.veritaslabs.vesta.x0x.X0xFileEvent
-import uk.veritaslabs.vesta.x0x.X0xFileTransfer
-import uk.veritaslabs.vesta.x0x.X0xGroupMember
-import uk.veritaslabs.vesta.x0x.X0xPresenceEvent
-import uk.veritaslabs.vesta.x0x.X0xStoreKey
+import uk.veritaslabs.kits.x0x.FakeX0xClient
+import uk.veritaslabs.kits.x0x.X0xAgent
+import uk.veritaslabs.kits.x0x.X0xApiException
+import uk.veritaslabs.kits.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xEventStream
+import uk.veritaslabs.kits.x0x.X0xFileEvent
+import uk.veritaslabs.kits.x0x.X0xFileTransfer
+import uk.veritaslabs.kits.x0x.X0xGroupMember
+import uk.veritaslabs.kits.x0x.X0xPresenceEvent
+import uk.veritaslabs.kits.x0x.X0xStoreKey
 
 /**
  * A tiny in-memory x0x mesh: nodes can create groups, invite and join, send each other direct messages, and

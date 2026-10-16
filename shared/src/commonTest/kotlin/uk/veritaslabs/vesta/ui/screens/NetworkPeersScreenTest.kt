@@ -14,8 +14,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.vesta.x0x.X0xPeer
-import uk.veritaslabs.vesta.x0x.X0xPeerStatus
+import uk.veritaslabs.kits.x0x.X0xPeer
+import uk.veritaslabs.kits.x0x.X0xPeerStatus
 
 class NetworkPeersScreenTest {
 

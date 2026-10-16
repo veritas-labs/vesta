@@ -31,7 +31,7 @@ import uk.veritaslabs.vesta.ui.screens.HomePickerTestTags
 import uk.veritaslabs.vesta.ui.screens.OnboardingSlides
 import uk.veritaslabs.vesta.ui.screens.OnboardingTestTags
 import uk.veritaslabs.vesta.ui.screens.SettingsTestTags
-import uk.veritaslabs.vesta.x0x.X0xConnectivity
+import uk.veritaslabs.kits.x0x.X0xConnectivity
 
 /**
  * Acceptance tests for the welcome tour (see docs/testing/acceptance-tests.md, docs/adr/ADR-030-onboarding-slideshow.md).

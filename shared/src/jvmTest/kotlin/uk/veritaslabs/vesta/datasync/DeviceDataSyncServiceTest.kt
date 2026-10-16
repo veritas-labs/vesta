@@ -76,7 +76,7 @@ import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.ui.screens.MealSlot
-import uk.veritaslabs.vesta.x0x.X0xDirectMessage
+import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 class DeviceDataSyncServiceTest {
 

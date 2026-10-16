@@ -31,8 +31,8 @@ import uk.veritaslabs.vesta.syncactivity.SyncModule
 import uk.veritaslabs.vesta.syncactivity.SyncSnapshot
 import uk.veritaslabs.vesta.syncactivity.SyncVerdict
 import uk.veritaslabs.vesta.ui.screens.HomeShape
-import uk.veritaslabs.vesta.x0x.X0xAgent
-import uk.veritaslabs.vesta.x0x.X0xClient
+import uk.veritaslabs.kits.x0x.X0xAgent
+import uk.veritaslabs.kits.x0x.X0xClient
 
 class SyncActivityServiceTest {
 
