@@ -65,7 +65,18 @@ Vesta's Gradle configuration logs "KMP Dependencies Resolution Failure" for the 
 `sync-kit` and testing artifact unresolved for iOS); it is logged at error level but the jvm/android tasks pass and nothing fails.
 
 **Deferrals.** WP25 assistants (security path, no second consumer, five generic files). WP26 native packaging (needs NDK, device, Mac).
-Moving `SyncOrder` out of `sync-kit`. A composition root. The infrastructure ADRs were left in Vesta, not moved.
+A composition root. The infrastructure ADRs were left in Vesta, not moved.
+
+**No app knowledge in the kits (2026-10-16, follow-up).** `SyncOrder` is gone from `sync-kit`: `DeviceDataSyncService(sendOrder = ...)` takes
+the feature ids in send order (roster last, unlisted features after the listed ones), and Vesta passes `VestaHomeSources.sendOrder`, the same
+nine ids in the same order (pinned by `DocumentIdsTest`, wiring guarded by `SendOrderWiringTest`). The kits' Vesta defaults are gone too:
+`SpacesConfig.inviteScheme`/`groupName`, `DeviceSyncConfig.pairingScheme`/`groupName`, the `scheme` of `InviteLink`/`PairingLink`
+`encode`/`decode`, the `config` of the Space and device services, `DatabaseDowngradeException.appName` and `DatabaseSafety.prepare(appName)` are
+required, and the User-Agent of the photo fetcher is `DeviceBlobRuntime(userAgent)`. `createVestaDatabase`/`openVestaDatabase` became
+`createKitsDatabase`/`openKitsDatabase(driverFactory, appName)`. Vesta's values live in `VestaKitConfig` (`appName`, `userAgent`, `home`,
+`deviceSync`) and are pinned by `KitConfigDefaultsTest` and the golden tests, so nothing persisted or sent changed. The kits' own tests
+use `app://` schemes. `NoAppKnowledgeTest` (store-kit) fails if a kit main source has one of Vesta's feature ids or `Vesta` in a string
+literal; the JNI package of `X0xBridge` and the generated `uk.veritaslabs.vesta.db` package are the only brand left, both documented.
 
 ## Verification (2026-10-16)
 

@@ -35,7 +35,7 @@ Prioritised. "Owner" says who can do it. Source: [ADR-038](../adr/ADR-038-kits-e
 
 ## 4. Code and API tidy-ups
 
-8. **`SyncOrder` names Vesta's features inside `sync-kit`** (`DeviceDataSyncService.kt`: pantry, shopping-list, cookbook, merchants, mealplan,
+8. **DONE (2026-10-16) `SyncOrder` named Vesta's features inside `sync-kit`** (`DeviceDataSyncService.kt`: pantry, shopping-list, cookbook, merchants, mealplan,
    calendar, private-calendar, tasks, private-tasks). A second app's documents sort after these and the kit's tests register synthetic notes
    under Vesta's ids. Make the order a constructor/config parameter (ADR-035 calls it persisted behaviour, so keep Vesta's list as the default
    in `VestaKitConfig` and keep `DocumentIdsTest`).
