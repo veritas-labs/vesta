@@ -4,7 +4,7 @@ import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
+import uk.veritaslabs.kits.spaces.SpaceGroupMessage
 
 /** Telling "a message of this family that this version doesn't know" from "not one of this family at all" (ADR-034, WP4). */
 class UnrecognisedKindTest {
@@ -17,11 +17,11 @@ class UnrecognisedKindTest {
         val deviceSync = listOf(
             DeviceSyncMessage.Invite("i", "n"), DeviceSyncMessage.Hello("n"), DeviceSyncMessage.Rotate("i", "g", "n"),
         ).map { DeviceSyncMessage.encode(it).let { bytes -> Base64.Default.encode(bytes) } }
-        val homeGroup = listOf(HomeGroupMessage.InviteRequest("h"), HomeGroupMessage.Invite("h", "g", "i"))
-            .map { Base64.Default.encode(HomeGroupMessage.encode(it)) }
+        val homeGroup = listOf(SpaceGroupMessage.InviteRequest("h"), SpaceGroupMessage.Invite("h", "g", "i"))
+            .map { Base64.Default.encode(SpaceGroupMessage.encode(it)) }
 
         // Act
-        val unrecognised = deviceSync.map { DeviceSyncMessage.unrecognisedKind(it) } + homeGroup.map { HomeGroupMessage.unrecognisedKind(it) }
+        val unrecognised = deviceSync.map { DeviceSyncMessage.unrecognisedKind(it) } + homeGroup.map { SpaceGroupMessage.unrecognisedKind(it) }
 
         // Assert
         assertEquals(List(5) { null }, unrecognised)
@@ -35,13 +35,13 @@ class UnrecognisedKindTest {
 
         // Act
         val results = listOf(
-            DeviceSyncMessage.unrecognisedKind(device), HomeGroupMessage.unrecognisedKind(device),
-            DeviceSyncMessage.unrecognisedKind(group), HomeGroupMessage.unrecognisedKind(group),
+            DeviceSyncMessage.unrecognisedKind(device), SpaceGroupMessage.unrecognisedKind(device),
+            DeviceSyncMessage.unrecognisedKind(group), SpaceGroupMessage.unrecognisedKind(group),
         )
 
         // Assert
         assertEquals(listOf("devicesync.teleport", null, null, "homegroup.teleport"), results)
-        assertEquals("h1", HomeGroupMessage.stringField(group, "homeId"))
+        assertEquals("h1", SpaceGroupMessage.stringField(group, "homeId"))
     }
 
     @Test
@@ -52,8 +52,8 @@ class UnrecognisedKindTest {
         )
 
         // Act
-        val results = foreign.flatMap { listOf(DeviceSyncMessage.unrecognisedKind(it), HomeGroupMessage.unrecognisedKind(it)) } +
-            listOf(DeviceSyncMessage.unrecognisedKind(null), HomeGroupMessage.unrecognisedKind(null))
+        val results = foreign.flatMap { listOf(DeviceSyncMessage.unrecognisedKind(it), SpaceGroupMessage.unrecognisedKind(it)) } +
+            listOf(DeviceSyncMessage.unrecognisedKind(null), SpaceGroupMessage.unrecognisedKind(null))
 
         // Assert
         results.forEach { assertNull(it) }

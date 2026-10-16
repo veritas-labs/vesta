@@ -20,8 +20,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import uk.veritaslabs.vesta.App
 import uk.veritaslabs.vesta.homejoin.FakeHomeJoining
-import uk.veritaslabs.vesta.homejoin.InviteLink
-import uk.veritaslabs.vesta.homejoin.PendingJoin
+import uk.veritaslabs.kits.spaces.InviteLink
+import uk.veritaslabs.kits.spaces.PendingJoin
 import uk.veritaslabs.vesta.ui.screens.HomePickerTestTags
 import uk.veritaslabs.kits.x0x.X0xConnectivity
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteTestTags
@@ -42,7 +42,7 @@ class JoinHomeFromPickerTest {
         Dispatchers.resetMain()
     }
 
-    private val invite = InviteLink("home-1", "s3cr3t", expiresAt = Long.MAX_VALUE, adminAgentIds = listOf("agent-a"), homeName = "Maple Street")
+    private val invite = InviteLink("home-1", "s3cr3t", expiresAt = Long.MAX_VALUE, adminAgentIds = listOf("agent-a"), spaceName = "Maple Street")
 
     @OptIn(ExperimentalTestApi::class)
     @Test

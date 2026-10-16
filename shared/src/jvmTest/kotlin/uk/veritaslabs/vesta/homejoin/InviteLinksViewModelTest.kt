@@ -12,11 +12,13 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
+import uk.veritaslabs.kits.spaces.ActiveInvite
+import uk.veritaslabs.kits.spaces.InviteLink
 @OptIn(ExperimentalCoroutinesApi::class)
 class InviteLinksViewModelTest {
 
     private val day = 24 * 60 * 60 * 1000L
-    private val link = InviteLink("home-1", "s3cr3t", expiresAt = 7 * day, adminAgentIds = listOf("agent-a"), homeName = "Maple Street")
+    private val link = InviteLink("home-1", "s3cr3t", expiresAt = 7 * day, adminAgentIds = listOf("agent-a"), spaceName = "Maple Street")
 
     @AfterTest
     fun tearDown() {

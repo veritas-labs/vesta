@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.home.MemberRole
-import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.calendar.CalendarDate

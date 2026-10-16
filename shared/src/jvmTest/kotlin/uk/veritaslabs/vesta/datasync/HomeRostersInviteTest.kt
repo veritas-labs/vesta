@@ -11,20 +11,21 @@ import uk.veritaslabs.kits.spaces.InviteStatus
 import uk.veritaslabs.kits.spaces.inviteSecretHash
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.homejoin.InviteLink
+import uk.veritaslabs.kits.spaces.InviteLink
 import uk.veritaslabs.kits.spaces.ProfileRepository
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 class HomeRostersInviteTest {
 
     private val homeId = "home-1"
     private var now = 1_000L
 
-    private class Fixture(val database: KitsDatabase, val rosters: HomeRosters)
+    private class Fixture(val database: KitsDatabase, val rosters: SpaceRosters)
 
     /** A Home with admin "mark" (two devices), admin "jo" and ordinary member "sam", each with their device(s). */
     private suspend fun fixture(): Fixture {
         val database = openInMemoryDatabase()
-        val rosters = HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), nowMillis = { now }, deviceName = ::getDeviceName)
+        val rosters = SpaceRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), nowMillis = { now }, deviceName = ::getDeviceName)
         database.homeQueries.insert(homeId, "Maple Street", "family", 1L)
         rosters.admit(homeId, "mark", "Mark", "admin", "agent-mark-1")
         rosters.admit(homeId, "mark", "Mark", "admin", "agent-mark-2")
@@ -43,7 +44,7 @@ class HomeRostersInviteTest {
 
         // Assert
         assertEquals(
-            InviteLink(homeId, link!!.secret, expiresAt = 6_000L, adminAgentIds = listOf("agent-jo", "agent-mark-1", "agent-mark-2"), homeName = "Maple Street"),
+            InviteLink(homeId, link!!.secret, expiresAt = 6_000L, adminAgentIds = listOf("agent-jo", "agent-mark-1", "agent-mark-2"), spaceName = "Maple Street"),
             link,
         )
     }
@@ -204,10 +205,10 @@ class HomeRostersInviteTest {
     }
 
     /** A Home as just created: its creator is an admin in the roster, but no device of theirs has been published yet. */
-    private suspend fun justMadeHome(publishedMember: Boolean = true): Triple<HomeRosters, String, KitsDatabase> {
+    private suspend fun justMadeHome(publishedMember: Boolean = true): Triple<SpaceRosters, String, KitsDatabase> {
         val database = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
-        val rosters = HomeRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
+        val rosters = SpaceRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
         val me = profiles.current().id
         database.homeQueries.insert(homeId, "Maple Street", "family", 1L)
         database.homeMemberQueries.upsert(homeId, me, "Mark", null, "admin", 1L)

@@ -10,16 +10,17 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.spaces.ProfileRepository
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /** Marking a device unpaired across the Homes that list it (docs/plans/unpaired-device-gap-plan.md, slice 1). */
 class HomeRostersGoneTest {
 
-    private class Fixture(val database: KitsDatabase, val rosters: HomeRosters, val me: String)
+    private class Fixture(val database: KitsDatabase, val rosters: SpaceRosters, val me: String)
 
     /** Two Homes. In both, this user has two devices; in "home-1" Sam's device is listed too, and in "home-2" only this user is. */
     private suspend fun fixture(): Fixture {
         val database = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
-        val rosters = HomeRosters(database, profiles, deviceName = ::getDeviceName)
+        val rosters = SpaceRosters(database, profiles, deviceName = ::getDeviceName)
         val me = profiles.current().id
         listOf("home-1", "home-2").forEach { id ->
             database.homeQueries.insert(id, id, "family", 1L)
@@ -30,7 +31,7 @@ class HomeRostersGoneTest {
         return Fixture(database, rosters, me)
     }
 
-    private suspend fun HomeRosters.devicesOf(homeId: String, memberId: String) = members(homeId).first { it.memberId == memberId }.devices
+    private suspend fun SpaceRosters.devicesOf(homeId: String, memberId: String) = members(homeId).first { it.memberId == memberId }.devices
 
     @Test
     fun anUnpairedDeviceIsLeftOutOfEveryHomeThatListsIt() = runBlocking {

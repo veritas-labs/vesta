@@ -72,8 +72,8 @@ import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
 import uk.veritaslabs.kits.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.LeaveResult
-import uk.veritaslabs.vesta.homejoin.HomeJoining
-import uk.veritaslabs.vesta.homegroup.HomeHub
+import uk.veritaslabs.kits.spaces.SpaceJoining
+import uk.veritaslabs.kits.spaces.SpaceHub
 import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
@@ -150,8 +150,8 @@ import uk.veritaslabs.vesta.ui.screens.ShoppingListScreen
 import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
 import uk.veritaslabs.vesta.ui.screens.ShoppingListViewModel
 import uk.veritaslabs.vesta.ui.screens.PantryScreen
-import uk.veritaslabs.vesta.home.MemberListItem
-import uk.veritaslabs.vesta.home.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
 import uk.veritaslabs.vesta.ui.screens.ProfileNameMode
 import uk.veritaslabs.vesta.ui.screens.ProfileNameScreen
 import uk.veritaslabs.vesta.ui.screens.MemberDetailScreen
@@ -201,7 +201,7 @@ fun App(
     homeRepository: HomeRepository? = null,
     assistants: AssistantRepository? = null,
     deviceSync: DeviceSyncHost? = null,
-    homeJoining: HomeJoining? = null,
+    homeJoining: SpaceJoining? = null,
     profiles: ProfileRepository? = null,
     settings: AppSettingsRepository? = null,
     x0xConnectivity: @Composable () -> X0xConnectivity = { rememberX0xConnectivity() },
@@ -403,7 +403,7 @@ fun App(
                             onSettingsClick = { settingsDestination = SettingsDestination.Settings },
                             pendingJoins = pendingJoins,
                             networkConnected = connectivity.isReachingNetwork,
-                            onCancelPendingJoin = { join -> scope.launch { homeJoining?.cancelPendingJoin(join.homeId) } },
+                            onCancelPendingJoin = { join -> scope.launch { homeJoining?.cancelPendingJoin(join.spaceId) } },
                         )
                     }
                 }
@@ -448,8 +448,8 @@ private fun HomeContent(
     memberAgents: suspend (memberId: String) -> List<MemberAgent> = { emptyList() },
     onEditHome: () -> Unit = {},
     onDeleteHome: suspend () -> Unit = {},
-    joining: HomeJoining? = null,
-    hubs: HomeHub? = null,
+    joining: SpaceJoining? = null,
+    hubs: SpaceHub? = null,
     syncActivity: SyncActivityRepository = UnavailableSyncActivityRepository,
     ownDeviceCanBeHub: Boolean = false,
     onOpened: () -> Unit = {},
@@ -551,8 +551,8 @@ private fun HomeContent(
                     destination = HomeDestination.MemberDetail
                 },
                 joinRequests = joinRequests,
-                onApprove = { request -> scope.launch { joining?.approve(request.homeId, request.memberId) } },
-                onDecline = { request -> scope.launch { joining?.decline(request.homeId, request.memberId) } },
+                onApprove = { request -> scope.launch { joining?.approve(request.spaceId, request.memberId) } },
+                onDecline = { request -> scope.launch { joining?.decline(request.spaceId, request.memberId) } },
             )
         }
         HomeDestination.MemberDetail -> {

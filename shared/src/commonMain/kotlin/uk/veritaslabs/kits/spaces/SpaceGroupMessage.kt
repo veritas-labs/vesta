@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.homegroup
+package uk.veritaslabs.kits.spaces
 
 import kotlin.io.encoding.Base64
 import kotlinx.serialization.SerialName
@@ -9,21 +9,21 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 
 /**
- * How the devices of a Home get into its x0x group (docs/adr/ADR-021-home-x0x-group.md), over x0x direct messages. The
- * `homegroup.` prefix keeps these apart from the Home-join, device-sync and agent-command messages on the same stream.
+ * How the devices of a Space get into its x0x group (docs/adr/ADR-021-home-x0x-group.md), over x0x direct messages. The
+ * `homegroup.` prefix keeps these apart from the Space-join, device-sync and agent-command messages on the same stream.
  */
 @Serializable
-sealed interface HomeGroupMessage {
+sealed interface SpaceGroupMessage {
 
-    /** A device that has the Home but is not in its group to the admins' devices: "please invite me". Resent every sync round. */
+    /** A device that has the Space but is not in its group to the admins' devices: "please invite me". Resent every sync round. */
     @Serializable
     @SerialName("homegroup.invite.request")
-    data class InviteRequest(val homeId: String) : HomeGroupMessage
+    data class InviteRequest(@SerialName("homeId") val spaceId: String) : SpaceGroupMessage
 
-    /** An admin device to the asker: an x0x invite link for [groupId], the group the Home's roster names. */
+    /** An admin device to the asker: an x0x invite link for [groupId], the group the Space's roster names. */
     @Serializable
     @SerialName("homegroup.invite")
-    data class Invite(val homeId: String, val groupId: String, val invite: String) : HomeGroupMessage
+    data class Invite(@SerialName("homeId") val spaceId: String, val groupId: String, val invite: String) : SpaceGroupMessage
 
     companion object {
         private val json = Json {
@@ -53,10 +53,10 @@ sealed interface HomeGroupMessage {
             }.getOrNull()
         }
 
-        fun encode(message: HomeGroupMessage): ByteArray = json.encodeToString(serializer(), message).encodeToByteArray()
+        fun encode(message: SpaceGroupMessage): ByteArray = json.encodeToString(serializer(), message).encodeToByteArray()
 
-        /** Decodes a direct message's base64 payload; null when it isn't a Home-group message. */
-        fun decode(base64Payload: String?): HomeGroupMessage? {
+        /** Decodes a direct message's base64 payload; null when it isn't a Space-group message. */
+        fun decode(base64Payload: String?): SpaceGroupMessage? {
             val bytes = base64Payload?.let { runCatching { Base64.Default.decode(it) }.getOrNull() } ?: return null
             return runCatching { json.decodeFromString(serializer(), bytes.decodeToString()) }.getOrNull()
         }

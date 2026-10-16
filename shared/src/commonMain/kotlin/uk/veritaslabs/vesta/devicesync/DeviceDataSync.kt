@@ -3,8 +3,8 @@ package uk.veritaslabs.vesta.devicesync
 import uk.veritaslabs.kits.spaces.SpaceChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.kits.spaces.ProfileChangeListener
-import uk.veritaslabs.vesta.homegroup.HomeHub
-import uk.veritaslabs.vesta.homejoin.HomeJoining
+import uk.veritaslabs.kits.spaces.SpaceHub
+import uk.veritaslabs.kits.spaces.SpaceJoining
 import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
 import uk.veritaslabs.vesta.syncactivity.UnavailableSyncActivityRepository
 
@@ -34,10 +34,10 @@ interface DeviceDataSync {
     val profileChanges: ProfileChangeListener
 
     /** Joining a Home with an invite link, and inviting someone to one (docs/adr/ADR-018-invite-links.md). */
-    val joining: HomeJoining
+    val joining: SpaceJoining
 
     /** A Home's always-on hub: enrolling one, and removing it (docs/adr/ADR-020-syncing-without-overlapping-online-time.md). */
-    val hubs: HomeHub
+    val hubs: SpaceHub
 
     /**
      * The user unpaired [agentId]: every Home that lists it as theirs marks it, and an admin device then takes it out of the Home's group

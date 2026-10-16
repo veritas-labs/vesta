@@ -23,13 +23,15 @@ import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.kits.spaces.SpaceChangeListener
 import uk.veritaslabs.kits.spaces.StoredSpace
-import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.homejoin.InviteLink
-import uk.veritaslabs.vesta.homejoin.PendingJoin
-import uk.veritaslabs.vesta.homejoin.RedeemResult
+import uk.veritaslabs.kits.spaces.SpaceJoinMessage
+import uk.veritaslabs.kits.spaces.InviteLink
+import uk.veritaslabs.kits.spaces.PendingJoin
+import uk.veritaslabs.kits.spaces.RedeemResult
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
+import uk.veritaslabs.kits.spaces.SpaceJoinService
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /** The joiner side of invite links (docs/adr/ADR-018-invite-links.md), alone and against a real admin service. */
 class HomeJoinRedeemTest {
 
@@ -42,9 +44,9 @@ class HomeJoinRedeemTest {
     private inner class Party(val agentId: String) {
         val database: KitsDatabase = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
-        val rosters = HomeRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
+        val rosters = SpaceRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
         val node = network.node(agentId)
-        val join = HomeJoinService(
+        val join = SpaceJoinService(
             node, database, rosters,
             object : SpaceChangeListener {
                 override suspend fun saved(home: StoredSpace) = Unit
@@ -61,8 +63,8 @@ class HomeJoinRedeemTest {
         suspend fun homeIds() = database.homeQueries.selectAll().awaitAsList().map { it.id }
         suspend fun memberIds() = database.homeMemberQueries.selectByHome(homeId).awaitAsList().map { it.memberId }
 
-        suspend fun receive(sender: String, message: HomeJoinMessage) = join.handle(
-            X0xDirectMessage(sender = sender, payload = Base64.Default.encode(HomeJoinMessage.encode(message)), verified = true, trustDecision = "unknown"),
+        suspend fun receive(sender: String, message: SpaceJoinMessage) = join.handle(
+            X0xDirectMessage(sender = sender, payload = Base64.Default.encode(SpaceJoinMessage.encode(message)), verified = true, trustDecision = "unknown"),
         )
     }
 
@@ -75,16 +77,16 @@ class HomeJoinRedeemTest {
         return admin to link
     }
 
-    private fun linkNaming(vararg agents: String) = InviteLink(homeId, "s3cr3t", expiresAt = 10_000L, adminAgentIds = agents.toList(), homeName = "Maple Street")
+    private fun linkNaming(vararg agents: String) = InviteLink(homeId, "s3cr3t", expiresAt = 10_000L, adminAgentIds = agents.toList(), spaceName = "Maple Street")
 
     private suspend fun eventually(check: suspend () -> Boolean) {
         withTimeout(10.seconds) { while (!check()) delay(20.milliseconds) }
     }
 
     /** Collects what a stand-in admin agent is sent. */
-    private fun capture(agentId: String): MutableList<HomeJoinMessage> {
-        val received = mutableListOf<HomeJoinMessage>()
-        network.node(agentId).onDirect = { message -> HomeJoinMessage.decode(message.payload)?.let { received += it } }
+    private fun capture(agentId: String): MutableList<SpaceJoinMessage> {
+        val received = mutableListOf<SpaceJoinMessage>()
+        network.node(agentId).onDirect = { message -> SpaceJoinMessage.decode(message.payload)?.let { received += it } }
         return received
     }
 
@@ -99,10 +101,10 @@ class HomeJoinRedeemTest {
         val result = sam.join.redeemInvite(linkNaming("agent-a", "agent-b"))
 
         // Assert
-        val expected = HomeJoinMessage.Request(homeId, "s3cr3t", sam.myId(), sam.profiles.current().displayName, "agent-sam")
+        val expected = SpaceJoinMessage.Request(homeId, "s3cr3t", sam.myId(), sam.profiles.current().displayName, "agent-sam")
         assertEquals(RedeemResult.Started, result)
-        assertEquals(listOf<HomeJoinMessage>(expected), first)
-        assertEquals(listOf<HomeJoinMessage>(expected), second)
+        assertEquals(listOf<SpaceJoinMessage>(expected), first)
+        assertEquals(listOf<SpaceJoinMessage>(expected), second)
         assertEquals(listOf(PendingJoin(homeId, "Maple Street", 10_000L, denial = null)), sam.join.pendingJoins())
     }
 
@@ -132,7 +134,7 @@ class HomeJoinRedeemTest {
         val result = sam.join.redeemInvite(linkNaming("agent-a"))
 
         // Assert
-        assertEquals(RedeemResult.AlreadyInHome, result)
+        assertEquals(RedeemResult.AlreadyInSpace, result)
         assertEquals(emptyList(), sam.join.pendingJoins())
     }
 
@@ -181,7 +183,7 @@ class HomeJoinRedeemTest {
         sam.join.redeemInvite(linkNaming("agent-a"))
 
         // Act
-        sam.receive("agent-mallory", HomeJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mallory", "Mallory"))
+        sam.receive("agent-mallory", SpaceJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mallory", "Mallory"))
 
         // Assert
         assertEquals(emptyList(), sam.homeIds())
@@ -195,7 +197,7 @@ class HomeJoinRedeemTest {
         sam.join.redeemInvite(linkNaming("agent-a"))
 
         // Act
-        sam.receive("agent-a", HomeJoinMessage.Invite("other-home", "Elsewhere", "family", 1L, "mark", "Mark"))
+        sam.receive("agent-a", SpaceJoinMessage.Invite("other-home", "Elsewhere", "family", 1L, "mark", "Mark"))
 
         // Assert
         assertEquals(emptyList(), sam.homeIds())
@@ -209,7 +211,7 @@ class HomeJoinRedeemTest {
         sam.join.cancelPendingJoin(homeId)
 
         // Act
-        sam.receive("agent-a", HomeJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mark", "Mark"))
+        sam.receive("agent-a", SpaceJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mark", "Mark"))
 
         // Assert
         assertEquals(emptyList(), sam.homeIds())
@@ -223,10 +225,10 @@ class HomeJoinRedeemTest {
         sam.join.redeemInvite(linkNaming("agent-a"))
 
         // Act
-        sam.receive("agent-a", HomeJoinMessage.Denied(homeId, HomeJoinMessage.DeniedDeclined))
+        sam.receive("agent-a", SpaceJoinMessage.Denied(homeId, SpaceJoinMessage.DeniedDeclined))
 
         // Assert
-        assertEquals(listOf(PendingJoin(homeId, "Maple Street", 10_000L, HomeJoinMessage.DeniedDeclined)), sam.join.pendingJoins())
+        assertEquals(listOf(PendingJoin(homeId, "Maple Street", 10_000L, SpaceJoinMessage.DeniedDeclined)), sam.join.pendingJoins())
     }
 
     @Test
@@ -236,7 +238,7 @@ class HomeJoinRedeemTest {
         sam.join.redeemInvite(linkNaming("agent-a"))
 
         // Act
-        sam.receive("agent-mallory", HomeJoinMessage.Denied(homeId, HomeJoinMessage.DeniedRevoked))
+        sam.receive("agent-mallory", SpaceJoinMessage.Denied(homeId, SpaceJoinMessage.DeniedRevoked))
 
         // Assert
         assertEquals(null, sam.join.pendingJoins().single().denial)
@@ -248,12 +250,12 @@ class HomeJoinRedeemTest {
         val sam = Party("agent-sam")
         val admin = capture("agent-a")
         sam.join.redeemInvite(linkNaming("agent-a"))
-        sam.receive("agent-a", HomeJoinMessage.Denied(homeId, HomeJoinMessage.DeniedRevoked))
+        sam.receive("agent-a", SpaceJoinMessage.Denied(homeId, SpaceJoinMessage.DeniedRevoked))
         admin.clear()
 
         // Act
         sam.join.resendPending()
-        sam.receive("agent-a", HomeJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mark", "Mark"))
+        sam.receive("agent-a", SpaceJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mark", "Mark"))
 
         // Assert
         assertEquals(emptyList(), admin)
@@ -272,7 +274,7 @@ class HomeJoinRedeemTest {
         sam.join.resendPending()
 
         // Assert
-        assertEquals(3, admin.filterIsInstance<HomeJoinMessage.Request>().size)
+        assertEquals(3, admin.filterIsInstance<SpaceJoinMessage.Request>().size)
     }
 
     @Test
@@ -286,10 +288,10 @@ class HomeJoinRedeemTest {
 
         // Act
         sam.join.resendPending()
-        sam.receive("agent-a", HomeJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mark", "Mark"))
+        sam.receive("agent-a", SpaceJoinMessage.Invite(homeId, "Maple Street", "family", 1L, "mark", "Mark"))
 
         // Assert
-        assertEquals(emptyList(), admin.filterIsInstance<HomeJoinMessage.Request>())
+        assertEquals(emptyList(), admin.filterIsInstance<SpaceJoinMessage.Request>())
         assertEquals(listOf(homeId), sam.homeIds())
     }
 

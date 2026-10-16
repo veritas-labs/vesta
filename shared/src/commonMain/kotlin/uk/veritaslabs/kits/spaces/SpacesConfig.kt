@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.home
+package uk.veritaslabs.kits.spaces
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -6,15 +6,15 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * What an app chooses about the way its Homes are shared: the invite link scheme, the name of the x0x group a Home gets,
+ * What an app chooses about the way its Spaces are shared: the invite link scheme, the name of the x0x group a Space gets,
  * and how long the invites and hub commands it makes stay valid. The defaults are the values Vesta has always used;
  * [inviteScheme], [groupName] and [mailboxStoreName] are visible to other devices or stored on them, so an existing
  * install must keep them. The lifetimes are policy and may change freely.
  */
-data class HomeConfig(
+data class SpacesConfig(
     /** Where an invite link starts (`<scheme>/<token>`). Links already shared use this one. */
     val inviteScheme: String = DefaultInviteScheme,
-    /** The name given to the x0x group created for a Home. Groups are never looked up by it. */
+    /** The name given to the x0x group created for a Space. Groups are never looked up by it. */
     val groupName: String = "Vesta Home",
     /** How long an invite link an admin shares stays usable. */
     val inviteLinkLifetime: Duration = 7.days,
@@ -24,7 +24,7 @@ data class HomeConfig(
     val hubEnrolmentLifetime: Duration = 1.hours,
     /** How often the hub screen makes fresh enrolment commands, so the ones shown are never close to expiry. */
     val hubCommandsRefresh: Duration = 30.minutes,
-    /** The name of the Home group's mailbox store. It is stored in the x0x group, so it must not change for existing Homes. */
+    /** The name of the Space group's mailbox store. It is stored in the x0x group, so it must not change for existing Spaces. */
     val mailboxStoreName: String = "mailbox",
 ) {
     companion object {

@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.home.MemberRole
-import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.ExperimentalTestApi
 import uk.veritaslabs.vesta.files.FileExporter

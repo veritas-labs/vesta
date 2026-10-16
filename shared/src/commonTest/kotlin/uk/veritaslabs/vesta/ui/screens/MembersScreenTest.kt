@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.home.MemberRole
-import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
@@ -16,7 +16,7 @@ import kotlin.test.Test
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import uk.veritaslabs.vesta.homejoin.JoinRequest
+import uk.veritaslabs.kits.spaces.JoinRequest
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBarTestTags
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 

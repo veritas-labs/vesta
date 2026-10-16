@@ -1,7 +1,12 @@
 package uk.veritaslabs.vesta.homegroup
 
-/** A scriptable [HomeHub] for view-model tests. */
-class FakeHomeHub : HomeHub {
+import uk.veritaslabs.kits.spaces.HubEnrolment
+import uk.veritaslabs.kits.spaces.HubResult
+import uk.veritaslabs.kits.spaces.HubState
+import uk.veritaslabs.kits.spaces.SpaceHub
+
+/** A scriptable [SpaceHub] for view-model tests. */
+class FakeHomeHub : SpaceHub {
     var enrolment: HubEnrolment? = HubEnrolment("group-1", "x0x group join invite:group-1\nx0x group store create group-1 mailbox")
     var hubIds: List<String> = emptyList()
     var inGroup = false

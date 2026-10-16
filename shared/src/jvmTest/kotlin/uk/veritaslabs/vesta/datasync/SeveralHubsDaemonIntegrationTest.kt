@@ -10,7 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import uk.veritaslabs.vesta.homegroup.HubResult
+import uk.veritaslabs.kits.spaces.HubResult
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
 /**

@@ -11,11 +11,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
-import uk.veritaslabs.vesta.datasync.HomeRosters
+import uk.veritaslabs.kits.spaces.SpaceRosters
 import uk.veritaslabs.vesta.datasync.TestHomeDocuments
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
-import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
+import uk.veritaslabs.kits.spaces.SpaceJoinMessage
 import uk.veritaslabs.kits.spaces.ProfileRepository
 
 /**
@@ -91,7 +91,7 @@ class ExistingInstallStillOpensTest {
         val (database, driver) = openAsTheAppDoes(fixtureCopy())
         val homeId = database.homeQueries.selectAll().awaitAsList().single().id
         val profiles = ProfileRepository(database, deviceName = { "Mark's desktop" })
-        val rosters = HomeRosters(database, profiles, deviceName = { "Mark's desktop" })
+        val rosters = SpaceRosters(database, profiles, deviceName = { "Mark's desktop" })
         val registry = TestHomeDocuments(database, rosters, publishRosters = {}, sources = VestaHomeSources(database)).registry
 
         // Act
@@ -114,7 +114,7 @@ class ExistingInstallStillOpensTest {
         val (database, driver) = openAsTheAppDoes(fixtureCopy())
         val homeId = database.homeQueries.selectAll().awaitAsList().single().id
         val profiles = ProfileRepository(database, deviceName = { "Mark's desktop" })
-        val rosters = HomeRosters(database, profiles, deviceName = { "Mark's desktop" })
+        val rosters = SpaceRosters(database, profiles, deviceName = { "Mark's desktop" })
 
         // Act
         val members = rosters.members(homeId).associateBy { it.memberId }
@@ -144,14 +144,14 @@ class ExistingInstallStillOpensTest {
 
         // Act
         val pending = database.pendingMessageQueries.selectAll().awaitAsList().single()
-        val decoded = HomeJoinMessage.decode(Base64.Default.encode(pending.payload))
+        val decoded = SpaceJoinMessage.decode(Base64.Default.encode(pending.payload))
         val heads = database.mailboxQueries.selectHeads(homeId, "$homeId:pantry").awaitAsList()
         driver.close()
 
         // Assert
-        assertEquals(HomeJoinMessage.LeftKind, pending.kind)
-        val left = assertNotNull(decoded as? HomeJoinMessage.Left)
-        assertEquals(homeId, left.homeId)
+        assertEquals(SpaceJoinMessage.LeftKind, pending.kind)
+        val left = assertNotNull(decoded as? SpaceJoinMessage.Left)
+        assertEquals(homeId, left.spaceId)
         assertEquals(1, heads.size)
     }
 }

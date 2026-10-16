@@ -47,8 +47,8 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.homejoin.PendingJoin
+import uk.veritaslabs.kits.spaces.SpaceJoinMessage
+import uk.veritaslabs.kits.spaces.PendingJoin
 import uk.veritaslabs.vesta.ui.components.ActionCard
 import uk.veritaslabs.vesta.ui.components.ActionCardOrientation
 import uk.veritaslabs.vesta.ui.components.AvatarButton
@@ -310,30 +310,30 @@ fun HomePickerScreen(
 private fun PendingJoinCard(join: PendingJoin, networkConnected: Boolean, onCancel: () -> Unit) {
     val status = when (join.denial) {
         null -> if (networkConnected) Res.string.pending_join_waiting else Res.string.pending_join_no_network
-        HomeJoinMessage.DeniedExpired -> Res.string.pending_join_denied_expired
-        HomeJoinMessage.DeniedRevoked -> Res.string.pending_join_denied_revoked
-        HomeJoinMessage.DeniedUsed -> Res.string.pending_join_denied_used
+        SpaceJoinMessage.DeniedExpired -> Res.string.pending_join_denied_expired
+        SpaceJoinMessage.DeniedRevoked -> Res.string.pending_join_denied_revoked
+        SpaceJoinMessage.DeniedUsed -> Res.string.pending_join_denied_used
         else -> Res.string.pending_join_denied_declined
     }
     Surface(
         shape = MaterialTheme.shapes.small,
         color = Color.Transparent,
         border = BorderStroke(1.dp, if (join.denial == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error),
-        modifier = Modifier.fillMaxWidth().testTag(HomePickerTestTags.pendingJoin(join.homeId)),
+        modifier = Modifier.fillMaxWidth().testTag(HomePickerTestTags.pendingJoin(join.spaceId)),
     ) {
         Row(
             modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = join.homeName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = join.spaceName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     text = stringResource(status),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (join.denial == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
                 )
             }
-            TextButton(onClick = onCancel, modifier = Modifier.testTag(HomePickerTestTags.pendingJoinCancel(join.homeId))) {
+            TextButton(onClick = onCancel, modifier = Modifier.testTag(HomePickerTestTags.pendingJoinCancel(join.spaceId))) {
                 Text(stringResource(if (join.denial == null) Res.string.common_cancel else Res.string.pending_join_dismiss))
             }
         }
@@ -342,7 +342,7 @@ private fun PendingJoinCard(join: PendingJoin, networkConnected: Boolean, onCanc
 
 private val HomePickerPreviewPendingJoins = listOf(
     PendingJoin("maple", "Maple Street", expiresAt = 1L, denial = null),
-    PendingJoin("elm", "Elm Court", expiresAt = 1L, denial = HomeJoinMessage.DeniedDeclined),
+    PendingJoin("elm", "Elm Court", expiresAt = 1L, denial = SpaceJoinMessage.DeniedDeclined),
 )
 
 private val HomePickerPreviewHomes = listOf(

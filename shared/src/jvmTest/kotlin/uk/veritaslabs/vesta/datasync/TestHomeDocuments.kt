@@ -5,13 +5,14 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.docs.SpaceDocumentRegistry
 import uk.veritaslabs.kits.docs.SpaceDocumentType
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /**
  * The registry the engine builds (the roster it registers itself, then the app's types), for tests that need the
  * registry without the engine.
  */
 internal class TestHomeDocuments(
     database: KitsDatabase,
-    val rosters: HomeRosters,
+    val rosters: SpaceRosters,
     publishRosters: suspend () -> Unit,
     sources: VestaHomeSources = VestaHomeSources(database),
     extraTypes: List<SpaceDocumentType> = emptyList(),

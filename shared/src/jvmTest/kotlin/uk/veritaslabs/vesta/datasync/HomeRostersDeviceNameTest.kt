@@ -7,12 +7,13 @@ import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.spaces.ProfileRepository
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 class HomeRostersDeviceNameTest {
 
-    private suspend fun rosterFor(name: () -> String): HomeRosters {
+    private suspend fun rosterFor(name: () -> String): SpaceRosters {
         val database = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
-        val rosters = HomeRosters(database, profiles, deviceName = name)
+        val rosters = SpaceRosters(database, profiles, deviceName = name)
         database.homeQueries.insert("home-1", "Home", "family", 1L)
         rosters.admit("home-1", profiles.current().id, "Me", "admin", "agent-me")
         return rosters

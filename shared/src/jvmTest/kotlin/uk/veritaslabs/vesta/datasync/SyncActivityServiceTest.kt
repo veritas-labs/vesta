@@ -38,6 +38,7 @@ import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.kits.x0x.X0xAgent
 import uk.veritaslabs.kits.x0x.X0xClient
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 class SyncActivityServiceTest {
 
     private val network = FakeX0xNetwork()
@@ -92,7 +93,7 @@ class SyncActivityServiceTest {
         // Arrange
         val a = ActivityDevice(network, scope, "agent-a")
         val homeId = a.homes.create("Maple Street", HomeShape.Family.storageValue)
-        HomeRosters(a.database, a.profiles, deviceName = ::getDeviceName).addHub(homeId, "agent-hub")
+        SpaceRosters(a.database, a.profiles, deviceName = ::getDeviceName).addHub(homeId, "agent-hub")
 
         // Act
         val before = a.snapshot(homeId)

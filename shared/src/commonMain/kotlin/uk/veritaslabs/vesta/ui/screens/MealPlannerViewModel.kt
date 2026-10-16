@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberListItem
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.Flow

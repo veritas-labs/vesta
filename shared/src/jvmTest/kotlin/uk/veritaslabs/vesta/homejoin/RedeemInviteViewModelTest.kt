@@ -11,10 +11,12 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
+import uk.veritaslabs.kits.spaces.InviteLink
+import uk.veritaslabs.kits.spaces.RedeemResult
 @OptIn(ExperimentalCoroutinesApi::class)
 class RedeemInviteViewModelTest {
 
-    private val link = InviteLink("home-1", "s3cr3t", expiresAt = 1_000L, adminAgentIds = listOf("agent-a"), homeName = "Maple Street")
+    private val link = InviteLink("home-1", "s3cr3t", expiresAt = 1_000L, adminAgentIds = listOf("agent-a"), spaceName = "Maple Street")
 
     @AfterTest
     fun tearDown() {
@@ -85,7 +87,7 @@ class RedeemInviteViewModelTest {
     fun aHomeAlreadyHeldIsReported() = runTest {
         // Arrange
         useMainDispatcher(testScheduler)
-        val joining = FakeHomeJoining().apply { redeemResult = RedeemResult.AlreadyInHome }
+        val joining = FakeHomeJoining().apply { redeemResult = RedeemResult.AlreadyInSpace }
         val viewModel = RedeemInviteViewModel(joining, nowMillis = { 0L })
 
         // Act

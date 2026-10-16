@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import uk.veritaslabs.kits.spaces.InviteLink
+import uk.veritaslabs.kits.spaces.SpaceJoining
 private const val DayMillis = 24 * 60 * 60 * 1000L
 
 /** One invite link of a Home as the manage-links list shows it. */
@@ -32,7 +34,7 @@ data class InviteLinksUiState(
  */
 class InviteLinksViewModel(
     private val homeId: String,
-    private val joining: HomeJoining?,
+    private val joining: SpaceJoining?,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : ViewModel() {
 

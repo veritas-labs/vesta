@@ -24,7 +24,7 @@ import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
-import uk.veritaslabs.vesta.datasync.HomeRosters
+import uk.veritaslabs.kits.spaces.SpaceRosters
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
@@ -43,7 +43,7 @@ class MailboxCompactionTest {
     private inner class Device(val agentId: String, val creator: Boolean = false) {
         val database: KitsDatabase = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
-        val rosters = HomeRosters(database, profiles, deviceName = ::getDeviceName)
+        val rosters = SpaceRosters(database, profiles, deviceName = ::getDeviceName)
         val pantries = PantrySources(database)
         val lists = ShoppingListSources(database, pantries)
         val node = network.node(agentId)

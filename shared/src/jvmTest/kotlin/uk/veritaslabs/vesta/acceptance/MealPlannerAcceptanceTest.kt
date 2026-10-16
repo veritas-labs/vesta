@@ -42,8 +42,8 @@ import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardTestTags
 import uk.veritaslabs.vesta.ui.screens.MealPlannerEatersTestTags
 import uk.veritaslabs.vesta.ui.screens.MealPlannerPickerTestTags
-import uk.veritaslabs.vesta.home.MemberListItem
-import uk.veritaslabs.vesta.home.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
 import uk.veritaslabs.vesta.ui.screens.MealPlannerTestTags
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
 import uk.veritaslabs.vesta.ui.screens.MealSlot

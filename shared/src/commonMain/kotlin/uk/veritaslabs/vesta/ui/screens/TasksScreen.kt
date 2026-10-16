@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.home.MemberRole
-import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
 import uk.veritaslabs.vesta.ui.components.ContentMaxWidth
 import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.ui.semantics.Role

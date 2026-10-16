@@ -11,7 +11,7 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.HomeDetails
 import uk.veritaslabs.vesta.home.HomeListItem
-import uk.veritaslabs.vesta.home.MemberRole
+import uk.veritaslabs.kits.spaces.MemberRole
 
 import uk.veritaslabs.kits.spaces.SpaceChangeListener
 import uk.veritaslabs.kits.spaces.StoredSpace

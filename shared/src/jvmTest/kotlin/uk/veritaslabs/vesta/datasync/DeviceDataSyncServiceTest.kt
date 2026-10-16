@@ -60,10 +60,10 @@ import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.MemberRepository
 import uk.veritaslabs.vesta.home.RoleChangeResult
-import uk.veritaslabs.vesta.home.MemberRole
+import uk.veritaslabs.kits.spaces.MemberRole
 import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.home.RemoveMemberResult
-import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
+import uk.veritaslabs.kits.spaces.SpaceJoinMessage
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
@@ -83,6 +83,8 @@ import uk.veritaslabs.vesta.ui.screens.MealSlot
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 import uk.veritaslabs.kits.spaces.SpaceRegistry
+import uk.veritaslabs.kits.spaces.SpaceJoinService
+import uk.veritaslabs.kits.spaces.SpaceRosters
 class DeviceDataSyncServiceTest {
 
     private val network = FakeX0xNetwork()
@@ -824,7 +826,7 @@ class DeviceDataSyncServiceTest {
         y.start()
         eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
         val xMember = x.profiles.current()
-        val invite = HomeJoinMessage.encode(HomeJoinMessage.Invite(homeId, "Maple Street", "family", 1L, xMember.id, xMember.displayName))
+        val invite = SpaceJoinMessage.encode(SpaceJoinMessage.Invite(homeId, "Maple Street", "family", 1L, xMember.id, xMember.displayName))
         y.node.sentTo.clear()
 
         // Act
@@ -942,8 +944,8 @@ class DeviceDataSyncServiceTest {
         // Arrange
         val (x, y, homeId) = twoPeopleInOneHome()
         var now = 1_000L
-        val join = HomeJoinService(
-            x.node, x.database, HomeRosters(x.database, x.profiles, deviceName = ::getDeviceName), x.sync.homeChanges, x.profiles, VestaHomeSeeding(VestaHomeSources(x.database, x.pantries), x.database),
+        val join = SpaceJoinService(
+            x.node, x.database, SpaceRosters(x.database, x.profiles, deviceName = ::getDeviceName), x.sync.homeChanges, x.profiles, VestaHomeSeeding(VestaHomeSources(x.database, x.pantries), x.database),
             nowMillis = { now }, messageLifetime = 10.seconds,
         )
         network.offline += y.agentId
@@ -971,7 +973,7 @@ class DeviceDataSyncServiceTest {
         eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
 
         // Act: Y is an ordinary member, and says X has been removed from Home
-        y.node.sendDirect(x.agentId, HomeJoinMessage.encode(HomeJoinMessage.Removed(homeId)))
+        y.node.sendDirect(x.agentId, SpaceJoinMessage.encode(SpaceJoinMessage.Removed(homeId)))
         delay(300.milliseconds)
 
         // Assert
@@ -988,7 +990,7 @@ class DeviceDataSyncServiceTest {
         eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
 
         // Act: Y claims X has left
-        y.node.sendDirect(x.agentId, HomeJoinMessage.encode(HomeJoinMessage.Left(homeId, x.profiles.current().id)))
+        y.node.sendDirect(x.agentId, SpaceJoinMessage.encode(SpaceJoinMessage.Left(homeId, x.profiles.current().id)))
         delay(300.milliseconds)
 
         // Assert
@@ -1511,12 +1513,12 @@ class DeviceDataSyncServiceTest {
             "roster", ::rosterDocumentId, SyncModules.Members, private = false,
             edit = { profiles.rename("Xavier") },
             seen = { memberNames(it).contains("Xavier") },
-            heads = { HomeRosters(database, profiles, deviceName = ::getDeviceName).heads(it) },
+            heads = { SpaceRosters(database, profiles, deviceName = ::getDeviceName).heads(it) },
             peer = {
-                val rosters = HomeRosters(database, profiles, deviceName = ::getDeviceName)
+                val rosters = SpaceRosters(database, profiles, deviceName = ::getDeviceName)
                 rosters.heads(it)?.let { _ -> SyncPeer({ state -> rosters.generate(it, state) }, { state, message -> rosters.receive(it, state, message) }) }
             },
-            prime = { HomeRosters(database, profiles, deviceName = ::getDeviceName).publish(it, agentId, emptySet()) },
+            prime = { SpaceRosters(database, profiles, deviceName = ::getDeviceName).publish(it, agentId, emptySet()) },
         ),
     )
 

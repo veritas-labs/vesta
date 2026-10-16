@@ -19,11 +19,14 @@ import org.automerge.SyncState
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
-import uk.veritaslabs.vesta.homegroup.HubResult
-import uk.veritaslabs.vesta.homegroup.HubState
+import uk.veritaslabs.kits.spaces.HubResult
+import uk.veritaslabs.kits.spaces.HubState
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.x0x.X0xApiException
 
+import uk.veritaslabs.kits.spaces.SpaceGroups
+import uk.veritaslabs.kits.spaces.SpaceHubs
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /** A Home's always-on hub (docs/adr/ADR-020, slice 6): enrolling it, recording it in the roster, and removing it. */
 class HomeHubsTest {
 
@@ -35,10 +38,10 @@ class HomeHubsTest {
     private inner class Device(val agentId: String) {
         val database: KitsDatabase = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
-        val rosters = HomeRosters(database, profiles, nowMillis = { clock++ }, deviceName = ::getDeviceName)
+        val rosters = SpaceRosters(database, profiles, nowMillis = { clock++ }, deviceName = ::getDeviceName)
         val node = network.node(agentId)
-        val groups = HomeGroups(node, database, rosters, profiles, pollInterval = 1.milliseconds, joinTimeout = 100.milliseconds)
-        val hubs = HomeHubs(node, database, rosters, profiles, removeRetryDelay = 1.milliseconds, removeAttempts = 2)
+        val groups = SpaceGroups(node, database, rosters, profiles, pollInterval = 1.milliseconds, joinTimeout = 100.milliseconds)
+        val hubs = SpaceHubs(node, database, rosters, profiles, removeRetryDelay = 1.milliseconds, removeAttempts = 2)
 
         init {
             runBlocking { database.homeQueries.insert(homeId, "Maple Street", "family", 1L) }

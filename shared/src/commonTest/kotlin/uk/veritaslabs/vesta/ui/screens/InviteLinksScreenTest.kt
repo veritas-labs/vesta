@@ -9,7 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import uk.veritaslabs.vesta.homejoin.InviteLink
+import uk.veritaslabs.kits.spaces.InviteLink
 import uk.veritaslabs.vesta.homejoin.InviteLinkItem
 import uk.veritaslabs.vesta.homejoin.InviteLinksUiState
 import uk.veritaslabs.vesta.ui.theme.VestaTheme

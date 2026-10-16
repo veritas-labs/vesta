@@ -41,6 +41,7 @@ import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
 import uk.veritaslabs.kits.docs.Scope
 import uk.veritaslabs.kits.spaces.ProfileRepository
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /**
  * Pins what the document registry refactor must not change (docs/plans/document-registry-and-source-collapse-plan.md, WP0):
  * the literal id of each Home document, which Sync activity module it belongs to, whether it is private to the user's own
@@ -75,7 +76,7 @@ class DocumentIdsTest {
     private fun mailbox(database: KitsDatabase) = SpaceMailboxDocuments(documents(database).registry)
 
     private fun documents(database: KitsDatabase) =
-        TestHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
+        TestHomeDocuments(database, SpaceRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
 
     private fun changesWaiting(database: KitsDatabase, documents: TestHomeDocuments) = ChangesWaiting(
         database,

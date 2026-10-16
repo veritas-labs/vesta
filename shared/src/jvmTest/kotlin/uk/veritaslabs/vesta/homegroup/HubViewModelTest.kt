@@ -18,6 +18,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
+import uk.veritaslabs.kits.spaces.HubEnrolment
+import uk.veritaslabs.kits.spaces.HubResult
 @OptIn(ExperimentalCoroutinesApi::class)
 class HubViewModelTest {
 

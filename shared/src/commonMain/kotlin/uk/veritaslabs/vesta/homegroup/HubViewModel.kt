@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uk.veritaslabs.vesta.VestaKitConfig
 
+import uk.veritaslabs.kits.spaces.HubResult
+import uk.veritaslabs.kits.spaces.SpaceHub
 /**
  * One of the Home's hubs as the screen shows it: its agent id, whether it is in the Home's group right now, and whether it is
  * also one of the user's devices ([isDevice]), which changes what removing it means.
@@ -47,7 +49,7 @@ data class HubUiState(
  */
 class HubViewModel(
     private val homeId: String,
-    private val hubs: HomeHub?,
+    private val hubs: SpaceHub?,
     private val pollInterval: Duration = 3.seconds,
     private val offerOwnDevice: Boolean = false,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },

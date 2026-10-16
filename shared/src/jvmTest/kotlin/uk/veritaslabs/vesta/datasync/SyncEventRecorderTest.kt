@@ -22,6 +22,7 @@ import uk.veritaslabs.vesta.db.SyncEvent
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 class SyncEventRecorderTest {
 
     private val minute = 60_000L
@@ -311,7 +312,7 @@ class SyncEventRecorderTest {
         )
 
         val database = newDatabase()
-        val registry = TestHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {}).registry
+        val registry = TestHomeDocuments(database, SpaceRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {}).registry
 
         // Act
         val actual = expected.keys.associateWith { registry.moduleOf(it) }

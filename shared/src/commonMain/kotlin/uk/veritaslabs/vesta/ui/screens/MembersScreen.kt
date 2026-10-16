@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.home.MemberRole
-import uk.veritaslabs.vesta.home.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -41,7 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.homejoin.JoinRequest
+import uk.veritaslabs.kits.spaces.JoinRequest
 import uk.veritaslabs.vesta.ui.components.HomeNavigationBar
 import uk.veritaslabs.vesta.ui.components.HomeTab
 import uk.veritaslabs.vesta.ui.components.ProfileAvatar

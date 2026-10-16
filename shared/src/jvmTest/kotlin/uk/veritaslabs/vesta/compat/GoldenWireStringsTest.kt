@@ -8,9 +8,9 @@ import uk.veritaslabs.kits.blobs.BlobMessage
 import uk.veritaslabs.kits.docs.SyncEnvelope
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
-import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
-import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.homejoin.InviteLink
+import uk.veritaslabs.kits.spaces.SpaceGroupMessage
+import uk.veritaslabs.kits.spaces.SpaceJoinMessage
+import uk.veritaslabs.kits.spaces.InviteLink
 
 /**
  * The exact text on the wire and in stored rows, captured from the encoders as they were before the Kits extraction
@@ -25,25 +25,25 @@ class GoldenWireStringsTest {
     private class Case<T>(val message: T, val json: String)
 
     private val homeJoin = listOf(
-        Case<HomeJoinMessage>(
-            HomeJoinMessage.Invite("home-1", "The Johnsons", "family", 1700000000000L, "member-1", "Mark"),
+        Case<SpaceJoinMessage>(
+            SpaceJoinMessage.Invite("home-1", "The Johnsons", "family", 1700000000000L, "member-1", "Mark"),
             """{"kind":"homejoin.invite","homeId":"home-1","homeName":"The Johnsons","shape":"family","createdAt":1700000000000,"inviterMemberId":"member-1","inviterName":"Mark"}""",
         ),
-        Case(HomeJoinMessage.Accepted("home-1"), """{"kind":"homejoin.accepted","homeId":"home-1"}"""),
-        Case(HomeJoinMessage.Left("home-1", "member-2"), """{"kind":"homejoin.left","homeId":"home-1","memberId":"member-2"}"""),
-        Case(HomeJoinMessage.Removed("home-1"), """{"kind":"homejoin.removed","homeId":"home-1"}"""),
-        Case(HomeJoinMessage.Ack("home-1", "homejoin.invite"), """{"kind":"homejoin.ack","homeId":"home-1","of":"homejoin.invite"}"""),
+        Case(SpaceJoinMessage.Accepted("home-1"), """{"kind":"homejoin.accepted","homeId":"home-1"}"""),
+        Case(SpaceJoinMessage.Left("home-1", "member-2"), """{"kind":"homejoin.left","homeId":"home-1","memberId":"member-2"}"""),
+        Case(SpaceJoinMessage.Removed("home-1"), """{"kind":"homejoin.removed","homeId":"home-1"}"""),
+        Case(SpaceJoinMessage.Ack("home-1", "homejoin.invite"), """{"kind":"homejoin.ack","homeId":"home-1","of":"homejoin.invite"}"""),
         Case(
-            HomeJoinMessage.Request("home-1", "s3cret", "member-2", "Sam", "agent-2"),
+            SpaceJoinMessage.Request("home-1", "s3cret", "member-2", "Sam", "agent-2"),
             """{"kind":"homejoin.request","homeId":"home-1","secret":"s3cret","memberId":"member-2","name":"Sam","agentId":"agent-2"}""",
         ),
-        Case(HomeJoinMessage.Denied("home-1", "expired"), """{"kind":"homejoin.denied","homeId":"home-1","reason":"expired"}"""),
+        Case(SpaceJoinMessage.Denied("home-1", "expired"), """{"kind":"homejoin.denied","homeId":"home-1","reason":"expired"}"""),
     )
 
     private val homeGroup = listOf(
-        Case<HomeGroupMessage>(HomeGroupMessage.InviteRequest("home-1"), """{"kind":"homegroup.invite.request","homeId":"home-1"}"""),
+        Case<SpaceGroupMessage>(SpaceGroupMessage.InviteRequest("home-1"), """{"kind":"homegroup.invite.request","homeId":"home-1"}"""),
         Case(
-            HomeGroupMessage.Invite("home-1", "group-1", "invite-blob"),
+            SpaceGroupMessage.Invite("home-1", "group-1", "invite-blob"),
             """{"kind":"homegroup.invite","homeId":"home-1","groupId":"group-1","invite":"invite-blob"}""",
         ),
     )
@@ -65,8 +65,8 @@ class GoldenWireStringsTest {
         val cases = homeJoin
 
         // Act
-        val encoded = cases.map { HomeJoinMessage.encode(it.message).decodeToString() }
-        val decoded = cases.map { HomeJoinMessage.decode(base64(it.json)) }
+        val encoded = cases.map { SpaceJoinMessage.encode(it.message).decodeToString() }
+        val decoded = cases.map { SpaceJoinMessage.decode(base64(it.json)) }
 
         // Assert
         assertEquals(cases.map { it.json }, encoded)
@@ -79,13 +79,13 @@ class GoldenWireStringsTest {
         val cases = homeGroup
 
         // Act
-        val encoded = cases.map { HomeGroupMessage.encode(it.message).decodeToString() }
-        val decoded = cases.map { HomeGroupMessage.decode(base64(it.json)) }
+        val encoded = cases.map { SpaceGroupMessage.encode(it.message).decodeToString() }
+        val decoded = cases.map { SpaceGroupMessage.decode(base64(it.json)) }
 
         // Assert
         assertEquals(cases.map { it.json }, encoded)
         assertEquals(cases.map { it.message }, decoded)
-        assertEquals("home-1", HomeGroupMessage.stringField(base64(cases[0].json), "homeId"))
+        assertEquals("home-1", SpaceGroupMessage.stringField(base64(cases[0].json), "homeId"))
     }
 
     @Test

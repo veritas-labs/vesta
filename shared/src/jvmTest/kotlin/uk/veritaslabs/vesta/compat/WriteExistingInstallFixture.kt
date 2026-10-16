@@ -10,10 +10,10 @@ import kotlinx.coroutines.runBlocking
 import org.automerge.Document
 import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
-import uk.veritaslabs.vesta.datasync.HomeRosters
+import uk.veritaslabs.kits.spaces.SpaceRosters
 import uk.veritaslabs.vesta.datasync.TestHomeDocuments
 import uk.veritaslabs.vesta.home.HomeRepository
-import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
+import uk.veritaslabs.kits.spaces.SpaceJoinMessage
 import uk.veritaslabs.kits.spaces.ProfileRepository
 
 /**
@@ -32,7 +32,7 @@ class WriteExistingInstallFixture {
         val work = File.createTempFile("vesta-v20", ".db")
         val (database, driver) = openAsTheAppDoes(work)
         val profiles = ProfileRepository(database, deviceName = { "Mark's desktop" })
-        val rosters = HomeRosters(database, profiles, nowMillis = { 1_700_000_100_000L }, deviceName = { "Mark's desktop" })
+        val rosters = SpaceRosters(database, profiles, nowMillis = { 1_700_000_100_000L }, deviceName = { "Mark's desktop" })
         val homes = HomeRepository(database, profiles = profiles, nowMillis = { 1_700_000_000_000L })
 
         // Act
@@ -50,7 +50,7 @@ class WriteExistingInstallFixture {
         documents.registry.documentIds(homeId).forEach { documents.registry.open(homeId, it) }
         VestaHomeSources(database).pantries.forHome(homeId)?.addPrimary("Fixture drinks")
         database.userDocumentQueries.upsert(SpaceRegistryDocumentId, Document().save(), 1_700_000_000_000L)
-        database.pendingMessageQueries.upsert("agent-2", homeId, HomeJoinMessage.LeftKind, HomeJoinMessage.encode(HomeJoinMessage.Left(homeId, me.id)), 1_700_000_000_000L)
+        database.pendingMessageQueries.upsert("agent-2", homeId, SpaceJoinMessage.LeftKind, SpaceJoinMessage.encode(SpaceJoinMessage.Left(homeId, me.id)), 1_700_000_000_000L)
         database.mailboxQueries.upsertHeads(homeId, "$homeId:pantry", ByteArray(32) { it.toByte() })
         database.homeGroupQueries.upsert(homeId, "group-1", null)
         database.homeQueries.selectAll().awaitAsList()

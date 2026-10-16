@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.homejoin.InviteLink
+import uk.veritaslabs.kits.spaces.InviteLink
 import uk.veritaslabs.vesta.homejoin.InviteLinkItem
 import uk.veritaslabs.vesta.homejoin.InviteLinksUiState
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel

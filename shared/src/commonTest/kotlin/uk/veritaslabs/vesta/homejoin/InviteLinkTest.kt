@@ -7,10 +7,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+import uk.veritaslabs.kits.spaces.InviteLink
 class InviteLinkTest {
 
     private fun link(agents: List<String> = listOf("agent-a", "agent-b")) =
-        InviteLink(homeId = "home-1", secret = "s3cr3t", expiresAt = 1_000L, adminAgentIds = agents, homeName = "Flat 4B: top floor")
+        InviteLink(spaceId = "home-1", secret = "s3cr3t", expiresAt = 1_000L, adminAgentIds = agents, spaceName = "Flat 4B: top floor")
 
     @Test
     fun aLinkSurvivesEncodingAndDecoding() {

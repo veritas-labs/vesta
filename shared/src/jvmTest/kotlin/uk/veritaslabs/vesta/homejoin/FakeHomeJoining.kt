@@ -4,8 +4,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
-/** A [HomeJoining] that records what it is asked and answers from the fields below, for view model tests. */
-class FakeHomeJoining : HomeJoining {
+import uk.veritaslabs.kits.spaces.ActiveInvite
+import uk.veritaslabs.kits.spaces.InviteLink
+import uk.veritaslabs.kits.spaces.JoinRequest
+import uk.veritaslabs.kits.spaces.PendingJoin
+import uk.veritaslabs.kits.spaces.RedeemResult
+import uk.veritaslabs.kits.spaces.RequestResult
+import uk.veritaslabs.kits.spaces.SpaceJoining
+/** A [SpaceJoining] that records what it is asked and answers from the fields below, for view model tests. */
+class FakeHomeJoining : SpaceJoining {
     var created: InviteLink? = null
     var links = mutableListOf<ActiveInvite>()
     val revoked = mutableListOf<Pair<String, String>>()
@@ -34,7 +41,7 @@ class FakeHomeJoining : HomeJoining {
     override suspend fun cancelPendingJoin(homeId: String) {
         cancelled += homeId
     }
-    override fun observeJoinRequests(homeId: String): Flow<List<JoinRequest>> = requests.map { list -> list.filter { it.homeId == homeId } }
+    override fun observeJoinRequests(homeId: String): Flow<List<JoinRequest>> = requests.map { list -> list.filter { it.spaceId == homeId } }
     override fun observePendingJoins(): Flow<List<PendingJoin>> = pending
     var createCalls = 0
     override suspend fun createInviteLink(homeId: String): InviteLink? {

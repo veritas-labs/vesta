@@ -12,8 +12,8 @@ import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.store.DatabaseDowngradeException
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.DeviceSyncConfig
-import uk.veritaslabs.vesta.home.HomeConfig
-import uk.veritaslabs.vesta.homejoin.InviteLink
+import uk.veritaslabs.kits.spaces.SpacesConfig
+import uk.veritaslabs.kits.spaces.InviteLink
 
 /** The values existing installs were made with: the config defaults and Vesta's choices must reproduce them exactly. */
 class KitConfigDefaultsTest {
@@ -21,7 +21,7 @@ class KitConfigDefaultsTest {
     @Test
     fun theHomeConfigDefaultsAreTheValuesVestaHasAlwaysUsed() {
         // Arrange
-        val config = HomeConfig()
+        val config = SpacesConfig()
 
         // Act
         val values = listOf(
@@ -57,7 +57,7 @@ class KitConfigDefaultsTest {
         )
 
         // Assert
-        assertEquals(HomeConfig(), VestaKitConfig.home)
+        assertEquals(SpacesConfig(), VestaKitConfig.home)
         assertEquals(DeviceSyncConfig(), VestaKitConfig.deviceSync)
         assertEquals(lifetimes, chosen)
     }

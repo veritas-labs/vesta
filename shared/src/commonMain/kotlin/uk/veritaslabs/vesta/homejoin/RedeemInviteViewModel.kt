@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import uk.veritaslabs.kits.spaces.InviteLink
+import uk.veritaslabs.kits.spaces.RedeemResult
+import uk.veritaslabs.kits.spaces.SpaceJoining
 /** Why opening an invite link didn't work, in the terms the screen explains. */
 enum class RedeemInviteError { InvalidLink, Expired, AlreadyInHome, Failed }
 
@@ -28,7 +31,7 @@ sealed interface RedeemInviteUiState {
  * (previews) a request can't be sent.
  */
 class RedeemInviteViewModel(
-    private val joining: HomeJoining?,
+    private val joining: SpaceJoining?,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : ViewModel() {
 
@@ -62,5 +65,5 @@ class RedeemInviteViewModel(
 private fun RedeemResult.toState(): RedeemInviteUiState = when (this) {
     RedeemResult.Started -> RedeemInviteUiState.Started
     RedeemResult.Expired -> RedeemInviteUiState.Failed(RedeemInviteError.Expired)
-    RedeemResult.AlreadyInHome -> RedeemInviteUiState.Failed(RedeemInviteError.AlreadyInHome)
+    RedeemResult.AlreadyInSpace -> RedeemInviteUiState.Failed(RedeemInviteError.AlreadyInHome)
 }

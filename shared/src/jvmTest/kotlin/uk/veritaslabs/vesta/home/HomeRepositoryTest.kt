@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.spaces.ProfileRepository
-import uk.veritaslabs.vesta.home.MemberListItem
-import uk.veritaslabs.vesta.home.MemberRole
+import uk.veritaslabs.kits.spaces.MemberListItem
+import uk.veritaslabs.kits.spaces.MemberRole
 import uk.veritaslabs.vesta.home.HomeDetails
 import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomeShape

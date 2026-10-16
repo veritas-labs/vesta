@@ -7,8 +7,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.homejoin.PendingJoin
+import uk.veritaslabs.kits.spaces.SpaceJoinMessage
+import uk.veritaslabs.kits.spaces.PendingJoin
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -135,7 +135,7 @@ class HomePickerScreenTest {
     }
 
     private val waiting = PendingJoin("maple", "Maple Street", expiresAt = 1_000L, denial = null)
-    private val declined = PendingJoin("elm", "Elm Court", expiresAt = 1_000L, denial = HomeJoinMessage.DeniedDeclined)
+    private val declined = PendingJoin("elm", "Elm Court", expiresAt = 1_000L, denial = SpaceJoinMessage.DeniedDeclined)
 
     @OptIn(ExperimentalTestApi::class)
     @Test

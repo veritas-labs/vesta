@@ -32,6 +32,7 @@ import uk.veritaslabs.vesta.syncactivity.SyncEventKind
 import uk.veritaslabs.vesta.syncactivity.SyncModule
 import uk.veritaslabs.vesta.syncactivity.SyncSnapshot
 
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /**
  * What [DeviceDataSyncService] knows about its own running that the Sync activity screen shows, kept as the service goes: which peers
  * presence says are online, whether the daemon answered, whether a round is running and how the last one went. [notifyChanged]
@@ -101,7 +102,7 @@ internal class SyncActivityFacts {
 internal class SyncActivityService(
     private val database: KitsDatabase,
     private val recorder: SyncEventRecorder,
-    private val rosters: HomeRosters,
+    private val rosters: SpaceRosters,
     private val profiles: ProfileRepository,
     private val devices: SyncedDeviceRepository,
     private val facts: SyncActivityFacts,

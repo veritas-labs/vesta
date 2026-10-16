@@ -35,16 +35,16 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicesync.AgentDetails
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
-import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
+import uk.veritaslabs.kits.spaces.SpaceGroupMessage
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
-import uk.veritaslabs.vesta.home.HomeConfig
+import uk.veritaslabs.kits.spaces.SpacesConfig
 import uk.veritaslabs.kits.spaces.SpaceChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
 import uk.veritaslabs.kits.docs.MailboxReader
 import uk.veritaslabs.kits.docs.MailboxWriter
-import uk.veritaslabs.vesta.homegroup.HomeHub
-import uk.veritaslabs.vesta.homejoin.HomeJoining
+import uk.veritaslabs.kits.spaces.SpaceHub
+import uk.veritaslabs.kits.spaces.SpaceJoining
 import uk.veritaslabs.kits.spaces.ProfileChangeListener
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
@@ -55,13 +55,17 @@ import uk.veritaslabs.kits.x0x.X0xEventHub
 import uk.veritaslabs.kits.spaces.ProfileRegistry
 import uk.veritaslabs.kits.spaces.SpaceRegistry
 import uk.veritaslabs.kits.spaces.SpaceSeeding
+import uk.veritaslabs.kits.spaces.SpaceGroups
+import uk.veritaslabs.kits.spaces.SpaceHubs
+import uk.veritaslabs.kits.spaces.SpaceJoinService
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /**
  * The roster's document type. The roster is membership machinery, so the engine registers it, first (the mailbox's order),
  * and the app supplies only its own types. [publishRosters] runs after a live roster sync message has been applied and
  * projected, so this device's own member and devices are written back into the roster.
  */
-internal fun rosterDocumentType(rosters: HomeRosters, publishRosters: suspend () -> Unit) = SpaceDocumentType(
-    "roster", SyncModules.Members, Scope.Shared, rosters::homeDocument, rosters.changes,
+internal fun rosterDocumentType(rosters: SpaceRosters, publishRosters: suspend () -> Unit) = SpaceDocumentType(
+    "roster", SyncModules.Members, Scope.Shared, rosters::spaceDocument, rosters.changes,
     afterReceive = { homeId -> rosters.project(homeId) },
     afterSync = { publishRosters() }, resyncsHome = true,
 )
@@ -96,14 +100,14 @@ class DeviceDataSyncService(
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
     private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
     activityRefresh: Duration = 20.seconds,
-    homeConfig: HomeConfig = HomeConfig(),
+    homeConfig: SpacesConfig = SpacesConfig(),
     seeding: SpaceSeeding,
 ) : DeviceDataSync {
 
     private val registry = SpaceRegistry(database, seeding)
     private val profiles = ProfileRepository(database, deviceName = deviceName)
     private val profile = ProfileRegistry(database, profiles)
-    private val rosters = HomeRosters(database, profiles, deviceName = deviceName)
+    private val rosters = SpaceRosters(database, profiles, deviceName = deviceName)
 
     /** The Home registry, which also forgets a Home's Sync activity (ADR-033) when the Home is deleted or left on this device. */
     private val homeListener = object : SpaceChangeListener by registry {
@@ -113,8 +117,8 @@ class DeviceDataSyncService(
             changesWaiting.forget(id)
         }
     }
-    private val join = HomeJoinService(client, database, rosters, homeListener, profiles, seeding, recorder = recorder, config = homeConfig)
-    private val groups = HomeGroups(client, database, rosters, profiles, config = homeConfig)
+    private val join = SpaceJoinService(client, database, rosters, homeListener, profiles, seeding, recorder = recorder, config = homeConfig)
+    private val groups = SpaceGroups(client, database, rosters, profiles, config = homeConfig)
 
     /**
      * The one list of Home document types: the roster, which the engine registers itself, then the [documentTypes] the app
@@ -172,9 +176,9 @@ class DeviceDataSyncService(
 
     override val homeChanges: SpaceChangeListener get() = homeListener
 
-    override val joining: HomeJoining get() = join
+    override val joining: SpaceJoining get() = join
 
-    override val hubs: HomeHub = HomeHubs(client, database, rosters, profiles, config = homeConfig)
+    override val hubs: SpaceHub = SpaceHubs(client, database, rosters, profiles, config = homeConfig)
 
     override suspend fun memberAgents(homeId: String, memberId: String): List<String> =
         rosters.devices(homeId)[memberId].orEmpty().sorted()
@@ -322,7 +326,7 @@ class DeviceDataSyncService(
         val sender = message.sender ?: return
         val payload = message.payload
         val (kind, homeId) = DeviceSyncMessage.unrecognisedKind(payload)?.let { it to null }
-            ?: HomeGroupMessage.unrecognisedKind(payload)?.let { it to HomeGroupMessage.stringField(payload, "homeId") }
+            ?: SpaceGroupMessage.unrecognisedKind(payload)?.let { it to SpaceGroupMessage.stringField(payload, "homeId") }
             ?: return
         val homes = homeId?.let { listOfNotNull(database.homeQueries.selectById(it).awaitAsOneOrNull()?.id) }
             ?: database.homeQueries.selectAll().awaitAsList().map { it.id }

@@ -25,6 +25,8 @@ import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.x0x.X0xApiException
 
+import uk.veritaslabs.kits.spaces.SpaceGroups
+import uk.veritaslabs.kits.spaces.SpaceRosters
 /** A Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) across devices on the fake mesh. */
 class HomeGroupsTest {
 
@@ -37,9 +39,9 @@ class HomeGroupsTest {
     private inner class Device(val agentId: String) {
         val database: KitsDatabase = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
-        val rosters = HomeRosters(database, profiles, nowMillis = { clock++ }, deviceName = ::getDeviceName)
+        val rosters = SpaceRosters(database, profiles, nowMillis = { clock++ }, deviceName = ::getDeviceName)
         val node = network.node(agentId)
-        val groups = HomeGroups(node, database, rosters, profiles, pollInterval = 1.milliseconds, joinTimeout = 100.milliseconds)
+        val groups = SpaceGroups(node, database, rosters, profiles, pollInterval = 1.milliseconds, joinTimeout = 100.milliseconds)
 
         init {
             runBlocking { database.homeQueries.insert(homeId, "Maple Street", "family", 1L) }
