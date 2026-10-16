@@ -92,6 +92,26 @@ Reply on success:
 
 `result.schema:amountOfThisGood` is the stock **after** your add.
 
+## Take stock out — `Remove`, and set it exactly — `Update`
+
+Both need Pantry **Write** and an item already in the Pantry; both reply with the same `Accept` as an add (the stock **after**).
+The item is found by `schema:gtin` if given, else by `schema:name` (case-insensitive, also for items stored under a barcode).
+Missing item → `Reject` "unknown item". Both are recorded by command `id`, so a re-sent id is answered, not applied twice.
+
+```json
+{"@context": CONTEXT, "type": "Remove", "id": "urn:uuid:…",
+ "object": {"type": "schema:TypeAndQuantityNode", "schema:amountOfThisGood": 2,
+            "schema:typeOfGood": {"type": "schema:Product", "schema:name": "Heinz Ketchup", "schema:gtin": "5000157024671"}},
+ "target": {"type": "Collection", "id": "urn:vesta:document:<homeId>:pantry"}}
+```
+
+| Type | `schema:amountOfThisGood` | Effect |
+| --- | --- | --- |
+| `Remove` | Optional integer 1–9999, default 1 | Stock is **lowered** by it, stopping at 0. |
+| `Update` | **Required** integer 0–9999 | Stock is **set** to it (0 allowed). |
+
+`schema:gtin` is optional; `schema:name` is required.
+
 ## Rejections
 
 `{"type": "Reject", "inReplyTo": "<your id>", "summary": "<human-readable reason>", …}`. Summaries include:
@@ -99,6 +119,7 @@ Reply on success:
 - `not approved: ask the user to approve this agent in the Vesta app, then retry`
 - `not permitted for this home` — you have no grant for that Home (a Home that doesn't exist looks the same)
 - `waiting for approval: the user has been asked, retry once they have answered` — re-send the **same** command id after the user taps Allow once
+- `unknown item` — a `Remove`/`Update` named an item that isn't in that Pantry
 - `unknown home`
 - `quantity out of range`, `title is required`, `type must be Add or Read`, `target.id must be …`, `payload too large`, …
 

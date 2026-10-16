@@ -46,8 +46,10 @@ object AgentCommandParser {
         if (commandId == null) return invalid("id is required")
         return when (root.string("type")) {
             "Add" -> parseAdd(root, commandId)
+            "Remove" -> parseStockChange(root, commandId, set = false)
+            "Update" -> parseStockChange(root, commandId, set = true)
             "Read" -> parseRead(root, commandId)
-            else -> invalid("type must be Add or Read")
+            else -> invalid("type must be Add, Remove, Update or Read")
         }
     }
 
@@ -62,6 +64,40 @@ object AgentCommandParser {
     private fun pantryHomeId(documentId: String): String? =
         documentId.takeIf { it.startsWith(TARGET_PREFIX) && it.endsWith(TARGET_SUFFIX) }
             ?.removePrefix(TARGET_PREFIX)?.removeSuffix(TARGET_SUFFIX)?.takeIf { it.isNotBlank() }
+
+    /**
+     * `Remove` (reduce stock by an amount, 1..[MAX_QUANTITY], default 1) and `Update` (set stock to an exact amount,
+     * 0..[MAX_QUANTITY], required). Both name the item with `schema:name` and optionally `schema:gtin`.
+     */
+    private fun parseStockChange(root: JsonObject, commandId: String, set: Boolean): ParseResult {
+        fun invalid(reason: String) = ParseResult.Invalid(commandId, reason)
+
+        val targetId = (root["target"] as? JsonObject)?.string("id") ?: return invalid("target.id is required")
+        val homeId = pantryHomeId(targetId)
+            ?: return invalid("target.id must be $TARGET_PREFIX<homeId>$TARGET_SUFFIX")
+
+        val node = root["object"] as? JsonObject
+        if (node?.string("type") != "schema:TypeAndQuantityNode") return invalid("object must be a schema:TypeAndQuantityNode")
+        val product = node["schema:typeOfGood"] as? JsonObject
+        if (product?.string("type") != "schema:Product") return invalid("schema:typeOfGood must be a schema:Product")
+        val title = product.string("schema:name")?.trim()?.takeIf { it.isNotEmpty() } ?: return invalid("title is required")
+        val gtin = product.optionalString("schema:gtin") ?: return invalid("gtin must be a string")
+
+        val amount = node["schema:amountOfThisGood"]
+        val quantity = when {
+            amount == null && set -> return invalid("quantity is required")
+            amount == null -> 1
+            amount is JsonPrimitive -> amount.takeUnless { it.isString }?.intOrNull ?: return invalid("quantity must be an integer")
+            else -> return invalid("quantity must be an integer")
+        }
+        if (quantity !in (if (set) 0 else 1)..MAX_QUANTITY) return invalid("quantity out of range")
+
+        val barcode = gtin.value?.trim()
+        return ParseResult.Command(
+            if (set) SetPantryStock(commandId, homeId, title, barcode, quantity)
+            else ReducePantryStock(commandId, homeId, title, barcode, quantity),
+        )
+    }
 
     private fun parseAdd(root: JsonObject, commandId: String): ParseResult {
         fun invalid(reason: String) = ParseResult.Invalid(commandId, reason)

@@ -25,6 +25,10 @@ Settings → Assistants shows a Read and a Write switch per feature. `ListHomes`
   It is a bounded answer, not a replica; it is not recorded in the command log (answered fresh), and under Ask the agent re-sends the
   same id after Allow once. Desktop only, like every assistant command. Skill: `scripts/agent-pantry-read.sh`.
 
+- **Reduce and set stock (2026-10-16)** are `Remove` and `Update` on a Pantry (`ReducePantryStock`, `SetPantryStock`), both under
+  **Pantry Write**, so no new switch. Remove lowers by 1–9999 and stops at 0; Update sets 0–9999 exactly, using the same
+  delta-from-local-value method as the UI (`correctStock`, ADR-008: not exact under concurrent edits). Items must exist ("unknown item")
+  and are found by gtin, else name ignoring case. Skill: `agent-pantry-reduce.sh`, `agent-pantry-set.sh`.
 
 The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
 

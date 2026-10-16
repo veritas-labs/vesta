@@ -81,7 +81,7 @@ class AgentCommandParserTest {
     fun rejectsMalformedCommandsKeepingTheCommandId() {
         // Arrange
         val cases = listOf(
-            "type must be Add or Read" to command(type = "\"Remove\""),
+            "type must be Add, Remove, Update or Read" to command(type = "\"Delete\""),
             "target.id must be" to command(target = """{"id": "urn:vesta:document:home-1:shopping"}"""),
             "target.id must be" to command(target = """{"id": "urn:vesta:document::pantry"}"""),
             "target.id is required" to command(target = "{}"),
@@ -220,5 +220,52 @@ class AgentCommandParserTest {
         assertEquals("urn:uuid:1", reject["inReplyTo"]!!.jsonPrimitive.content)
         assertEquals("unknown home", reject["summary"]!!.jsonPrimitive.content)
         assertNull(reject["result"])
+    }
+
+    private fun stockChange(type: String, amount: String?, fields: String = """"schema:name": "Milk", "schema:gtin": "123"""") =
+        ("""{"@context": $context, "type": "$type", "id": "urn:uuid:s1", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:pantry"},
+            "object": {"type": "schema:TypeAndQuantityNode", ${amount?.let { """"schema:amountOfThisGood": $it,""" } ?: ""}
+                       "schema:typeOfGood": {"type": "schema:Product", $fields}}}""").encodeToByteArray()
+
+    @Test
+    fun parsesARemoveAsAReduceOfStockDefaultingToOne() {
+        // Arrange
+        val payload = stockChange("Remove", amount = null)
+
+        // Act
+        val result = AgentCommandParser.parse(payload)
+
+        // Assert
+        assertEquals(ParseResult.Command(ReducePantryStock("urn:uuid:s1", "home-1", "Milk", "123", 1)), result)
+    }
+
+    @Test
+    fun parsesAnUpdateAsASetOfStockAndAllowsZero() {
+        // Arrange
+        val payload = stockChange("Update", amount = "0", fields = """"schema:name": "Milk"""")
+
+        // Act
+        val result = AgentCommandParser.parse(payload)
+
+        // Assert
+        assertEquals(ParseResult.Command(SetPantryStock("urn:uuid:s1", "home-1", "Milk", null, 0)), result)
+    }
+
+    @Test
+    fun rejectsBadStockChanges() {
+        // Arrange
+        val cases = mapOf(
+            "quantity out of range" to stockChange("Remove", "0"),
+            "quantity out of range " to stockChange("Update", "10000"),
+            "quantity is required" to stockChange("Update", null),
+            "quantity must be an integer" to stockChange("Remove", "\"2\""),
+            "title is required" to stockChange("Remove", "1", fields = """"schema:gtin": "123""""),
+        )
+
+        // Act / Assert
+        cases.forEach { (expected, payload) ->
+            val result = invalid(payload)
+            assertEquals(true, result.reason.contains(expected.trim()), "'${result.reason}' should mention '$expected'")
+        }
     }
 }

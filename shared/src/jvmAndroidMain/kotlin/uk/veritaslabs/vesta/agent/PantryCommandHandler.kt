@@ -5,7 +5,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
+import org.automerge.Document
+import uk.veritaslabs.vesta.automerge.PantryItem
 import uk.veritaslabs.vesta.automerge.adjustStock
+import uk.veritaslabs.vesta.automerge.correctStock
+import uk.veritaslabs.vesta.automerge.findPantryItem
 import uk.veritaslabs.vesta.automerge.pantryDedupKey
 import uk.veritaslabs.vesta.automerge.readPantry
 import uk.veritaslabs.vesta.automerge.readPantryItem
@@ -116,9 +120,9 @@ class PantryCommandHandler(
 
         // Gate 3, the grant: this capability on this Home. Checked before anything is looked up, so a Home the
         // assistant has no grant for is indistinguishable from one that doesn't exist.
-        if (parsed is ParseResult.Command && parsed.command is AddPantryItem) {
+        if (parsed is ParseResult.Command && parsed.command is PantryWriteCommand) {
             val command = parsed.command
-            val summary = "Add ${command.quantity} × ${command.title} to the Pantry"
+            val summary = command.summary
             when (access.decide(sender, command.homeId, AssistantCapability.PantryWrite, commandId)) {
                 AccessDecision.Allow -> Unit
                 AccessDecision.NotPermitted -> {
@@ -141,14 +145,16 @@ class PantryCommandHandler(
             is ParseResult.Invalid -> reject(commandId, parsed.reason).also { rejection = parsed.reason }
             is ParseResult.Command -> when (val command = parsed.command) {
                 is AddPantryItem -> apply(command) { rejection = it }
+                is ReducePantryStock -> reduce(command) { rejection = it }
+                is SetPantryStock -> setStock(command) { rejection = it }
                 is ListHomes, is ReadPantry -> return // answered above
             }
             ParseResult.NotACommand -> return
         }
         commandLog.record(sender, commandId, reply)
         send(sender, reply)
-        val command = (parsed as? ParseResult.Command)?.command as? AddPantryItem
-        val summary = command?.let { "Add ${it.quantity} × ${it.title} to the Pantry" } ?: "Invalid command"
+        val command = (parsed as? ParseResult.Command)?.command as? PantryWriteCommand
+        val summary = command?.summary ?: "Invalid command"
         access.recordActivity(
             sender, command?.homeId, AssistantCapability.PantryWrite, commandId,
             if (rejection == null) ActivityOutcome.Applied else ActivityOutcome.Rejected,
@@ -208,6 +214,36 @@ class PantryCommandHandler(
             key to checkNotNull(doc.readPantryItem(key))
         }
         return AgentReplies.accept(newId(), command.commandId, key, item.title, item.stockCount, item.packageSize)
+    }
+
+    /** Lowers the stock of [command]'s item (never below 0) and returns the reply JSON. */
+    private suspend fun reduce(command: ReducePantryStock, onReject: (String) -> Unit): String =
+        changeStock(command.commandId, command.homeId, command.title, command.barcode, onReject) { doc, item ->
+            adjustStock(doc, item.id, -minOf(command.quantity, item.stockCount))
+        }
+
+    /** Sets the stock of [command]'s item to exactly [SetPantryStock.stockCount] and returns the reply JSON. */
+    private suspend fun setStock(command: SetPantryStock, onReject: (String) -> Unit): String =
+        changeStock(command.commandId, command.homeId, command.title, command.barcode, onReject) { doc, item ->
+            correctStock(doc, item.id, command.stockCount)
+        }
+
+    /** Finds the existing item, runs [change] on it, and replies with its stock afterwards; "unknown item" if there is none. */
+    private suspend fun changeStock(
+        commandId: String,
+        homeId: String,
+        title: String,
+        barcode: String?,
+        onReject: (String) -> Unit,
+        change: (Document, PantryItem) -> Unit,
+    ): String {
+        val source = resolveSource(homeId) ?: return reject(commandId, "unknown home").also { onReject("unknown home") }
+        val after = source.mutate { doc ->
+            val item = doc.findPantryItem(barcode, title) ?: return@mutate null
+            change(doc, item)
+            checkNotNull(doc.readPantryItem(item.id))
+        } ?: return reject(commandId, "unknown item").also { onReject("unknown item") }
+        return AgentReplies.accept(newId(), commandId, after.id, after.title, after.stockCount, after.packageSize)
     }
 
     private fun reject(commandId: String, summary: String) = AgentReplies.reject(newId(), commandId, summary)

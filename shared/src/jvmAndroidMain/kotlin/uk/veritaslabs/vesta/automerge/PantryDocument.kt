@@ -166,6 +166,15 @@ private fun org.automerge.Transaction.writeProductFields(
     }
 }
 
+/**
+ * The existing entry for a product named [title] with the given [barcode]: by barcode, else by [pantryDedupKey] of the
+ * title, else any entry whose title matches ignoring case (an item stored under a barcode is still found by name).
+ */
+fun Read.findPantryItem(barcode: String?, title: String): PantryItem? =
+    barcode?.let { readPantryItem(it) }
+        ?: readPantryItem(pantryDedupKey(null, title))
+        ?: readPantry().firstOrNull { it.title.trim().equals(title.trim(), ignoreCase = true) }
+
 /** Adjusts [key]'s [PantryItem.stockCount] by [delta] (negative to decrement). No-op if [key] has no entry. */
 fun adjustStock(doc: Document, key: String, delta: Int) {
     val tx = doc.startTransaction()

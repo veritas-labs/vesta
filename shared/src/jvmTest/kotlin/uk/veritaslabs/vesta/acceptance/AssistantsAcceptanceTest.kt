@@ -223,6 +223,32 @@ class AssistantsAcceptanceTest {
         onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
     }
 
+    private fun stockCommand(type: String, id: String, amount: Int) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:pantry"},
+         "object": {"type": "schema:TypeAndQuantityNode", "schema:amountOfThisGood": $amount,
+                    "schema:typeOfGood": {"type": "schema:Product", "schema:name": "Milk"}}}
+    """.trimIndent()
+
+    @Test
+    fun myBotCanTakeMilkOutAndCorrectTheCountWithItsWriteGrant() = runComposeUiTest {
+        // Arrange — Given a bot with Pantry Write and 2 milk in the Pantry
+        val world = World()
+        showAssistants(world)
+        addBotWithAutoPantryAdd("home-1")
+        world.botSends(addCommand("urn:uuid:c1"))
+
+        // Act — When it takes 1 out, then sets the count to 7
+        world.botSends(stockCommand("Remove", "urn:uuid:c2", 1))
+        val afterRemove = world.stock("home-1")
+        world.botSends(stockCommand("Update", "urn:uuid:c3", 7))
+
+        // Assert — Then the Pantry went 2 → 1 → 7 and the bot was told each new count
+        assertEquals(1, afterRemove)
+        assertEquals(7, world.stock("home-1"))
+        assertEquals(listOf("2", "1", "7"), world.replies.map { it.getValue("result").jsonObject.getValue("schema:amountOfThisGood").jsonPrimitive.content })
+    }
+
     @Test
     fun iCanLetMyBotReadThePantryWithoutLettingItAdd() = runComposeUiTest {
         // Arrange — Given a bot added with Pantry Read only (asking each time switched off), and milk in the Pantry

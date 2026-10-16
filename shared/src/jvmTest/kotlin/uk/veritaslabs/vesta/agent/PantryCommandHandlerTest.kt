@@ -591,6 +591,141 @@ class PantryCommandHandlerTest {
         assertEquals((AgentCommandParser.MAX_PANTRY_ITEMS + 5).toString(), result.text("totalItems"))
         assertEquals(AgentCommandParser.MAX_PANTRY_ITEMS, result.getValue("items").jsonArray.size)
     }
+
+    private fun stockCommand(type: String, amount: Int?, id: String = "urn:uuid:s1", fields: String = """"schema:name": "Milk"""") = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:pantry"},
+         "object": {"type": "schema:TypeAndQuantityNode", ${amount?.let { """"schema:amountOfThisGood": $it,""" } ?: ""}
+                    "schema:typeOfGood": {"type": "schema:Product", $fields}}}
+    """.trimIndent()
+
+    private fun withMilk(stock: Int, barcode: String? = null, f: Fixture = fixture()) = f.also { f ->
+        runBlocking {
+            f.source.mutate { upsertPantryItem(it, "Dairy", null, "Milk", "", barcode) }
+            f.source.mutate { adjustStock(it, pantryDedupKey(barcode, "Milk"), stock) }
+        }
+    }
+
+    private fun Fixture.stock() = runBlocking { source.contents.first().items.single().stockCount }
+
+    @Test
+    fun aRemoveLowersStockAndRepliesWithTheNewCount() = runBlocking {
+        // Arrange
+        val f = withMilk(5)
+
+        // Act
+        f.handler.handle(message(stockCommand("Remove", 2)))
+
+        // Assert
+        assertEquals(3, f.stock())
+        val reply = f.replies.single()
+        assertEquals("Accept", reply.text("type"))
+        assertEquals("3", reply.getValue("result").jsonObject.text("schema:amountOfThisGood"))
+    }
+
+    @Test
+    fun aRemoveOfMoreThanIsInStockStopsAtZero() = runBlocking {
+        // Arrange
+        val f = withMilk(2)
+
+        // Act
+        f.handler.handle(message(stockCommand("Remove", 9)))
+
+        // Assert
+        assertEquals(0, f.stock())
+        assertEquals("0", f.replies.single().getValue("result").jsonObject.text("schema:amountOfThisGood"))
+    }
+
+    @Test
+    fun aRepeatedRemoveIsAppliedOnce() = runBlocking {
+        // Arrange
+        val f = withMilk(5)
+        f.handler.handle(message(stockCommand("Remove", 2)))
+
+        // Act
+        f.handler.handle(message(stockCommand("Remove", 2)))
+
+        // Assert
+        assertEquals(3, f.stock())
+        assertEquals(2, f.client.sent.size)
+    }
+
+    @Test
+    fun anUpdateSetsStockToTheExactValueUpOrDown() = runBlocking {
+        // Arrange
+        val f = withMilk(5)
+
+        // Act
+        f.handler.handle(message(stockCommand("Update", 8, id = "urn:uuid:s1")))
+        val up = f.stock()
+        f.handler.handle(message(stockCommand("Update", 0, id = "urn:uuid:s2")))
+
+        // Assert
+        assertEquals(8, up)
+        assertEquals(0, f.stock())
+        assertEquals("0", f.replies.last().getValue("result").jsonObject.text("schema:amountOfThisGood"))
+    }
+
+    @Test
+    fun anItemStoredUnderABarcodeIsFoundByNameAlone() = runBlocking {
+        // Arrange
+        val f = withMilk(4, barcode = "5000")
+
+        // Act
+        f.handler.handle(message(stockCommand("Remove", 1, fields = """"schema:name": "milk"""")))
+
+        // Assert
+        assertEquals(3, f.stock())
+    }
+
+    @Test
+    fun changingStockOfAnItemThatIsNotThereIsRejectedAndCreatesNothing() = runBlocking {
+        // Arrange
+        val f = fixture()
+
+        // Act
+        f.handler.handle(message(stockCommand("Remove", 1)))
+        f.handler.handle(message(stockCommand("Update", 3, id = "urn:uuid:s2")))
+
+        // Assert
+        assertEquals(listOf("unknown item", "unknown item"), f.replies.map { it.text("summary") })
+        assertEquals(emptyList(), f.source.contents.first().items)
+    }
+
+    @Test
+    fun reducingAndSettingStockNeedThePantryWriteGrant() = runBlocking {
+        // Arrange
+        val f = withMilk(5)
+        val g = withMilk(5, f = Fixture(emptyList()))
+        runBlocking { g.access.save(agent, "", listOf(AssistantGrant("home-1", AssistantCapability.PantryRead, GrantPolicy.Auto))) }
+
+        // Act
+        g.handler.handle(message(stockCommand("Remove", 1)))
+        g.handler.handle(message(stockCommand("Update", 0, id = "urn:uuid:s2")))
+
+        // Assert
+        assertEquals(listOf(NotPermittedSummary, NotPermittedSummary), g.replies.map { it.text("summary") })
+        assertEquals(5, g.stock())
+        assertEquals(5, f.stock())
+    }
+
+    @Test
+    fun anAskGrantHoldsARemoveUntilAllowOnce() = runBlocking {
+        // Arrange
+        val g = withMilk(5, f = Fixture(emptyList()))
+        g.access.save(agent, "", listOf(AssistantGrant("home-1", AssistantCapability.PantryWrite, GrantPolicy.Ask)))
+        g.handler.handle(message(stockCommand("Remove", 2)))
+        val held = g.access.pendingCommands.value.single()
+
+        // Act
+        g.access.allowOnce(held)
+        g.handler.handle(message(stockCommand("Remove", 2)))
+
+        // Assert
+        assertEquals("Take 2 × Milk out of the Pantry", held.summary)
+        assertEquals(3, g.stock())
+    }
 }
+
 
 private typealias JsonMap = kotlinx.serialization.json.JsonObject
