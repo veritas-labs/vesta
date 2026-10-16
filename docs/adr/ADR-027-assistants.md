@@ -57,6 +57,17 @@ Settings → Assistants shows a Read and a Write switch per feature. `ListHomes`
   is no unseeded state to wait for. Code: `MealPlanCommands.kt`, `MealPlanCommandHandler.kt`. Skill: `agent-mealplan-read.sh`,
   `-plan.sh`, `-unplan.sh`.
 
+- **Tasks Read and Write (2026-10-16)** reach only the Home's **shared** tasks document, `urn:vesta:document:<homeId>:tasks` (the
+  `tasks` feature of ADR-031); the private list (`private-tasks`, ADR-029/031) is never addressable, so a message for it is rejected
+  and the handler is only ever given the shared source. A task is a `schema:Action`. `Read` returns up to 200 tasks (dated first, real
+  `totalItems`) with name, description, due day (`schema:endTime`), status, repeat (`schema:repeatFrequency`) and assignees
+  (`schema:agent`). Write is `Add` (name; optional description and day; refused as "task already exists" for the same name and day),
+  `Update` (done / not done via `schema:actionStatus`, for the task's current occurrence: a one-off's due day, a repeating task's latest
+  due day so far, "anytime" for an undated one) and `Remove` (the done history stays); `Update`/`Remove` find the task by id, else by
+  name ignoring case, and refuse an unknown or ambiguous name. Done records made this way carry no member (`by` is empty). Setting
+  repeats, assignees and reminders (ADR-032) is not offered. No seed check is needed: each task is its own root map. Code:
+  `TasksCommands.kt`, `TasksCommandHandler.kt`. Skill: `agent-tasks-read.sh`, `-add.sh`, `-done.sh`, `-remove.sh`.
+
 The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
 
 ## Context

@@ -8,6 +8,7 @@ import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
 import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
+import uk.veritaslabs.vesta.automerge.TaskDocumentSource
 import org.automerge.Document
 import uk.veritaslabs.vesta.automerge.PantryItem
 import uk.veritaslabs.vesta.automerge.adjustStock
@@ -54,11 +55,13 @@ class PantryCommandHandler(
     private val newId: () -> String,
     private val log: (String) -> Unit = { System.err.println("[agent-commands] $it") },
     resolveCookbook: suspend (homeId: String) -> CookbookDocumentSource? = { null },
+    resolveTasks: suspend (homeId: String) -> TaskDocumentSource? = { null },
 ) {
     private val lock = Mutex()
     private val shoppingList = ShoppingListCommandHandler(resolveShoppingList, access, commandLog, newId, ::send, log)
     private val cookbook = CookbookCommandHandler(resolveCookbook, access, commandLog, ::send, newId, log)
     private val mealPlan = MealPlanCommandHandler(resolveMealPlan, access, commandLog, newId, ::send, log)
+    private val tasks = TasksCommandHandler(resolveTasks, access, commandLog, ::send, newId, log)
 
     suspend fun handle(message: X0xDirectMessage) = lock.withLock {
         try {
@@ -124,6 +127,7 @@ class PantryCommandHandler(
             return
         }
         if (parsed is ParseResult.Command && cookbook.read(sender, parsed.command)) return
+        if (parsed is ParseResult.Command && tasks.read(sender, parsed.command)) return
 
         if (parsed is ParseResult.Command && parsed.command is ReadMealPlan) {
             mealPlan.read(sender, parsed.command)
@@ -171,6 +175,7 @@ class PantryCommandHandler(
         }
 
         if (parsed is ParseResult.Command && cookbook.write(sender, parsed.command)) return
+        if (parsed is ParseResult.Command && tasks.write(sender, parsed.command)) return
 
         var rejection: String? = null
         val reply = when (parsed) {
@@ -182,6 +187,8 @@ class PantryCommandHandler(
                 is ListHomes, is ReadPantry, is ReadShoppingList, is ShoppingWriteCommand,
                 is ReadCookbook, is ReadRecipe, is AddRecipe, is RemoveRecipe -> return // answered above
                 is ReadMealPlan, is MealPlanWriteCommand -> return // answered above
+                is ReadCookbook, is ReadRecipe, is AddRecipe, is RemoveRecipe,
+                is ReadTasks, is TasksWriteCommand -> return // answered above
             }
             ParseResult.NotACommand -> return
         }

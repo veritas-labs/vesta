@@ -3,12 +3,12 @@ name: vesta
 description: >-
   Acts on a user's Vesta household app from an external AI agent over x0x
   direct messages: lists their Homes, reads a Home's Pantry, adds items to it,
-  takes items out and sets exact stock, keeps its shopping list, and reads the
-  cookbook and adds or removes recipes, and reads and plans meals
-  (household stock / shopping). Use when the user asks you to add, restock or
-  put an item in their pantry or household inventory in Vesta, or asks which
-  homes they have in Vesta. Everything goes over x0x; never read Vesta's
-  files or database.
+  takes items out and sets exact stock, keeps its shopping list, reads and
+  changes the cookbook, reads and plans meals, and keeps the household's shared
+  tasks and chores (household stock / shopping). Use when the user asks you to
+  add, restock or put an item in their pantry or household inventory in Vesta,
+  or asks which homes they have in Vesta. Everything goes over x0x; never read
+  Vesta's files or database.
 ---
 
 # Vesta over x0x
@@ -22,7 +22,8 @@ Today you can: **list the user's Homes**, **read a Home's Pantry** (what is in
 stock), **add an item** (adds to the stock count), **take some out** (lowers it, never
 below 0) and **set the stock to an exact number**. You can also **read the cookbook**
 and **add or remove recipes**. Reading and changing are separate permissions the user
-grants per feature (Pantry Read/Write, Cookbook Read/Write).
+grants per feature (Pantry Read/Write, Cookbook Read/Write). You can read and keep the
+household's shared **tasks and chores** too (Tasks Read/Write).
 
 You can also keep a Home's **shopping list**: **read** it, **add** an item, **tick** it off (say how many are
 picked up) or **remove** it. Those are the user's Shopping list Read and Shopping list Write switches.
@@ -121,6 +122,20 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
    `read` prints `<date>` TAB `<slot>` TAB `<recipe key>` per meal, earliest day first (at most 200; give `--from` / `--to-date`
    to look at one week). The plan holds only the recipe key; the cookbook says what it is. `plan` is safe to repeat; `unplan`
    needs the recipe to be planned there ("unknown meal"). Vesta does not check that a key exists in the cookbook.
+
+   **Tasks and chores.** The Home's *shared* tasks only (the user's private tasks are never reachable); Tasks **Read** and
+   **Write** are their own switches:
+   ```sh
+   scripts/agent-tasks-read.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId>
+   scripts/agent-tasks-add.sh    --agent-instance <name> --to <vesta-agent-id> --home <homeId> --title "Take the bins out" --due 2026-10-14
+   scripts/agent-tasks-done.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> --task <taskId>          # --undo to reopen
+   scripts/agent-tasks-remove.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId> --task <taskId>
+   ```
+   `read` prints `<taskId>` TAB `open|done` TAB `<due date or ->` TAB `<title>` TAB `<repeat or ->` (dated first, at most 200;
+   `done` is for the task's current occurrence). Read first so you don't add a task that is already there (same name and day
+   is refused). `done`/`remove` take `--task <taskId>` or `--title`; if several tasks share a title, use the id. Marking
+   done is safe to repeat; deleting is for the whole household, so only on the user's request. You cannot set repeats,
+   assignees or reminders.
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes
@@ -134,6 +149,9 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
 | exit 3, "unknown item" | Reduce/set named an item that isn't in that Pantry. | Read the Pantry for the exact name, or add it first. |
 | exit 3, "unknown recipe" | A cookbook read or remove named a recipe that isn't in that cookbook. | List the cookbook again for the recipe id. |
 | exit 3, "recipe already exists" | A recipe with that name (any case) is already in the cookbook. | Read it instead of adding it again. |
+| exit 3, "unknown task" | A task done/remove named a task that isn't in that Home's shared tasks. | Read the tasks again for the id. |
+| exit 3, "several tasks have that name…" | A title matches more than one task. | Use `--task <taskId>` from the read. |
+| exit 3, "task already exists" | A task with that name and day is already there. | Read the tasks instead of adding it again. |
 | exit 3, "unknown home" | That Home id doesn't exist. | List the Homes again and re-ask. |
 | exit 3, anything else | Vesta says the request was malformed; the reason is printed. | Fix the request (e.g. quantity out of range, empty title). Don't retry unchanged. |
 | exit 4, no reply | Silent drop: the daemons don't trust each other (step 3), or the app isn't running. | Ask the user to check trust in **both** directions and that Vesta is open. Don't loop. |

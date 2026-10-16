@@ -29,8 +29,11 @@ enum class AssistantCapability(val feature: AssistantFeature?, val kind: Assista
     CookbookWrite(AssistantFeature.Cookbook, AssistantAccessKind.Write, true),
     MealPlannerRead(AssistantFeature.MealPlanner, AssistantAccessKind.Read, true),
     MealPlannerWrite(AssistantFeature.MealPlanner, AssistantAccessKind.Write, true),
-    TasksRead(AssistantFeature.Tasks, AssistantAccessKind.Read, false),
-    TasksWrite(AssistantFeature.Tasks, AssistantAccessKind.Write, false),
+    /** Read the Home's shared tasks ([ReadTasks]). */
+    TasksRead(AssistantFeature.Tasks, AssistantAccessKind.Read, true),
+
+    /** Add, tick and remove shared tasks ([TasksWriteCommand]). */
+    TasksWrite(AssistantFeature.Tasks, AssistantAccessKind.Write, true),
     CalendarRead(AssistantFeature.Calendar, AssistantAccessKind.Read, false),
     CalendarWrite(AssistantFeature.Calendar, AssistantAccessKind.Write, false),
     MerchantsRead(AssistantFeature.Merchants, AssistantAccessKind.Read, false),
