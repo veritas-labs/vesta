@@ -28,7 +28,11 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
-            packageName = "uk.veritaslabs.vesta"
+            // The name shown in the application menu and the window title; the rpm/deb are named from it too.
+            packageName = "Vesta"
+            // jpackage bundles a trimmed JVM; these are the modules the app needs beyond its default
+            // (`./gradlew :desktopApp:suggestRuntimeModules`). java.net.http is the HttpClient the x0x client uses.
+            modules("java.instrument", "java.net.http", "java.scripting", "jdk.unsupported")
             packageVersion = vestaVersion
             // MSI versions are numeric MAJOR.MINOR.BUILD (BUILD up to 65535), so the patch and the pre-release stage fold
             // into BUILD: 0.1.0-alpha.1 -> 0.1.1, 0.1.0 -> 0.1.99, 0.1.1 -> 0.1.199. Still orders correctly.

@@ -74,13 +74,13 @@ Vesta on the desktop talks to an **x0x daemon that you install and run yourself*
    Debian, Ubuntu and derivatives:
 
    ```
-   sudo apt install ./uk.veritaslabs.vesta_<version>_amd64.deb
+   sudo apt install ./vesta_<version>_amd64.deb
    ```
 
    Fedora, RHEL, openSUSE and derivatives:
 
    ```
-   sudo dnf install ./uk.veritaslabs.vesta-<version>-1.x86_64.rpm
+   sudo dnf install ./vesta-<version>-1.x86_64.rpm
    ```
 
 3. Start **Vesta** from your application menu.
