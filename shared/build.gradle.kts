@@ -13,7 +13,7 @@ plugins {
 // it via JNI (EmbeddedX0x.android.kt and X0xBridge, now in the x0x kit; the .so is
 // staged into androidApp/src/main/jniLibs by scripts/build-android-ffi.sh);
 // iOS links the static library through the cinterop bindings that live in the x0x kit
-// (vesta-kits, x0x-kit/native); Xcode links the archive, so nothing here binds it any more.
+// (veritas-kits, x0x-kit/native); Xcode links the archive, so nothing here binds it any more.
 // Native packaging moves to the kit in extraction plan WP26.
 val x0xFfiDir = rootProject.projectDir.resolve("ffi/x0x-ffi")
 val x0xIosDistDir = x0xFfiDir.resolve("dist/ios")
@@ -75,7 +75,7 @@ kotlin {
         androidMain.get().kotlin.srcDir("src/jvmAndroidMain/kotlin")
         jvmMain.get().kotlin.srcDir("src/jvmAndroidMain/kotlin")
         androidMain.dependencies {
-            // The per-Space document plumbing, extracted to vesta-kits. JVM and Android only (Automerge has no iOS
+            // The per-Space document plumbing, extracted to veritas-kits. JVM and Android only (Automerge has no iOS
             // binding), so it is declared on these two source sets and not on commonMain.
             api(libs.kits.docs)
             implementation(libs.compose.uiToolingPreview)
@@ -95,17 +95,17 @@ kotlin {
             implementation(libs.mlkit.barcodeScanning)
         }
         commonMain.dependencies {
-            // The x0x client, extracted to vesta-kits. api: Vesta's own public types expose its types.
+            // The x0x client, extracted to veritas-kits. api: Vesta's own public types expose its types.
             api(libs.kits.x0x)
-            // The database (KitsDatabase, its schema and migrations, the open path), extracted to vesta-kits. api: the
+            // The database (KitsDatabase, its schema and migrations, the open path), extracted to veritas-kits. api: the
             // generated queries expose SQLDelight's runtime types to Vesta's own code.
             api(libs.kits.store)
-            // Photo storage, placeholders, encoders and the blob transfer service, extracted to vesta-kits.
+            // Photo storage, placeholders, encoders and the blob transfer service, extracted to veritas-kits.
             api(libs.kits.blobs)
-            // Membership: Spaces, rosters, invites, the registries, profiles and the join/group services, extracted to vesta-kits.
+            // Membership: Spaces, rosters, invites, the registries, profiles and the join/group services, extracted to veritas-kits.
             // Its common part has an iOS variant; the Automerge-based services are JVM and Android only.
             api(libs.kits.spaces)
-            // Device data sync, device pairing and the Sync activity models, extracted to vesta-kits. Like x0x-kit its iOS
+            // Device data sync, device pairing and the Sync activity models, extracted to veritas-kits. Like x0x-kit its iOS
             // variant exists only when published from a Mac; the engine is JVM and Android only.
             api(libs.kits.sync)
             implementation(libs.compose.runtime)

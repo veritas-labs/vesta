@@ -156,7 +156,7 @@ class KitBoundaryTest {
         }
 
         // Assert
-        assertEquals(emptyList(), copies, "sources of an extracted kit belong in vesta-kits, not here")
+        assertEquals(emptyList(), copies, "sources of an extracted kit belong in veritas-kits, not here")
     }
 
     @Test

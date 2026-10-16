@@ -170,7 +170,7 @@ The grant model (capability, per-workspace policy of Ask or Auto, activity log, 
 
 ## Revised order
 
-Status on 2026-10-16. The module table above is superseded by the corrected one in [kits-extraction-implementation-plan.md](kits-extraction-implementation-plan.md) and ADR-038: six kits (`x0x-kit`, `store-kit`, `blobs-kit`, `docs-kit`, `spaces-kit`, `sync-kit`) plus `x0x-kit-testing` and `store-kit-testing`; `device-kit` is `sync-kit`, `crdt-docs` is `docs-kit`, `groups-kit` is `spaces-kit`, `app-shell-kit` was dropped, `assistants-kit` is deferred. The kits live in `~/Development/VeritasLabs/vesta-kits` and publish to Maven Local only.
+Status on 2026-10-16. The module table above is superseded by the corrected one in [kits-extraction-implementation-plan.md](kits-extraction-implementation-plan.md) and ADR-038: six kits (`x0x-kit`, `store-kit`, `blobs-kit`, `docs-kit`, `spaces-kit`, `sync-kit`) plus `x0x-kit-testing` and `store-kit-testing`; `device-kit` is `sync-kit`, `crdt-docs` is `docs-kit`, `groups-kit` is `spaces-kit`, `app-shell-kit` was dropped, `assistants-kit` is deferred. The kits live in `~/Development/VeritasLabs/veritas-kits` and publish to Maven Local only.
 
 3. Make the registry and engine public inside `:shared` (explicit API; Vesta's ten types supplied from outside; roster hook and SeedGate decisions). **Done** (WP1-WP6; `SeedGate` still not extracted).
 4. Resolve database composition (item 10). **Done** (ADR-036, WP9, WP15).

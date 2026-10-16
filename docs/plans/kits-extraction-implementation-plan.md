@@ -6,7 +6,7 @@ Every WP is a commit-sized slice. After every WP Vesta builds and its tests are 
 
 ## Decisions already taken (do not reopen)
 
-- **Separate repos.** The kits live in a sibling repo, `~/Development/VeritasLabs/vesta-kits`, published to **Maven Local only** for now. Vesta consumes artifacts, not project dependencies.
+- **Separate repos.** The kits live in a sibling repo, `~/Development/VeritasLabs/veritas-kits`, published to **Maven Local only** for now. Vesta consumes artifacts, not project dependencies.
 - **"Space" replaces "Home" in kit APIs.** Persisted names, wire ids, document ids, table names and invite-link formats stay byte-identical for existing installs.
 - **Services only, no UI in kits.** Screens, view models, Compose resources and Compose-runtime helpers stay in Vesta.
 - **Autonomi is out of scope.** **Kotlin explicit-API mode** is on in every kit.
@@ -71,7 +71,7 @@ Kit-bound code is **93 files, about 9,100 lines of roughly 40,000** in `:shared`
 **Gates** (a WP names the ones it needs):
 
 - **Gate V (Vesta):** `./gradlew :shared:jvmTest :shared:testAndroidHostTest :shared:verifyCommonMainVestaDatabaseMigration :desktopApp:compileKotlin :androidApp:compileDebugKotlin`, compared with the WP0 baseline. WP0 confirms the exact task names and writes them into this file. A failure outside the baseline's known failures is a regression. `DeviceDataSyncServiceTest` and the Compose UI acceptance tests are known to be flaky under load (ADR-035): rerun the one failing class alone before calling it a regression, and say so in the commit.
-- **Gate K (kits repo):** in `vesta-kits`, `./gradlew build apiCheck publishToMavenLocal`, then Gate V in Vesta against the published artifacts.
+- **Gate K (kits repo):** in `veritas-kits`, `./gradlew build apiCheck publishToMavenLocal`, then Gate V in Vesta against the published artifacts.
 - **Gate M (Mac, human):** `:shared:compileKotlinIosSimulatorArm64` and an Xcode build. Cannot run here.
 - **Gate D (device, human):** launch the Android emulator and the desktop app; pair two instances; add an item. Needed where JNI or startup wiring changes.
 
@@ -404,7 +404,7 @@ Everything in this table keeps its current spelling after the rename. The kit's 
 **Goal.** Prove, before any code moves, that a KMP library built here publishes to Maven Local and that Vesta (including its Android and desktop modules) resolves and runs against it.
 
 **Steps.**
-- `~/Development/VeritasLabs/vesta-kits`: `git init`, copy the Gradle wrapper and `gradle-daemon-jvm.properties`, `libs.versions.toml` (versions as in the conventions), `settings.gradle.kts` with `includeBuild("build-logic")`, `build-logic/` with convention plugins: `kits.kmp-library` (targets jvm, android via `com.android.kotlin.multiplatform.library` with namespace `uk.veritaslabs.kits.<module>`, `iosArm64`/`iosSimulatorArm64`, the `jvmAndroidMain` srcDir convention, `explicitApi()`, JVM 11, test dependencies as in `shared/build.gradle.kts`), `kits.publishing` (`maven-publish`, group, version from `gradle.properties`, POM with Apache-2.0), `kits.api-check`.
+- `~/Development/VeritasLabs/veritas-kits`: `git init`, copy the Gradle wrapper and `gradle-daemon-jvm.properties`, `libs.versions.toml` (versions as in the conventions), `settings.gradle.kts` with `includeBuild("build-logic")`, `build-logic/` with convention plugins: `kits.kmp-library` (targets jvm, android via `com.android.kotlin.multiplatform.library` with namespace `uk.veritaslabs.kits.<module>`, `iosArm64`/`iosSimulatorArm64`, the `jvmAndroidMain` srcDir convention, `explicitApi()`, JVM 11, test dependencies as in `shared/build.gradle.kts`), `kits.publishing` (`maven-publish`, group, version from `gradle.properties`, POM with Apache-2.0), `kits.api-check`.
 - One module `smoke-kit` with one public function and one test. `./gradlew build apiDump publishToMavenLocal`.
 - In Vesta, a throwaway branch (not committed): add `mavenLocal()` filtered by group, depend on `smoke-kit` from `:shared` `commonMain`, call the function from `jvmMain` and `androidMain`, run `:desktopApp:compileKotlin :androidApp:compileDebugKotlin :shared:jvmTest`. Record in the kits README what resolved and what did not (the `-android` variant selection under AGP 9.1.1; `-jvm`; the iOS variants absent on Linux).
 - Add `README.md`, `LICENSE`, `NOTICE` copied from Vesta, `docs/` with a copy of the "Conventions" section of this plan.
@@ -442,12 +442,12 @@ Everything in this table keeps its current spelling after the rename. The kit's 
 **Goal.** First real kit published; Vesta consumes it.
 
 **Steps.**
-- In `vesta-kits`: module `x0x-kit` (the 12 files, their tests: `AbstractX0xClientFilesTest`, `StorePathTest`, `X0xConnectivityTest`, `X0xEventHubTest`, `X0xHealthTest`, `X0xNetworkMonitorTest`, `X0xPeersTest`, `X0xStuckDetectorTest`); module `x0x-kit-testing` (`FakeX0xClient`, `FakeX0xNetwork`, `FakeGroupStore` if it is separate, and the helper types they use). `explicitApi` errors fixed; `apiDump` baseline committed; `0.1.0` published to Maven Local.
+- In `veritas-kits`: module `x0x-kit` (the 12 files, their tests: `AbstractX0xClientFilesTest`, `StorePathTest`, `X0xConnectivityTest`, `X0xEventHubTest`, `X0xHealthTest`, `X0xNetworkMonitorTest`, `X0xPeersTest`, `X0xStuckDetectorTest`); module `x0x-kit-testing` (`FakeX0xClient`, `FakeX0xNetwork`, `FakeGroupStore` if it is separate, and the helper types they use). `explicitApi` errors fixed; `apiDump` baseline committed; `0.1.0` published to Maven Local.
 - In Vesta: `libs.versions.toml` gets `kits = "0.1.0"` and library entries; `:shared` depends on `x0x-kit` (`api` for `commonMain`, since Vesta's own code uses the types) and `x0x-kit-testing` in `commonTest`/`jvmTest`; delete the moved files; `settings.gradle.kts` gets `mavenLocal()` filtered by group.
 - The Rust crate and `scripts/build-*-ffi.sh` **stay in Vesta** in this WP (decision: native packaging is WP26). Vesta's `androidApp` still builds and stages `libx0x_ffi.so`; the kit contains only the Kotlin JNI declarations.
 - Tests that moved must keep their AAA comments.
 
-**Files.** `vesta-kits/x0x-kit/**`, `vesta-kits/x0x-kit-testing/**`, `shared/build.gradle.kts`, `gradle/libs.versions.toml`, `settings.gradle.kts`, deletions under `shared/src/*/x0x/`, `commonTest/x0x/`, `jvmTest/devicesync/FakeX0xNetwork*.kt`.
+**Files.** `veritas-kits/x0x-kit/**`, `veritas-kits/x0x-kit-testing/**`, `shared/build.gradle.kts`, `gradle/libs.versions.toml`, `settings.gradle.kts`, deletions under `shared/src/*/x0x/`, `commonTest/x0x/`, `jvmTest/devicesync/FakeX0xNetwork*.kt`.
 
 **Acceptance.** Gate K, then Gate V. The Vesta test count may only change by the tests that moved (record the arithmetic: Vesta's count down by N, the kits' count up by N). Gate D (the embedded daemon starts on the emulator and the desktop app finds `x0xd`).
 
@@ -461,12 +461,12 @@ Everything in this table keeps its current spelling after the rename. The kit's 
 **Goal.** The schema, the migration chain and the open path are published; Vesta opens `KitsDatabase` from the artifact.
 
 **Steps.**
-- In `vesta-kits/store-kit`: the 21 `.sq`, 19 `.sqm`, the `databases/*.db` snapshots (byte-identical copies; checksum them before and after), `db/*` code, `generateAsync = true`, `verifyMigrations`, `linkSqlite = false`, the two driver dependencies. Tests: `FullMigrationChainTest`, `AssistantMigrationTest`, `DatabaseSafetyTest`, `ProfileTest`, `SyncEventQueriesTest`, `AgentCommandLogTest`, `VestaDatabaseTest` (renamed), `TestDatabase`. `store-kit-testing` publishes `openInMemoryDatabase()`.
+- In `veritas-kits/store-kit`: the 21 `.sq`, 19 `.sqm`, the `databases/*.db` snapshots (byte-identical copies; checksum them before and after), `db/*` code, `generateAsync = true`, `verifyMigrations`, `linkSqlite = false`, the two driver dependencies. Tests: `FullMigrationChainTest`, `AssistantMigrationTest`, `DatabaseSafetyTest`, `ProfileTest`, `SyncEventQueriesTest`, `AgentCommandLogTest`, `VestaDatabaseTest` (renamed), `TestDatabase`. `store-kit-testing` publishes `openInMemoryDatabase()`.
 - First, as a spike inside this WP and before moving the bulk: confirm the three "verify, do not assume" items from the Phase B decision. If generated code breaks `explicitApi()`, apply the narrowest opt-out and record it.
 - Vesta: `:shared` depends on `store-kit`; delete `commonMain/sqldelight`, the `sqldelight {}` block and the SQLDelight plugin from `:shared` (Vesta no longer has its own schema; `AppSetting` queries come from the kit's `KitsDatabase`). `docs/testing/database-migrations.md` moves to the kits repo and Vesta's copy becomes a pointer.
 - The Vesta `generateLicenses` report must still list SQLDelight runtime (it comes through the kit now).
 
-**Files.** `vesta-kits/store-kit/**`, `store-kit-testing/**`, `shared/build.gradle.kts`, deletions of `shared/src/commonMain/sqldelight/**` and `shared/src/commonMain/kotlin/.../db/**` (already `kits.store` after WP9), Vesta test deletions of the moved tests.
+**Files.** `veritas-kits/store-kit/**`, `store-kit-testing/**`, `shared/build.gradle.kts`, deletions of `shared/src/commonMain/sqldelight/**` and `shared/src/commonMain/kotlin/.../db/**` (already `kits.store` after WP9), Vesta test deletions of the moved tests.
 
 **Acceptance.** Gate K (`verifyMigrations` passes in the kit), Gate V, and `ExistingInstallStillOpensTest` (WP10) against the published artifact: the old database file opens at version 20 with its data. Compare the SHA-256 of every snapshot before and after the move.
 
@@ -622,7 +622,7 @@ This is the largest and most entangled kit (21 files, 2,625 lines; `HomeRosters`
 
 **Goal.** `x0x-kit` is self-contained on mobile: the `.so` for Android and the static library for iOS come from the kit, not from Vesta's `ffi/` and scripts.
 
-**What it involves.** Move `ffi/x0x-ffi`, `scripts/build-android-ffi.sh`, `scripts/build-ios-ffi.sh` and the cinterop def to `vesta-kits`; package the `.so` into the `x0x-kit` Android artifact (unverified whether AGP 9.1.1's KMP library plugin accepts `jniLibs`; the fallback is a separate `x0x-kit-native` Android AAR); publish the iOS static libraries as an XCFramework for Xcode to link, because a klib cannot carry the archive; move the Rust half of Vesta's `generateLicenses`.
+**What it involves.** Move `ffi/x0x-ffi`, `scripts/build-android-ffi.sh`, `scripts/build-ios-ffi.sh` and the cinterop def to `veritas-kits`; package the `.so` into the `x0x-kit` Android artifact (unverified whether AGP 9.1.1's KMP library plugin accepts `jniLibs`; the fallback is a separate `x0x-kit-native` Android AAR); publish the iOS static libraries as an XCFramework for Xcode to link, because a klib cannot carry the archive; move the Rust half of Vesta's `generateLicenses`.
 
 **Why not unattended.** It needs the Android NDK, an emulator or device, and a Mac (the iOS build cannot run on Linux), and none of it is checkable by the Kotlin test suite. WP13's symbol test covers only the name match. Leave Vesta building the native libraries from its own `ffi/` until a human does this with the hardware in front of them; WP14 already works that way.
 
@@ -640,8 +640,8 @@ This is the largest and most entangled kit (21 files, 2,625 lines; `HomeRosters`
 - **Mac publishing: decided.** Choice: iOS consumes the kits only once they are also published from a Mac; until then the iOS build cannot resolve three of them. Until someone publishes the same `kitsVersion` from a Mac with `publishToMavenLocal`, Vesta's iOS targets do not resolve `x0x-kit`, `x0x-kit-testing` or `sync-kit` (and `docs-kit` never has iOS klibs). Recorded in the kits README and `kits-extraction-followups.md`; ADR-038 has the reasoning. Nothing about iOS has been compiled or run in this extraction (Gate M owed).
 - **Acceptance section.** `docs/testing/acceptance-tests.md` "Kits extraction" extended (items 7-9).
 - **Shared plan updated** (findings 3-12 status and Revised order). The infrastructure ADRs were left in Vesta and linked from ADR-038 (not moved: they cite Vesta code and plans, and the kits repo has no remote to host a link target).
-- **Version drift.** `vesta-kits/scripts/check-version-drift.sh` (no drift on 2026-10-16); the kits README documents it.
-- **Reproducibility.** A fresh `git clone` of vesta-kits ran `./gradlew build apiCheck publishToMavenLocal` green with only what is in git; `ANDROID_HOME` was set (otherwise a gitignored `local.properties` with `sdk.dir`). Vesta then ran `clean` and Gate V against the freshly published artifacts (results in ADR-038 and the final report).
+- **Version drift.** `veritas-kits/scripts/check-version-drift.sh` (no drift on 2026-10-16); the kits README documents it.
+- **Reproducibility.** A fresh `git clone` of veritas-kits ran `./gradlew build apiCheck publishToMavenLocal` green with only what is in git; `ANDROID_HOME` was set (otherwise a gitignored `local.properties` with `sdk.dir`). Vesta then ran `clean` and Gate V against the freshly published artifacts (results in ADR-038 and the final report).
 - **Colo** remains the natural first outside consumer of `x0x-kit`; not started.
 
 ---

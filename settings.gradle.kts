@@ -16,7 +16,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        // The kits (~/Development/VeritasLabs/vesta-kits) are published here by `./gradlew publishToMavenLocal`;
+        // The kits (~/Development/VeritasLabs/veritas-kits) are published here by `./gradlew publishToMavenLocal`;
         // nothing else may come from Maven Local.
         mavenLocal {
             content { includeGroup("uk.veritaslabs.kits") }

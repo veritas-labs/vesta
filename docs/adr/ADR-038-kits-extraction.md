@@ -15,7 +15,7 @@ services only (no UI), "Space" as the neutral term, and persisted and wire names
 
 ## Decision (what was built)
 
-**Repository.** `~/Development/VeritasLabs/vesta-kits`, group `uk.veritaslabs.kits`, one `kitsVersion` (0.1.0) for all, Apache-2.0,
+**Repository.** `~/Development/VeritasLabs/veritas-kits`, group `uk.veritaslabs.kits`, one `kitsVersion` (0.1.0) for all, Apache-2.0,
 Kotlin 2.4.20 / AGP 9.1.1 / Gradle 9.6.1 copied from Vesta. Convention plugins in `build-logic/` (`kits.kmp-library`,
 `kits.api-check`, `kits.publishing`, `kits.root-api-validation`). Vesta resolves the kits from a `mavenLocal()` filtered to the kits
 group.
@@ -80,7 +80,7 @@ literal; the JNI package of `X0xBridge` and the generated `uk.veritaslabs.vesta.
 
 ## Verification (2026-10-16)
 
-- Fresh `git clone` of vesta-kits: `./gradlew build apiCheck publishToMavenLocal` passed with only what is in git (needs the Android SDK
+- Fresh `git clone` of veritas-kits: `./gradlew build apiCheck publishToMavenLocal` passed with only what is in git (needs the Android SDK
   via `ANDROID_HOME` or a gitignored `local.properties`; the build cache was on).
 - Vesta after `./gradlew clean`, Gate V against those artifacts: `:shared:jvmTest` 1,439 tests ran, 5 failed and all 5 passed when their
   classes were rerun alone (`CalendarEventsAcceptanceTest` 1, `CookingAcceptanceTest` 3, `DeviceDataSyncServiceTest` 1: the known flaky

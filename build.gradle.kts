@@ -35,7 +35,7 @@ licenseReport {
     // Only what ends up in the apps: no compile-only, test or tooling classpaths.
     configurations = arrayOf("jvmRuntimeClasspath", "androidRuntimeClasspath", "releaseRuntimeClasspath", "runtimeClasspath")
     excludeOwnGroup = true
-    // The kits (vesta-kits, Apache-2.0, ours) are not third parties; their own third-party dependencies
+    // The kits (veritas-kits, Apache-2.0, ours) are not third parties; their own third-party dependencies
     // (SQLDelight, Automerge, ...) still arrive transitively and stay on the list.
     excludeGroups = arrayOf("uk.veritaslabs.kits")
     outputDir = licenseReportDir

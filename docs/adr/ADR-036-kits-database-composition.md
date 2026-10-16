@@ -8,7 +8,7 @@ it). Related: [ADR-035](ADR-035-document-type-registry.md), [ADR-037](ADR-037-sp
 
 ## Context
 
-The kits move out of `:shared` into a sibling repo (`vesta-kits`, Maven Local only). Every kit that touches SQLite today uses one
+The kits move out of `:shared` into a sibling repo (`veritas-kits`, Maven Local only). Every kit that touches SQLite today uses one
 generated class, `VestaDatabase`, which appears in 42 production files and is opened by 56 test files. The facts that decide where
 the schema lives (verified in `shared/src/commonMain/sqldelight`):
 
