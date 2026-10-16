@@ -15,6 +15,27 @@ plugins {
     alias(libs.plugins.licenseReport)
 }
 
+// The app version comes from gradle.properties; the build code is derived from it so Android's
+// versionCode never needs a hand-kept counter and always orders releases correctly:
+//   code = (MAJOR * 10000 + MINOR * 100 + PATCH) * 100 + stage
+// where stage is N for -alpha.N, 25 + N for -beta.N, 50 + N for -rc.N (N 1-24) and 99 for a final release.
+// So 0.1.0-alpha.1 -> 101, 0.1.0-beta.2 -> 127, 0.1.0 -> 199, 1.2.3 -> 1020399.
+val vestaVersion = providers.gradleProperty("vestaVersion").get()
+val vestaBuildCode = Regex("""(\d{1,2})\.(\d{1,2})\.(\d{1,2})(?:-(alpha|beta|rc)\.(\d{1,2}))?""").matchEntire(vestaVersion)
+    ?.destructured
+    ?.let { (major, minor, patch, stage, number) ->
+        val prerelease = number.toIntOrNull()?.takeIf { it in 1..24 }
+        val stageCode = when {
+            stage.isEmpty() -> 99
+            prerelease == null -> null
+            else -> prerelease + mapOf("alpha" to 0, "beta" to 25, "rc" to 50).getValue(stage)
+        }
+        stageCode?.let { (major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt()) * 100 + it }
+    }
+    ?: error("vestaVersion must be MAJOR.MINOR.PATCH (each 0-99), optionally -alpha.N, -beta.N or -rc.N (N 1-24), was '$vestaVersion'")
+extra["vestaVersion"] = vestaVersion
+extra["vestaBuildCode"] = vestaBuildCode
+
 // The third-party licence list shown under Settings > Open source licences.
 // `./gradlew generateLicenses` rewrites the committed
 // shared/src/commonMain/composeResources/files/licenses.json from what the

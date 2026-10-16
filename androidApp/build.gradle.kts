@@ -48,8 +48,8 @@ android {
         applicationId = "uk.veritaslabs.vesta"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = rootProject.extra["vestaBuildCode"] as Int
+        versionName = rootProject.extra["vestaVersion"] as String
     }
     packaging {
         resources {

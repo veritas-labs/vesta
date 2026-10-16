@@ -1,35 +1,136 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM).
+# Vesta
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform, you
-  need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+**Vesta** is a modular, local-first household app: a shared pantry and shopping list, a cookbook, a meal planner, tasks
+and chores, and a calendar. Pick the tools you need and ignore the rest. There is no account and no central server.
+Your home lives on your devices and they sync directly with each other, peer to peer, over
+[x0x](https://github.com/saorsa-labs/x0x).
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications. It contains
-  several subfolders:
-    - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name. For
-      example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls. Similarly, if you want
-      to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-      folder is the appropriate location.
+It is built with Kotlin Multiplatform and Compose Multiplatform for Android and desktop (Linux, with macOS expected to
+work). Every feature can be used by people through the app and by AI agents through x0x (see
+[Agents](#ai-agents)).
 
-### Running the apps
+> [!WARNING]
+> **Vesta is alpha, experimental software.** Features are unfinished, parts of the app have only been tested on a
+> few devices, and data formats and the sync protocol may change between releases, possibly without a migration path.
+> Expect bugs. Don't rely on it as the only copy of anything important. Bug reports are very welcome (see
+> [Contributing](CONTRIBUTING.md)).
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and
-options:
+> [!CAUTION]
+> **x0x uses a lot of network data.** On Android, Vesta runs a complete x0x node inside the app. It keeps peer
+> connections open and exchanges gossip and sync traffic in the background, so it can use a noticeable amount of mobile
+> data and battery. If you are on a metered or limited plan, use Wi-Fi, and keep an eye on usage in Android's
+> data-usage settings, at least until you know how it behaves for you. We have not yet measured or optimised this.
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- Desktop app:
-    - Hot reload: `./gradlew :desktopApp:hotRun --auto`
-    - Standard run: `./gradlew :desktopApp:run`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+## What's in it
+
+- **Homes**: a Home is a household (or any group). Members join by invite link; each Home syncs between its members'
+  devices and between your own devices.
+- **Pantry and shopping list**: stock counts per item, a shared list, "add checked to Pantry".
+- **Cookbook**, **meal planner**, **tasks and chores**, **calendar** (a private calendar per Home, synced only
+  between your own devices).
+- **Sync without being online together**: optional always-on hubs ([Run an always-on hub](docs/product/RUN-A-HUB.md)).
+- **Assistants**: scoped, per-Home permissions for external AI agents.
+
+See [Vision](docs/product/VISION.md), [Core experience](docs/product/CORE-EXPERIENCE.md) and
+[Syncing and joining](docs/product/SYNC-AND-JOINING.md) for the thinking behind it, and [docs/adr](docs/adr) for the
+design decisions.
+
+## Platform support
+
+| Platform | Status | Notes |
+|---|---|---|
+| Android 8.0+ (API 26) | Supported, prebuilt APK | x0x is embedded in the app. |
+| Linux (x86_64) | Supported, prebuilt `.deb` / `.rpm` | Needs a separate `x0x` install (see below). |
+| macOS | Should work, **untested** | The desktop app is the same JVM code and the build is configured for a `.dmg`, but it has not been run or released. Build from source. |
+| Windows | Build from source, **not working out of the box** | The desktop app does not yet look for the x0x daemon in Windows locations, so it will not find it. Contributions welcome. |
+| iOS | **Not supported** | The code and an Xcode project exist from the Kotlin Multiplatform template, but the iOS app is not built, tested or maintained, and Automerge, which Vesta needs, has no iOS binding. |
+
+## Install
+
+### Android
+
+1. Download `vesta-<version>.apk` from the [latest release](../../releases/latest).
+2. Open it on your phone. Android will ask you to allow installs from your browser or file manager ("install unknown
+   apps"); this is needed because the APK is not from the Play Store.
+3. Open Vesta. It starts its own x0x node, so there is nothing else to install.
+
+Read the data usage warning at the top of this page first.
+
+### Linux
+
+Vesta on the desktop talks to an **x0x daemon that you install and run yourself**; it does not bundle one.
+
+1. Install x0x from [the x0x project](https://github.com/saorsa-labs/x0x) and start it:
+
+   ```
+   x0x start
+   ```
+
+   The app finds the daemon through its data directory (`~/.local/share/x0x`, or whatever `X0X_DATA_DIR` points at), so
+   start x0x first or leave it running. Use **x0x 0.46.3 or newer**. If the app says it can't find x0x, this is why.
+
+2. Install Vesta from the [latest release](../../releases/latest):
+
+   Debian, Ubuntu and derivatives:
+
+   ```
+   sudo apt install ./uk.veritaslabs.vesta_<version>_amd64.deb
+   ```
+
+   Fedora, RHEL, openSUSE and derivatives:
+
+   ```
+   sudo dnf install ./uk.veritaslabs.vesta-<version>-1.x86_64.rpm
+   ```
+
+3. Start **Vesta** from your application menu.
+
+### macOS, Windows, or anything else
+
+Build from source (below). On macOS you can produce a disk image with `./gradlew :desktopApp:packageDmg`; the x0x
+daemon has to be installed and running as on Linux. On Windows, see the table above.
+
+## Build from source
+
+You will need:
+
+- **JDK 17 or newer** (Gradle fetches the JVM 11 toolchain it needs).
+- **The Android SDK** (set `ANDROID_HOME`, or put `sdk.dir=/path/to/Sdk` in a `local.properties` file). Gradle
+  configures the Android modules even if you only want the desktop app.
+- **Vesta's kits**: the libraries in veritas-kits that Vesta depends
+  on are not on a public Maven repository. Clone that repository and publish it to your local Maven repository first,
+  and again whenever you update it:
+
+  ```
+  git clone <veritas-kits repository>
+  cd veritas-kits && ./gradlew publishToMavenLocal
+  ```
+
+- **For the Android app only**: Rust (<https://rustup.rs>), the Android NDK, and the Rust cross-targets, as described
+  in [x0x networking](#x0x-networking-embedded-on-mobile-daemon-on-desktop) below. The first Android build compiles the
+  whole x0x tree per ABI, which takes about 10 minutes per ABI.
+
+Then:
+
+```
+./gradlew :desktopApp:run                 # desktop app (needs x0x running)
+./gradlew :androidApp:assembleDebug       # Android debug APK
+./gradlew :desktopApp:packageDeb          # Linux .deb (run on Linux)
+./gradlew :desktopApp:packageDmg          # macOS .dmg (run on macOS)
+./gradlew :desktopApp:packageMsi          # Windows .msi (run on Windows)
+```
+
+Packages are written to `desktopApp/build/compose/binaries/main/`.
+
+For desktop hot reload while developing: `./gradlew :desktopApp:hotRun --auto`.
 
 ### Running tests
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+- Desktop (JVM): `./gradlew :shared:jvmTest`
+- Android host tests: `./gradlew :shared:testAndroidHostTest`
+- Both: `./gradlew :shared:check`
 
-- Android tests: `./gradlew :shared:testAndroidHostTest`
-- Desktop tests: `./gradlew :shared:jvmTest`
-- iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
+Feature behaviour is specified in [docs/testing/acceptance-tests.md](docs/testing/acceptance-tests.md).
 
 ### Compose previews
 
@@ -43,6 +144,35 @@ When a preview fails to render, see
 [Troubleshooting Compose previews](./docs/troubleshooting/compose-previews.md) — it covers the known
 failure modes (`MissingResourceException`, `CompositionDataTree.mapTree` NPE, AAR-metadata
 `compileSdk` failures, material3/Compose version skew) and how to diagnose a new one.
+
+## Project layout
+
+```
+androidApp/   Android app (entry point, packaging, embedded x0x .so files)
+desktopApp/   Desktop (JVM) app and native packaging
+shared/       Shared Kotlin Multiplatform code: UI, app logic, platform source sets
+iosApp/       Leftover iOS entry point (unsupported)
+ffi/x0x-ffi/  Rust crate that embeds the x0x daemon for mobile
+skills/       Agent skill for driving Vesta over x0x
+docs/         Product docs, ADRs, design notes, test specs
+branding/     Logo and brand assets (not Apache-licensed, see TRADEMARK.md)
+```
+
+## AI agents
+
+Vesta can be driven by an external AI agent over x0x direct messages (list Homes, add to the Pantry, and so on), with an
+explicit in-app approval step and per-Home scoped grants. See [skills/vesta](skills/vesta/SKILL.md) and
+[ADR-009](docs/adr/ADR-009-agent-commands-over-x0x.md) / [ADR-027](docs/adr/ADR-027-assistants.md).
+
+## Contributing
+
+Contributions are welcome, whether bug reports, fixes, docs, or ports to other platforms. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) first. Security issues: see [Security](#security).
+
+## Security
+
+Vesta is alpha software and has not been independently audited. Don't put anything in it you can't afford to
+expose. Please report vulnerabilities privately through GitHub's "Report a vulnerability" button on the Security tab rather than in a public issue.
 
 ---
 
@@ -161,9 +291,6 @@ generated `SELECT`s need `awaitAsList()`/`awaitAsOne()`/`awaitAsOneOrNull()` (fr
 `app.cash.sqldelight:async-extensions`), and mutating statements (`INSERT`/`UPDATE`/`DELETE`)
 are themselves `suspend` functions.
 
----
-
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
 
 ---
 
