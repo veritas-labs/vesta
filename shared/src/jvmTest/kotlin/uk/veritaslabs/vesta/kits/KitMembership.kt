@@ -13,6 +13,7 @@ enum class Kit(val label: String) {
     X0x("x0x"),
     /** Extracted in WP15: consumed as the published `uk.veritaslabs.kits:store-kit` (the schema lives there). */
     Store("store"),
+    /** Extracted in WP20: consumed as the published `uk.veritaslabs.kits:docs-kit` (JVM and Android only). */
     Docs("docs"),
     Spaces("spaces"),
     Sync("sync"),
@@ -24,20 +25,20 @@ enum class Kit(val label: String) {
 
 object KitMembership {
     /** Kits that have been extracted: `:shared` imports them but must not contain their sources. */
-    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store, Kit.Blobs)
+    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store, Kit.Blobs, Kit.Docs)
 
     /** The package each extracted kit publishes, so a stray copy of its sources is noticed. */
     val extractedPackages: Map<Kit, String> = mapOf(
         Kit.X0x to "uk.veritaslabs.kits.x0x",
         Kit.Store to "uk.veritaslabs.kits.store",
         Kit.Blobs to "uk.veritaslabs.kits.blobs",
+        Kit.Docs to "uk.veritaslabs.kits.docs",
     )
 
     private val platformSuffix = Regex("\\.(android|jvm|ios)$")
 
     /** Whole directories that belong to one kit, with the files that stay behind in Vesta. */
     private val directories: Map<String, Pair<Kit, Set<String>>> = mapOf(
-        "docs/" to (Kit.Docs to emptySet()), // WP19: docs, mailbox and the five datasync files, now all in uk.veritaslabs.kits.docs
         "profile/" to (Kit.Spaces to emptySet()),
         "devicesync/" to (Kit.Sync to emptySet()),
         "blobs/" to (Kit.Blobs to emptySet()),
@@ -95,7 +96,6 @@ object KitMembership {
 
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
-        Kit.Docs to 16, // Appendix A's 17 less the mailbox StoredHeads wrappers, which duplicated DocumentHeads once the packages merged (WP19)
         Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
         Kit.Assistants to 5,

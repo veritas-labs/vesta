@@ -75,6 +75,9 @@ kotlin {
         androidMain.get().kotlin.srcDir("src/jvmAndroidMain/kotlin")
         jvmMain.get().kotlin.srcDir("src/jvmAndroidMain/kotlin")
         androidMain.dependencies {
+            // The per-Space document plumbing, extracted to vesta-kits. JVM and Android only (Automerge has no iOS
+            // binding), so it is declared on these two source sets and not on commonMain.
+            api(libs.kits.docs)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
             implementation(libs.kotlinx.coroutinesAndroid)
@@ -120,6 +123,7 @@ kotlin {
             implementation(libs.kits.storeTesting)
         }
         jvmMain.dependencies {
+            api(libs.kits.docs)
             // Automerge CRDT (JNI bindings, see the libs.versions.toml comment);
             // the jar bundles natives for desktop (win/mac/linux, x64+arm64).
             implementation(libs.automerge)

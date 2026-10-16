@@ -536,6 +536,8 @@ Vesta implements `CookbookBlobReferences(cookbooks: CookbookSources)` over the e
 
 **Commit.** `rename the document plumbing to the kits package and Space vocabulary`
 
+**As built (unattended run, 2026-10-16).** Vesta `7bdf5ff`. `docs/`, `mailbox/` and the five `datasync` files are ONE package, `uk.veritaslabs.kits.docs`; the mailbox `StoredHeads` wrappers (duplicates of `DocumentHeads`) are deleted, so Docs is 16 files, not 17. `SpaceDocumentStore.forHome` is `forSpace` (Vesta's `*Sources.forHome` stay). Public plain: document, type, registry, store, `AutomergeDocumentCore`, `SyncEnvelope`, `SyncEventRecorder`, `SyncEventKinds`, `SyncModules`; `@KitsInternalApi` public: mailbox reader/writer/entry/snapshot/documents, heads helpers, `SyncableDocument`, `SyncAcknowledgement`, `ChangesWaiting`, `SyncTargets`. Vesta files that use them carry `@file:OptIn(KitsInternalApi::class)` (visible, removable when spaces/sync extract) instead of a module-wide opt-in. Tests that touch Vesta's documents (`SpaceDocumentRegistryTest`, `MailboxTest`, `MailboxCompactionTest`, `ChangesWaitingTest`, `SyncEventRecorderTest`) went back to Vesta packages.
+
 ## WP20. Extract `docs-kit`
 
 **Files / steps.** As WP14. Tests that move: `jvmTest/docs/*` (3), `jvmTest/mailbox/*` (3), `SyncEnvelopeTest`, `SyncEventRecorderTest`, `ChangesWaitingTest`, and the document-core tests. `DocumentTypeRegistrationAcceptanceTest` and `DocumentIdsTest` go to **Vesta** (they register Vesta's types; they prove the extension seam from the consumer's side, which is the point). JVM and Android only; Gate M does not apply.
@@ -543,6 +545,8 @@ Vesta implements `CookbookBlobReferences(cookbooks: CookbookSources)` over the e
 **Acceptance.** Gates K and V. **Order.** After WP14, WP15, WP19. **Risk:** medium. Unattended: yes. Watch: tests that use `internal` members of the docs code from outside the kit fail to compile; move them with the code or open the member under `@KitsInternalApi`, and say which in the commit.
 
 **Commit (kits).** `add docs-kit`. **Commit (Vesta).** `use the published docs kit`
+
+**As built (unattended run, 2026-10-16).** kits `6fb458d`, Vesta see git log. `docs-kit` published `0.1.0`, JVM + Android only: `kits.noIosModules=docs-kit` in the kits `gradle.properties` makes `kits.kmp-library` declare no iOS targets; Vesta declares `api(libs.kits.docs)` on `jvmMain` and `androidMain`, not `commonMain` (nothing in common/iOS source imports it). Moved with the kit: `AutomergeDocumentCoreTest`, `MailboxEntryTest`, `SpaceDocumentStoreTest`, `SyncEnvelopeTest` (21 tests), plus new `DocsKitBoundaryTest` (2, replaces the registry test's import scan). Deviation: the other five tests listed above need Vesta's Pantry/Roster documents and stay in Vesta (a kit-side version over synthetic documents is a follow-up; no `docs-kit-testing` module was needed). `DocumentTypeRegistrationAcceptanceTest` and `DocumentIdsTest` stay as planned. Gate M: klib API dump for a module with no iOS target is unverified on a Mac. The module opts in `KitsInternalApi` for its own use (compiler option, as blobs-kit).
 
 ## WP21. spaces-kit: rename and repackage (three commits)
 

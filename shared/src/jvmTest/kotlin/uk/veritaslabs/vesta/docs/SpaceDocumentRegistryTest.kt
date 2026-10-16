@@ -8,7 +8,6 @@ import uk.veritaslabs.kits.docs.SpaceDocumentRegistry
 import uk.veritaslabs.kits.docs.SpaceDocumentType
 import uk.veritaslabs.kits.docs.changesSince
 
-import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -165,25 +164,5 @@ class SpaceDocumentRegistryTest {
 
         // Assert
         assertTrue(ids.isNotEmpty() && ids.none { ':' in it })
-    }
-
-    @Test
-    fun theDocsKitImportsNothingOfVesta() {
-        // Arrange
-        val dir = listOf(
-            "src/jvmAndroidMain/kotlin/uk/veritaslabs/kits/docs",
-            "shared/src/jvmAndroidMain/kotlin/uk/veritaslabs/kits/docs",
-        ).map(::File).first { it.isDirectory }
-        val allowed = emptyList<String>()
-
-        // Act
-        val offending = dir.walk().filter { it.extension == "kt" }.flatMap { file ->
-            file.readLines().filter { it.startsWith("import uk.veritaslabs.vesta.") }
-                .filter { line -> allowed.none { line.removePrefix("import ").startsWith(it) } }
-                .map { "${file.name}: $it" }
-        }.toList()
-
-        // Assert
-        assertEquals(emptyList(), offending)
     }
 }
