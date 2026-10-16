@@ -11,6 +11,8 @@ import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.automerge.CalendarSources
+import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
+import uk.veritaslabs.vesta.automerge.ProfileDocumentId
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsSources
@@ -156,6 +158,36 @@ class DocumentIdsTest {
             listOf(
                 "$homeId:roster", "$homeId:pantry", "$homeId:shopping-list", "$homeId:cookbook",
                 "$homeId:merchants", "$homeId:mealplan", "$homeId:calendar", "$homeId:tasks",
+            ),
+            listed,
+        )
+    }
+
+    @Test
+    fun theUserDocumentsKeepTheirLiteralIds() {
+        // Arrange
+        val expected = listOf("user:homes", "user:profile")
+
+        // Act
+        val actual = listOf(HomeRegistryDocumentId, ProfileDocumentId)
+
+        // Assert
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun theEngineListsEveryDocumentInTheOrderItWasRegistered() {
+        // Arrange
+        val registry = documents(openInMemoryDatabase()).registry
+
+        // Act
+        val listed = registry.documentIds(homeId)
+
+        // Assert
+        assertEquals(
+            listOf(
+                "$homeId:roster", "$homeId:pantry", "$homeId:shopping-list", "$homeId:cookbook", "$homeId:merchants",
+                "$homeId:mealplan", "$homeId:calendar", "$homeId:tasks", "$homeId:private-calendar", "$homeId:private-tasks",
             ),
             listed,
         )

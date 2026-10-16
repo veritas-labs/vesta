@@ -156,3 +156,28 @@ Changes waiting are not edited for it. All in `DocumentTypeRegistrationAcceptanc
 4. **Sync activity and Changes waiting cover it.** *Given* my other device is away, *when* I edit a private probe document, *then* the Home shows
    changes waiting until the device is back; *when* it syncs, *then* Sync activity lists the sent and received events under the probe's module.
    `syncActivityShowsTheNewTypesEventsUnderItsModuleAndChangesWaitingFollowsItsUnacknowledgedEdit`.
+
+## Kits extraction
+
+Criteria for docs/plans/kits-extraction-implementation-plan.md, WP10. The extraction changes no behaviour, so these are compatibility checks: they were
+captured from the code as it was before any rename, and the literals and the database file are never regenerated. All in
+`shared/src/jvmTest/.../compat/` (the ids also in `DocumentIdsTest`).
+
+1. **Wire messages keep their exact text.** *Given* a join, group, device-sync or blob message with fixed values, *when* it is encoded, *then* the JSON
+   is the literal captured before the extraction (kind names such as `homejoin.invite` and fields such as `homeId`); *when* the literal is decoded,
+   *then* it gives back the same message. `GoldenWireStringsTest` (one test per message family).
+2. **Links keep their exact text.** *Given* an invite link and a pairing link with fixed values, *when* they are encoded, *then* the strings are the
+   captured literals (`vesta://invite/...`, `vesta://pair/...`); *when* the literals are decoded, *then* the same links come back.
+   `GoldenWireStringsTest.theInviteLinkEncodesToItsLiteralStringAndTheLiteralDecodesBack`, `thePairingLinkEncodesToItsLiteralStringWithAndWithoutADeviceName`.
+3. **The sync envelope keeps its bytes.** *Given* one envelope for `home-1:pantry`, *when* it is encoded, *then* it is the length byte, the id, then the message;
+   *when* those bytes are decoded, *then* the id and message come back. `GoldenWireStringsTest.theSyncEnvelopeIsTheLengthOfTheIdThenTheIdThenTheMessage`.
+4. **Document ids and their order do not change.** *Given* a Home, *when* its documents are listed, *then* they are `<homeId>:roster`, `pantry`,
+   `shopping-list`, `cookbook`, `merchants`, `mealplan`, `calendar`, `tasks`, `private-calendar`, `private-tasks` in that order, and the user documents are
+   `user:homes` and `user:profile`. `DocumentIdsTest`.
+5. **The schema keeps every name.** *Given* a new database, *when* its tables, columns, indexes and `user_version` are listed, *then* they equal the
+   literals captured before the extraction (version 20). `SchemaGuardTest`.
+6. **An existing install still opens.** *Given* a copy of a version-20 database written by the code before the extraction, with a row in every table, one Home
+   with all ten documents, a roster with members, a device, a hub, an invite and a removed member, a pending `homejoin.left` message and a mailbox row, *when*
+   it is opened through the app's open path, *then* it opens at version 20 and the Home, every document, the roster, the pending message and the mailbox
+   row are all read back. `ExistingInstallStillOpensTest`. After a test run, `git diff --exit-code shared/src/jvmTest/resources/compat/vesta-v20.db` shows
+   the fixture was not regenerated.
