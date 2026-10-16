@@ -16,8 +16,8 @@ import uk.veritaslabs.vesta.automerge.InviteStatus
 import uk.veritaslabs.vesta.automerge.inviteSecretHash
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
@@ -36,7 +36,7 @@ class HomeJoinRequestsTest {
     private var now = 1_000L
 
     private inner class Admin {
-        val database: VestaDatabase = openInMemoryDatabase()
+        val database: KitsDatabase = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
         val rosters = HomeRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
         val node = network.node("agent-admin")

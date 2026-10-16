@@ -18,8 +18,8 @@ import org.automerge.ObjectId
 import org.automerge.ObjectType
 import uk.veritaslabs.vesta.automerge.openPantryDocumentSource
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesScreen
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesTestTags
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesViewModel
@@ -41,7 +41,7 @@ class PantryDefaultCategoriesAcceptanceTest {
     fun tearDown() = Dispatchers.resetMain()
 
     /** A Pantry as stored before the amendment: the first default set (here just Meat and Dairy) plus a custom one. */
-    private fun VestaDatabase.storeOldPantry(homeId: String) {
+    private fun KitsDatabase.storeOldPantry(homeId: String) {
         val doc = Document()
         val tx = doc.startTransaction()
         tx.set(ObjectId.ROOT, "items", ObjectType.MAP)
@@ -58,7 +58,7 @@ class PantryDefaultCategoriesAcceptanceTest {
         }
     }
 
-    private fun androidx.compose.ui.test.ComposeUiTest.showCategories(database: VestaDatabase, homeId: String) {
+    private fun androidx.compose.ui.test.ComposeUiTest.showCategories(database: KitsDatabase, homeId: String) {
         val source = runBlocking { openPantryDocumentSource(database, homeId) }
         setContent { VestaTheme { PantryCategoriesScreen(PantryCategoriesViewModel(source)) } }
         waitUntil(timeoutMillis = 5_000) {

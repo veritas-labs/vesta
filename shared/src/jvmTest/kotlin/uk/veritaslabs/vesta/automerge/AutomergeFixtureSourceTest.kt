@@ -12,8 +12,8 @@ import kotlinx.coroutines.runBlocking
 import org.automerge.Document
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.EventCalendar
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.ui.screens.MealSlot
 
@@ -29,15 +29,15 @@ class AutomergeFixtureSourceTest {
 
     private val homeId = "home-1"
 
-    private suspend fun database(): VestaDatabase = openInMemoryDatabase().also { it.homeQueries.insert(homeId, "Home", "family", 0L) }
+    private suspend fun database(): KitsDatabase = openInMemoryDatabase().also { it.homeQueries.insert(homeId, "Home", "family", 0L) }
 
-    private suspend fun VestaDatabase.store(documentId: String, feature: String, fixture: String): ByteArray {
+    private suspend fun KitsDatabase.store(documentId: String, feature: String, fixture: String): ByteArray {
         val bytes = AutomergeFixtures.bytes(fixture)
         automergeDocumentQueries.upsert(documentId, homeId, feature, bytes, 0L)
         return bytes
     }
 
-    private suspend fun VestaDatabase.stored(documentId: String): ByteArray =
+    private suspend fun KitsDatabase.stored(documentId: String): ByteArray =
         automergeDocumentQueries.selectById(documentId).awaitAsOne().bytes
 
     private fun heads(bytes: ByteArray) = Document.load(bytes).heads.map { it.toString() }

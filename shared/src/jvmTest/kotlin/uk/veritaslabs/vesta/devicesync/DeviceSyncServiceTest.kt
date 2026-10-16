@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.SyncedDevice
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
@@ -30,7 +30,7 @@ class DeviceSyncServiceTest {
     /** One of the user's devices: its own x0x node, database and service, wired so messages reach the service. */
     private inner class Device(val agentId: String, val name: String) {
         val node = network.node(agentId)
-        val database: VestaDatabase = openInMemoryDatabase()
+        val database: KitsDatabase = openInMemoryDatabase()
         val devices = SyncedDeviceRepository(database) { clock++ }
 
         /** What this device reported to its listener (docs/plans/unpaired-device-gap-plan.md, slice 3). */

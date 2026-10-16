@@ -22,8 +22,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import uk.veritaslabs.vesta.App
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.settings.AppSettingsRepository
 import uk.veritaslabs.vesta.home.HomeListItem
@@ -59,7 +59,7 @@ class OnboardingAcceptanceTest {
         Dispatchers.resetMain()
     }
 
-    private fun ComposeUiTest.launch(db: VestaDatabase, homes: Flow<List<HomeListItem>> = flowOf(emptyList())) = setContent {
+    private fun ComposeUiTest.launch(db: KitsDatabase, homes: Flow<List<HomeListItem>> = flowOf(emptyList())) = setContent {
         App(
             homes = homes,
             settings = AppSettingsRepository(db),

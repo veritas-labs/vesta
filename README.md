@@ -149,7 +149,7 @@ filesystem — always pass directories inside the app's private storage.
 > FTS5 projection — both designed in
 > [ADR-007](./docs/adr/ADR-007-sqlite-persistence-and-search.md).
 
-`VestaDatabase` (schema in [shared/src/commonMain/sqldelight](./shared/src/commonMain/sqldelight),
+`KitsDatabase` (schema in [shared/src/commonMain/sqldelight](./shared/src/commonMain/sqldelight),
 driver setup in `shared/src/*Main/kotlin/.../db/DatabaseDriverFactory.*.kt`) runs on
 [androidx.sqlite's bundled SQLite driver](https://developer.android.com/kotlin/multiplatform/sqlite)
 via the [sqldelight-androidx-driver](https://github.com/eygraber/sqldelight-androidx-driver)

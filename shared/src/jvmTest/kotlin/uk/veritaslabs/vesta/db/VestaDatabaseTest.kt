@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.db
 
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull

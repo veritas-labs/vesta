@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
 
@@ -73,7 +73,7 @@ class MemberRepositoryTest {
         override suspend fun memberLeft(homeId: String, memberId: String) = Unit
     }
 
-    private suspend fun adminHomeWith(db: uk.veritaslabs.vesta.db.VestaDatabase, profiles: ProfileRepository, vararg others: Pair<String, String>) {
+    private suspend fun adminHomeWith(db: uk.veritaslabs.kits.store.KitsDatabase, profiles: ProfileRepository, vararg others: Pair<String, String>) {
         db.homeQueries.insert("home-1", "Flat 4B", "flatshare", 1L)
         db.homeMemberQueries.insert("home-1", profiles.current().id, "Mark", null, "admin", 1L)
         others.forEach { (id, role) -> db.homeMemberQueries.insert("home-1", id, id, null, role, 2L) }

@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.automerge
 
 import kotlin.time.Clock
 import uk.veritaslabs.vesta.datasync.HomeSeeding
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /**
  * Vesta's [HomeSeeding]: a Home this device creates gets its Pantry seeded (before any other device hears of the
@@ -11,7 +11,7 @@ import uk.veritaslabs.vesta.db.VestaDatabase
  */
 class VestaHomeSeeding(
     private val sources: VestaHomeSources,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : HomeSeeding {
 

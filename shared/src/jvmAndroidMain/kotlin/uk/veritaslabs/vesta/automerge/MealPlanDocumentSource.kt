@@ -11,7 +11,7 @@ import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.docs.homeDocumentId
 import uk.veritaslabs.vesta.docs.openHomeDocument
 import uk.veritaslabs.vesta.calendar.CalendarDate
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.MealPlan
 import uk.veritaslabs.vesta.ui.screens.MealPlanSource
 import uk.veritaslabs.vesta.ui.screens.MealSlot
@@ -26,7 +26,7 @@ fun mealPlanDocumentId(homeId: String): String = homeDocumentId(homeId, MealPlan
  * [CookbookDocumentSource]: route every read or write of [document] through this class. [nowMillis] stamps each planned
  * recipe so a slot lists them in the order they were added.
  *
- * Use [openMealPlanDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
+ * Use [openMealPlanDocumentSource] to get one that loads and saves a Home's document in [KitsDatabase].
  */
 @OptIn(ExperimentalUuidApi::class)
 class MealPlanDocumentSource private constructor(
@@ -96,7 +96,7 @@ class MealPlanDocumentSource private constructor(
  * [homeId] must be an existing `Home` row.
  */
 suspend fun openMealPlanDocumentSource(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},

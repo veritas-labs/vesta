@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.automerge.CookbookSources
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 import uk.veritaslabs.vesta.x0x.X0xEventHub
@@ -52,7 +52,7 @@ class BlobTransferService(
     private val client: X0xClient,
     private val repository: BlobRepository,
     private val cookbookSources: CookbookSources,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val peersFor: suspend (homeId: String) -> Set<String>,
     private val onArrived: (hash: String) -> Unit = {},
     private val interval: Duration = 30.seconds,

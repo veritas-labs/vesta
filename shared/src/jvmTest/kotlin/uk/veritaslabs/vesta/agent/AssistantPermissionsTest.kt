@@ -13,7 +13,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.automerge.Document
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.x0x.FakeX0xClient
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage
 

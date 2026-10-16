@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.automerge
 
 import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.docs.HomeDocumentType
 import uk.veritaslabs.vesta.docs.Scope
 
@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.docs.Scope
  * command and the sync all edit the same Automerge documents. Public because the apps build it.
  */
 class VestaHomeSources(
-    database: VestaDatabase,
+    database: KitsDatabase,
     val pantries: PantrySources = PantrySources(database),
     val shoppingLists: ShoppingListSources = ShoppingListSources(database, pantries),
     val cookbooks: CookbookSources = CookbookSources(database),

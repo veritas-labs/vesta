@@ -1,16 +1,16 @@
-package uk.veritaslabs.vesta.db
+package uk.veritaslabs.kits.store
 
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteConfiguration
 import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteDatabaseType
 import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteDriver
 
-fun openInMemoryDatabase(): VestaDatabase {
+fun openInMemoryDatabase(): KitsDatabase {
     val driver = AndroidxSqliteDriver(
         driver = BundledSQLiteDriver(),
         databaseType = AndroidxSqliteDatabaseType.Memory,
-        schema = VestaDatabase.Schema,
+        schema = KitsDatabase.Schema,
         configuration = AndroidxSqliteConfiguration(isForeignKeyConstraintsEnabled = true),
     )
-    return VestaDatabase(driver)
+    return KitsDatabase(driver)
 }

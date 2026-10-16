@@ -2,14 +2,14 @@ package uk.veritaslabs.vesta.automerge
 
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharedFlow
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.docs.HomeDocumentStore
 
 /**
  * One shared [ShoppingListDocumentSource] per Home, built on that Home's shared [PantryDocumentSource] from
  * [pantrySources] (see [PantrySources] for why there must be exactly one of each).
  */
-class ShoppingListSources(database: VestaDatabase, pantrySources: PantrySources) {
+class ShoppingListSources(database: KitsDatabase, pantrySources: PantrySources) {
 
     // [create] returns null without a Pantry (no such Home), so the store caches nothing and evicts any earlier entry.
     private val store = HomeDocumentStore(

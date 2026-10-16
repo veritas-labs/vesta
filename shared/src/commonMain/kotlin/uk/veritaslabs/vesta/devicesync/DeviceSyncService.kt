@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.x0x.X0xApiException
 import uk.veritaslabs.vesta.x0x.X0xClient
@@ -42,7 +42,7 @@ private const val ApiKeyPackagePending = "member_key_package_pending"
  */
 class DeviceSyncService(
     private val client: X0xClient,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val devices: SyncedDeviceRepository,
     private val deviceName: () -> String,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },

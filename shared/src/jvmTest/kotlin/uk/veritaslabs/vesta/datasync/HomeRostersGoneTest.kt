@@ -6,14 +6,14 @@ import kotlin.test.assertEquals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
 /** Marking a device unpaired across the Homes that list it (docs/plans/unpaired-device-gap-plan.md, slice 1). */
 class HomeRostersGoneTest {
 
-    private class Fixture(val database: VestaDatabase, val rosters: HomeRosters, val me: String)
+    private class Fixture(val database: KitsDatabase, val rosters: HomeRosters, val me: String)
 
     /** Two Homes. In both, this user has two devices; in "home-1" Sam's device is listed too, and in "home-2" only this user is. */
     private suspend fun fixture(): Fixture {

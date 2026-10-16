@@ -13,7 +13,7 @@ import uk.veritaslabs.vesta.automerge.ProfileDocumentId
 import uk.veritaslabs.vesta.automerge.canonical
 import uk.veritaslabs.vesta.automerge.putProfile
 import uk.veritaslabs.vesta.automerge.readProfiles
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.profile.CurrentProfile
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
@@ -23,7 +23,7 @@ import uk.veritaslabs.vesta.profile.ProfileRepository
  * this device's Profile into the document and [project] makes the device take on the one the document settles on.
  */
 internal class ProfileRegistry(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val profiles: ProfileRepository,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : SyncableDocument {

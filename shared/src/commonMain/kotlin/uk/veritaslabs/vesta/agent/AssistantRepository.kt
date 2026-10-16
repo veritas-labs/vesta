@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /** The newest this many activity rows are kept per assistant. */
 const val AssistantActivityLimit = 500L
@@ -23,7 +23,7 @@ const val AssistantActivityLimit = 500L
  * trusts ever get here. This is the app-specific permission to actually change Vesta's data.
  */
 class AssistantRepository(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val preApproved: AgentAllowlist = FixedAgentAllowlist(),
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : AssistantAccess {

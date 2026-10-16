@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
 import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.docs.homeDocumentId
 import uk.veritaslabs.vesta.docs.openHomeDocument
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
 import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
@@ -25,7 +25,7 @@ fun shoppingListDocumentId(homeId: String): String = homeDocumentId(homeId, Shop
  * the Home's [pantry]: saving an item leaves the Pantry alone; [addCheckedToPantry] is what puts bought items in it. Same threading contract as
  * [PantryDocumentSource] — route every read or write of [document] through this class.
  *
- * Use [openShoppingListDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
+ * Use [openShoppingListDocumentSource] to get one that loads and saves a Home's document in [KitsDatabase].
  */
 class ShoppingListDocumentSource private constructor(
     private val state: MutableStateFlow<List<ShoppingListItem>>,
@@ -165,7 +165,7 @@ private fun Document.toShoppingItems() = readShoppingList().map {
  * list and stores it straight away. The [homeId] must be an existing `Home` row.
  */
 suspend fun openShoppingListDocumentSource(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     pantry: PantryDocumentSource,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
@@ -186,7 +186,7 @@ suspend fun openShoppingListDocumentSource(
  * own competing `items` map, only one of which survives a merge (see [storeEmptyPantry]).
  */
 suspend fun storeEmptyShoppingList(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {

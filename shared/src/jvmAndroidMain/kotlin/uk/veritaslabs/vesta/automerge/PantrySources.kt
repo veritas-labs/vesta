@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.automerge
 
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharedFlow
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.docs.HomeDocumentStore
 
 /**
@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.docs.HomeDocumentStore
  * writer of its Automerge document, so the UI and anything else that edits a Pantry (e.g. agent
  * commands, device sync) have to go through the same instance — get it here.
  */
-class PantrySources(database: VestaDatabase) {
+class PantrySources(database: KitsDatabase) {
 
     private val store = HomeDocumentStore(
         database, "pantry", { Clock.System.now().toEpochMilliseconds() },

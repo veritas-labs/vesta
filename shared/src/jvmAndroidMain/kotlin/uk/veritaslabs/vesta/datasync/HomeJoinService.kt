@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.home.HomeConfig
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
 import uk.veritaslabs.vesta.automerge.InviteStatus
@@ -46,7 +46,7 @@ private const val DeclinedStatus = "declined"
  */
 internal class HomeJoinService(
     private val client: X0xClient,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val rosters: HomeRosters,
     private val homes: HomeChangeListener,
     private val profiles: ProfileRepository,

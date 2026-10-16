@@ -37,7 +37,7 @@ import uk.veritaslabs.vesta.automerge.releaseRosterDevice
 import uk.veritaslabs.vesta.automerge.retireRosterMember
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.setRosterRole
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.mailbox.changesSince
 import uk.veritaslabs.vesta.mailbox.encodeHeads
@@ -53,7 +53,7 @@ private const val RosterFeature = "roster"
  * Home, and [generate] and [receive] ignore a Home this device doesn't have.
  */
 internal class HomeRosters(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val profiles: ProfileRepository,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val deviceName: () -> String,

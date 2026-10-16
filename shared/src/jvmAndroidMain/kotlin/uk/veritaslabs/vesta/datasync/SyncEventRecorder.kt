@@ -7,7 +7,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /** The kinds of [SyncEventRecorder] event, as stored in `SyncEvent.kind`. */
 internal object SyncEventKinds {
@@ -43,7 +43,7 @@ internal object SyncModules {
  * drops what it was holding.
  */
 class SyncEventRecorder(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 

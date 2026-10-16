@@ -5,15 +5,15 @@ import app.cash.sqldelight.coroutines.asFlow
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicesync.SyncedDevice
 
 /**
- * Reads and writes the user's synced devices in the local [VestaDatabase]: this device's cache of the other
+ * Reads and writes the user's synced devices in the local [KitsDatabase]: this device's cache of the other
  * members of its DeviceSync group, which [DeviceSyncService] keeps in step with the group.
  */
 class SyncedDeviceRepository(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 

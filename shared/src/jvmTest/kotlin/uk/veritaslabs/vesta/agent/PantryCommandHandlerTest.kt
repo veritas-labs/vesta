@@ -16,7 +16,7 @@ import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
 import uk.veritaslabs.vesta.automerge.readPantryItem
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.x0x.FakeX0xClient
 import uk.veritaslabs.vesta.x0x.X0xApiException
 import uk.veritaslabs.vesta.x0x.X0xDirectMessage

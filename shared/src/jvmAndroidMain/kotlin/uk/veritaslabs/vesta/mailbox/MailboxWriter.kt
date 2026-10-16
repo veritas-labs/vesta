@@ -6,7 +6,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
 
 /**
@@ -24,7 +24,7 @@ import uk.veritaslabs.vesta.x0x.X0xClient
  */
 internal class MailboxWriter(
     private val client: X0xClient,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val documents: MailboxDocuments,
     private val retention: Duration = 30.days,
     private val snapshotInterval: Duration = 15.days,

@@ -19,7 +19,7 @@ import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
 import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
@@ -159,7 +159,7 @@ class ChangesWaitingTest {
     private fun rules(
         targets: SyncTargets,
         heads: Map<String, ByteArray?>,
-        database: uk.veritaslabs.vesta.db.VestaDatabase = openInMemoryDatabase(),
+        database: uk.veritaslabs.kits.store.KitsDatabase = openInMemoryDatabase(),
     ) = ChangesWaiting(database, { shared }, { listOf(calendar, privateTasksDocumentId(it)) }, { targets }, { _, id -> heads[id] })
 
     @Test

@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta.automerge
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharedFlow
 import uk.veritaslabs.vesta.calendar.EventCalendar
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.docs.HomeDocumentStore
 import uk.veritaslabs.vesta.docs.homeDocumentId
 
@@ -22,7 +22,7 @@ private const val PrivateCalendarFeature = "private-calendar"
 
 /** One shared [CalendarDocumentSource] per Home (see [PantrySources] for why there must be exactly one), and one private one per Home. */
 class CalendarSources(
-    database: VestaDatabase,
+    database: KitsDatabase,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 

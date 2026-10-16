@@ -51,8 +51,8 @@ import uk.veritaslabs.vesta.agent.NotPermittedSummary
 import uk.veritaslabs.vesta.agent.PantryCommandHandler
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.components.AgentApprovalCardTestTags
 import uk.veritaslabs.vesta.ui.screens.AssistantEditTestTags
 import uk.veritaslabs.vesta.ui.screens.AssistantsTestTags
@@ -91,7 +91,7 @@ class AssistantsAcceptanceTest {
     fun resetMain() = Dispatchers.resetMain()
 
     private class World {
-        val database: VestaDatabase = openInMemoryDatabase()
+        val database: KitsDatabase = openInMemoryDatabase()
         val pantries = mapOf(
             "home-1" to PantryDocumentSource(Document.load(newPantryDocument())),
             "home-2" to PantryDocumentSource(Document.load(newPantryDocument())),

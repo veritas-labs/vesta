@@ -18,8 +18,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
@@ -40,7 +40,7 @@ class HomeJoinRedeemTest {
 
     /** One person's device: its own database and join service on the shared fake mesh. */
     private inner class Party(val agentId: String) {
-        val database: VestaDatabase = openInMemoryDatabase()
+        val database: KitsDatabase = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
         val rosters = HomeRosters(database, profiles, nowMillis = { now }, deviceName = ::getDeviceName)
         val node = network.node(agentId)

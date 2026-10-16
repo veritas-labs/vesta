@@ -3,7 +3,7 @@ package uk.veritaslabs.vesta.settings
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.WeekStart
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.theme.AppTheme
 import uk.veritaslabs.vesta.ui.theme.ThemeMode
 
@@ -11,7 +11,7 @@ import uk.veritaslabs.vesta.ui.theme.ThemeMode
 data class Appearance(val appTheme: AppTheme = AppTheme.Vesta, val themeMode: ThemeMode = ThemeMode.System)
 
 /** The app's device-level preferences, kept in the database so they survive relaunches. Not synced between devices. */
-class AppSettingsRepository(private val database: VestaDatabase) {
+class AppSettingsRepository(private val database: KitsDatabase) {
     /** The saved [Appearance]; anything not saved yet, or no longer recognised, is the default. */
     suspend fun appearance(): Appearance = Appearance(
         appTheme = read(ThemeKey)?.let { name -> AppTheme.entries.firstOrNull { it.name == name } } ?: AppTheme.Vesta,

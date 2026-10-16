@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.db
 
+import uk.veritaslabs.kits.store.KitsDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
@@ -75,16 +76,16 @@ class FullMigrationChainTest {
         old.execute(null, "INSERT INTO HomeMember(homeId, profileId, role, joinedAt) VALUES ('h1', 'p1', 'admin', 11)", 0).await()
         old.execute(null, "INSERT INTO InviteCode(id, homeId, code, createdAt, expiresAt, revoked) VALUES ('i1', 'h1', 'ABC123', 12, 99, 0)", 0).await()
         old.close()
-        val fresh = open(tempFile(), VestaDatabase.Schema)
+        val fresh = open(tempFile(), KitsDatabase.Schema)
         val freshTables = fresh.strings(tablesAndIndexes)
         fresh.close()
 
         // Act
-        val migratedDriver = open(file, VestaDatabase.Schema)
-        val migrated = VestaDatabase(migratedDriver)
+        val migratedDriver = open(file, KitsDatabase.Schema)
+        val migrated = KitsDatabase(migratedDriver)
 
         // Assert
-        assertEquals(20L, VestaDatabase.Schema.version)
+        assertEquals(20L, KitsDatabase.Schema.version)
         assertEquals("20", migratedDriver.strings("PRAGMA user_version").single())
         assertEquals(freshTables, migratedDriver.strings(tablesAndIndexes))
         val home = migrated.homeQueries.selectById("h1").awaitAsOne()

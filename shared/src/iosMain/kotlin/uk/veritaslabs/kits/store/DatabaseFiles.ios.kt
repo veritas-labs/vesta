@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.db
+package uk.veritaslabs.kits.store
 
 import platform.Foundation.NSFileManager
 

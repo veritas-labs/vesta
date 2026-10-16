@@ -1,13 +1,13 @@
 package uk.veritaslabs.vesta.home
 
 import kotlin.time.Clock
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.getDeviceName
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
 /** A [HomeRepository] over [database] whose Profile is named after this machine, as the apps do. */
 fun homeRepository(
-    database: VestaDatabase,
+    database: KitsDatabase,
     changes: HomeChangeListener? = null,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ): HomeRepository = HomeRepository(

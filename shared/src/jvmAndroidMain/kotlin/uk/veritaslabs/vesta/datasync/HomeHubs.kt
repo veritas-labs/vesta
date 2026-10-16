@@ -6,7 +6,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import uk.veritaslabs.vesta.home.HomeConfig
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homegroup.HubEnrolment
 import uk.veritaslabs.vesta.homegroup.HubResult
@@ -28,7 +28,7 @@ private const val KeyPackagePending = "member_key_package_pending"
  */
 internal class HomeHubs(
     private val client: X0xClient,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val rosters: HomeRosters,
     private val profiles: ProfileRepository,
     private val removeRetryDelay: Duration = 3.seconds,

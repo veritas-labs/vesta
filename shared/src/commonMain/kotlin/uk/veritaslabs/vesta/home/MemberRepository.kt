@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberListItem
 import uk.veritaslabs.vesta.home.MemberRole
@@ -30,11 +30,11 @@ enum class RoleChangeResult {
 enum class RemoveMemberResult { Removed, NotAnAdmin, IsYou, NoSuchMember }
 
 /**
- * Reads a Home's members from the local [VestaDatabase] as the Members tab shows them (one entry per person), and
+ * Reads a Home's members from the local [KitsDatabase] as the Members tab shows them (one entry per person), and
  * lets an admin change their roles, telling [changes] about each change.
  */
 class MemberRepository(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val profiles: ProfileRepository,
     private val changes: RosterChangeListener? = null,
 ) {

@@ -1,5 +1,8 @@
 package uk.veritaslabs.vesta.db
 
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.DatabaseDowngradeException
+import uk.veritaslabs.kits.store.DatabaseSafety
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import androidx.sqlite.execSQL
@@ -68,18 +71,18 @@ class DatabaseSafetyTest {
         fun driver() = AndroidxSqliteDriver(
             driver = BundledSQLiteDriver(),
             databaseType = AndroidxSqliteDatabaseType.File(file.path),
-            schema = VestaDatabase.Schema,
+            schema = KitsDatabase.Schema,
             configuration = AndroidxSqliteConfiguration(isForeignKeyConstraintsEnabled = true),
         )
-        driver().use { VestaDatabase(it).homeQueries.selectAll().awaitAsList() }
-        BundledSQLiteDriver().open(file.path).use { it.execSQL("PRAGMA user_version = ${VestaDatabase.Schema.version + 1}") }
+        driver().use { KitsDatabase(it).homeQueries.selectAll().awaitAsList() }
+        BundledSQLiteDriver().open(file.path).use { it.execSQL("PRAGMA user_version = ${KitsDatabase.Schema.version + 1}") }
 
         // Act
-        val homes = driver().use { VestaDatabase(it).homeQueries.selectAll().awaitAsList() }
+        val homes = driver().use { KitsDatabase(it).homeQueries.selectAll().awaitAsList() }
 
         // Assert
         assertTrue(homes.isEmpty())
-        assertEquals(VestaDatabase.Schema.version + 1, versionOf(file))
+        assertEquals(KitsDatabase.Schema.version + 1, versionOf(file))
     }
 
     @Test

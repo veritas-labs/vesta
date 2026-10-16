@@ -7,13 +7,13 @@ Vesta is local-first with no server, so a bad migration destroys user data for g
 Every change to the schema in `shared/src/commonMain/sqldelight/uk/veritaslabs/vesta/db/*.sq` needs, in the same commit:
 
 1. A new migration `N.sqm` in `shared/src/commonMain/sqldelight/migrations`, where `N` is the current schema version (it migrates N to N+1). Never edit an existing `.sqm` that has shipped.
-2. A regenerated snapshot: run `./gradlew :shared:generateCommonMainVestaDatabaseSchema`, which writes `N+1.db` into `shared/src/commonMain/sqldelight/databases`. Commit it. Never edit or regenerate an older snapshot.
+2. A regenerated snapshot: run `./gradlew :shared:generateCommonMainKitsDatabaseSchema`, which writes `N+1.db` into `shared/src/commonMain/sqldelight/databases`. Commit it. Never edit or regenerate an older snapshot.
 3. If the migration moves or transforms existing rows, a test with real rows in the old shape (see `AssistantMigrationTest`).
 
 ## The checks
 
-- `verifyMigrations` is on for `VestaDatabase`, so `verifyCommonMainVestaDatabaseMigration` runs as part of `./gradlew :shared:check`. For every snapshot it applies the `.sqm` chain and fails if the result differs from a database created fresh from the `.sq` files. It fails if you change a `.sq` without a migration, or write a migration that does not reach the current schema.
-- `FullMigrationChainTest` (jvmTest) builds a version 1 database file with rows, opens it with `VestaDatabase.Schema` and asserts it reaches the current version with the data intact and every table and index present. Update its version assertion when the schema version moves.
+- `verifyMigrations` is on for `KitsDatabase`, so `verifyCommonMainKitsDatabaseMigration` runs as part of `./gradlew :shared:check`. For every snapshot it applies the `.sqm` chain and fails if the result differs from a database created fresh from the `.sq` files. It fails if you change a `.sq` without a migration, or write a migration that does not reach the current schema.
+- `FullMigrationChainTest` (jvmTest) builds a version 1 database file with rows, opens it with `KitsDatabase.Schema` and asserts it reaches the current version with the data intact and every table and index present. Update its version assertion when the schema version moves.
 - `AssistantMigrationTest` covers the one migration (18 to 19) that transforms rows.
 
 ## Snapshot provenance

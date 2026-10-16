@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
 import uk.veritaslabs.vesta.db.SyncEvent
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.syncactivity.PeerActivity
@@ -93,7 +93,7 @@ internal class SyncActivityFacts {
  * [refreshInterval], so "Up to date" can age without anything happening.
  */
 internal class SyncActivityService(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val recorder: SyncEventRecorder,
     private val rosters: HomeRosters,
     private val profiles: ProfileRepository,

@@ -171,8 +171,8 @@ sqldelight {
     linkSqlite = false
 
     databases {
-        create("VestaDatabase") {
-            packageName.set("uk.veritaslabs.vesta.db")
+        create("KitsDatabase") {
+            packageName.set("uk.veritaslabs.kits.store")
             // AndroidxSqliteDriver (wrapping the bundled SQLite so cr-sqlite loads
             // the same way on every platform) is a suspending driver.
             generateAsync = true

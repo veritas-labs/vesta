@@ -15,8 +15,8 @@ import kotlinx.coroutines.yield
 import org.automerge.Document
 import org.automerge.ObjectId
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 
 class HomeDocumentStoreTest {
 
@@ -46,7 +46,7 @@ class HomeDocumentStoreTest {
     }
 
     private fun storeOver(
-        database: VestaDatabase,
+        database: KitsDatabase,
         refreshNew: suspend (TestSource) -> Unit = { it.refresh() },
         create: suspend (Document, suspend (ByteArray) -> Unit, () -> Unit) -> TestSource? =
             { document, persist, onLocalChange -> TestSource(document, persist, onLocalChange) },

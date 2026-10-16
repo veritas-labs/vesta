@@ -24,7 +24,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.AppInfo
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.settings.AppSettingsRepository
 import uk.veritaslabs.vesta.settings.Appearance
 import uk.veritaslabs.vesta.ui.screens.SettingsScreen

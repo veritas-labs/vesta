@@ -4,7 +4,7 @@ import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
 class HomeRostersDeviceNameTest {

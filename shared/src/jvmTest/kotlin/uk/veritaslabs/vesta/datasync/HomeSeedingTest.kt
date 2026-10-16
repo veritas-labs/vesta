@@ -6,14 +6,14 @@ import kotlin.test.assertEquals
 import kotlinx.coroutines.runBlocking
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.home.StoredHome
 
 /** The seeding hook (docs/plans/kits-extraction-implementation-plan.md, WP4): when it is called, and in what order. */
 class HomeSeedingTest {
 
-    private class Recording(private val database: VestaDatabase) : HomeSeeding {
+    private class Recording(private val database: KitsDatabase) : HomeSeeding {
         val calls = mutableListOf<String>()
 
         override suspend fun seedCreated(homeId: String) {

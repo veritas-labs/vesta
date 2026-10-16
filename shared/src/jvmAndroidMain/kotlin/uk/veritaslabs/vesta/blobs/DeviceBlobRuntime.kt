@@ -5,7 +5,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import uk.veritaslabs.vesta.automerge.CookbookSources
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
 
 /**
@@ -13,7 +13,7 @@ import uk.veritaslabs.vesta.x0x.X0xClient
  * moves photos to and from the Home's other devices ([peersFor] says which). [transfersDir] is the x0x daemon's `transfers/` folder, which the service sweeps ([TransfersJanitor]); null when this device can't reach it. Built by the platform entry points and handed to `VestaApp`.
  */
 class DeviceBlobRuntime(
-    database: VestaDatabase,
+    database: KitsDatabase,
     client: X0xClient,
     cookbookSources: CookbookSources,
     peersFor: suspend (homeId: String) -> Set<String>,

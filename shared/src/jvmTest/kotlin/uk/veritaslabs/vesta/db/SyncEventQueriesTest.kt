@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.db
 
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.QueryResult
@@ -20,7 +22,7 @@ import kotlinx.coroutines.test.runTest
 /** ADR-033: the Sync activity log and the per-device last-synced times. */
 class SyncEventQueriesTest {
 
-    private suspend fun VestaDatabase.event(homeId: String, lastAt: Long, kind: String = "received", module: String = "pantry", peer: String? = "peer-1") =
+    private suspend fun KitsDatabase.event(homeId: String, lastAt: Long, kind: String = "received", module: String = "pantry", peer: String? = "peer-1") =
         syncEventQueries.insert(homeId, lastAt, lastAt, kind, module, peer, null, 1L)
 
     @Test
@@ -170,7 +172,7 @@ class SyncEventQueriesTest {
         override val version = 19L
 
         override fun create(driver: SqlDriver) = QueryResult.AsyncValue {
-            VestaDatabase.Schema.create(driver).await()
+            KitsDatabase.Schema.create(driver).await()
             driver.execute(null, "DROP TABLE SyncEvent", 0).await()
             driver.execute(null, "DROP TABLE PeerSync", 0).await()
             Unit
@@ -191,16 +193,16 @@ class SyncEventQueriesTest {
             configuration = AndroidxSqliteConfiguration(isForeignKeyConstraintsEnabled = true),
         )
         val old = open(VersionNineteenSchema)
-        VestaDatabase(old).homeQueries.insert("h1", "The Johnsons", "family", 0)
+        KitsDatabase(old).homeQueries.insert("h1", "The Johnsons", "family", 0)
         old.close()
 
         // Act
-        val migrated = VestaDatabase(open(VestaDatabase.Schema))
+        val migrated = KitsDatabase(open(KitsDatabase.Schema))
         migrated.syncEventQueries.insert("h1", 100L, 100L, "sent", "pantry", "peer-1", null, 1L)
         migrated.peerSyncQueries.upsert("peer-1", 100L)
 
         // Assert
-        assertEquals(20L, VestaDatabase.Schema.version)
+        assertEquals(20L, KitsDatabase.Schema.version)
         assertNotNull(migrated.syncEventQueries.findOpen("h1", "pantry", "peer-1", "sent", null, 0L).awaitAsOneOrNull())
         assertEquals(100L, migrated.peerSyncQueries.selectByAgent("peer-1").awaitAsOneOrNull()?.lastSyncedAt)
     }

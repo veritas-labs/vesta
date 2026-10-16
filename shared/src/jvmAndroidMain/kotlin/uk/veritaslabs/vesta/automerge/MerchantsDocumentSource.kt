@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
 import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.docs.homeDocumentId
 import uk.veritaslabs.vesta.docs.openHomeDocument
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.Merchant
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
 
@@ -24,7 +24,7 @@ fun merchantsDocumentId(homeId: String): String = homeDocumentId(homeId, Merchan
  * root map to seed (and race over) on a Home that has existed since before merchants. Same threading contract as
  * [ShoppingListDocumentSource]: route every read or write of [document] through this class.
  *
- * Use [openMerchantsDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
+ * Use [openMerchantsDocumentSource] to get one that loads and saves a Home's document in [KitsDatabase].
  */
 @OptIn(ExperimentalUuidApi::class)
 class MerchantsDocumentSource private constructor(
@@ -69,7 +69,7 @@ class MerchantsDocumentSource private constructor(
  * away. The [homeId] must be an existing `Home` row.
  */
 suspend fun openMerchantsDocumentSource(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},

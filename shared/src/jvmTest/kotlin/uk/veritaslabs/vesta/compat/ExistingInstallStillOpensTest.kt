@@ -13,7 +13,7 @@ import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.datasync.HomeRosters
 import uk.veritaslabs.vesta.datasync.TestHomeDocuments
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
@@ -78,7 +78,7 @@ class ExistingInstallStillOpensTest {
         driver.close()
 
         // Assert
-        assertEquals(20L, VestaDatabase.Schema.version)
+        assertEquals(20L, KitsDatabase.Schema.version)
         assertEquals(20L, userVersion(file))
         assertEquals(listOf("The Johnsons"), homes.map { it.name })
         assertEquals("family", homes.single().shape)

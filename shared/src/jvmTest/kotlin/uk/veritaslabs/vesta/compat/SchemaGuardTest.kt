@@ -6,7 +6,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /**
  * Every table, column, index and the schema version, as literals captured before the Kits extraction
@@ -95,6 +95,6 @@ class SchemaGuardTest {
         // Assert
         assertEquals(expectedIndexes, indexes)
         assertEquals(20L, version)
-        assertEquals(20L, VestaDatabase.Schema.version)
+        assertEquals(20L, KitsDatabase.Schema.version)
     }
 }

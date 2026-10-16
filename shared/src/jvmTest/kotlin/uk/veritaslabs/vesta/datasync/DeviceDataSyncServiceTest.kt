@@ -47,8 +47,8 @@ import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
@@ -92,7 +92,7 @@ class DeviceDataSyncServiceTest {
         brokenRecorder: Boolean = false,
     ) {
         val node = network.node(agentId)
-        val database: VestaDatabase = openInMemoryDatabase()
+        val database: KitsDatabase = openInMemoryDatabase()
         val devices = SyncedDeviceRepository(database)
         val pantries = PantrySources(database)
         val shopping = ShoppingListSources(database, pantries)

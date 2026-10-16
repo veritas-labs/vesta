@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /** The id a Home's [feature] document is stored and synced under: `<homeId>:<feature>`. */
 internal fun homeDocumentId(homeId: String, feature: String) = "$homeId:$feature"
@@ -29,7 +29,7 @@ internal fun homeDocumentId(homeId: String, feature: String) = "$homeId:$feature
  * shape to be stored here; typically `{ it.refresh() }`.
  */
 internal class HomeDocumentStore<S : HomeDocument>(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     val feature: String,
     private val nowMillis: () -> Long,
     private val refreshNew: suspend (S) -> Unit,
@@ -72,7 +72,7 @@ internal class HomeDocumentStore<S : HomeDocument>(
  * [refreshNew] when nothing was stored so the empty document is stored straight away. Does not check the Home exists.
  */
 internal suspend fun <S : HomeDocument> openHomeDocument(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     feature: String,
     nowMillis: () -> Long,

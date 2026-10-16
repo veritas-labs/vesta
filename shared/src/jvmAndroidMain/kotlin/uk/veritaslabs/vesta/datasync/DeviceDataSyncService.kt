@@ -22,7 +22,7 @@ import uk.veritaslabs.vesta.docs.HomeDocumentType
 import uk.veritaslabs.vesta.docs.Scope
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicesync.AgentDetails
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
 import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
@@ -75,7 +75,7 @@ private const val MaxBufferedPerHome = 64
  */
 class DeviceDataSyncService(
     private val client: X0xClient,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val devices: SyncedDeviceRepository,
     private val deviceName: () -> String,
     documentTypes: List<HomeDocumentType>,

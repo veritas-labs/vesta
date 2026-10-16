@@ -7,13 +7,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 
 class AssistantRepositoryTest {
 
     private var clock = 0L
-    private val database: VestaDatabase = openInMemoryDatabase()
+    private val database: KitsDatabase = openInMemoryDatabase()
 
     private fun repository(preApproved: List<String> = emptyList()) =
         AssistantRepository(database, FixedAgentAllowlist(preApproved)) { clock++ }

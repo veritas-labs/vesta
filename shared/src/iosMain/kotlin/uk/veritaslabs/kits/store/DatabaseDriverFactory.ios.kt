@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.db
+package uk.veritaslabs.kits.store
 
 import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteDatabaseType
 import platform.Foundation.NSDocumentDirectory
@@ -7,7 +7,7 @@ import platform.Foundation.NSUserDomainMask
 
 // Stores under the app's sandboxed NSDocumentDirectory — private storage by
 // construction, no extra configuration needed.
-actual class DatabaseDriverFactory {
+actual class DatabaseDriverFactory actual constructor(private val location: DatabaseLocation) {
     actual fun databaseType(): AndroidxSqliteDatabaseType = AndroidxSqliteDatabaseType.File(databasePath())
 
     actual fun databasePath(): String {
@@ -16,6 +16,6 @@ actual class DatabaseDriverFactory {
             domainMask = NSUserDomainMask,
             expandTilde = true,
         ).first() as String
-        return "$documentDirectory/vesta.db"
+        return location.inDirectory(documentDirectory)
     }
 }

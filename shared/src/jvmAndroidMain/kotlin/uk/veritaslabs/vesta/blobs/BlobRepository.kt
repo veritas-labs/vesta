@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.blobs
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /** A hash a document of [homeId] refers to that this device does not hold. */
 data class BlobWant(val hash: String, val homeId: String, val size: Long, val firstWantedAt: Long, val lastAskedAt: Long, val attempts: Long)
@@ -11,7 +11,7 @@ data class BlobWant(val hash: String, val homeId: String, val size: Long, val fi
  * The index over a [BlobStore]: which blobs this device holds and when a document last referred to each, and which it still wants. Times are
  * epoch milliseconds passed in by the caller, so tests control them. The files stay the authority on what is held; [reconcile] repairs the index.
  */
-class BlobRepository(private val store: BlobStore, private val database: VestaDatabase) {
+class BlobRepository(private val store: BlobStore, private val database: KitsDatabase) {
 
     private val queries get() = database.blobQueries
 

@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.agent
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.time.Clock
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /** Which agent commands have been processed and what they were answered with (ADR-009 behaviour rule 5). */
 interface CommandLog {
@@ -14,7 +14,7 @@ interface CommandLog {
 
 /** [CommandLog] persisted in the local, unsynced `AgentCommandLog` table. */
 class DatabaseCommandLog(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : CommandLog {
 

@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.db
 
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
@@ -37,7 +39,7 @@ class AgentCommandLogTest {
         override val version = 2L
 
         override fun create(driver: SqlDriver) = QueryResult.AsyncValue {
-            VestaDatabase.Schema.create(driver).await()
+            KitsDatabase.Schema.create(driver).await()
             driver.execute(null, "DROP TABLE AgentCommandLog", 0).await()
             driver.execute(null, "DROP TABLE AgentAccess", 0).await()
             driver.execute(null, "DROP TABLE SyncedDevice", 0).await()
@@ -64,16 +66,16 @@ class AgentCommandLogTest {
             configuration = AndroidxSqliteConfiguration(isForeignKeyConstraintsEnabled = true),
         )
         val old = open(VersionTwoSchema)
-        VestaDatabase(old).homeQueries.selectAll().awaitAsList() // forces creation
+        KitsDatabase(old).homeQueries.selectAll().awaitAsList() // forces creation
         old.close()
 
         // Act
-        val migrated = VestaDatabase(open(VestaDatabase.Schema))
+        val migrated = KitsDatabase(open(KitsDatabase.Schema))
         val log = DatabaseCommandLog(migrated)
         log.record("agent-1", "c1", "reply")
 
         // Assert
-        assertEquals(20L, VestaDatabase.Schema.version)
+        assertEquals(20L, KitsDatabase.Schema.version)
         assertEquals("reply", log.reply("agent-1", "c1"))
         assertEquals(emptyList(), migrated.blobQueries.selectAllBlobs().awaitAsList())
         assertEquals(emptyList(), migrated.blobQueries.selectAllWants().awaitAsList())

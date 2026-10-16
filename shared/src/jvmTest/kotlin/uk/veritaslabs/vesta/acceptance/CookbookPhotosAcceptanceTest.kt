@@ -40,7 +40,7 @@ import uk.veritaslabs.vesta.ui.components.LocalBlobs
 import uk.veritaslabs.vesta.blobs.PhotoSource
 import uk.veritaslabs.vesta.blobs.SkiaPhotoEncoder
 import uk.veritaslabs.vesta.blobs.testJpeg
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.ui.components.BlobImageTestTags
 import uk.veritaslabs.vesta.ui.components.LocalPhotoPickerFactory

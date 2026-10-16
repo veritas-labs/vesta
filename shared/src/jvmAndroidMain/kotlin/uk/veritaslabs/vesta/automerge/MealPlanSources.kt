@@ -2,11 +2,11 @@ package uk.veritaslabs.vesta.automerge
 
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharedFlow
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.docs.HomeDocumentStore
 
 /** One shared [MealPlanDocumentSource] per Home (see [PantrySources] for why there must be exactly one). */
-class MealPlanSources(database: VestaDatabase) {
+class MealPlanSources(database: KitsDatabase) {
 
     private val store = HomeDocumentStore(
         database, "mealplan", { Clock.System.now().toEpochMilliseconds() },

@@ -5,7 +5,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.datasync.SyncEventRecorder
 import uk.veritaslabs.vesta.datasync.SyncModules
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.x0x.X0xClient
 
 private const val AutomergeExceptionClass = "org.automerge.AutomergeException"
@@ -33,7 +33,7 @@ private const val AutomergeExceptionClass = "org.automerge.AutomergeException"
  */
 internal class MailboxReader(
     private val client: X0xClient,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val documents: MailboxDocuments,
     private val recorder: SyncEventRecorder? = null,
     private val storeId: suspend (homeId: String) -> String?,

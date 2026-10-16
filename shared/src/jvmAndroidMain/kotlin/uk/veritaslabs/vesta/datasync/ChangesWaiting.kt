@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta.datasync
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import java.util.concurrent.ConcurrentHashMap
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 
 /** Where a Home's documents could go from this device: [shared] for the Home's own documents (members' devices and hubs), [own] for its private ones (the user's own paired devices). */
 internal data class SyncTargets(val shared: Boolean, val own: Boolean)
@@ -20,7 +20,7 @@ internal data class SyncTargets(val shared: Boolean, val own: Boolean)
  * doesn't have.
  */
 internal class ChangesWaiting(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val sharedDocumentIds: (homeId: String) -> List<String>,
     private val privateDocumentIds: (homeId: String) -> List<String>,
     private val targets: suspend (homeId: String) -> SyncTargets,

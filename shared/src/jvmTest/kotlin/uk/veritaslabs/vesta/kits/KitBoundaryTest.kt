@@ -30,7 +30,9 @@ class KitBoundaryTest {
             "(?:class|interface|object|typealias|fun|val|var)\\s+(?:<[^>]*>\\s*)?(?:[\\w<>?,. ]*\\.)?(\\w+)",
         RegexOption.MULTILINE,
     )
-    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.vesta\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
+    /** The package the store files moved to in WP9; their path is read as the `db/` directory they came from. */
+    private val storePackage = "uk.veritaslabs.kits.store"
+    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.(?:vesta|kits\\.store)\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
 
     private fun mainFiles(): List<SourceFile> {
         val src = listOf(File("src"), File("shared/src")).first { it.isDirectory }
@@ -38,7 +40,9 @@ class KitBoundaryTest {
         return src.listFiles { f -> f.isDirectory && f.name.endsWith("Main") }.orEmpty().flatMap { set ->
             set.walkTopDown().filter { it.isFile && it.extension == "kt" }.map { file ->
                 val text = file.readText()
-                val path = file.invariantSeparatorsPath.substringAfter(root)
+                val path = file.invariantSeparatorsPath.let {
+                    if ("uk/veritaslabs/kits/store/" in it) "db/" + it.substringAfter("uk/veritaslabs/kits/store/") else it.substringAfter(root)
+                }
                 val pkg = Regex("^package\\s+([\\w.]+)", RegexOption.MULTILINE).find(text)?.groupValues?.get(1).orEmpty()
                 SourceFile(path, pkg, text)
             }.toList()
@@ -65,7 +69,7 @@ class KitBoundaryTest {
                 val imported = match.groupValues[1]
                 // Nested imports (pkg.Outer.Inner) resolve through their longest declared prefix.
                 val targets = generateSequence(imported) { it.substringBeforeLast('.', "").ifEmpty { null } }
-                    .takeWhile { it.length > vestaPackage.length }
+                    .takeWhile { it != vestaPackage && it != storePackage && it != "uk.veritaslabs.kits" }
                     .firstNotNullOfOrNull { declared[it] }
                     .orEmpty()
                 targets.filter { it !== from }.forEach { to ->

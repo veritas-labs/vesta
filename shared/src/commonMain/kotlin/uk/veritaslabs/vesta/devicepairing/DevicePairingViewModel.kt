@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicesync.DeviceSyncService
 import uk.veritaslabs.vesta.devicesync.PairingStep
 import uk.veritaslabs.vesta.devicesync.PairingStepStatus
@@ -61,7 +61,7 @@ enum class DevicePairingPasteError { InvalidFormat, Expired, PairingFailed }
  * just has to decode and be unexpired.
  */
 class DevicePairingViewModel(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val agentId: suspend () -> String = { randomHex(byteCount = 32) },
     private val deviceName: () -> String = { "" },

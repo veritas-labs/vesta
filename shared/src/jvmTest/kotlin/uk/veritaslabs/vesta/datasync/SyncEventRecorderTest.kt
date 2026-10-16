@@ -15,21 +15,21 @@ import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.db.SyncEvent
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 
 class SyncEventRecorderTest {
 
     private val minute = 60_000L
     private var now = 1_000_000L
 
-    private fun newDatabase(): VestaDatabase = openInMemoryDatabase().also {
+    private fun newDatabase(): KitsDatabase = openInMemoryDatabase().also {
         runBlocking { it.homeQueries.insert("home", "Home", "family", 0L) }
     }
 
-    private fun recorder(database: VestaDatabase) = SyncEventRecorder(database, nowMillis = { now })
+    private fun recorder(database: KitsDatabase) = SyncEventRecorder(database, nowMillis = { now })
 
-    private suspend fun rows(database: VestaDatabase): List<SyncEvent> =
+    private suspend fun rows(database: KitsDatabase): List<SyncEvent> =
         database.syncEventQueries.selectPage("home", Long.MAX_VALUE, 100).awaitAsList()
 
     @Test
@@ -143,10 +143,10 @@ class SyncEventRecorderTest {
         val driver = AndroidxSqliteDriver(
             driver = BundledSQLiteDriver(),
             databaseType = AndroidxSqliteDatabaseType.Memory,
-            schema = VestaDatabase.Schema,
+            schema = KitsDatabase.Schema,
             configuration = AndroidxSqliteConfiguration(isForeignKeyConstraintsEnabled = true),
         )
-        val recorder = recorder(VestaDatabase(driver))
+        val recorder = recorder(KitsDatabase(driver))
         driver.close()
 
         // Act

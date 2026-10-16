@@ -31,8 +31,8 @@ import org.automerge.Document
 import org.automerge.ObjectId
 import org.automerge.SyncState
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
@@ -88,7 +88,7 @@ class DocumentTypeRegistrationAcceptanceTest {
     /** One of the user's devices, with a shared `probe` document and a private `private-probe` document per Home. */
     private inner class Device(val agentId: String) {
         val node = network.node(agentId)
-        val database: VestaDatabase = openInMemoryDatabase()
+        val database: KitsDatabase = openInMemoryDatabase()
         val devices = SyncedDeviceRepository(database)
         val receivedDocuments = ConcurrentLinkedQueue<String>()
 

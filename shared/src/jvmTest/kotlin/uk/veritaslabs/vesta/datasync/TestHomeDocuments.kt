@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.docs.HomeDocumentRegistry
 import uk.veritaslabs.vesta.docs.HomeDocumentType
 
@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.docs.HomeDocumentType
  * registry without the engine.
  */
 internal class TestHomeDocuments(
-    database: VestaDatabase,
+    database: KitsDatabase,
     val rosters: HomeRosters,
     publishRosters: suspend () -> Unit,
     sources: VestaHomeSources = VestaHomeSources(database),

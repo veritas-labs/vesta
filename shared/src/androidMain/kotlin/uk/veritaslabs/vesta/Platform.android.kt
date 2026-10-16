@@ -2,7 +2,7 @@ package uk.veritaslabs.vesta
 
 import android.content.Context
 import android.os.Build
-import uk.veritaslabs.vesta.db.DatabaseAndroid
+import uk.veritaslabs.kits.store.DatabaseAndroid
 import uk.veritaslabs.vesta.x0x.X0xAndroid
 
 class AndroidPlatform : Platform {

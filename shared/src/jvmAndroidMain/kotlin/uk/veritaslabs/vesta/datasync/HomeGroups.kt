@@ -10,7 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.home.HomeConfig
 import uk.veritaslabs.vesta.automerge.RosterMember
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
@@ -41,7 +41,7 @@ private const val ActiveState = "active"
  */
 internal class HomeGroups(
     private val client: X0xClient,
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val rosters: HomeRosters,
     private val profiles: ProfileRepository,
     private val pollInterval: Duration = 1.seconds,

@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
 import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.docs.homeDocumentId
 import uk.veritaslabs.vesta.docs.openHomeDocument
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesSource
 import uk.veritaslabs.vesta.ui.screens.PantryCategoryGroup
@@ -36,7 +36,7 @@ fun pantryDocumentId(homeId: String): String = homeDocumentId(homeId, PantryFeat
  * It is also the Home's [PantryCategoriesSource] (ADR-010). [PantryContents.emptyCategories] is still always
  * empty: registered categories without items are shown on the categories screen, not the Pantry.
  *
- * Use [openPantryDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
+ * Use [openPantryDocumentSource] to get one that loads and saves a Home's document in [KitsDatabase].
  */
 class PantryDocumentSource private constructor(
     private val state: MutableStateFlow<PantryContents>,
@@ -177,7 +177,7 @@ private fun Document.toPantryContents() = PantryContents(
  * document instead (see `storeEmptyPantry`), so it is filled from the one its creator seeded.
  */
 suspend fun openPantryDocumentSource(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
@@ -201,7 +201,7 @@ suspend fun openPantryDocumentSource(
  * document takes everything from the creator's.
  */
 suspend fun storeEmptyPantry(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {

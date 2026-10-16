@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.db.Profile as ProfileRow
 
 /**
@@ -40,7 +40,7 @@ enum class RenameResult { Renamed, InvalidName }
  * user makes are reported to [changes].
  */
 class ProfileRepository(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val deviceName: () -> String,
     private val changes: ProfileChangeListener? = null,
 ) {

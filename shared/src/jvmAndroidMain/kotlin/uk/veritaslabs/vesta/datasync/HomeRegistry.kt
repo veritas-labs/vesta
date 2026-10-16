@@ -14,7 +14,7 @@ import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.deleteRegistryHome
 import uk.veritaslabs.vesta.automerge.putRegistryHome
 import uk.veritaslabs.vesta.automerge.readHomeRegistry
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.StoredHome
 
@@ -25,7 +25,7 @@ import uk.veritaslabs.vesta.home.StoredHome
  * from another device are copied into the table by [project].
  */
 internal class HomeRegistry(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val seeding: HomeSeeding,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : HomeChangeListener, SyncableDocument {

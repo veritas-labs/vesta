@@ -18,8 +18,8 @@ import uk.veritaslabs.vesta.datasync.HomeRosters
 import uk.veritaslabs.vesta.datasync.SyncEventKinds
 import uk.veritaslabs.vesta.datasync.SyncEventRecorder
 import uk.veritaslabs.vesta.datasync.SyncModules
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openInMemoryDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openInMemoryDatabase
 import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
@@ -42,7 +42,7 @@ class MailboxTest {
 
     /** One device: its own database, documents, writer and reader, with the Home's mailbox store once [open]. */
     private inner class Device(val agentId: String, val creator: Boolean = false) {
-        val database: VestaDatabase = openInMemoryDatabase()
+        val database: KitsDatabase = openInMemoryDatabase()
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName)
         val rosters = HomeRosters(database, profiles, deviceName = ::getDeviceName)
         val pantries = PantrySources(database)

@@ -90,7 +90,7 @@ object KitMembership {
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
         Kit.X0x to 16, // Appendix A's 15 plus X0xConnectivity (WP7)
-        Kit.Store to 9,
+        Kit.Store to 10, // Appendix A's 9 plus DatabaseLocation (WP9)
         Kit.Docs to 17,
         Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)

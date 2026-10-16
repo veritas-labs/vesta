@@ -7,7 +7,7 @@ import kotlin.time.Clock
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.HomeDetails
 import uk.veritaslabs.vesta.home.HomeListItem
@@ -22,9 +22,9 @@ enum class LeaveResult {
     OnlyAdmin,
 }
 
-/** Reads and writes Homes in the local [VestaDatabase], telling [changes] about each change. */
+/** Reads and writes Homes in the local [KitsDatabase], telling [changes] about each change. */
 class HomeRepository(
-    private val database: VestaDatabase,
+    private val database: KitsDatabase,
     private val changes: HomeChangeListener? = null,
     private val profiles: ProfileRepository,
     private val rosterChanges: RosterChangeListener? = null,

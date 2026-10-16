@@ -11,7 +11,7 @@ import uk.veritaslabs.vesta.docs.HomeDocument
 import uk.veritaslabs.vesta.docs.homeDocumentId
 import uk.veritaslabs.vesta.docs.openHomeDocument
 import uk.veritaslabs.vesta.blobs.BlobReference
-import uk.veritaslabs.vesta.db.VestaDatabase
+import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.CookbookSource
 import uk.veritaslabs.vesta.ui.screens.Recipe
 
@@ -25,7 +25,7 @@ fun cookbookDocumentId(homeId: String): String = homeDocumentId(homeId, Cookbook
  * root map to seed (and race over) on a Home that has existed since before the cookbook. Same threading contract as
  * [ShoppingListDocumentSource]: route every read or write of [document] through this class.
  *
- * Use [openCookbookDocumentSource] to get one that loads and saves a Home's document in [VestaDatabase].
+ * Use [openCookbookDocumentSource] to get one that loads and saves a Home's document in [KitsDatabase].
  */
 @OptIn(ExperimentalUuidApi::class)
 class CookbookDocumentSource private constructor(
@@ -79,7 +79,7 @@ class CookbookDocumentSource private constructor(
  * away. The [homeId] must be an existing `Home` row.
  */
 suspend fun openCookbookDocumentSource(
-    database: VestaDatabase,
+    database: KitsDatabase,
     homeId: String,
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},

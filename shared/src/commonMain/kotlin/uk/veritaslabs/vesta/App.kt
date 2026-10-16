@@ -55,11 +55,11 @@ import uk.veritaslabs.vesta.agent.AssistantRepository
 import uk.veritaslabs.vesta.agent.AgentApprovalHost
 import uk.veritaslabs.vesta.agent.AssistantEditHost
 import uk.veritaslabs.vesta.agent.AssistantsListHost
-import uk.veritaslabs.vesta.db.DatabaseDowngradeException
-import uk.veritaslabs.vesta.db.DatabaseDriverFactory
-import uk.veritaslabs.vesta.db.DatabaseOpenResult
-import uk.veritaslabs.vesta.db.VestaDatabase
-import uk.veritaslabs.vesta.db.openVestaDatabase
+import uk.veritaslabs.kits.store.DatabaseDowngradeException
+import uk.veritaslabs.kits.store.DatabaseDriverFactory
+import uk.veritaslabs.kits.store.DatabaseOpenResult
+import uk.veritaslabs.kits.store.KitsDatabase
+import uk.veritaslabs.kits.store.openVestaDatabase
 import uk.veritaslabs.vesta.licenses.OpenSourceLicense
 import uk.veritaslabs.vesta.licenses.loadOpenSourceLicenses
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
@@ -913,26 +913,26 @@ private fun DatabaseTooNewMessage(error: DatabaseDowngradeException) {
  */
 @Composable
 fun VestaApp(
-    openPantry: (suspend (VestaDatabase, homeId: String) -> PantrySource)? = null,
-    openShoppingList: (suspend (VestaDatabase, homeId: String) -> ShoppingListSource)? = null,
-    openCookbook: (suspend (VestaDatabase, homeId: String) -> CookbookSource)? = null,
-    openMerchants: (suspend (VestaDatabase, homeId: String) -> MerchantsSource)? = null,
-    openMealPlan: (suspend (VestaDatabase, homeId: String) -> MealPlanSource)? = null,
-    openCalendar: (suspend (VestaDatabase, homeId: String) -> CalendarSource)? = null,
-    openPrivateCalendar: (suspend (VestaDatabase, homeId: String) -> CalendarSource)? = null,
-    openTasks: (suspend (VestaDatabase, homeId: String) -> TaskSource)? = null,
-    openPrivateTasks: (suspend (VestaDatabase, homeId: String) -> TaskSource)? = null,
+    openPantry: (suspend (KitsDatabase, homeId: String) -> PantrySource)? = null,
+    openShoppingList: (suspend (KitsDatabase, homeId: String) -> ShoppingListSource)? = null,
+    openCookbook: (suspend (KitsDatabase, homeId: String) -> CookbookSource)? = null,
+    openMerchants: (suspend (KitsDatabase, homeId: String) -> MerchantsSource)? = null,
+    openMealPlan: (suspend (KitsDatabase, homeId: String) -> MealPlanSource)? = null,
+    openCalendar: (suspend (KitsDatabase, homeId: String) -> CalendarSource)? = null,
+    openPrivateCalendar: (suspend (KitsDatabase, homeId: String) -> CalendarSource)? = null,
+    openTasks: (suspend (KitsDatabase, homeId: String) -> TaskSource)? = null,
+    openPrivateTasks: (suspend (KitsDatabase, homeId: String) -> TaskSource)? = null,
     homeContent: (@Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit)? = null,
-    backgroundServices: (suspend CoroutineScope.(VestaDatabase) -> Unit)? = null,
-    assistantsFor: ((VestaDatabase) -> AssistantRepository)? = null,
-    dataSync: ((VestaDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
-    blobRuntime: ((VestaDatabase, X0xClient, DeviceDataSync?) -> BlobRuntime)? = null,
+    backgroundServices: (suspend CoroutineScope.(KitsDatabase) -> Unit)? = null,
+    assistantsFor: ((KitsDatabase) -> AssistantRepository)? = null,
+    dataSync: ((KitsDatabase, X0xClient, SyncedDeviceRepository) -> DeviceDataSync)? = null,
+    blobRuntime: ((KitsDatabase, X0xClient, DeviceDataSync?) -> BlobRuntime)? = null,
     recipeImporter: RecipeImporter? = null,
     fileExporter: FileExporter? = null,
     fileImporter: FileImporter? = null,
     ownDeviceCanBeHub: Boolean = false,
 ) {
-    val opened = remember { openVestaDatabase(DatabaseDriverFactory()) }
+    val opened = remember { openVestaDatabase(DatabaseDriverFactory(VestaDatabaseLocation)) }
     val database = when (opened) {
         is DatabaseOpenResult.Opened -> opened.database
         // The file is from a newer Vesta and was left untouched; say so rather than run against a schema this build doesn't know.

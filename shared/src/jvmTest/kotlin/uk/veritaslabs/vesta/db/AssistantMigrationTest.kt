@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.db
 
+import uk.veritaslabs.kits.store.KitsDatabase
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
@@ -25,7 +26,7 @@ class AssistantMigrationTest {
         override val version = 18L
 
         override fun create(driver: SqlDriver) = QueryResult.AsyncValue {
-            VestaDatabase.Schema.create(driver).await()
+            KitsDatabase.Schema.create(driver).await()
             driver.execute(null, "DROP TABLE AssistantActivity", 0).await()
             driver.execute(null, "DROP TABLE AssistantGrant", 0).await()
             driver.execute(null, "DROP TABLE Assistant", 0).await()
@@ -47,7 +48,7 @@ class AssistantMigrationTest {
             configuration = AndroidxSqliteConfiguration(isForeignKeyConstraintsEnabled = true),
         )
         val old = open(VersionEighteenSchema)
-        val oldDatabase = VestaDatabase(old)
+        val oldDatabase = KitsDatabase(old)
         oldDatabase.homeQueries.insert("h1", "The Johnsons", "family", 0)
         oldDatabase.homeQueries.insert("h2", "Flat 4", "family", 0)
         old.execute(null, "INSERT INTO AgentAccess(agentId, status, updatedAt) VALUES ('allowed-agent', 'allowed', 5)", 0).await()
@@ -55,11 +56,11 @@ class AssistantMigrationTest {
         old.close()
 
         // Act
-        val migrated = VestaDatabase(open(VestaDatabase.Schema))
+        val migrated = KitsDatabase(open(KitsDatabase.Schema))
         val assistants = AssistantRepository(migrated)
 
         // Assert
-        assertEquals(20L, VestaDatabase.Schema.version)
+        assertEquals(20L, KitsDatabase.Schema.version)
         assertEquals(
             mapOf("allowed-agent" to AssistantStatus.Active, "pending-agent" to AssistantStatus.Pending),
             migrated.assistantQueries.selectAll().awaitAsList().associate { it.agentId to (if (it.status == "active") AssistantStatus.Active else AssistantStatus.Pending) },
