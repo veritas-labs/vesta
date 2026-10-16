@@ -25,6 +25,7 @@ import uk.veritaslabs.vesta.automerge.MerchantsSources
 import uk.veritaslabs.vesta.automerge.PantrySources
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.TaskSources
+import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.automerge.calendarDocumentId
 import uk.veritaslabs.vesta.automerge.cookbookDocumentId
 import uk.veritaslabs.vesta.automerge.mealPlanDocumentId
@@ -198,6 +199,20 @@ class DocumentIdsTest {
             ),
             listed,
         )
+    }
+
+    @Test
+    fun theEngineSendsEveryNonRosterDocumentInTheSendOrderVestaHasAlwaysUsed() {
+        // Arrange
+        val expected = listOf("pantry", "shopping-list", "cookbook", "merchants", "mealplan", "calendar", "private-calendar", "tasks", "private-tasks")
+
+        // Act
+        val order = VestaHomeSources.sendOrder
+        val registered = VestaHomeSources(openInMemoryDatabase()).documentTypes().map { it.feature }
+
+        // Assert
+        assertEquals(expected, order)
+        assertEquals(registered.sorted(), order.sorted(), "every registered document type is in the send order, and nothing else")
     }
 
     @Test

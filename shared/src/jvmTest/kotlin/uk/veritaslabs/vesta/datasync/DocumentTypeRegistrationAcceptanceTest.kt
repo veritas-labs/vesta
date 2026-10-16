@@ -2,6 +2,7 @@
 
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.kits.docs.SyncEnvelope
 
@@ -113,7 +114,9 @@ class DocumentTypeRegistrationAcceptanceTest {
                 SpaceDocumentType(privateProbe, probeModule, Scope.Private, personal::forSpace, personal.localChanges),
             ),
             interval = 50.milliseconds, activityRefresh = 20.milliseconds,
+            spacesConfig = VestaKitConfig.home,
             seeding = VestaHomeSeeding(VestaHomeSources(database), database),
+            sendOrder = VestaHomeSources.sendOrder,
         )
         val homes = homeRepository(database, sync.spaceChanges)
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)

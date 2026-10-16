@@ -34,4 +34,15 @@ class VestaHomeSources(
         SpaceDocumentType("private-calendar", VestaSyncModules.Calendar, Scope.Private, calendars::privateForHome, calendars.privateChanges),
         SpaceDocumentType("private-tasks", VestaSyncModules.Tasks, Scope.Private, tasks::privateForHome, tasks.privateChanges),
     )
+
+    companion object {
+        /**
+         * The order the sync engine sends a Home's non-roster documents in, as feature ids (the roster always goes last). It is not the
+         * registration order above: the private types come last there but the calendar and tasks pairs sit together here. Persisted
+         * behaviour (ADR-035), so it never changes; every app and test that builds the engine passes it as `sendOrder`.
+         */
+        val sendOrder: List<String> = listOf(
+            "pantry", "shopping-list", "cookbook", "merchants", "mealplan", "calendar", "private-calendar", "tasks", "private-tasks",
+        )
+    }
 }

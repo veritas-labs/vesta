@@ -2,6 +2,7 @@
 
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.kits.docs.SyncEnvelope
 import uk.veritaslabs.kits.docs.SyncEventRecorder
@@ -116,7 +117,9 @@ class DeviceDataSyncServiceTest {
         val receivedDocuments = ConcurrentLinkedQueue<String>()
         val sync = DeviceDataSyncService(
             node, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbook, merchants, mealPlans, calendars, tasks).documentTypes(), interval = interval,
+            spacesConfig = VestaKitConfig.home,
             seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database),
+            sendOrder = VestaHomeSources.sendOrder,
             peerBackoff = peerBackoff,
             recorder = if (brokenRecorder) SyncEventRecorder(database, nowMillis = { error("the clock is broken") }) else SyncEventRecorder(database),
         )

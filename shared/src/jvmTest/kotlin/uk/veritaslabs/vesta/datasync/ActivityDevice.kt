@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.kits.docs.SyncEventRecorder
 
@@ -62,7 +63,9 @@ internal class ActivityDevice(
         ),
         database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, calendars = calendars, tasks = tasks).documentTypes(), interval = interval, peerBackoff = peerBackoff, nowMillis = nowMillis, recorder = recorder,
         activityRefresh = activityRefresh,
+        spacesConfig = VestaKitConfig.home,
         seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database),
+        sendOrder = VestaHomeSources.sendOrder,
     )
     val homes = homeRepository(database, sync.spaceChanges)
     val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)

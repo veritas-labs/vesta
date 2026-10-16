@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.vesta.home.homeRepository
 import uk.veritaslabs.vesta.getDeviceName
@@ -96,7 +97,7 @@ internal class Phone(val daemon: Daemon, private val scope: CoroutineScope, priv
     val pantries = PantrySources(database)
     val shopping = ShoppingListSources(database, pantries)
     val cookbooks = CookbookSources(database)
-    val sync = DeviceDataSyncService(daemon.client, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbooks).documentTypes(), interval = 3.seconds, seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database))
+    val sync = DeviceDataSyncService(daemon.client, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbooks).documentTypes(), interval = 3.seconds, spacesConfig = VestaKitConfig.home, seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database), sendOrder = VestaHomeSources.sendOrder)
     val homes = homeRepository(database, sync.spaceChanges)
     val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
     private var running: Job? = null
