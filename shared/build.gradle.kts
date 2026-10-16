@@ -97,6 +97,8 @@ kotlin {
             // The database (KitsDatabase, its schema and migrations, the open path), extracted to vesta-kits. api: the
             // generated queries expose SQLDelight's runtime types to Vesta's own code.
             api(libs.kits.store)
+            // Photo storage, placeholders, encoders and the blob transfer service, extracted to vesta-kits.
+            api(libs.kits.blobs)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

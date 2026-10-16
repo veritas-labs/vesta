@@ -17,6 +17,7 @@ import uk.veritaslabs.vesta.homejoin.InviteLink
  * (docs/plans/kits-extraction-implementation-plan.md, WP10). The literals are never regenerated: a rename that changes
  * one of them has broken every install and every peer still on the old version. Kotlin names may change; these may not.
  */
+@OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
 class GoldenWireStringsTest {
 
     private fun base64(text: String) = Base64.Default.encode(text.encodeToByteArray())

@@ -16,6 +16,7 @@ enum class Kit(val label: String) {
     Docs("docs"),
     Spaces("spaces"),
     Sync("sync"),
+    /** Extracted in WP18: consumed as the published `uk.veritaslabs.kits:blobs-kit`. */
     Blobs("blobs"),
     Assistants("assistants"),
     Vesta("vesta"),
@@ -23,10 +24,14 @@ enum class Kit(val label: String) {
 
 object KitMembership {
     /** Kits that have been extracted: `:shared` imports them but must not contain their sources. */
-    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store)
+    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store, Kit.Blobs)
 
     /** The package each extracted kit publishes, so a stray copy of its sources is noticed. */
-    val extractedPackages: Map<Kit, String> = mapOf(Kit.X0x to "uk.veritaslabs.kits.x0x", Kit.Store to "uk.veritaslabs.kits.store")
+    val extractedPackages: Map<Kit, String> = mapOf(
+        Kit.X0x to "uk.veritaslabs.kits.x0x",
+        Kit.Store to "uk.veritaslabs.kits.store",
+        Kit.Blobs to "uk.veritaslabs.kits.blobs",
+    )
 
     private val platformSuffix = Regex("\\.(android|jvm|ios)$")
 
@@ -98,7 +103,6 @@ object KitMembership {
         Kit.Docs to 17,
         Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
-        Kit.Blobs to 18, // plus MediaKind (WP1), BlobReferenceSource (WP16) and Placeholder (WP17: pure encoder code, moves with the photo encoder)
         Kit.Assistants to 5,
     )
 }
