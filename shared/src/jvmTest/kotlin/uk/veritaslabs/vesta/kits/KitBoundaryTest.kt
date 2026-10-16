@@ -31,15 +31,14 @@ class KitBoundaryTest {
         RegexOption.MULTILINE,
     )
     /**
-     * The packages whose files moved out of `uk.veritaslabs.vesta` (store in WP9, x0x in WP13); their
+     * The packages whose files moved out of `uk.veritaslabs.vesta` inside `:shared` (store in WP9); their
      * path is read as the directory they came from, so [KitMembership] keeps one spelling.
      */
     private val movedPackages = mapOf(
         "uk/veritaslabs/kits/store/" to "db/",
-        "uk/veritaslabs/kits/x0x/" to "x0x/",
     )
-    private val packageRoots = setOf(vestaPackage, "uk.veritaslabs.kits", "uk.veritaslabs.kits.store", "uk.veritaslabs.kits.x0x")
-    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.(?:vesta|kits\\.store|kits\\.x0x)\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
+    private val packageRoots = setOf(vestaPackage, "uk.veritaslabs.kits", "uk.veritaslabs.kits.store")
+    private val importLine = Regex("^import\\s+(uk\\.veritaslabs\\.(?:vesta|kits\\.store)\\.[\\w.]+)(?:\\s+as\\s+\\w+)?\\s*$", RegexOption.MULTILINE)
 
     private fun mainFiles(): List<SourceFile> {
         val src = listOf(File("src"), File("shared/src")).first { it.isDirectory }
@@ -136,16 +135,30 @@ class KitBoundaryTest {
     }
 
     @Test
-    fun x0xAndBlobsFilesImportNoCompose() {
+    fun blobsFilesImportNoCompose() {
         // Arrange
-        val noUi = setOf(Kit.X0x, Kit.Blobs)
+        val noUi = setOf(Kit.Blobs)
         val compose = Regex("^import\\s+(?:androidx\\.compose|org\\.jetbrains\\.compose)\\.", RegexOption.MULTILINE)
 
         // Act
         val offenders = mainFiles().filter { it.kit in noUi && compose.containsMatchIn(it.text) }.map { it.path }
 
         // Assert
-        assertEquals(emptyList(), offenders, "x0x and blobs code must not depend on Compose")
+        assertEquals(emptyList(), offenders, "blobs code must not depend on Compose (x0x-kit cannot: it has no Compose dependency)")
+    }
+
+    @Test
+    fun anExtractedKitHasNoSourceInShared() {
+        // Arrange
+        val files = mainFiles()
+
+        // Act
+        val copies = KitMembership.extractedPackages.flatMap { (kit, pkg) ->
+            files.filter { it.pkg == pkg || it.pkg.startsWith("$pkg.") }.map { "${kit.label}: ${it.path}" }
+        }
+
+        // Assert
+        assertEquals(emptyList(), copies, "sources of an extracted kit belong in vesta-kits, not here")
     }
 
     @Test

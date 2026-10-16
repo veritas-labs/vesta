@@ -13,7 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
+import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind
 import uk.veritaslabs.vesta.syncactivity.SyncVerdict

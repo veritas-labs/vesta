@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.kits.store.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
+import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 
 class TransfersJanitorTest {
 

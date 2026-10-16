@@ -19,7 +19,7 @@ import uk.veritaslabs.vesta.automerge.ShoppingListSources
 import uk.veritaslabs.vesta.automerge.TaskSources
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
+import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository

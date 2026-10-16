@@ -455,6 +455,7 @@ Everything in this table keeps its current spelling after the rename. The kit's 
 
 **Commit (kits).** `add x0x-kit and x0x-kit-testing`. **Commit (Vesta).** `use the published x0x kit instead of the in-tree client`
 
+**As built (unattended run, 2026-10-16).** `x0x-kit` and `x0x-kit-testing` (package `uk.veritaslabs.kits.x0x.testing`; the fakes, `FakeGroupStoreTest` and `FakeX0xNetworkFilesTest` moved with them) published as `0.1.0` to Maven Local; `smoke-kit` and `consume-check` deleted. Deviations: (1) `X0xBridge` stays in `uk.veritaslabs.vesta.x0x` inside the kit (see WP13); Vesta's `X0xBridgeSymbolsTest` (androidHostTest) inspects the kit's compiled class against `lib.rs`. (2) The iOS cinterop (`x0xffi.def`, header copy) moved into the kit and out of `:shared`; because Kotlin/Native cannot run cinterop on Linux, the two kit modules declare iOS targets only on a macOS host (`kits.iosNeedsMacModules`), so the Linux-published artifacts have no iOS variant, the klib API dump is macOS-only, and Vesta's iOS source sets cannot resolve the kit until it is published from a Mac. **Gate M owes:** publish both kits from a Mac, run `apiDump` there and commit the klib dumps, build Vesta's iOS framework. (3) `KitBoundaryTest` keeps `Kit.X0x` as an extracted kit (`KitMembership.extracted`): no source of it may remain in `:shared`.
 ## WP15. Extract `store-kit` and `store-kit-testing`
 
 **Goal.** The schema, the migration chain and the open path are published; Vesta opens `KitsDatabase` from the artifact.

@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
+import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.syncactivity.ProblemReason
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
 import uk.veritaslabs.vesta.syncactivity.SyncEventKind

@@ -58,7 +58,7 @@ import uk.veritaslabs.vesta.ui.screens.AssistantEditTestTags
 import uk.veritaslabs.vesta.ui.screens.AssistantsTestTags
 import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
-import uk.veritaslabs.kits.x0x.FakeX0xClient
+import uk.veritaslabs.kits.x0x.testing.FakeX0xClient
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /**

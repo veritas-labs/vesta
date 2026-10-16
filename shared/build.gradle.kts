@@ -11,12 +11,13 @@ plugins {
 
 // --- x0x embedded daemon (mobile only; desktop talks to the x0xd REST API) --
 // The Rust crate ffi/x0x-ffi embeds x0x::server behind a C ABI. Android loads
-// it via JNI (see src/androidMain/.../x0x/EmbeddedX0x.android.kt, the .so is
+// it via JNI (EmbeddedX0x.android.kt and X0xBridge, now in the x0x kit; the .so is
 // staged into androidApp/src/main/jniLibs by scripts/build-android-ffi.sh);
-// iOS links the static library through the cinterop below.
+// iOS links the static library through the cinterop bindings that live in the x0x kit
+// (vesta-kits, x0x-kit/native); Xcode links the archive, so nothing here binds it any more.
+// Native packaging moves to the kit in extraction plan WP26.
 val x0xFfiDir = rootProject.projectDir.resolve("ffi/x0x-ffi")
 val x0xIosDistDir = x0xFfiDir.resolve("dist/ios")
-val x0xIosDefTemplate = projectDir.resolve("native/x0xffi.def")
 
 // Builds libx0x_ffi.a for iOS. Requires macOS (the C parts of the x0x
 // dependency tree — aws-lc-sys/ring/sqlite — need Apple's SDK); the Xcode
@@ -43,26 +44,6 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "Shared"
             isStatic = true
-        }
-        // The static libx0x_ffi.a is linked into the final app by Xcode
-        // (OTHER_LDFLAGS[sdk=…] in the iosApp project + the "Build x0x FFI"
-        // script phase). Gradle only generates the bindings from the header,
-        // so iOS framework/test links work on any host — unreferenced FFI
-        // code is elided at link time, and the app's final link (on the Mac)
-        // pulls in the archive.
-        iosTarget.compilations.getByName("main") {
-            val generatedDef = layout.buildDirectory
-                .file("cinterop/${iosTarget.name}/x0xffi.def").get().asFile
-            generatedDef.parentFile.mkdirs()
-            generatedDef.writeText(
-                buildString {
-                    appendLine(x0xIosDefTemplate.readText().trimEnd())
-                    appendLine("compilerOpts = -I${x0xFfiDir.resolve("include").absolutePath}")
-                }
-            )
-            cinterops.create("x0xffi") {
-                defFile(generatedDef)
-            }
         }
     }
 
@@ -112,6 +93,8 @@ kotlin {
             implementation(libs.mlkit.barcodeScanning)
         }
         commonMain.dependencies {
+            // The x0x client, extracted to vesta-kits. api: Vesta's own public types expose its types.
+            api(libs.kits.x0x)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -134,6 +117,7 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.compose.uiTest)
+            implementation(libs.kits.x0xTesting)
         }
         jvmMain.dependencies {
             // Automerge CRDT (JNI bindings, see the libs.versions.toml comment);

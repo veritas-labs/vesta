@@ -26,6 +26,8 @@ junit-platform = "6.1.3"
 junit-vintage = "6.1.3"
 mlkit-barcodeScanning = "17.3.0"
 kotlin = "2.4.20"
+# Version of every kit published from vesta-kits to Maven Local (kitsVersion in its gradle.properties).
+kits = "0.1.0"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
 # Tracks composeMultiplatform's major/minor: material3 reaches into foundation
@@ -42,6 +44,8 @@ webcam-capture = "0.3.12"
 zxing = "3.5.4"
 
 [libraries]
+kits-x0x = { module = "uk.veritaslabs.kits:x0x-kit", version.ref = "kits" }
+kits-x0xTesting = { module = "uk.veritaslabs.kits:x0x-kit-testing", version.ref = "kits" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }

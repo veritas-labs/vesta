@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.devicesync
 
+import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
+
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.Test

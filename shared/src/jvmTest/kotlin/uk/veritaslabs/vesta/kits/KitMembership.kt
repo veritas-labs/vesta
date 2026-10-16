@@ -9,6 +9,7 @@ package uk.veritaslabs.vesta.kits
  * Anything not listed here belongs to [Kit.Vesta]: the app itself.
  */
 enum class Kit(val label: String) {
+    /** Extracted in WP14: consumed as the published `uk.veritaslabs.kits:x0x-kit`, no source of it lives in `:shared`. */
     X0x("x0x"),
     Store("store"),
     Docs("docs"),
@@ -20,11 +21,16 @@ enum class Kit(val label: String) {
 }
 
 object KitMembership {
+    /** Kits that have been extracted: `:shared` imports them but must not contain their sources. */
+    val extracted: Set<Kit> = setOf(Kit.X0x)
+
+    /** The package each extracted kit publishes, so a stray copy of its sources is noticed. */
+    val extractedPackages: Map<Kit, String> = mapOf(Kit.X0x to "uk.veritaslabs.kits.x0x")
+
     private val platformSuffix = Regex("\\.(android|jvm|ios)$")
 
     /** Whole directories that belong to one kit, with the files that stay behind in Vesta. */
     private val directories: Map<String, Pair<Kit, Set<String>>> = mapOf(
-        "x0x/" to (Kit.X0x to setOf("x0x/X0xStatusCard", "x0x/X0xConnectivityIndicator")),
         "db/" to (Kit.Store to emptySet()),
         "docs/" to (Kit.Docs to emptySet()),
         "mailbox/" to (Kit.Docs to emptySet()),
@@ -89,7 +95,6 @@ object KitMembership {
 
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
-        Kit.X0x to 17, // Appendix A's 15 plus X0xConnectivity (WP7) and X0xBridge (WP13)
         Kit.Store to 10, // Appendix A's 9 plus DatabaseLocation (WP9)
         Kit.Docs to 17,
         Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)

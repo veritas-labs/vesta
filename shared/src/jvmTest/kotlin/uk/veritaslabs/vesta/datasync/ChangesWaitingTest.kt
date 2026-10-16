@@ -20,7 +20,7 @@ import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
 import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.kits.store.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
+import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
 class ChangesWaitingTest {

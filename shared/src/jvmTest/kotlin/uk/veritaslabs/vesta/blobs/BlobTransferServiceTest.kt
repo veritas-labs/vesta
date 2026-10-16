@@ -21,7 +21,7 @@ import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
 import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.kits.store.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicesync.FakeX0xNetwork
+import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.blobs.MediaKind
 import uk.veritaslabs.vesta.ui.screens.Recipe
 import uk.veritaslabs.vesta.ui.screens.RecipeMedia
