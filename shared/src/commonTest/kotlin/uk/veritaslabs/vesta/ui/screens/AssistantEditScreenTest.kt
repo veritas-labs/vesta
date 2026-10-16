@@ -130,7 +130,7 @@ class AssistantEditScreenTest {
 
         // Assert
         onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.PantryWrite)).assertIsEnabled()
-        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.TasksRead)).assertIsNotEnabled()
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.CalendarRead)).assertIsNotEnabled()
         onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.MerchantsWrite)).assertIsNotEnabled()
     }
 

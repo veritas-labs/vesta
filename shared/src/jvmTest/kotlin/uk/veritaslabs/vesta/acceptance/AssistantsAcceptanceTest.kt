@@ -54,6 +54,8 @@ import uk.veritaslabs.vesta.agent.NotApprovedSummary
 import uk.veritaslabs.vesta.agent.NotPermittedSummary
 import uk.veritaslabs.vesta.agent.PantryCommandHandler
 import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
+import uk.veritaslabs.vesta.automerge.TaskDocumentSource
+import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
 import uk.veritaslabs.kits.store.KitsDatabase
@@ -105,6 +107,7 @@ class AssistantsAcceptanceTest {
             ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
         }
         val cookbook = CookbookDocumentSource(Document())
+        val tasks = TaskDocumentSource(Document(), TaskList.Home)
         val client = FakeX0xClient()
         private var nextId = 0
 
@@ -128,6 +131,7 @@ class AssistantsAcceptanceTest {
             newId = { "urn:uuid:reply-${nextId++}" },
             log = {},
             resolveCookbook = { homeId -> cookbook.takeIf { homeId == "home-1" } },
+            resolveTasks = { homeId -> tasks.takeIf { homeId == "home-1" } },
         )
 
         val replies: List<JsonObject> get() = client.sent.map { Json.parseToJsonElement(it.payload.decodeToString()).jsonObject }
@@ -533,5 +537,43 @@ class AssistantsAcceptanceTest {
         onNodeWithTag(AssistantEditTestTags.capability("home-1", AssistantCapability.PantryWrite)).assertIsOn()
         waitUntilNodeCount(hasTestTag(AssistantEditTestTags.ActivityRow), 2)
         onAllNodesWithTag(AssistantEditTestTags.ActivityRow).assertCountEquals(2)
+    }
+
+    private fun tasksRead(id: String) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "urn:vesta:document:home-1:tasks"}}
+    """.trimIndent()
+
+    private fun tasksWrite(type: String, id: String, node: String) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:tasks"}, "object": $node}
+    """.trimIndent()
+
+    @Test
+    fun myBotCanKeepTheHouseholdTasksWithItsTasksSwitchesAndNothingElse() = runComposeUiTest {
+        // Arrange — Given a bot added with Tasks Read and Write (asking each time switched off) and no Pantry grant
+        val world = World()
+        showAssistants(world)
+        tap(AssistantsTestTags.AddButton)
+        onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.TasksRead))
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.TasksWrite))
+        tapInForm(AssistantEditTestTags.askEachTime("home-1"))
+        tapInForm(AssistantEditTestTags.SaveButton)
+        waitForIdle()
+
+        // Act — When it adds a task, ticks it off, reads the list, and then tries to read the Pantry
+        world.botSends(tasksWrite("Add", "urn:uuid:t1", """{"type": "schema:Action", "schema:name": "Take the bins out", "schema:endTime": "2026-10-14"}"""))
+        world.botSends(tasksWrite("Update", "urn:uuid:t2", """{"type": "schema:Action", "schema:name": "take the bins out", "schema:actionStatus": "schema:CompletedActionStatus"}"""))
+        world.botSends(tasksRead("urn:uuid:t3"))
+        world.botSends(readPantryCommand("urn:uuid:t4"))
+
+        // Assert — Then the household has the task with a done record, the bot saw it as completed, and the Pantry stayed closed
+        val snapshot = runBlocking { world.tasks.snapshot.first() }
+        assertEquals(listOf("Take the bins out"), snapshot.tasks.map { it.title })
+        assertEquals(1, snapshot.done.size)
+        val seen = world.replies[2].getValue("result").jsonObject.getValue("items").jsonArray.single().jsonObject
+        assertEquals("schema:CompletedActionStatus", seen.getValue("schema:actionStatus").jsonPrimitive.content)
+        assertEquals(NotPermittedSummary, world.replies[3].getValue("summary").jsonPrimitive.content)
     }
 }

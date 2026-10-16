@@ -201,6 +201,39 @@ Reply: an `Accept` whose `result` is `{"type": "schema:Recipe", "id": "<recipeId
 
 Both writes are recorded by command `id`, so a re-sent id is answered, not applied twice.
 
+## Tasks and chores — `Read` (needs Tasks **Read**), `Add` / `Update` / `Remove` (need Tasks **Write**)
+
+The Home's **shared** tasks only: `urn:vesta:document:<homeId>:tasks`. The user's private tasks are a different document and
+cannot be addressed (a message for `…:private-tasks` is rejected). A task is a `schema:Action`.
+
+**Read** — `{"@context": CONTEXT, "type": "Read", "id": "urn:uuid:…", "object": {"type": "Collection", "id": "urn:vesta:document:<homeId>:tasks"}}`.
+Answered fresh each time. The `Accept` result is a `Collection` of at most 200 tasks (dated ones first; `totalItems` is the real count):
+
+```json
+{"type": "schema:Action", "id": "<taskId>", "schema:identifier": "<taskId>", "schema:name": "Take the bins out",
+ "schema:description": "Both bins", "schema:endTime": "2026-10-14",
+ "schema:actionStatus": "schema:PotentialActionStatus", "schema:repeatFrequency": "P1W", "schema:agent": ["m:abc"]}
+```
+
+`schema:endTime` is the task's first/only due day (left out for a task with no date). `schema:actionStatus` is
+`schema:CompletedActionStatus` when the task's current occurrence is done (a repeating task is done one occurrence at a time:
+its latest due day so far), else `schema:PotentialActionStatus`. `schema:repeatFrequency` (an ISO 8601 duration such as `P1W`,
+`P2D`, `P1M`, `P1Y`) and `schema:agent` (the member refs it is assigned to) are left out when there are none. You can read
+repeats and assignees but not set them.
+
+**Write** — a `schema:Action` object with the tasks `target`:
+
+| Type | Object fields | Effect |
+| --- | --- | --- |
+| `Add` | `schema:name` (required, ≤ 200 chars), optional `schema:description` (≤ 2000), optional `schema:endTime` (`yyyy-MM-dd`) | Adds a task. Same name (any case) and same day as one already there → `Reject` "task already exists". |
+| `Update` | `schema:identifier` or `schema:name`, and `schema:actionStatus` (`schema:CompletedActionStatus` or `schema:PotentialActionStatus`) | Marks the task's current occurrence done / not done. |
+| `Remove` | `schema:identifier` or `schema:name` | Deletes the task (its done history stays). |
+
+The task is found by `schema:identifier` if given, else by `schema:name` ignoring case; no match → `Reject` "unknown task", and a
+name shared by several tasks → "several tasks have that name: use schema:identifier". Each write replies with an `Accept` whose
+`result` is the task afterwards (for `Remove`, as it was), in the shape above. Writes are recorded by command `id`, so a re-sent
+id is answered, not applied twice.
+
 ## Rejections
 
 `{"type": "Reject", "inReplyTo": "<your id>", "summary": "<human-readable reason>", …}`. Summaries include:
