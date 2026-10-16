@@ -36,13 +36,17 @@ val buildX0xIosFfi by tasks.registering(Exec::class) {
 }
 
 kotlin {
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
+    // iOS targets only on macOS: Kotlin/Native iOS klibs cannot be built on Linux, so kits published from a
+    // Linux machine carry no iOS variants and resolving them there fails.
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        listOf(
+            iosArm64(),
+            iosSimulatorArm64()
+        ).forEach { iosTarget ->
+            iosTarget.binaries.framework {
+                baseName = "Shared"
+                isStatic = true
+            }
         }
     }
 
