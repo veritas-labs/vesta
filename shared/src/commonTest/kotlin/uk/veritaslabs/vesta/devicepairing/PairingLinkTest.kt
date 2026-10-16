@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.devicepairing
 
+import uk.veritaslabs.kits.sync.PairingLink
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals

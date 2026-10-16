@@ -1,6 +1,6 @@
 @file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
 
-package uk.veritaslabs.vesta.datasync
+package uk.veritaslabs.kits.sync
 
 import uk.veritaslabs.kits.docs.SyncEnvelope
 import uk.veritaslabs.kits.docs.SyncAcknowledgement
@@ -32,11 +32,7 @@ import uk.veritaslabs.kits.docs.Scope
 import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
 import uk.veritaslabs.kits.spaces.ProfileDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.devicesync.AgentDetails
-import uk.veritaslabs.vesta.devicesync.DeviceDataSync
-import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
 import uk.veritaslabs.kits.spaces.SpaceGroupMessage
-import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.kits.spaces.SpacesConfig
 import uk.veritaslabs.kits.spaces.SpaceChangeListener
 import uk.veritaslabs.kits.spaces.RosterChangeListener
@@ -47,7 +43,6 @@ import uk.veritaslabs.kits.spaces.SpaceHub
 import uk.veritaslabs.kits.spaces.SpaceJoining
 import uk.veritaslabs.kits.spaces.ProfileChangeListener
 import uk.veritaslabs.kits.spaces.ProfileRepository
-import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 import uk.veritaslabs.kits.x0x.X0xEventHub
@@ -66,27 +61,27 @@ import uk.veritaslabs.kits.spaces.SpaceRosters
  */
 internal fun rosterDocumentType(rosters: SpaceRosters, publishRosters: suspend () -> Unit) = SpaceDocumentType(
     "roster", SyncModules.Members, Scope.Shared, rosters::spaceDocument, rosters.changes,
-    afterReceive = { homeId -> rosters.project(homeId) },
+    afterReceive = { spaceId -> rosters.project(spaceId) },
     afterSync = { publishRosters() }, resyncsHome = true,
 )
 
-/** The engine's send order for a Home's non-roster documents (the roster goes last); see [DeviceDataSyncService.documentIds]. */
+/** The engine's send order for a Space's non-roster documents (the roster goes last); see [DeviceDataSyncService.documentIds]. */
 private val SyncOrder = listOf("pantry", "shopping-list", "cookbook", "merchants", "mealplan", "calendar", "private-calendar", "tasks", "private-tasks")
-private const val MaxBufferedPerHome = 64
+private const val MaxBufferedPerSpace = 64
 
 /**
- * Syncs the user's data between their own paired devices (docs/adr/ADR-013-device-data-sync.md): the Home registry
- * ([SpaceRegistry]), the user's Profile ([ProfileRegistry]) and each Home's Pantry and shopping-list documents, as Automerge sync messages in x0x direct messages
+ * Syncs the user's data between their own paired devices (docs/adr/ADR-013-device-data-sync.md): the Space registry
+ * ([SpaceRegistry]), the user's Profile ([ProfileRegistry]) and each Space's Pantry and shopping-list documents, as Automerge sync messages in x0x direct messages
  * ([SyncEnvelope], ADR-006). The peers are the devices in the DeviceSync group roster ([SyncedDeviceRepository]),
  * and messages from anyone else are ignored, so group membership is the access control.
  *
  * Every device syncs with every other one, so no device needs to relay for another. Each periodic round (see
  * [syncEverything]) restarts the sync with every peer, which is how a device that was offline catches up.
  *
- * A Home's documents also go through its mailbox (docs/adr/ADR-020-syncing-without-overlapping-online-time.md): an x0x group
+ * A Space's documents also go through its mailbox (docs/adr/ADR-020-syncing-without-overlapping-online-time.md): an x0x group
  * store every member and the always-on hub replicate. Each local change is deposited there, and each round, presence event
  * and foreground fetches what other devices left, so two devices that are never online together still converge. The direct
- * messages stay as they are; the mailbox is the catch-up path, and both end in idempotent Automerge merges. A Home that has
+ * messages stay as they are; the mailbox is the catch-up path, and both end in idempotent Automerge merges. A Space that has
  * no open store yet, or a daemon that is down, makes the mailbox do nothing.
  */
 class DeviceDataSyncService(
@@ -100,7 +95,7 @@ class DeviceDataSyncService(
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
     private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
     activityRefresh: Duration = 20.seconds,
-    homeConfig: SpacesConfig = SpacesConfig(),
+    spacesConfig: SpacesConfig = SpacesConfig(),
     seeding: SpaceSeeding,
 ) : DeviceDataSync {
 
@@ -109,19 +104,19 @@ class DeviceDataSyncService(
     private val profile = ProfileRegistry(database, profiles)
     private val rosters = SpaceRosters(database, profiles, deviceName = deviceName)
 
-    /** The Home registry, which also forgets a Home's Sync activity (ADR-033) when the Home is deleted or left on this device. */
-    private val homeListener = object : SpaceChangeListener by registry {
+    /** The Space registry, which also forgets a Space's Sync activity (ADR-033) when the Space is deleted or left on this device. */
+    private val spaceListener = object : SpaceChangeListener by registry {
         override suspend fun deleted(id: String) {
             registry.deleted(id)
             recorder.forgetHome(id)
             changesWaiting.forget(id)
         }
     }
-    private val join = SpaceJoinService(client, database, rosters, homeListener, profiles, seeding, recorder = recorder, config = homeConfig)
-    private val groups = SpaceGroups(client, database, rosters, profiles, config = homeConfig)
+    private val join = SpaceJoinService(client, database, rosters, spaceListener, profiles, seeding, recorder = recorder, config = spacesConfig)
+    private val groups = SpaceGroups(client, database, rosters, profiles, config = spacesConfig)
 
     /**
-     * The one list of Home document types: the roster, which the engine registers itself, then the [documentTypes] the app
+     * The one list of Space document types: the roster, which the engine registers itself, then the [documentTypes] the app
      * gave; the acknowledgement, activity module and private-id lookups go through it.
      */
     private val documentRegistry = SpaceDocumentRegistry(listOf(rosterDocumentType(rosters) { publishRosters() }) + documentTypes)
@@ -133,18 +128,18 @@ class DeviceDataSyncService(
 
     private val activityFacts = SyncActivityFacts()
 
-    /** Whether each Home has changes no other device has acknowledged (ADR-033); see [ChangesWaiting] for when it is worked out. */
+    /** Whether each Space has changes no other device has acknowledged (ADR-033); see [ChangesWaiting] for when it is worked out. */
     private val changesWaiting = ChangesWaiting(
         database,
         sharedDocumentIds = { mailboxDocuments.documentIds(it) },
         privateDocumentIds = { documentRegistry.documentIds(it, Scope.Private) },
-        targets = { homeId ->
+        targets = { spaceId ->
             val self = self()
             val paired = devices.agentIds() - setOfNotNull(self)
-            val members = rosters.devices(homeId).values.flatten()
-            SyncTargets(shared = (paired + members - setOfNotNull(self)).isNotEmpty() || rosters.hubs(homeId).isNotEmpty(), own = paired.isNotEmpty())
+            val members = rosters.devices(spaceId).values.flatten()
+            SyncTargets(shared = (paired + members - setOfNotNull(self)).isNotEmpty() || rosters.hubs(spaceId).isNotEmpty(), own = paired.isNotEmpty())
         },
-        heads = { homeId, documentId -> headsOf(homeId, documentId) },
+        heads = { spaceId, documentId -> headsOf(spaceId, documentId) },
     )
 
     /**
@@ -163,44 +158,44 @@ class DeviceDataSyncService(
         selfAgent = { self() }, requestSync = { syncNow() }, nowMillis = nowMillis, refreshInterval = activityRefresh,
     )
 
-    override suspend fun agentDetails(homeId: String, agentId: String): AgentDetails {
+    override suspend fun agentDetails(spaceId: String, agentId: String): AgentDetails {
         val discovered = runCatching { client.getDiscoveredAgent(agentId) }.getOrNull()
         val now = nowMillis()
         return AgentDetails(
-            name = rosters.deviceNames(homeId)[agentId],
+            name = rosters.deviceNames(spaceId)[agentId],
             machineId = discovered?.machineId,
             lastSeenMsAgo = discovered?.lastSeen?.let { (now - it * 1_000).coerceAtLeast(0) },
             lastSyncedMsAgo = (lastSynced[agentId] ?: recorder.lastSyncedAt(agentId))?.let { (now - it).coerceAtLeast(0) },
         )
     }
 
-    override val homeChanges: SpaceChangeListener get() = homeListener
+    override val spaceChanges: SpaceChangeListener get() = spaceListener
 
     override val joining: SpaceJoining get() = join
 
-    override val hubs: SpaceHub = SpaceHubs(client, database, rosters, profiles, config = homeConfig)
+    override val hubs: SpaceHub = SpaceHubs(client, database, rosters, profiles, config = spacesConfig)
 
-    override suspend fun memberAgents(homeId: String, memberId: String): List<String> =
-        rosters.devices(homeId)[memberId].orEmpty().sorted()
+    override suspend fun memberAgents(spaceId: String, memberId: String): List<String> =
+        rosters.devices(spaceId)[memberId].orEmpty().sorted()
 
     override val profileChanges: ProfileChangeListener = object : ProfileChangeListener {
         override suspend fun changed() {
             profile.publish()
-            publishRosters() // the new name goes into each Home's roster too
+            publishRosters() // the new name goes into each Space's roster too
         }
     }
 
     override val rosterChanges: RosterChangeListener = object : RosterChangeListener {
-        override suspend fun roleChanged(homeId: String, memberId: String, role: String) = rosters.setRole(homeId, memberId, role)
-        override suspend fun memberRemoved(homeId: String, memberId: String) = join.removeMember(homeId, memberId)
-        override suspend fun memberLeft(homeId: String, memberId: String) = join.announceLeft(homeId, memberId)
+        override suspend fun roleChanged(spaceId: String, memberId: String, role: String) = rosters.setRole(spaceId, memberId, role)
+        override suspend fun memberRemoved(spaceId: String, memberId: String) = join.removeMember(spaceId, memberId)
+        override suspend fun memberLeft(spaceId: String, memberId: String) = join.announceLeft(spaceId, memberId)
     }
 
     // One sync step at a time: every step reads and writes the per-peer sync states.
     private val lock = Mutex()
     private val states = mutableMapOf<Pair<String, String>, SyncState>()
 
-    // Pantry and roster messages that arrived before their Home did (the registry and a Home's documents sync side by
+    // Pantry and roster messages that arrived before their Space did (the registry and a Space's documents sync side by
     // side): the sending peer, the document id and the sync message.
     private val waiting = mutableMapOf<String, MutableList<Triple<String, String, ByteArray>>>()
 
@@ -214,14 +209,14 @@ class DeviceDataSyncService(
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
         documentRegistry.types.forEach { type ->
             launch {
-                type.localChanges.collect { homeId ->
-                    val documentId = type.documentId(homeId)
-                    // A private document goes to the user's own devices only: no mailbox, and no Home members to add.
-                    if (type.scope == Scope.Shared) launch { attempt { mailboxWriter.deposit(homeId, documentId) } } // not behind sends to absent peers
+                type.localChanges.collect { spaceId ->
+                    val documentId = type.documentId(spaceId)
+                    // A private document goes to the user's own devices only: no mailbox, and no Space members to add.
+                    if (type.scope == Scope.Shared) launch { attempt { mailboxWriter.deposit(spaceId, documentId) } } // not behind sends to absent peers
                     attempt { syncDocument(documentId) }
-                    // A roster change can add a device to a Home's peers, which then needs everything the Home has.
+                    // A roster change can add a device to a Space's peers, which then needs everything the Space has.
                     if (type.resyncsHome) {
-                        documentRegistry.documentIds(homeId, Scope.Shared).filter { it != documentId }.sortedBy { syncOrderOf(it) }
+                        documentRegistry.documentIds(spaceId, Scope.Shared).filter { it != documentId }.sortedBy { syncOrderOf(it) }
                             .forEach { attempt { syncDocument(it) } }
                     }
                 }
@@ -272,37 +267,37 @@ class DeviceDataSyncService(
     }
 
     /**
-     * Deposits what this device changed and fetches what others left, in every Home's mailbox. It runs outside [lock]: store
-     * calls can be slow, and the documents and the mailbox keep their own locks. A Home whose roster, Pantry or list changed
+     * Deposits what this device changed and fetches what others left, in every Space's mailbox. It runs outside [lock]: store
+     * calls can be slow, and the documents and the mailbox keep their own locks. A Space whose roster, Pantry or list changed
      * through a deposit is published and synced again, as one that arrived by direct message is.
      */
     private suspend fun syncMailboxes() {
         var applied = 0
-        database.homeQueries.selectAll().awaitAsList().forEach { home ->
-            attempt { if (mailboxWriter.deposit(home.id) > 0) recorder.mailbox(home.id, incoming = false, peer = null) }
-            attempt { mailboxWriter.compact(home.id) }
+        database.homeQueries.selectAll().awaitAsList().forEach { space ->
+            attempt { if (mailboxWriter.deposit(space.id) > 0) recorder.mailbox(space.id, incoming = false, peer = null) }
+            attempt { mailboxWriter.compact(space.id) }
             attempt {
-                val fetched = mailboxReader.fetch(home.id)
+                val fetched = mailboxReader.fetch(space.id)
                 applied += fetched
-                if (fetched > 0) recorder.mailbox(home.id, incoming = true, peer = null)
+                if (fetched > 0) recorder.mailbox(space.id, incoming = true, peer = null)
             }
         }
         if (applied > 0) attempt { publishRosters() }
     }
 
-    /** The agents that act for each member of [homeId], by member id, as its roster says. */
-    internal suspend fun rosterDevices(homeId: String): Map<String, Set<String>> = rosters.devices(homeId)
+    /** The agents that act for each member of [spaceId], by member id, as its roster says. */
+    internal suspend fun rosterDevices(spaceId: String): Map<String, Set<String>> = rosters.devices(spaceId)
 
     /**
-     * Admits a person to [homeId]'s roster as [role], with the agent that acts for them (the invite flow's job,
-     * ADR-014), and makes them a peer of that Home. Also how a joining device learns who invited it, since a device
-     * only syncs a Home with the agents its roster lists.
+     * Admits a person to [spaceId]'s roster as [role], with the agent that acts for them (the invite flow's job,
+     * ADR-014), and makes them a peer of that Space. Also how a joining device learns who invited it, since a device
+     * only syncs a Space with the agents its roster lists.
      */
-    internal suspend fun admit(homeId: String, memberId: String, name: String, role: String, agentId: String) =
-        lock.withLock { rosters.admit(homeId, memberId, name, role, agentId) }
+    internal suspend fun admit(spaceId: String, memberId: String, name: String, role: String, agentId: String) =
+        lock.withLock { rosters.admit(spaceId, memberId, name, role, agentId) }
 
-    /** Marks [memberId] removed from [homeId] and stops syncing it with their devices. */
-    internal suspend fun removeMember(homeId: String, memberId: String) = lock.withLock { rosters.remove(homeId, memberId) }
+    /** Marks [memberId] removed from [spaceId] and stops syncing it with their devices. */
+    internal suspend fun removeMember(spaceId: String, memberId: String) = lock.withLock { rosters.remove(spaceId, memberId) }
 
     /**
      * Handles one direct message: a sync message is applied and answered if its sender is a peer for that document
@@ -310,37 +305,37 @@ class DeviceDataSyncService(
      */
     suspend fun handle(message: X0xDirectMessage) {
         if (message.verified == true) message.sender?.let { peerDownUntil.remove(it) } // it is evidently there
-        if (join.handle(message)) return // a Home-join message, not a sync message
-        if (groups.handle(message)) return // a Home-group message (ADR-021)
+        if (join.handle(message)) return // a Space-join message, not a sync message
+        if (groups.handle(message)) return // a Space-group message (ADR-021)
         attempt { recordUnknownMessage(message) } // noted in Sync activity (ADR-034), then handled as before: dropped
         syncFrom(message)
     }
 
     /**
-     * Notes a verified peer's message of a family this version knows (device-sync, Home-group) but with a `kind` it doesn't, which a newer
+     * Notes a verified peer's message of a family this version knows (device-sync, Space-group) but with a `kind` it doesn't, which a newer
      * Vesta may send. Anything else, such as an agent command on the same stream, is not a message of those families and is not noted.
-     * It goes on the Home the message names when it names one, otherwise on every Home the sender is a peer of.
+     * It goes on the Space the message names when it names one, otherwise on every Space the sender is a peer of.
      */
     private suspend fun recordUnknownMessage(message: X0xDirectMessage) {
         if (message.verified != true) return
         val sender = message.sender ?: return
         val payload = message.payload
-        val (kind, homeId) = DeviceSyncMessage.unrecognisedKind(payload)?.let { it to null }
+        val (kind, spaceId) = DeviceSyncMessage.unrecognisedKind(payload)?.let { it to null }
             ?: SpaceGroupMessage.unrecognisedKind(payload)?.let { it to SpaceGroupMessage.stringField(payload, "homeId") }
             ?: return
-        val homes = homeId?.let { listOfNotNull(database.homeQueries.selectById(it).awaitAsOneOrNull()?.id) }
+        val spaces = spaceId?.let { listOfNotNull(database.homeQueries.selectById(it).awaitAsOneOrNull()?.id) }
             ?: database.homeQueries.selectAll().awaitAsList().map { it.id }
-        homes.filter { sender in homePeers(it) }.forEach { recorder.unknownMessage(it, sender, kind) }
+        spaces.filter { sender in spacePeers(it) }.forEach { recorder.unknownMessage(it, sender, kind) }
     }
 
-    /** Notes a document id this version doesn't know, from a peer of the Home it names (`<home id>:<document type>`), as needing a newer Vesta. */
+    /** Notes a document id this version doesn't know, from a peer of the Space it names (`<space id>:<document type>`), as needing a newer Vesta. */
     private suspend fun recordUnknownDocument(sender: String, documentId: String) {
         if (documentId == SpaceRegistryDocumentId || documentId == ProfileDocumentId) return
         if (documentRegistry.parse(documentId) != null) return
-        val homeId = documentId.substringBeforeLast(':', "").takeIf { it.isNotEmpty() } ?: return
-        if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) return
-        if (sender !in homePeers(homeId)) return
-        recorder.unsupportedVersion(homeId, SyncModules.Mailbox, sender, documentId.substringAfterLast(':'))
+        val spaceId = documentId.substringBeforeLast(':', "").takeIf { it.isNotEmpty() } ?: return
+        if (database.homeQueries.selectById(spaceId).awaitAsOneOrNull() == null) return
+        if (sender !in spacePeers(spaceId)) return
+        recorder.unsupportedVersion(spaceId, SyncModules.Mailbox, sender, documentId.substringAfterLast(':'))
     }
 
     private suspend fun syncFrom(message: X0xDirectMessage) {
@@ -355,25 +350,25 @@ class DeviceDataSyncService(
             receive(sender, envelope.documentId, envelope.message)
             noteSynced(sender)
             activityFacts.online[sender] = true
-            activityHomeId(envelope.documentId)?.let { it to acknowledgedDocuments(it) }
+            activitySpaceId(envelope.documentId)?.let { it to acknowledgedDocuments(it) }
         }
-        acknowledged?.let { (homeId, documents) -> attempt { changesWaiting.update(homeId, documents) } }
+        acknowledged?.let { (spaceId, documents) -> attempt { changesWaiting.update(spaceId, documents) } }
         activityFacts.notifyChanged()
     }
 
-    /** The ids of [homeId]'s documents that some peer's sync state reports in sync. Call it holding [lock]; it reads memory only. */
-    private suspend fun acknowledgedDocuments(homeId: String): Set<String> {
-        val ids = mailboxDocuments.documentIds(homeId) + documentRegistry.documentIds(homeId, Scope.Private)
+    /** The ids of [spaceId]'s documents that some peer's sync state reports in sync. Call it holding [lock]; it reads memory only. */
+    private suspend fun acknowledgedDocuments(spaceId: String): Set<String> {
+        val ids = mailboxDocuments.documentIds(spaceId) + documentRegistry.documentIds(spaceId, Scope.Private)
         return ids.filterTo(mutableSetOf()) { id ->
-            states.any { (key, state) -> key.first == id && acknowledgement.isInSync(homeId, id, state) }
+            states.any { (key, state) -> key.first == id && acknowledgement.isInSync(spaceId, id, state) }
         }
     }
 
-    /** Works out [ChangesWaiting] for every Home. Call it holding no lock: the sync states are read under it, the rest is not. */
+    /** Works out [ChangesWaiting] for every Space. Call it holding no lock: the sync states are read under it, the rest is not. */
     private suspend fun refreshChangesWaiting() {
-        val homes = database.homeQueries.selectAll().awaitAsList().map { it.id }
-        val acknowledged = lock.withLock { homes.associateWith { acknowledgedDocuments(it) } }
-        acknowledged.forEach { (homeId, documents) -> attempt { changesWaiting.update(homeId, documents) } }
+        val spaces = database.homeQueries.selectAll().awaitAsList().map { it.id }
+        val acknowledged = lock.withLock { spaces.associateWith { acknowledgedDocuments(it) } }
+        acknowledged.forEach { (spaceId, documents) -> attempt { changesWaiting.update(spaceId, documents) } }
     }
 
     private var selfAgent: String? = null
@@ -381,25 +376,25 @@ class DeviceDataSyncService(
     private suspend fun self(): String? = selfAgent ?: runCatching { client.agent().agentId }.getOrNull()?.also { selfAgent = it }
 
     /**
-     * Who [documentId] is synced with. The user's own paired devices share everything; a Home's own documents (its
+     * Who [documentId] is synced with. The user's own paired devices share everything; a Space's own documents (its
      * Pantry, shopping list and roster) are also shared with every device its roster lists for a member who hasn't been removed
-     * (ADR-014), so the members of a Home sync it between them. The Home registry and Profile are only ever the user's.
+     * (ADR-014), so the members of a Space sync it between them. The Space registry and Profile are only ever the user's.
      */
     private suspend fun peersFor(documentId: String): Set<String> {
         val paired = devices.agentIds()
-        val homeId = homeIdOf(documentId) ?: return paired // a private type or a non-Home document: the user's own devices only
-        return homePeers(homeId)
+        val spaceId = spaceIdOf(documentId) ?: return paired // a private type or a non-Space document: the user's own devices only
+        return spacePeers(spaceId)
     }
 
-    /** The devices a Home's shared documents sync with: the user's paired devices and the Home's members' devices. */
-    private suspend fun homePeers(homeId: String): Set<String> =
-        (devices.agentIds() + rosters.devices(homeId).values.flatten()) - setOfNotNull(self())
+    /** The devices a Space's shared documents sync with: the user's paired devices and the Space's members' devices. */
+    private suspend fun spacePeers(spaceId: String): Set<String> =
+        (devices.agentIds() + rosters.devices(spaceId).values.flatten()) - setOfNotNull(self())
 
-    /** The same devices [homeId]'s shared documents sync with, so a photo reaches whoever can see the recipe that shows it. */
-    override suspend fun blobPeers(homeId: String): Set<String> = homePeers(homeId)
+    /** The same devices [spaceId]'s shared documents sync with, so a photo reaches whoever can see the recipe that shows it. */
+    override suspend fun blobPeers(spaceId: String): Set<String> = spacePeers(spaceId)
 
-    /** The Home a shared document belongs to; null for a private type's document and for anything the registry doesn't know. */
-    private fun homeIdOf(documentId: String): String? =
+    /** The Space a shared document belongs to; null for a private type's document and for anything the registry doesn't know. */
+    private fun spaceIdOf(documentId: String): String? =
         documentRegistry.parse(documentId)?.takeIf { it.type.scope == Scope.Shared }?.spaceId
 
     /**
@@ -443,18 +438,18 @@ class DeviceDataSyncService(
         // A local change just made the document newer than anything a peer acknowledged. This does not clear the states, so it is safe to read them.
         val acknowledged = lock.withLock {
             peersFor(documentId).forEach { pump(documentId, it) }
-            activityHomeId(documentId)?.let { it to acknowledgedDocuments(it) }
+            activitySpaceId(documentId)?.let { it to acknowledgedDocuments(it) }
         }
-        acknowledged?.let { (homeId, documents) -> attempt { changesWaiting.update(homeId, documents) } }
+        acknowledged?.let { (spaceId, documents) -> attempt { changesWaiting.update(spaceId, documents) } }
         activityFacts.notifyChanged()
     }
 
     private suspend fun documentIds(): List<String> =
         listOf(SpaceRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
-            .flatMap { home -> documentRegistry.documentIds(home.id).sortedBy { syncOrderOf(it) } }
+            .flatMap { space -> documentRegistry.documentIds(space.id).sortedBy { syncOrderOf(it) } }
 
     /**
-     * The order a Home's documents are sent in, with the roster last. It is the engine's own and is deliberately not the registry's
+     * The order a Space's documents are sent in, with the roster last. It is the engine's own and is deliberately not the registry's
      * (roster first, private types last) nor the mailbox's; a type not listed here goes after the listed ones, in registry order.
      */
     private fun syncOrderOf(documentId: String): Int = when (val feature = documentRegistry.parse(documentId)?.type?.feature) {
@@ -466,11 +461,11 @@ class DeviceDataSyncService(
         if (documentId == SpaceRegistryDocumentId) {
             registry.receive(stateFor(documentId, sender), message)
             val created = registry.project()
-            // Homes can now exist that a Pantry message was waiting for.
-            created.forEach { homeId ->
-                waiting.remove(homeId)?.forEach { (peer, documentId, queued) -> receiveHomeDocument(peer, documentId, queued) }
+            // Spaces can now exist that a Pantry message was waiting for.
+            created.forEach { spaceId ->
+                waiting.remove(spaceId)?.forEach { (peer, documentId, queued) -> receiveSpaceDocument(peer, documentId, queued) }
             }
-            publishRosters() // a Home that has arrived may now have a member row for this user to publish
+            publishRosters() // a Space that has arrived may now have a member row for this user to publish
 
             val existing = database.homeQueries.selectAll().awaitAsList().mapTo(mutableSetOf()) { it.id }
             waiting.keys.retainAll(existing)
@@ -480,35 +475,35 @@ class DeviceDataSyncService(
             profile.project()?.let { rosters.retire(it) }
             publishRosters()
         } else {
-            val (homeId, type) = documentRegistry.parse(documentId) ?: return // a document this version doesn't know about
+            val (spaceId, type) = documentRegistry.parse(documentId) ?: return // a document this version doesn't know about
             if (type.scope == Scope.Private) {
-                // Not buffered when this device lacks the Home, and not applied through applyHomeDocument: a later round recovers it.
-                recordingReceived(sender, documentId) { type.open(homeId)?.receiveSync(stateFor(documentId, sender), message) }
+                // Not buffered when this device lacks the Space, and not applied through applySpaceDocument: a later round recovers it.
+                recordingReceived(sender, documentId) { type.open(spaceId)?.receiveSync(stateFor(documentId, sender), message) }
             } else {
-                if (!receiveHomeDocument(sender, documentId, message)) {
-                    waiting.getOrPut(homeId) { mutableListOf() }.let { if (it.size < MaxBufferedPerHome) it += Triple(sender, documentId, message) }
+                if (!receiveSpaceDocument(sender, documentId, message)) {
+                    waiting.getOrPut(spaceId) { mutableListOf() }.let { if (it.size < MaxBufferedPerSpace) it += Triple(sender, documentId, message) }
                     return
                 }
-                type.afterSync(homeId)
+                type.afterSync(spaceId)
             }
         }
         // Answer the sender, and tell the other peers what changed.
         peersFor(documentId).forEach { pump(documentId, it) }
     }
 
-    /** Applies a message for one of a Home's shared documents; false when this device has no such Home yet. */
-    private suspend fun receiveHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean =
-        recordingReceived(sender, documentId) { applyHomeDocument(sender, documentId, message) }
+    /** Applies a message for one of a Space's shared documents; false when this device has no such Space yet. */
+    private suspend fun receiveSpaceDocument(sender: String, documentId: String, message: ByteArray): Boolean =
+        recordingReceived(sender, documentId) { applySpaceDocument(sender, documentId, message) }
 
-    private suspend fun applyHomeDocument(sender: String, documentId: String, message: ByteArray): Boolean {
-        val (homeId, type) = documentRegistry.parse(documentId) ?: return false
-        val document = type.open(homeId) ?: return false // no such Home yet
+    private suspend fun applySpaceDocument(sender: String, documentId: String, message: ByteArray): Boolean {
+        val (spaceId, type) = documentRegistry.parse(documentId) ?: return false
+        val document = type.open(spaceId) ?: return false // no such Space yet
         document.receiveSync(stateFor(documentId, sender), message)
-        type.afterReceive(homeId)
+        type.afterReceive(spaceId)
         return true
     }
 
-    /** Writes this user's member and this device's agent into every Home's roster, and drops devices that are no longer paired; nothing is written about devices while x0x can't say what this one's agent is. */
+    /** Writes this user's member and this device's agent into every Space's roster, and drops devices that are no longer paired; nothing is written about devices while x0x can't say what this one's agent is. */
     private suspend fun publishRosters() {
         val agentId = runCatching { client.agent().agentId }.getOrNull()
         val paired = devices.agentIds()
@@ -527,7 +522,7 @@ class DeviceDataSyncService(
                 val message = when (documentId) {
                     SpaceRegistryDocumentId -> registry.generate(state)
                     ProfileDocumentId -> profile.generate(state)
-                    else -> documentRegistry.parse(documentId)?.let { (homeId, type) -> type.open(homeId)?.generateSync(state) }
+                    else -> documentRegistry.parse(documentId)?.let { (spaceId, type) -> type.open(spaceId)?.generateSync(state) }
                 } ?: break
                 client.sendDirect(peer, SyncEnvelope(documentId, message).encode())
                 noteSynced(peer)
@@ -550,26 +545,26 @@ class DeviceDataSyncService(
         recorder.lastSynced(peer)
     }
 
-    // The Sync activity log (ADR-033) records Home documents only; the registry and Profile belong to no Home. Recording never
+    // The Sync activity log (ADR-033) records Space documents only; the registry and Profile belong to no Space. Recording never
     // changes a sync result: the recorder swallows its own failures, and reading heads is guarded here the same way.
 
-    private fun activityHomeId(documentId: String): String? = documentRegistry.parse(documentId)?.spaceId
+    private fun activitySpaceId(documentId: String): String? = documentRegistry.parse(documentId)?.spaceId
 
     private suspend fun noteSent(documentId: String, peer: String) {
-        val homeId = activityHomeId(documentId) ?: return
-        documentRegistry.moduleOf(documentId)?.let { recorder.sent(homeId, it, peer) }
+        val spaceId = activitySpaceId(documentId) ?: return
+        documentRegistry.moduleOf(documentId)?.let { recorder.sent(spaceId, it, peer) }
     }
 
     private suspend fun noteFailed(documentId: String, peer: String) {
-        val homeId = activityHomeId(documentId)
-        activityFacts.sendFailed(homeId)
-        if (homeId == null) return
-        documentRegistry.moduleOf(documentId)?.let { recorder.failed(homeId, it, peer, "unreachable") }
+        val spaceId = activitySpaceId(documentId)
+        activityFacts.sendFailed(spaceId)
+        if (spaceId == null) return
+        documentRegistry.moduleOf(documentId)?.let { recorder.failed(spaceId, it, peer, "unreachable") }
     }
 
-    /** The heads of a Home document, or null for anything else, a Home this device doesn't have yet, or a failed read. */
-    private suspend fun headsOf(homeId: String, documentId: String): ByteArray? = try {
-        documentRegistry.open(homeId, documentId)?.heads()
+    /** The heads of a Space document, or null for anything else, a Space this device doesn't have yet, or a failed read. */
+    private suspend fun headsOf(spaceId: String, documentId: String): ByteArray? = try {
+        documentRegistry.open(spaceId, documentId)?.heads()
     } catch (e: CancellationException) {
         throw e
     } catch (_: Exception) {
@@ -581,11 +576,11 @@ class DeviceDataSyncService(
      * document's heads moved. A message that changes nothing is just a handshake and is not recorded.
      */
     private suspend fun <T> recordingReceived(sender: String, documentId: String, apply: suspend () -> T): T {
-        val homeId = activityHomeId(documentId) ?: return apply()
-        val before = headsOf(homeId, documentId)
+        val spaceId = activitySpaceId(documentId) ?: return apply()
+        val before = headsOf(spaceId, documentId)
         val result = apply()
-        headsOf(homeId, documentId)?.takeUnless { it.contentEquals(before) }
-            ?.let { documentRegistry.moduleOf(documentId)?.let { module -> recorder.received(homeId, module, sender) } }
+        headsOf(spaceId, documentId)?.takeUnless { it.contentEquals(before) }
+            ?.let { documentRegistry.moduleOf(documentId)?.let { module -> recorder.received(spaceId, module, sender) } }
         return result
     }
 

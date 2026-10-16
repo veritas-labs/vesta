@@ -2,6 +2,7 @@
 
 package uk.veritaslabs.vesta.devicesync
 
+import uk.veritaslabs.kits.sync.DeviceSyncMessage
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals

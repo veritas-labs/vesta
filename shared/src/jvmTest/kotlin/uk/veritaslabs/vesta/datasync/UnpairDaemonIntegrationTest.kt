@@ -14,7 +14,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import uk.veritaslabs.vesta.devicepairing.PairingLink
+import uk.veritaslabs.kits.sync.PairingLink
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
 /**

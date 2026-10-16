@@ -5,8 +5,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import uk.veritaslabs.vesta.devicesync.PairingStep
-import uk.veritaslabs.vesta.devicesync.PairingStepStatus
+import uk.veritaslabs.kits.sync.PairingStep
+import uk.veritaslabs.kits.sync.PairingStepStatus
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import kotlin.test.Test
 import kotlin.test.assertTrue

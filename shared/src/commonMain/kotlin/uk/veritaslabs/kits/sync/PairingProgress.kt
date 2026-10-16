@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.devicesync
+package uk.veritaslabs.kits.sync
 
 /** The steps [DeviceSyncService.pairWith] runs, in order, to add another device to this device's group. */
 enum class PairingStep { PrepareGroup, CreateInvite, SendInvite, AwaitJoin, GrantAdmin, SaveDevice }

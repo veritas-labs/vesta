@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.devicesync.SyncedDevice
+import uk.veritaslabs.kits.sync.SyncedDevice
 import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

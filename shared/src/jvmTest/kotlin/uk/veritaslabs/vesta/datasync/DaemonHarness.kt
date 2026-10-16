@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.vesta.home.homeRepository
 import uk.veritaslabs.vesta.getDeviceName
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
@@ -23,8 +24,8 @@ import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicesync.DeviceSyncService
-import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
+import uk.veritaslabs.kits.sync.DeviceSyncService
+import uk.veritaslabs.kits.sync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.kits.spaces.HubResult
 import uk.veritaslabs.kits.spaces.ProfileRepository
@@ -96,7 +97,7 @@ internal class Phone(val daemon: Daemon, private val scope: CoroutineScope, priv
     val shopping = ShoppingListSources(database, pantries)
     val cookbooks = CookbookSources(database)
     val sync = DeviceDataSyncService(daemon.client, database, devices, ::getDeviceName, VestaHomeSources(database, pantries, shopping, cookbooks).documentTypes(), interval = 3.seconds, seeding = VestaHomeSeeding(VestaHomeSources(database, pantries), database))
-    val homes = homeRepository(database, sync.homeChanges)
+    val homes = homeRepository(database, sync.spaceChanges)
     val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
     private var running: Job? = null
     private var pairing: Job? = null

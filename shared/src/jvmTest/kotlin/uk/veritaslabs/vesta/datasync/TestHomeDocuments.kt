@@ -2,6 +2,7 @@
 
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.sync.rosterDocumentType
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.docs.SpaceDocumentRegistry

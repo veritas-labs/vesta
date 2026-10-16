@@ -2,6 +2,7 @@
 
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.kits.docs.SyncEnvelope
 import uk.veritaslabs.kits.docs.SyncEventRecorder
 import uk.veritaslabs.kits.docs.SyncModules
@@ -56,10 +57,10 @@ import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicepairing.PairingLink
-import uk.veritaslabs.vesta.devicesync.DeviceSyncService
+import uk.veritaslabs.kits.sync.PairingLink
+import uk.veritaslabs.kits.sync.DeviceSyncService
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
-import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
+import uk.veritaslabs.kits.sync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.kits.spaces.MemberRepository
 import uk.veritaslabs.kits.spaces.RoleChangeResult
@@ -129,7 +130,7 @@ class DeviceDataSyncServiceTest {
             )
         }
         var routeDeviceSyncMessages = false
-        val homes = homeRepository(database, sync.homeChanges)
+        val homes = homeRepository(database, sync.spaceChanges)
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
 
 
@@ -886,7 +887,7 @@ class DeviceDataSyncServiceTest {
         x.start()
         y.start()
         eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
-        val leaver = HomeRepository(SpaceRepository(y.database, y.sync.homeChanges, y.profiles, y.sync.rosterChanges))
+        val leaver = HomeRepository(SpaceRepository(y.database, y.sync.spaceChanges, y.profiles, y.sync.rosterChanges))
 
         // Act
         val result = leaver.leave(homeId)
@@ -927,7 +928,7 @@ class DeviceDataSyncServiceTest {
         x.start()
         y.start()
         eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
-        val leaver = HomeRepository(SpaceRepository(y.database, y.sync.homeChanges, y.profiles, y.sync.rosterChanges))
+        val leaver = HomeRepository(SpaceRepository(y.database, y.sync.spaceChanges, y.profiles, y.sync.rosterChanges))
         network.offline += x.agentId
 
         // Act
@@ -948,7 +949,7 @@ class DeviceDataSyncServiceTest {
         val (x, y, homeId) = twoPeopleInOneHome()
         var now = 1_000L
         val join = SpaceJoinService(
-            x.node, x.database, SpaceRosters(x.database, x.profiles, deviceName = ::getDeviceName), x.sync.homeChanges, x.profiles, VestaHomeSeeding(VestaHomeSources(x.database, x.pantries), x.database),
+            x.node, x.database, SpaceRosters(x.database, x.profiles, deviceName = ::getDeviceName), x.sync.spaceChanges, x.profiles, VestaHomeSeeding(VestaHomeSources(x.database, x.pantries), x.database),
             nowMillis = { now }, messageLifetime = 10.seconds,
         )
         network.offline += y.agentId
@@ -1351,7 +1352,7 @@ class DeviceDataSyncServiceTest {
         x.start()
         y.start()
         eventually { y.memberIds(homeId).size == 2 && x.memberIds(homeId).size == 2 }
-        val leaver = HomeRepository(SpaceRepository(y.database, y.sync.homeChanges, y.profiles, y.sync.rosterChanges))
+        val leaver = HomeRepository(SpaceRepository(y.database, y.sync.spaceChanges, y.profiles, y.sync.rosterChanges))
 
         // Act
         leaver.leave(homeId)

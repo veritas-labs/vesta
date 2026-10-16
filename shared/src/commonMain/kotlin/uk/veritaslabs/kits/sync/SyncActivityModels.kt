@@ -1,10 +1,10 @@
-package uk.veritaslabs.vesta.syncactivity
+package uk.veritaslabs.kits.sync
 
 /** What a log entry records. Content-free: only the transport fact (docs/design/sync-activity.md §8.2). */
 enum class SyncEventKind { Received, Sent, Failed, Membership, MailboxIn, MailboxOut, UnsupportedVersion, UnknownMessage }
 
 /**
- * The part of a Home a log entry is about, as the id stored in `SyncEvent.module`. The ids are the app's to name (a
+ * The part of a Space a log entry is about, as the id stored in `SyncEvent.module`. The ids are the app's to name (a
  * document type says which module it belongs to); only the sync machinery's own two have constants here.
  */
 @JvmInline
@@ -36,7 +36,7 @@ data class SyncEventItem(
 )
 
 /**
- * One device or hub of the Home as the screen lists it. [ownerName] is null for the user's own devices ([isYou] marks this one),
+ * One device or hub of the Space as the screen lists it. [ownerName] is null for the user's own devices ([isYou] marks this one),
  * [lastSyncedMsAgo] is null when the two have never synced, and [retryingSinceMsAgo] is the age of an outbox message still
  * waiting to reach it (null when there is none).
  */
@@ -54,7 +54,7 @@ data class PeerActivity(
 
 /**
  * The raw facts the verdict is derived from, taken at [takenAt] (epoch millis; the "ms ago" figures are relative to it).
- * [peers] includes the hubs; [hasOtherDevices] is false when the Home's roster lists only this device and no hub.
+ * [peers] includes the hubs; [hasOtherDevices] is false when the Space's roster lists only this device and no hub.
  * [stalledMessageAgeMs] is the age of the oldest pending membership message that keeps failing, or null when none does.
  * [needsNewerVersion] is true when a device sent changes in a format this version cannot read in the last week (ADR-034).
  * [lastSyncedPeerName] and [lastSyncedMsAgo] name the most recent successful sync, for the "Up to date" sentence.

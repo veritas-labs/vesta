@@ -1,5 +1,10 @@
 package uk.veritaslabs.vesta.devicesync
 
+import uk.veritaslabs.kits.sync.DeviceSyncMessage
+import uk.veritaslabs.kits.sync.DeviceSyncService
+import uk.veritaslabs.kits.sync.PairingStep
+import uk.veritaslabs.kits.sync.PairingStepStatus
+import uk.veritaslabs.kits.sync.SyncedDeviceRepository
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
@@ -19,8 +24,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicepairing.PairingLink
-import uk.veritaslabs.vesta.devicesync.SyncedDevice
+import uk.veritaslabs.kits.sync.PairingLink
+import uk.veritaslabs.kits.sync.SyncedDevice
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 class DeviceSyncServiceTest {

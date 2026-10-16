@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.kits.docs.SyncEnvelope
 
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
@@ -36,7 +37,7 @@ import uk.veritaslabs.vesta.automerge.storeEmptyPantry
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
-import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
+import uk.veritaslabs.kits.sync.SyncedDeviceRepository
 import uk.veritaslabs.kits.docs.AutomergeDocumentCore
 import uk.veritaslabs.kits.docs.SpaceDocument
 import uk.veritaslabs.kits.docs.SpaceDocumentStore
@@ -112,7 +113,7 @@ class DocumentTypeRegistrationAcceptanceTest {
             interval = 50.milliseconds, activityRefresh = 20.milliseconds,
             seeding = VestaHomeSeeding(VestaHomeSources(database), database),
         )
-        val homes = homeRepository(database, sync.homeChanges)
+        val homes = homeRepository(database, sync.spaceChanges)
         val profiles = ProfileRepository(database, deviceName = ::getDeviceName, changes = sync.profileChanges)
 
         init {

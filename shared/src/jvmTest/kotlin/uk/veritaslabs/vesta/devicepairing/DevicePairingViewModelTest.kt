@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.devicepairing
 
+import uk.veritaslabs.kits.sync.PairingLink
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.AfterTest
 import kotlin.test.Test

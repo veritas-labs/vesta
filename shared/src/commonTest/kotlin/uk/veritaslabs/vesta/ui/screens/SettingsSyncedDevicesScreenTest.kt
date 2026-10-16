@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
-import uk.veritaslabs.vesta.devicesync.SyncedDevice
+import uk.veritaslabs.kits.sync.SyncedDevice
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag

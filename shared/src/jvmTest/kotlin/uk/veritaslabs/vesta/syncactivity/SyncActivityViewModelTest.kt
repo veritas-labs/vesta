@@ -1,5 +1,13 @@
 package uk.veritaslabs.vesta.syncactivity
 
+import uk.veritaslabs.kits.sync.SyncEventKind
+import uk.veritaslabs.kits.sync.SyncModule
+import uk.veritaslabs.kits.sync.SyncEventFilter
+import uk.veritaslabs.kits.sync.SyncEventItem
+import uk.veritaslabs.kits.sync.PeerActivity
+import uk.veritaslabs.kits.sync.SyncSnapshot
+import uk.veritaslabs.kits.sync.SyncVerdict
+import uk.veritaslabs.kits.sync.SyncActivityRepository
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

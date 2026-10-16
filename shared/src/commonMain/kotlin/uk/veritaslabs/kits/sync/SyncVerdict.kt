@@ -1,9 +1,9 @@
-package uk.veritaslabs.vesta.syncactivity
+package uk.veritaslabs.kits.sync
 
 /** Why sync is not working. */
 enum class ProblemReason { DaemonUnreachable, MessageStalled }
 
-/** The status card's one-line answer to "is my Home in sync?" (docs/design/sync-activity.md §6). */
+/** The status card's one-line answer to "is my Space in sync?" (docs/design/sync-activity.md §6). */
 sealed interface SyncVerdict {
     data class Problem(val reason: ProblemReason) : SyncVerdict
     data object NeedsNewerVersion : SyncVerdict

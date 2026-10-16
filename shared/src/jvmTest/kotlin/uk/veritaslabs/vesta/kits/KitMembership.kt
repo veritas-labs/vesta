@@ -41,18 +41,11 @@ object KitMembership {
 
     /** Whole directories that belong to one kit, with the files that stay behind in Vesta. */
     private val directories: Map<String, Pair<Kit, Set<String>>> = mapOf(
-        "devicesync/" to (Kit.Sync to emptySet()),
         "blobs/" to (Kit.Blobs to emptySet()),
     )
 
     /** Individual files of directories that are split between kits. */
     private val files: Map<Kit, Set<String>> = mapOf(
-        Kit.Sync to setOf(
-            "datasync/DeviceDataSyncService", "datasync/SyncActivityService",
-            "devicepairing/PairingLink",
-            "syncactivity/SyncActivityModels", "syncactivity/SyncActivityRepository",
-            "syncactivity/SyncVerdict",
-        ),
         Kit.Assistants to setOf(
             "agent/AgentAllowlist", "agent/AssistantRepository", "agent/Assistants",
             "agent/CommandLog", "agent/EnvAgentAllowlist",
@@ -87,7 +80,6 @@ object KitMembership {
 
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
-        Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
         Kit.Assistants to 5,
     )
 }

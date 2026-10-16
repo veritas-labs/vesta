@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.syncactivity
+package uk.veritaslabs.kits.sync
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -11,14 +11,14 @@ interface SyncActivityRepository {
     /** False for the stand-in: there is no sync service behind it. */
     val available: Boolean
 
-    /** The Home's current facts, emitted again whenever they change (a round starts or ends, a peer comes or goes, a message is queued). */
-    fun snapshot(homeId: String): Flow<SyncSnapshot>
+    /** The Space's current facts, emitted again whenever they change (a round starts or ends, a peer comes or goes, a message is queued). */
+    fun snapshot(spaceId: String): Flow<SyncSnapshot>
 
     /**
-     * One page of the Home's log, newest first, already collapsed. [beforeLastAt] (exclusive) continues after a previous page, and
+     * One page of the Space's log, newest first, already collapsed. [beforeLastAt] (exclusive) continues after a previous page, and
      * [peerAgent], when set, keeps only that device's entries. Reads only the last 7 days.
      */
-    suspend fun events(homeId: String, filter: SyncEventFilter, peerAgent: String?, beforeLastAt: Long?, limit: Int): List<SyncEventItem>
+    suspend fun events(spaceId: String, filter: SyncEventFilter, peerAgent: String?, beforeLastAt: Long?, limit: Int): List<SyncEventItem>
 
     /** Asks for a sync round now. Returns at once. */
     fun syncNow()
@@ -28,9 +28,9 @@ interface SyncActivityRepository {
 object UnavailableSyncActivityRepository : SyncActivityRepository {
     override val available: Boolean = false
 
-    override fun snapshot(homeId: String): Flow<SyncSnapshot> = flowOf(SyncSnapshot(takenAt = 0L, daemonReachable = false))
+    override fun snapshot(spaceId: String): Flow<SyncSnapshot> = flowOf(SyncSnapshot(takenAt = 0L, daemonReachable = false))
 
-    override suspend fun events(homeId: String, filter: SyncEventFilter, peerAgent: String?, beforeLastAt: Long?, limit: Int): List<SyncEventItem> = emptyList()
+    override suspend fun events(spaceId: String, filter: SyncEventFilter, peerAgent: String?, beforeLastAt: Long?, limit: Int): List<SyncEventItem> = emptyList()
 
     override fun syncNow() = Unit
 }

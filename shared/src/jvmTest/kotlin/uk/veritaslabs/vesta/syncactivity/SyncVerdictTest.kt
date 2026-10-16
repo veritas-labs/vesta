@@ -1,5 +1,8 @@
 package uk.veritaslabs.vesta.syncactivity
 
+import uk.veritaslabs.kits.sync.SyncSnapshot
+import uk.veritaslabs.kits.sync.ProblemReason
+import uk.veritaslabs.kits.sync.SyncVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

@@ -19,14 +19,14 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import uk.veritaslabs.vesta.syncactivity.PeerActivity
-import uk.veritaslabs.vesta.syncactivity.ProblemReason
+import uk.veritaslabs.kits.sync.PeerActivity
+import uk.veritaslabs.kits.sync.ProblemReason
 import uk.veritaslabs.vesta.syncactivity.SyncActivityUiState
-import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
-import uk.veritaslabs.vesta.syncactivity.SyncEventItem
-import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModule
-import uk.veritaslabs.vesta.syncactivity.SyncVerdict
+import uk.veritaslabs.kits.sync.SyncEventFilter
+import uk.veritaslabs.kits.sync.SyncEventItem
+import uk.veritaslabs.kits.sync.SyncEventKind
+import uk.veritaslabs.kits.sync.SyncModule
+import uk.veritaslabs.kits.sync.SyncVerdict
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
 class SyncActivityScreenTest {

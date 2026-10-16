@@ -1,6 +1,6 @@
 package uk.veritaslabs.vesta
 
-import uk.veritaslabs.vesta.devicesync.DeviceSyncConfig
+import uk.veritaslabs.kits.sync.DeviceSyncConfig
 import uk.veritaslabs.kits.spaces.SpacesConfig
 
 /**

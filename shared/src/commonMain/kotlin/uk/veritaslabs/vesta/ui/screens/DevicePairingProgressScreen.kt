@@ -30,8 +30,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import uk.veritaslabs.vesta.devicesync.PairingStep
-import uk.veritaslabs.vesta.devicesync.PairingStepStatus
+import uk.veritaslabs.kits.sync.PairingStep
+import uk.veritaslabs.kits.sync.PairingStepStatus
 import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme

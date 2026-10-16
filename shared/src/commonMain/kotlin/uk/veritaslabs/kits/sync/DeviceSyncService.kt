@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.devicesync
+package uk.veritaslabs.kits.sync
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.coroutines.cancellation.CancellationException
@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.devicepairing.PairingLink
 import uk.veritaslabs.kits.x0x.X0xApiException
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xDirectMessage

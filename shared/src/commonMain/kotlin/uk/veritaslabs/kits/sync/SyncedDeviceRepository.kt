@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.devicesync
+package uk.veritaslabs.kits.sync
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.coroutines.asFlow
@@ -6,7 +6,6 @@ import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.devicesync.SyncedDevice
 
 /**
  * Reads and writes the user's synced devices in the local [KitsDatabase]: this device's cache of the other

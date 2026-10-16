@@ -1,6 +1,6 @@
 @file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
 
-package uk.veritaslabs.vesta.datasync
+package uk.veritaslabs.kits.sync
 
 import uk.veritaslabs.kits.docs.SyncEventRecorder
 import uk.veritaslabs.kits.docs.SyncEventKinds
@@ -22,15 +22,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
 import uk.veritaslabs.vesta.db.SyncEvent
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.kits.spaces.ProfileRepository
-import uk.veritaslabs.vesta.syncactivity.PeerActivity
-import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
-import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
-import uk.veritaslabs.vesta.syncactivity.SyncEventItem
-import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncModule
-import uk.veritaslabs.vesta.syncactivity.SyncSnapshot
 
 import uk.veritaslabs.kits.spaces.SpaceRosters
 /**
@@ -52,8 +44,8 @@ internal class SyncActivityFacts {
     val roundInProgress: Boolean get() = rounds.get() > 0
 
     /**
-     * The Homes with a failed send since the current round began, and those of the round before. A send that failed for the Home
-     * registry or the Profile belongs to no Home, so it counts against all of them.
+     * The Spaces with a failed send since the current round began, and those of the round before. A send that failed for the Space
+     * registry or the Profile belongs to no Space, so it counts against all of them.
      */
     private val failing = ConcurrentHashMap.newKeySet<String>()
     @Volatile private var failingAll = false
@@ -85,16 +77,16 @@ internal class SyncActivityFacts {
         notifyChanged()
     }
 
-    /** A send failed; [homeId] is the Home whose document it was, null for one that belongs to none. */
-    fun sendFailed(homeId: String?) {
-        homeId?.let { failing.add(it) } ?: run { failingAll = true }
+    /** A send failed; [spaceId] is the Space whose document it was, null for one that belongs to none. */
+    fun sendFailed(spaceId: String?) {
+        spaceId?.let { failing.add(it) } ?: run { failingAll = true }
     }
 
-    fun lastRoundHadFailures(homeId: String): Boolean = lastRoundFailedAll || homeId in lastRoundFailed
+    fun lastRoundHadFailures(spaceId: String): Boolean = lastRoundFailedAll || spaceId in lastRoundFailed
 }
 
 /**
- * The [SyncActivityRepository] of [DeviceDataSyncService] (docs/adr/ADR-033-sync-activity.md): a Home's devices and hubs with
+ * The [SyncActivityRepository] of [DeviceDataSyncService] (docs/adr/ADR-033-sync-activity.md): a Space's devices and hubs with
  * presence and last-synced times, the verdict's inputs, and the log the [recorder] keeps. [lastSynced] and [peerDownUntil] are the
  * service's own maps, read here and never written. A snapshot is emitted whenever [facts] says something changed, and at least every
  * [refreshInterval], so "Up to date" can age without anything happening.
@@ -117,13 +109,13 @@ internal class SyncActivityService(
 
     override val available: Boolean = true
 
-    override fun snapshot(homeId: String): Flow<SyncSnapshot> = flow {
-        emit(build(homeId))
+    override fun snapshot(spaceId: String): Flow<SyncSnapshot> = flow {
+        emit(build(spaceId))
         val ticks = flow { while (true) { delay(refreshInterval); emit(Unit) } }
-        merge(facts.changed, ticks).conflate().collect { emit(build(homeId)) }
+        merge(facts.changed, ticks).conflate().collect { emit(build(spaceId)) }
     }
 
-    override suspend fun events(homeId: String, filter: SyncEventFilter, peerAgent: String?, beforeLastAt: Long?, limit: Int): List<SyncEventItem> {
+    override suspend fun events(spaceId: String, filter: SyncEventFilter, peerAgent: String?, beforeLastAt: Long?, limit: Int): List<SyncEventItem> {
         val kinds = when (filter) {
             SyncEventFilter.All -> null
             SyncEventFilter.Received -> listOf(SyncEventKinds.Received, SyncEventKinds.MailboxIn)
@@ -135,7 +127,7 @@ internal class SyncActivityService(
         var cursor = beforeLastAt ?: Long.MAX_VALUE
         // The log has no query by device, so pages are read and filtered until there are enough rows or no more.
         while (found.size < limit) {
-            val page = readPage(homeId, kinds, cursor, limit).filter { it.lastAt >= oldest }
+            val page = readPage(spaceId, kinds, cursor, limit).filter { it.lastAt >= oldest }
             if (page.isEmpty()) break
             found += page.filter { peerAgent == null || it.peerAgent == peerAgent }
             cursor = page.last().lastAt
@@ -147,10 +139,10 @@ internal class SyncActivityService(
     override fun syncNow() = requestSync()
 
     /** One page of rows newest first. Several kinds are read separately and merged, which is exact because each is read to [limit]. */
-    private suspend fun readPage(homeId: String, kinds: List<String>?, before: Long, limit: Int): List<SyncEvent> {
+    private suspend fun readPage(spaceId: String, kinds: List<String>?, before: Long, limit: Int): List<SyncEvent> {
         val queries = database.syncEventQueries
-        if (kinds == null) return queries.selectPage(homeId, before, limit.toLong()).awaitAsList()
-        return kinds.flatMap { queries.selectPageOfKind(homeId, it, before, limit.toLong()).awaitAsList() }
+        if (kinds == null) return queries.selectPage(spaceId, before, limit.toLong()).awaitAsList()
+        return kinds.flatMap { queries.selectPageOfKind(spaceId, it, before, limit.toLong()).awaitAsList() }
             .sortedWith(compareByDescending<SyncEvent> { it.lastAt }.thenByDescending { it.id })
             .take(limit)
     }
@@ -171,15 +163,15 @@ internal class SyncActivityService(
         return SyncEventItem(id, at, lastAt, itemKind, itemModule, peerAgent, detail, count.toInt())
     }
 
-    private suspend fun build(homeId: String): SyncSnapshot {
+    private suspend fun build(spaceId: String): SyncSnapshot {
         val now = nowMillis()
         val self = selfAgent()
         val me = profiles.current().id
         val paired = devices.agentIds()
-        val hubs = rosters.hubs(homeId)
-        val names = rosters.deviceNames(homeId)
-        val memberNames = rosters.members(homeId).associate { it.memberId to it.name }
-        val pending = database.pendingMessageQueries.selectAll().awaitAsList().filter { it.homeId == homeId }
+        val hubs = rosters.hubs(spaceId)
+        val names = rosters.deviceNames(spaceId)
+        val memberNames = rosters.members(spaceId).associate { it.memberId to it.name }
+        val pending = database.pendingMessageQueries.selectAll().awaitAsList().filter { it.homeId == spaceId }
         val retryingSince = pending.groupBy { it.recipient }.mapValues { (_, rows) -> rows.minOf { it.createdAt } }
 
         suspend fun peer(agentId: String, memberId: String?): PeerActivity {
@@ -199,7 +191,7 @@ internal class SyncActivityService(
 
         val peers = linkedMapOf<String, PeerActivity>()
         self?.let { peers[it] = peer(it, me) }
-        rosters.devices(homeId).forEach { (memberId, agents) ->
+        rosters.devices(spaceId).forEach { (memberId, agents) ->
             agents.sorted().forEach { agent -> peers.getOrPut(agent) { peer(agent, memberId) } }
         }
         paired.sorted().forEach { agent -> peers.getOrPut(agent) { peer(agent, me) } }
@@ -214,15 +206,15 @@ internal class SyncActivityService(
             daemonReachable = facts.daemonReachable,
             roundInProgress = facts.roundInProgress,
             lastRoundAt = facts.lastRoundAt,
-            lastRoundHadFailures = facts.lastRoundHadFailures(homeId),
+            lastRoundHadFailures = facts.lastRoundHadFailures(spaceId),
             changesWaiting = try {
-                changesWaiting.of(homeId)
+                changesWaiting.of(spaceId)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 false
             },
-            needsNewerVersion = needsNewerVersion(homeId, now),
+            needsNewerVersion = needsNewerVersion(spaceId, now),
             stalledMessageAgeMs = pending.minOfOrNull { it.createdAt }?.let { now - it }?.takeIf { it > 0 },
             lastSyncedPeerName = latest?.first?.name,
             lastSyncedMsAgo = latest?.second,
@@ -230,8 +222,8 @@ internal class SyncActivityService(
     }
 
     /** True when the log holds a change from a newer format within the retention window (ADR-034); the log is what remembers it across restarts. */
-    private suspend fun needsNewerVersion(homeId: String, now: Long): Boolean = try {
-        database.syncEventQueries.selectPageOfKind(homeId, SyncEventKinds.UnsupportedVersion, Long.MAX_VALUE, 1).awaitAsList()
+    private suspend fun needsNewerVersion(spaceId: String, now: Long): Boolean = try {
+        database.syncEventQueries.selectPageOfKind(spaceId, SyncEventKinds.UnsupportedVersion, Long.MAX_VALUE, 1).awaitAsList()
             .any { it.lastAt >= now - Retention.inWholeMilliseconds }
     } catch (e: CancellationException) {
         throw e

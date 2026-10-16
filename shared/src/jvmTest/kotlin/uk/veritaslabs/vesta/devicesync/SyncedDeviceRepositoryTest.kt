@@ -1,11 +1,12 @@
 package uk.veritaslabs.vesta.devicesync
 
+import uk.veritaslabs.kits.sync.SyncedDeviceRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.devicesync.SyncedDevice
+import uk.veritaslabs.kits.sync.SyncedDevice
 
 class SyncedDeviceRepositoryTest {
 

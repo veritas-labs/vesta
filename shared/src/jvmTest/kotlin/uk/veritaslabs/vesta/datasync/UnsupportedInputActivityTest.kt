@@ -18,9 +18,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
-import uk.veritaslabs.vesta.syncactivity.SyncEventFilter
-import uk.veritaslabs.vesta.syncactivity.SyncEventKind
-import uk.veritaslabs.vesta.syncactivity.SyncVerdict
+import uk.veritaslabs.kits.sync.SyncEventFilter
+import uk.veritaslabs.kits.sync.SyncEventKind
+import uk.veritaslabs.kits.sync.SyncVerdict
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 

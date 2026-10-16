@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.devicesync
+package uk.veritaslabs.kits.sync
 
 import kotlin.io.encoding.Base64
 import kotlinx.serialization.SerialName

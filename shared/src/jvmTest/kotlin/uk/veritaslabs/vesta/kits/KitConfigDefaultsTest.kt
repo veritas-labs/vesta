@@ -10,8 +10,8 @@ import kotlin.time.Duration.Companion.minutes
 import uk.veritaslabs.vesta.InviteLifetime
 import uk.veritaslabs.vesta.VestaKitConfig
 import uk.veritaslabs.kits.store.DatabaseDowngradeException
-import uk.veritaslabs.vesta.devicepairing.PairingLink
-import uk.veritaslabs.vesta.devicesync.DeviceSyncConfig
+import uk.veritaslabs.kits.sync.PairingLink
+import uk.veritaslabs.kits.sync.DeviceSyncConfig
 import uk.veritaslabs.kits.spaces.SpacesConfig
 import uk.veritaslabs.kits.spaces.InviteLink
 

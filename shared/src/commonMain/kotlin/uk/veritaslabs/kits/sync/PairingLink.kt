@@ -1,7 +1,6 @@
-package uk.veritaslabs.vesta.devicepairing
+package uk.veritaslabs.kits.sync
 
 import kotlin.io.encoding.Base64
-import uk.veritaslabs.vesta.devicesync.DeviceSyncConfig
 
 /**
  * The payload encoded into a device pairing link/QR code

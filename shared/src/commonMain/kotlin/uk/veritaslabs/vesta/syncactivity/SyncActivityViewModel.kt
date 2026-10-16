@@ -1,5 +1,11 @@
 package uk.veritaslabs.vesta.syncactivity
 
+import uk.veritaslabs.kits.sync.SyncVerdict
+import uk.veritaslabs.kits.sync.PeerActivity
+import uk.veritaslabs.kits.sync.SyncEventItem
+import uk.veritaslabs.kits.sync.SyncEventFilter
+import uk.veritaslabs.kits.sync.SyncActivityRepository
+import uk.veritaslabs.kits.sync.SyncSnapshot
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlin.coroutines.cancellation.CancellationException

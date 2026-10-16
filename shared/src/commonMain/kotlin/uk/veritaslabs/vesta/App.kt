@@ -63,9 +63,9 @@ import uk.veritaslabs.kits.store.openVestaDatabase
 import uk.veritaslabs.vesta.licenses.OpenSourceLicense
 import uk.veritaslabs.vesta.licenses.loadOpenSourceLicenses
 import uk.veritaslabs.vesta.devicepairing.DevicePairingViewModel
-import uk.veritaslabs.vesta.devicesync.DeviceDataSync
-import uk.veritaslabs.vesta.devicesync.DeviceSyncService
-import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
+import uk.veritaslabs.kits.sync.DeviceDataSync
+import uk.veritaslabs.kits.sync.DeviceSyncService
+import uk.veritaslabs.kits.sync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
@@ -107,9 +107,9 @@ import uk.veritaslabs.vesta.ui.screens.MarketplaceScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
 import uk.veritaslabs.vesta.ui.screens.MerchantsViewModel
-import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
+import uk.veritaslabs.kits.sync.SyncActivityRepository
 import uk.veritaslabs.vesta.syncactivity.SyncActivityViewModel
-import uk.veritaslabs.vesta.syncactivity.UnavailableSyncActivityRepository
+import uk.veritaslabs.kits.sync.UnavailableSyncActivityRepository
 import uk.veritaslabs.vesta.ui.screens.HubManagerScreen
 import uk.veritaslabs.vesta.ui.screens.SyncActivityScreen
 import uk.veritaslabs.vesta.ui.screens.HubScreen
@@ -953,7 +953,7 @@ fun VestaApp(
     // Coming back to the app is a moment other devices may be up (ADR-020), so sync then, not at the next timer round.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { deviceDataSync?.syncNow() }
     val profiles = remember { ProfileRepository(database, deviceName = ::getDeviceName, changes = deviceDataSync?.profileChanges) }
-    val homeRepository = remember { HomeRepository(SpaceRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges)) }
+    val homeRepository = remember { HomeRepository(SpaceRepository(database, deviceDataSync?.spaceChanges, profiles, deviceDataSync?.rosterChanges)) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val assistants = remember { assistantsFor?.invoke(database) ?: AssistantRepository(database) }
     val settings = remember { AppSettingsRepository(database) }

@@ -6,8 +6,8 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import uk.veritaslabs.kits.blobs.BlobMessage
 import uk.veritaslabs.kits.docs.SyncEnvelope
-import uk.veritaslabs.vesta.devicepairing.PairingLink
-import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
+import uk.veritaslabs.kits.sync.PairingLink
+import uk.veritaslabs.kits.sync.DeviceSyncMessage
 import uk.veritaslabs.kits.spaces.SpaceGroupMessage
 import uk.veritaslabs.kits.spaces.SpaceJoinMessage
 import uk.veritaslabs.kits.spaces.InviteLink

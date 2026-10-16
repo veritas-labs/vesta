@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.devicepairing
 
+import uk.veritaslabs.kits.sync.PairingLink
 import uk.veritaslabs.vesta.VestaKitConfig
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,9 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.devicesync.DeviceSyncService
-import uk.veritaslabs.vesta.devicesync.PairingStep
-import uk.veritaslabs.vesta.devicesync.PairingStepStatus
+import uk.veritaslabs.kits.sync.DeviceSyncService
+import uk.veritaslabs.kits.sync.PairingStep
+import uk.veritaslabs.kits.sync.PairingStepStatus
 
 /** How long a generated pairing link stays redeemable before it must be regenerated. */
 private const val PairingLinkTtlMillis = 5 * 60 * 1000L

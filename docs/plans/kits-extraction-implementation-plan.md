@@ -588,6 +588,8 @@ This is the largest and most entangled kit (21 files, 2,625 lines; `HomeRosters`
 
 **Commit.** `rename the sync engine and device pairing to the kits package`
 
+**As built (unattended run, 2026-10-16).** Vesta commit `rename the sync engine and device pairing to the kits package`. ONE package, `uk.veritaslabs.kits.sync` (as docs and spaces): `commonMain` holds `DeviceDataSync`, `AgentDetails`, `DeviceSyncConfig`, `DeviceSyncMessage`, `DeviceSyncService`, `PairingProgress`, `SyncedDevice`, `SyncedDeviceRepository`, `PairingLink`, the Sync activity models, `SyncVerdict`, `SyncActivityRepository` (11 files); `jvmAndroidMain` holds `DeviceDataSyncService` and `SyncActivityService` (the latter `internal`). `homeId` is `spaceId`, `homeChanges` is `spaceChanges`, the engine's `homeConfig` is `spacesConfig`; Vesta keeps `DevicePairingViewModel`, `SyncActivityViewModel`, `VestaSyncModules`. Unchanged on purpose: `SyncOrder` (the engine's own send order, ADR-035), the wire field `"homeId"` read from group messages, the store-kit query names (`homeQueries`, `PendingMessage.homeId`). `KitMembership` no longer maps any sync path (the files left `uk/veritaslabs/vesta/`).
+
 ## WP24. Extract `sync-kit`
 
 **Steps / files.** As WP14. Moves with it: `jvmTest/datasync` engine tests (`DeviceDataSyncServiceTest`, `ActivityDevice`, `DaemonHarness`, `SyncActivityServiceTest`, `UnsupportedInputActivityTest`, the daemon integration tests, `BlobTransferDaemonIntegrationTest` stays with `blobs-kit`), `jvmTest/devicesync`, `devicepairing`, `syncactivity`. The acceptance suite (`jvmTest/acceptance`, 21 files, Compose UI) **stays in Vesta**; `SyncActivityAcceptanceTest` stays because it drives Vesta's screen.

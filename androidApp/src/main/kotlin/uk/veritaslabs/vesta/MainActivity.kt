@@ -13,7 +13,7 @@ import uk.veritaslabs.vesta.agent.AgentCommandService
 import uk.veritaslabs.kits.blobs.AndroidPhotoEncoder
 import uk.veritaslabs.kits.blobs.DeviceBlobRuntime
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
-import uk.veritaslabs.vesta.datasync.DeviceDataSyncService
+import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.vesta.recipes.HttpRecipeImporter
 
 class MainActivity : ComponentActivity() {
@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
                 openPrivateTasks = { database, homeId -> agentCommands.privateTasks(database, homeId) },
                 dataSync = { database, client, devices ->
                     agentCommands.homeSources(database).let { sources ->
-                    DeviceDataSyncService(client, database, devices, ::getDeviceName, sources.documentTypes(), homeConfig = VestaKitConfig.home, seeding = VestaHomeSeeding(sources, database))
+                    DeviceDataSyncService(client, database, devices, ::getDeviceName, sources.documentTypes(), spacesConfig = VestaKitConfig.home, seeding = VestaHomeSeeding(sources, database))
                 }
                 },
                 blobRuntime = { database, client, sync ->
