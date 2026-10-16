@@ -2,7 +2,7 @@
 name: vesta
 description: >-
   Acts on a user's Vesta household app from an external AI agent over x0x
-  direct messages: lists their Homes, reads a Home's Pantry, adds items to it, takes items out and sets exact stock
+  direct messages: lists their Homes, reads a Home's Pantry, adds items to it, takes items out, sets exact stock and keeps its shopping list
   (household stock / shopping). Use when the user asks you to add, restock or
   put an item in their pantry or household inventory in Vesta, or asks which
   homes they have in Vesta. Everything goes over x0x; never read Vesta's
@@ -20,6 +20,9 @@ Today you can: **list the user's Homes**, **read a Home's Pantry** (what is in
 stock), **add an item** (adds to the stock count), **take some out** (lowers it, never
 below 0) and **set the stock to an exact number**. Reading and changing are separate
 permissions the user grants (Pantry Read, Pantry Write).
+
+You can also keep a Home's **shopping list**: **read** it, **add** an item, **tick** it off (say how many are
+picked up) or **remove** it. Those are the user's Shopping list Read and Shopping list Write switches.
 
 ## Before you start — ask the user, don't guess
 
@@ -78,6 +81,18 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
    ```
    Prefer **set** when you know the true count (repeating it is harmless); use **reduce** for "we used one". Reduce is not
    safe to repeat: see Retrying safely. Items are found by `--gtin` if you give it, else by name (any case).
+   The **shopping list** is separate from the Pantry (adding to it never touches stock). Needs the Shopping list
+   **Read** / **Write** switch:
+   ```sh
+   scripts/agent-shopping-read.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId>
+   scripts/agent-shopping-add.sh    --agent-instance <name> --to <vesta-agent-id> --home <homeId> --title "Milk" --category Dairy --qty 2
+   scripts/agent-shopping-tick.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> --title "Milk" --qty 2
+   scripts/agent-shopping-remove.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId> --title "Milk"
+   ```
+   `read` prints `<wanted>` TAB `<got>` TAB `<title>` TAB `<categories>` TAB `<size>` TAB `<gtin>` TAB `<out of stock yes|no>` per
+   line (at most 200). `add` adds to what is wanted (an item already listed has the amounts added together), `tick`
+   sets how many are picked up (`--qty 0` un-ticks; safe to repeat), `remove` takes the whole line off. `tick` and `remove`
+   need the item to be on the list already ("unknown item"); items are found by `--gtin`, else name (any case).
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes
@@ -97,7 +112,7 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
 ## Retrying safely
 
 Each script run is a **new** command with a fresh id, so running the add script
-again adds the stock **again** (and reduce takes it out again; set is harmless to repeat). If you're unsure a command went through, re-send
+again adds the stock **again** (and so does the shopping-list add) (and reduce takes it out again; set is harmless to repeat). If you're unsure a command went through, re-send
 it with the same `--id <urn:uuid:…>` (the script prints the id): Vesta applies
 each id once and simply re-sends its original reply.
 

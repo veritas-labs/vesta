@@ -44,6 +44,12 @@ object AgentCommandParser {
         fun invalid(reason: String) = ParseResult.Invalid(commandId, reason)
 
         if (commandId == null) return invalid("id is required")
+        // A shopping-list target belongs to ShoppingListCommands.kt; the verbs mean the same kind of thing there.
+        val type = root.string("type")
+        if (type == "Add" || type == "Remove" || type == "Update") {
+            ShoppingListCommandParser.homeId((root["target"] as? JsonObject)?.string("id"))
+                ?.let { return ShoppingListCommandParser.parseWrite(root, commandId, type, it) }
+        }
         return when (root.string("type")) {
             "Add" -> parseAdd(root, commandId)
             "Remove" -> parseStockChange(root, commandId, set = false)
@@ -56,6 +62,7 @@ object AgentCommandParser {
     private fun parseRead(root: JsonObject, commandId: String): ParseResult {
         val objectId = (root["object"] as? JsonObject)?.string("id")
         if (objectId == HOMES_COLLECTION_ID) return ParseResult.Command(ListHomes(commandId))
+        ShoppingListCommandParser.homeId(objectId)?.let { return ParseResult.Command(ReadShoppingList(commandId, it)) }
         val homeId = objectId?.let(::pantryHomeId)
         if (homeId != null) return ParseResult.Command(ReadPantry(commandId, homeId))
         return ParseResult.Invalid(commandId, "object.id must be $HOMES_COLLECTION_ID or $TARGET_PREFIX<homeId>$TARGET_SUFFIX")

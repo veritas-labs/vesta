@@ -121,6 +121,7 @@ class AgentCommandService(
         val sources = pantrySources(database)
         val handler = PantryCommandHandler(
             resolveSource = sources::forHome,
+            resolveShoppingList = shoppingListSources(database)::forHome,
             listHomes = { HomeRepository(SpaceRepository(database, profiles = ProfileRepository(database, deviceName = ::getDeviceName))).homes.first().map { HomeRef(it.id, it.name) } },
             access = assistants(database),
             commandLog = DatabaseCommandLog(database),

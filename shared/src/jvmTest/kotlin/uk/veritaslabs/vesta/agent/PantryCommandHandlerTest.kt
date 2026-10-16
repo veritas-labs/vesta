@@ -13,6 +13,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.automerge.Document
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
+import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
+import uk.veritaslabs.vesta.automerge.newShoppingListDocument
 import uk.veritaslabs.vesta.automerge.adjustStock
 import uk.veritaslabs.vesta.automerge.newPantryDocument
 import uk.veritaslabs.vesta.automerge.pantryDedupKey
@@ -724,6 +726,226 @@ class PantryCommandHandlerTest {
         // Assert
         assertEquals("Take 2 × Milk out of the Pantry", held.summary)
         assertEquals(3, g.stock())
+    }
+
+    // ---- shopping list (ShoppingListCommandHandler)
+
+    private class ShoppingFixture(allowed: List<String>) {
+        val pantry = PantryDocumentSource(Document.load(newPantryDocument()))
+        val list = ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
+        val base = Fixture(allowed)
+        val handler = PantryCommandHandler(
+            resolveSource = { base.source },
+            resolveShoppingList = { homeId -> list.takeIf { homeId == "home-1" } },
+            listHomes = { base.homes },
+            access = base.access,
+            commandLog = base.commandLog,
+            client = base.client,
+            newId = { "urn:uuid:shop-reply-${base.client.sent.size}" },
+            log = {},
+        )
+        val replies get() = base.replies
+        val items get() = runBlocking { list.items.first() }
+    }
+
+    private fun shoppingCommand(
+        type: String,
+        amount: Int? = null,
+        id: String = "urn:uuid:sh1",
+        fields: String = """"schema:name": "Milk"""",
+        home: String = "home-1",
+    ) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:$home:shopping-list"},
+         "object": {"type": "schema:TypeAndQuantityNode", ${amount?.let { """"schema:amountOfThisGood": $it,""" } ?: ""}
+                    "schema:typeOfGood": {"type": "schema:Product", $fields}}}
+    """.trimIndent()
+
+    private fun readShoppingCommand(id: String = "urn:uuid:sr1", home: String = "home-1") =
+        listHomesRequest(id = id, objectId = "urn:vesta:document:$home:shopping-list")
+
+    private fun grantShopping(f: ShoppingFixture, capability: AssistantCapability, policy: GrantPolicy = GrantPolicy.Auto) = runBlocking {
+        f.base.access.save(agent, "", listOf(AssistantGrant("home-1", capability, policy)))
+    }
+
+    @Test
+    fun addingToTheShoppingListPutsTheItemOnItAndRepliesWithTheLine() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        grantShopping(f, AssistantCapability.ShoppingListWrite)
+
+        // Act
+        f.handler.handle(message(shoppingCommand("Add", 2, fields = """"schema:name": "Milk", "schema:category": "Dairy"""")))
+        f.handler.handle(message(shoppingCommand("Add", 1, id = "urn:uuid:sh2")))
+
+        // Assert
+        val item = f.items.single()
+        assertEquals(listOf("Milk", 3), listOf(item.title, item.quantity))
+        assertEquals("Dairy", item.primaryCategory)
+        assertEquals("3", f.replies.last().getValue("result").jsonObject.text("schema:amountOfThisGood"))
+        assertEquals(emptyList(), f.base.source.contents.first().items)
+    }
+
+    @Test
+    fun updatingTheShoppingListTicksAnItemOffAndZeroUnticksIt() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        grantShopping(f, AssistantCapability.ShoppingListWrite)
+        f.handler.handle(message(shoppingCommand("Add", 2)))
+
+        // Act
+        f.handler.handle(message(shoppingCommand("Update", 2, id = "urn:uuid:sh2")))
+        val ticked = f.items.single().isBought
+        val gotAfterTick = f.replies.last().getValue("result").jsonObject.text("got")
+        f.handler.handle(message(shoppingCommand("Update", 0, id = "urn:uuid:sh3")))
+
+        // Assert
+        assertEquals(true, ticked)
+        assertEquals("2", gotAfterTick)
+        assertEquals(false, f.items.single().isBought)
+    }
+
+    @Test
+    fun removingTakesTheWholeLineOffAndIsFoundByNameIgnoringCase() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        grantShopping(f, AssistantCapability.ShoppingListWrite)
+        f.handler.handle(message(shoppingCommand("Add", 2, fields = """"schema:name": "Milk", "schema:gtin": "123"""")))
+
+        // Act
+        f.handler.handle(message(shoppingCommand("Remove", id = "urn:uuid:sh2", fields = """"schema:name": "MILK"""")))
+
+        // Assert
+        assertEquals(emptyList(), f.items)
+        assertEquals("Accept", f.replies.last().text("type"))
+    }
+
+    @Test
+    fun changingAnItemThatIsNotOnTheListIsRejectedAndAddsNothing() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        grantShopping(f, AssistantCapability.ShoppingListWrite)
+
+        // Act
+        f.handler.handle(message(shoppingCommand("Remove")))
+        f.handler.handle(message(shoppingCommand("Update", 1, id = "urn:uuid:sh2")))
+
+        // Assert
+        assertEquals(listOf("unknown item", "unknown item"), f.replies.map { it.text("summary") })
+        assertEquals(emptyList(), f.items)
+    }
+
+    @Test
+    fun aRepeatedShoppingListAddIsAppliedOnce() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        grantShopping(f, AssistantCapability.ShoppingListWrite)
+        f.handler.handle(message(shoppingCommand("Add", 2)))
+
+        // Act
+        f.handler.handle(message(shoppingCommand("Add", 2)))
+
+        // Assert
+        assertEquals(2, f.items.single().quantity)
+        assertEquals(2, f.base.client.sent.size)
+    }
+
+    @Test
+    fun readingTheShoppingListRepliesWithQuantityAndPickedUpCount() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        grantShopping(f, AssistantCapability.ShoppingListRead)
+        f.list.save(uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails(null, "Dairy", null, "Milk", 3, "1l", null))
+
+        // Act
+        f.handler.handle(message(readShoppingCommand()))
+
+        // Assert
+        val result = f.replies.single().getValue("result").jsonObject
+        assertEquals("1", result.text("totalItems"))
+        val item = result.getValue("items").jsonArray.single().jsonObject
+        assertEquals(listOf("Milk", "3", "0", "1l"), listOf(item.text("schema:name"), item.text("schema:amountOfThisGood"), item.text("got"), item.text("schema:size")))
+    }
+
+    @Test
+    fun theShoppingListGrantsAreSeparateFromEachOtherAndFromThePantry() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        f.base.access.save(
+            agent, "",
+            listOf(
+                AssistantGrant("home-1", AssistantCapability.ShoppingListRead, GrantPolicy.Auto),
+                AssistantGrant("home-1", AssistantCapability.PantryWrite, GrantPolicy.Auto),
+            ),
+        )
+
+        // Act
+        f.handler.handle(message(shoppingCommand("Add", 1)))
+        f.handler.handle(message(readShoppingCommand(id = "urn:uuid:sr2")))
+        f.handler.handle(message(command(id = "urn:uuid:c9")))
+
+        // Assert
+        assertEquals(NotPermittedSummary, f.replies[0].text("summary"))
+        assertEquals("Accept", f.replies[1].text("type"))
+        assertEquals("Accept", f.replies[2].text("type"))
+        assertEquals(emptyList(), f.items)
+    }
+
+    @Test
+    fun anAskGrantHoldsAShoppingListAddUntilAllowOnce() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        grantShopping(f, AssistantCapability.ShoppingListWrite, GrantPolicy.Ask)
+        f.handler.handle(message(shoppingCommand("Add", 2)))
+        val held = f.base.access.pendingCommands.value.single()
+
+        // Act
+        f.base.access.allowOnce(held)
+        f.handler.handle(message(shoppingCommand("Add", 2)))
+
+        // Assert
+        assertEquals(WaitingForApprovalSummary, f.replies.first().text("summary"))
+        assertEquals("Add 2 × Milk to the shopping list", held.summary)
+        assertEquals(2, f.items.single().quantity)
+    }
+
+    @Test
+    fun aWriteToAShoppingListThatHasNotArrivedYetIsRefusedAndCreatesNothing() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        val unseeded = ShoppingListDocumentSource(Document(), f.pantry)
+        val handler = PantryCommandHandler(
+            resolveSource = { f.base.source },
+            resolveShoppingList = { unseeded },
+            listHomes = { f.base.homes },
+            access = f.base.access,
+            commandLog = f.base.commandLog,
+            client = f.base.client,
+            newId = { "urn:uuid:x-${f.base.client.sent.size}" },
+            log = {},
+        )
+        grantShopping(f, AssistantCapability.ShoppingListWrite)
+
+        // Act
+        handler.handle(message(shoppingCommand("Add", 1)))
+
+        // Assert
+        assertEquals(ShoppingListNotReadySummary, f.replies.single().text("summary"))
+        assertEquals(emptyList(), runBlocking { unseeded.items.first() })
+    }
+
+    @Test
+    fun aShoppingListInAHomeWithoutAGrantLooksLikeOneThatDoesNotExist() = runBlocking {
+        // Arrange
+        val f = ShoppingFixture(emptyList())
+        f.base.access.save(agent, "", listOf(AssistantGrant("home-2", AssistantCapability.ShoppingListRead, GrantPolicy.Auto)))
+
+        // Act
+        f.handler.handle(message(readShoppingCommand(home = "home-1")))
+        f.handler.handle(message(readShoppingCommand(id = "urn:uuid:sr2", home = "nowhere")))
+
+        // Assert
+        assertEquals(listOf(NotPermittedSummary, NotPermittedSummary), f.replies.map { it.text("summary") })
     }
 }
 

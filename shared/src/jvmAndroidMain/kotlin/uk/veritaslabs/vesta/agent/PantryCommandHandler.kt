@@ -5,6 +5,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
+import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
 import org.automerge.Document
 import uk.veritaslabs.vesta.automerge.PantryItem
 import uk.veritaslabs.vesta.automerge.adjustStock
@@ -42,6 +43,7 @@ const val WaitingForApprovalSummary = "waiting for approval: the user has been a
  */
 class PantryCommandHandler(
     private val resolveSource: suspend (homeId: String) -> PantryDocumentSource?,
+    resolveShoppingList: suspend (homeId: String) -> ShoppingListDocumentSource? = { null },
     private val listHomes: suspend () -> List<HomeRef>,
     private val access: AssistantAccess,
     private val commandLog: CommandLog,
@@ -50,6 +52,7 @@ class PantryCommandHandler(
     private val log: (String) -> Unit = { System.err.println("[agent-commands] $it") },
 ) {
     private val lock = Mutex()
+    private val shoppingList = ShoppingListCommandHandler(resolveShoppingList, access, commandLog, newId, ::send, log)
 
     suspend fun handle(message: X0xDirectMessage) = lock.withLock {
         try {
@@ -110,11 +113,21 @@ class PantryCommandHandler(
             return
         }
 
+        if (parsed is ParseResult.Command && parsed.command is ReadShoppingList) {
+            shoppingList.read(sender, parsed.command)
+            return
+        }
+
         // A repeat of a command already answered gets that answer again, whatever its grant says now: it tells the
         // agent nothing it was not told the first time, and under Ask it must not raise a second card.
         commandLog.reply(sender, commandId)?.let { previous ->
             log("command $commandId from $sender already processed; re-sending its reply")
             send(sender, previous)
+            return
+        }
+
+        if (parsed is ParseResult.Command && parsed.command is ShoppingWriteCommand) {
+            shoppingList.write(sender, parsed.command)
             return
         }
 
@@ -147,7 +160,7 @@ class PantryCommandHandler(
                 is AddPantryItem -> apply(command) { rejection = it }
                 is ReducePantryStock -> reduce(command) { rejection = it }
                 is SetPantryStock -> setStock(command) { rejection = it }
-                is ListHomes, is ReadPantry -> return // answered above
+                is ListHomes, is ReadPantry, is ReadShoppingList, is ShoppingWriteCommand -> return // answered above
             }
             ParseResult.NotACommand -> return
         }

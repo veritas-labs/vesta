@@ -58,6 +58,12 @@ class ShoppingListDocumentSource private constructor(
         if (isShoppingListSeeded()) false else { pending += operation; true }
     }
 
+    /** Runs [block] against the document without changing, republishing or persisting it. */
+    suspend fun <T> inspect(block: (Document) -> T): T = core.read { block(this) }
+
+    /** Runs [block] against the document, then republishes and persists it. [block] must itself check [isShoppingListSeeded]. */
+    suspend fun <T> mutate(block: (Document) -> T): T = core.edit { block(this) }
+
     override suspend fun save(item: ShoppingItemDetails) {
         if (queuedUntilSeeded { save(item) }) return
         core.edit {

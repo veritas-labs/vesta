@@ -112,6 +112,34 @@ Missing item → `Reject` "unknown item". Both are recorded by command `id`, so 
 
 `schema:gtin` is optional; `schema:name` is required.
 
+## Shopping list — `Read`, `Add`, `Update`, `Remove`
+
+The target (or, for a read, the object) is `urn:vesta:document:<homeId>:shopping-list`. Reads need the user's Shopping list
+**Read** permission, the rest **Write**; the Pantry's permissions do not cover it. It never touches the Pantry.
+
+**Read** — `{"@context": CONTEXT, "type": "Read", "id": "urn:uuid:…", "object": {"type": "Collection", "id": "urn:vesta:document:<homeId>:shopping-list"}}`.
+The `Accept` result is a `Collection` (at most 200 items; `totalItems` is the real count) of
+
+```json
+{"type": "schema:Product", "id": "<key>", "schema:name": "Milk", "schema:category": ["Dairy"], "schema:size": "1l",
+ "schema:gtin": "5000", "schema:amountOfThisGood": 3, "got": 1, "outOfStock": false}
+```
+
+`schema:amountOfThisGood` is how many are wanted, `got` how many are picked up (it counts as ticked off when above 0 and not
+`outOfStock`). `schema:size` and `schema:gtin` are left out when the item has none. Answered fresh each time.
+
+**Write** — same `schema:TypeAndQuantityNode` / `schema:Product` object as a Pantry add, with the shopping-list `target`:
+
+| Type | `schema:amountOfThisGood` | Effect |
+| --- | --- | --- |
+| `Add` | Optional integer 1–9999, default 1 | Puts that many on the list; an item already there has the amounts added together. Category (default "Uncategorized"), size and gtin as for the Pantry. |
+| `Update` | **Required** integer 0–9999 | Sets how many are **picked up** (0 un-ticks). The item must be on the list. |
+| `Remove` | Not used | Takes the item's whole line off the list. The item must be on the list. |
+
+`Update` and `Remove` find the item by `schema:gtin` if given, else by `schema:name` (case-insensitive). Each write replies with an
+`Accept` whose `result` is the line afterwards (for `Remove`, as it was), in the shape above. Writes are recorded by command
+`id`, so a re-sent id is answered, not applied twice. A missing item → `Reject` "unknown item".
+
 ## Rejections
 
 `{"type": "Reject", "inReplyTo": "<your id>", "summary": "<human-readable reason>", …}`. Summaries include:

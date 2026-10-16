@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.acceptance
 
+import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
+import uk.veritaslabs.vesta.automerge.newShoppingListDocument
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.vesta.agent.AssistantCapability
 import androidx.compose.runtime.getValue
@@ -98,6 +100,9 @@ class AssistantsAcceptanceTest {
             "home-1" to PantryDocumentSource(Document.load(newPantryDocument())),
             "home-2" to PantryDocumentSource(Document.load(newPantryDocument())),
         )
+        val shoppingLists = pantries.mapValues { (_, pantry) ->
+            ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
+        }
         val client = FakeX0xClient()
         private var nextId = 0
 
@@ -113,6 +118,7 @@ class AssistantsAcceptanceTest {
 
         fun handler() = PantryCommandHandler(
             resolveSource = { pantries[it] },
+            resolveShoppingList = { shoppingLists[it] },
             listHomes = { listOf(HomeRef("home-1", "The Johnsons"), HomeRef("home-2", "Flat 4")) },
             access = assistants,
             commandLog = DatabaseCommandLog(database),
@@ -135,6 +141,11 @@ class AssistantsAcceptanceTest {
     private fun readPantryCommand(id: String, home: String = "home-1") = """
         {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
          "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "urn:vesta:document:$home:pantry"}}
+    """.trimIndent()
+
+    private fun readShoppingCommand(id: String) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "urn:vesta:document:home-1:shopping-list"}}
     """.trimIndent()
 
     private fun listHomesCommand(id: String) = """
@@ -247,6 +258,42 @@ class AssistantsAcceptanceTest {
         assertEquals(1, afterRemove)
         assertEquals(7, world.stock("home-1"))
         assertEquals(listOf("2", "1", "7"), world.replies.map { it.getValue("result").jsonObject.getValue("schema:amountOfThisGood").jsonPrimitive.content })
+    }
+
+    private fun shoppingCommand(type: String, id: String, amount: Int?) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:shopping-list"},
+         "object": {"type": "schema:TypeAndQuantityNode", ${amount?.let { """"schema:amountOfThisGood": $it,""" } ?: ""}
+                    "schema:typeOfGood": {"type": "schema:Product", "schema:name": "Milk"}}}
+    """.trimIndent()
+
+    @Test
+    fun myBotCanKeepTheShoppingListWithItsShoppingListSwitchesAndNothingElse() = runComposeUiTest {
+        // Arrange — Given a bot added with Shopping list Read and Write (asking each time switched off)
+        val world = World()
+        showAssistants(world)
+        tap(AssistantsTestTags.AddButton)
+        onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.ShoppingListRead))
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.ShoppingListWrite))
+        tapInForm(AssistantEditTestTags.askEachTime("home-1"))
+        tapInForm(AssistantEditTestTags.SaveButton)
+        waitForIdle()
+
+        // Act — When it adds 2 milk to the list, ticks 1 off, reads the list, and then tries the Pantry
+        world.botSends(shoppingCommand("Add", "urn:uuid:s1", 2))
+        world.botSends(shoppingCommand("Update", "urn:uuid:s2", 1))
+        world.botSends(readShoppingCommand("urn:uuid:s3"))
+        world.botSends(readPantryCommand("urn:uuid:s4"))
+
+        // Assert — Then the list holds the milk with 1 picked up, the bot saw it, and the Pantry stayed closed and empty
+        val list = runBlocking { world.shoppingLists.getValue("home-1").items.first() }
+        val milk = list.single()
+        assertEquals(listOf("Milk", "2", "1"), listOf(milk.title, milk.quantity.toString(), milk.got.toString()))
+        val seen = world.replies[2].getValue("result").jsonObject.getValue("items").jsonArray.single().jsonObject
+        assertEquals("1", seen.getValue("got").jsonPrimitive.content)
+        assertEquals(NotPermittedSummary, world.replies[3].getValue("summary").jsonPrimitive.content)
+        assertEquals(0, world.stock("home-1"))
     }
 
     @Test

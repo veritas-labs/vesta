@@ -30,6 +30,14 @@ Settings → Assistants shows a Read and a Write switch per feature. `ListHomes`
   delta-from-local-value method as the UI (`correctStock`, ADR-008: not exact under concurrent edits). Items must exist ("unknown item")
   and are found by gtin, else name ignoring case. Skill: `agent-pantry-reduce.sh`, `agent-pantry-set.sh`.
 
+- **Shopping list Read and Write (2026-10-16)** use the document id `urn:vesta:document:<homeId>:shopping-list` (the `shopping-list`
+  document feature). `Read` returns up to 200 lines with wanted quantity, `got` (picked up) and `outOfStock`. Write is `Add` (put
+  1-9999 on the list, summing with an existing line; category defaults to "Uncategorized"), `Update` (set the picked-up count, 0-9999;
+  0 un-ticks) and `Remove` (the whole line); `Update`/`Remove` need an existing line ("unknown item"; found by gtin, else name ignoring
+  case). A write to a list that has not yet arrived from the Home's creator is refused ("the shopping list is not ready yet"). It never
+  touches the Pantry. Code: `ShoppingListCommands.kt` (commands, parser, replies), `ShoppingListCommandHandler.kt` (grant gate and
+  apply). Skill: `agent-shopping-read.sh`, `-add.sh`, `-tick.sh`, `-remove.sh`.
+
 The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
 
 ## Context

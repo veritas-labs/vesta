@@ -268,4 +268,80 @@ class AgentCommandParserTest {
             assertEquals(true, result.reason.contains(expected.trim()), "'${result.reason}' should mention '$expected'")
         }
     }
+
+    private fun shopping(type: String, amount: String?, fields: String = """"schema:name": "Milk", "schema:gtin": "123"""", target: String = "urn:vesta:document:home-1:shopping-list") =
+        ("""{"@context": $context, "type": "$type", "id": "urn:uuid:p1", "target": {"type": "Collection", "id": "$target"},
+            "object": {"type": "schema:TypeAndQuantityNode", ${amount?.let { """"schema:amountOfThisGood": $it,""" } ?: ""}
+                       "schema:typeOfGood": {"type": "schema:Product", $fields}}}""").encodeToByteArray()
+
+    @Test
+    fun parsesAShoppingListRead() {
+        // Arrange
+        val payload = read(objectId = "urn:vesta:document:home-1:shopping-list")
+
+        // Act
+        val result = AgentCommandParser.parse(payload)
+
+        // Assert
+        assertEquals(ParseResult.Command(ReadShoppingList("urn:uuid:l1", "home-1")), result)
+    }
+
+    @Test
+    fun parsesAnAddToTheShoppingListWithItsDetails() {
+        // Arrange
+        val payload = shopping("Add", "3", fields = """"schema:name": "Milk", "schema:category": ["Dairy", "Milk"], "schema:size": "1l", "schema:gtin": "123"""")
+
+        // Act
+        val result = AgentCommandParser.parse(payload)
+
+        // Assert
+        assertEquals(ParseResult.Command(AddShoppingItem("urn:uuid:p1", "home-1", "Milk", "Dairy", "Milk", "1l", "123", 3)), result)
+    }
+
+    @Test
+    fun anAddToTheShoppingListDefaultsToOneAndARemoveNeedsNoAmount() {
+        // Arrange
+        val add = shopping("Add", null, fields = """"schema:name": "Milk"""")
+        val remove = shopping("Remove", null)
+
+        // Act
+        val added = AgentCommandParser.parse(add)
+        val removed = AgentCommandParser.parse(remove)
+
+        // Assert
+        assertEquals(ParseResult.Command(AddShoppingItem("urn:uuid:p1", "home-1", "Milk", null, null, null, null, 1)), added)
+        assertEquals(ParseResult.Command(RemoveShoppingItem("urn:uuid:p1", "home-1", "Milk", "123")), removed)
+    }
+
+    @Test
+    fun anUpdateOfTheShoppingListSetsHowManyArePickedUpAndAllowsZero() {
+        // Arrange
+        val payload = shopping("Update", "0")
+
+        // Act
+        val result = AgentCommandParser.parse(payload)
+
+        // Assert
+        assertEquals(ParseResult.Command(SetShoppingProgress("urn:uuid:p1", "home-1", "Milk", "123", 0)), result)
+    }
+
+    @Test
+    fun rejectsBadShoppingListWrites() {
+        // Arrange
+        val cases = mapOf(
+            "quantity out of range" to shopping("Add", "0"),
+            "quantity out of range " to shopping("Update", "10000"),
+            "quantity is required" to shopping("Update", null),
+            "quantity must be an integer" to shopping("Add", "\"2\""),
+            "title is required" to shopping("Add", "1", fields = """"schema:gtin": "123""""),
+            "category must have" to shopping("Add", "1", fields = """"schema:name": "Milk", "schema:category": ["a", "b", "c"]"""),
+        )
+
+        // Act / Assert
+        cases.forEach { (expected, payload) ->
+            val result = invalid(payload)
+            assertEquals("urn:uuid:p1", result.commandId)
+            assertEquals(true, result.reason.contains(expected.trim()), "'${result.reason}' should mention '$expected'")
+        }
+    }
 }
