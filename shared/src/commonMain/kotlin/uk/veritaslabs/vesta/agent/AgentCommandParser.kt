@@ -19,6 +19,9 @@ object AgentCommandParser {
     const val MAX_PAYLOAD_BYTES = 16 * 1024
     const val MAX_QUANTITY = 9999
 
+    /** The most items one [ReadPantry] reply carries; the reply's `totalItems` still says how many there are. */
+    const val MAX_PANTRY_ITEMS = 200
+
     /** The one accepted `@context`, also used on replies. */
     val CONTEXT: JsonArray = buildJsonArray {
         add(JsonPrimitive("https://www.w3.org/ns/activitystreams"))
@@ -50,16 +53,21 @@ object AgentCommandParser {
 
     private fun parseRead(root: JsonObject, commandId: String): ParseResult {
         val objectId = (root["object"] as? JsonObject)?.string("id")
-        if (objectId != HOMES_COLLECTION_ID) return ParseResult.Invalid(commandId, "object.id must be $HOMES_COLLECTION_ID")
-        return ParseResult.Command(ListHomes(commandId))
+        if (objectId == HOMES_COLLECTION_ID) return ParseResult.Command(ListHomes(commandId))
+        val homeId = objectId?.let(::pantryHomeId)
+        if (homeId != null) return ParseResult.Command(ReadPantry(commandId, homeId))
+        return ParseResult.Invalid(commandId, "object.id must be $HOMES_COLLECTION_ID or $TARGET_PREFIX<homeId>$TARGET_SUFFIX")
     }
+
+    private fun pantryHomeId(documentId: String): String? =
+        documentId.takeIf { it.startsWith(TARGET_PREFIX) && it.endsWith(TARGET_SUFFIX) }
+            ?.removePrefix(TARGET_PREFIX)?.removeSuffix(TARGET_SUFFIX)?.takeIf { it.isNotBlank() }
 
     private fun parseAdd(root: JsonObject, commandId: String): ParseResult {
         fun invalid(reason: String) = ParseResult.Invalid(commandId, reason)
 
         val targetId = (root["target"] as? JsonObject)?.string("id") ?: return invalid("target.id is required")
-        val homeId = targetId.takeIf { it.startsWith(TARGET_PREFIX) && it.endsWith(TARGET_SUFFIX) }
-            ?.removePrefix(TARGET_PREFIX)?.removeSuffix(TARGET_SUFFIX)?.takeIf { it.isNotBlank() }
+        val homeId = pantryHomeId(targetId)
             ?: return invalid("target.id must be $TARGET_PREFIX<homeId>$TARGET_SUFFIX")
 
         val node = root["object"] as? JsonObject

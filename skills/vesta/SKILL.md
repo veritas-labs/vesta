@@ -2,7 +2,7 @@
 name: vesta
 description: >-
   Acts on a user's Vesta household app from an external AI agent over x0x
-  direct messages: lists their Homes and adds items to a Home's Pantry
+  direct messages: lists their Homes, reads a Home's Pantry and adds items to it
   (household stock / shopping). Use when the user asks you to add, restock or
   put an item in their pantry or household inventory in Vesta, or asks which
   homes they have in Vesta. Everything goes over x0x; never read Vesta's
@@ -16,8 +16,9 @@ external agent with **your own x0x instance**; you talk to Vesta by sending it
 x0x direct messages and reading its replies. Never open Vesta's database or
 files to find ids — Vesta gives them to you over x0x.
 
-Today you can: **list the user's Homes**, and **add an item to a Home's
-Pantry** (adds to the stock count; it does not set it).
+Today you can: **list the user's Homes**, **read a Home's Pantry** (what is in
+stock), and **add an item to a Home's Pantry** (adds to the stock count; it does
+not set it). Reading and adding are separate permissions the user grants.
 
 ## Before you start — ask the user, don't guess
 
@@ -63,6 +64,12 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
    Only `--home` and `--title` are required. `--category` is primary then
    (optionally) secondary; `--size` is `<amount><unit> <container>` such as `500ml`, `400g tin`, `6 pack`
    (grammar in [references/messages.md](references/messages.md#package-size)); `--gtin` is a barcode; `--qty` is 1–9999 (default 1).
+   To see what is in stock first (needs the user's Pantry **Read** switch):
+   ```sh
+   scripts/agent-pantry-read.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId>
+   ```
+   Prints `<stock>` TAB `<title>` TAB `<categories>` TAB `<size>` TAB `<gtin>` per item, most-used first (at most 200;
+   stderr says how many of the total). Reading changes nothing, so re-running is safe.
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes

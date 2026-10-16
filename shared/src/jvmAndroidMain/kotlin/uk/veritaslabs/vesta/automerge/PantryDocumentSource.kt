@@ -86,6 +86,9 @@ class PantryDocumentSource private constructor(
         if (!queued) mutate(block)
     }
 
+    /** Runs [block] against the document without changing, republishing or persisting it. */
+    suspend fun <T> inspect(block: (Document) -> T): T = core.read { block(this) }
+
     /** Runs [block] against the document (e.g. `upsertPantryItem(it, …)`), then republishes and persists it. */
     suspend fun <T> mutate(block: (Document) -> T): T = core.edit { block(this) }
 

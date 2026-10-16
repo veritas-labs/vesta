@@ -8,6 +8,9 @@ sealed interface AgentCommand {
 /** "List the Homes on this device" — the agent needs a Home's id before it can address a Pantry. Read-only. */
 data class ListHomes(override val commandId: String) : AgentCommand
 
+/** "Show me the Pantry of Home [homeId]" — the most-used items with their stock. Read-only; needs the Pantry Read capability. */
+data class ReadPantry(override val commandId: String, val homeId: String) : AgentCommand
+
 /**
  * "Add [quantity] of this product to the Pantry of Home [homeId]" — the one command ADR-009 defines.
  * [commandId] is the sender's idempotency key. Optional product fields are null when the sender omitted them.

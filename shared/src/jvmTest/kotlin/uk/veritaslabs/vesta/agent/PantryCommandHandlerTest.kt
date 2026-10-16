@@ -13,7 +13,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.automerge.Document
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
+import uk.veritaslabs.vesta.automerge.adjustStock
 import uk.veritaslabs.vesta.automerge.newPantryDocument
+import uk.veritaslabs.vesta.automerge.pantryDedupKey
 import uk.veritaslabs.vesta.automerge.readPantryItem
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
@@ -463,6 +465,131 @@ class PantryCommandHandlerTest {
         assertEquals(2, f.source.contents.first().items.single().stockCount)
         assertEquals("Accept", f.replies.single().text("type"))
         assertTrue(f.logged.any { "could not deliver" in it })
+    }
+
+    private fun readPantryRequest(id: String = "urn:uuid:r1", home: String = "home-1") =
+        listHomesRequest(id = id, objectId = "urn:vesta:document:$home:pantry")
+
+    private fun grantRead(f: Fixture, policy: GrantPolicy, home: String = "home-1") = runBlocking {
+        f.access.save(agent, "", listOf(AssistantGrant(home, AssistantCapability.PantryRead, policy)))
+    }
+
+    @Test
+    fun readingThePantryRepliesWithEachItemAndItsStock() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        grantRead(f, GrantPolicy.Auto)
+        f.source.mutate { upsertPantryItem(it, "Condiments", "Ketchup", "Heinz Ketchup", "1 bottle", "5000157024671") }
+        f.source.mutate { adjustStock(it, "5000157024671", 3) }
+
+        // Act
+        f.handler.handle(message(readPantryRequest()))
+
+        // Assert
+        val reply = f.replies.single()
+        assertEquals("Accept", reply.text("type"))
+        val result = reply.getValue("result").jsonObject
+        assertEquals("1", result.text("totalItems"))
+        val item = result.getValue("items").jsonArray.single().jsonObject
+        assertEquals("Heinz Ketchup", item.text("schema:name"))
+        assertEquals(listOf("Condiments", "Ketchup"), item.getValue("schema:category").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals("1 bottle", item.text("schema:size"))
+        assertEquals("5000157024671", item.text("schema:gtin"))
+        assertEquals("3", item.text("schema:amountOfThisGood"))
+    }
+
+    @Test
+    fun readingThePantryChangesNothingAndIsAnsweredFreshEachTime() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        grantRead(f, GrantPolicy.Auto)
+        f.handler.handle(message(readPantryRequest()))
+        f.source.mutate { upsertPantryItem(it, "Dairy", null, "Milk", "", null) }
+
+        // Act
+        f.handler.handle(message(readPantryRequest()))
+
+        // Assert
+        assertEquals(listOf("0", "1"), f.replies.map { it.getValue("result").jsonObject.text("totalItems") })
+    }
+
+    @Test
+    fun aWriteGrantDoesNotLetAnAssistantReadThePantry() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        f.access.save(agent, "", listOf(AssistantGrant("home-1", AssistantCapability.PantryWrite, GrantPolicy.Auto)))
+
+        // Act
+        f.handler.handle(message(readPantryRequest()))
+
+        // Assert
+        val reply = f.replies.single()
+        assertEquals("Reject", reply.text("type"))
+        assertEquals(NotPermittedSummary, reply.text("summary"))
+    }
+
+    @Test
+    fun aReadGrantDoesNotLetAnAssistantAdd() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        grantRead(f, GrantPolicy.Auto)
+
+        // Act
+        f.handler.handle(message(command()))
+
+        // Assert
+        assertEquals(NotPermittedSummary, f.replies.single().text("summary"))
+        assertEquals(emptyList(), f.source.contents.first().items)
+    }
+
+    @Test
+    fun aReadInAHomeWithoutAGrantLooksLikeAHomeThatDoesNotExist() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        grantRead(f, GrantPolicy.Auto, home = "home-2")
+
+        // Act
+        f.handler.handle(message(readPantryRequest(home = "home-1")))
+        f.handler.handle(message(readPantryRequest(id = "urn:uuid:r2", home = "nowhere")))
+
+        // Assert
+        assertEquals(listOf(NotPermittedSummary, NotPermittedSummary), f.replies.map { it.text("summary") })
+    }
+
+    @Test
+    fun anAskGrantHoldsTheReadUntilAllowOnceAndThenAnswersTheResentCommand() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        grantRead(f, GrantPolicy.Ask)
+        f.handler.handle(message(readPantryRequest()))
+        val held = f.access.pendingCommands.value.single()
+
+        // Act
+        f.access.allowOnce(held)
+        f.handler.handle(message(readPantryRequest()))
+
+        // Assert
+        assertEquals(WaitingForApprovalSummary, f.replies.first().text("summary"))
+        assertEquals("Accept", f.replies.last().text("type"))
+        assertEquals(AssistantCapability.PantryRead, held.capability)
+    }
+
+    @Test
+    fun aReplyIsCappedAtTheMostUsedItemsButSaysHowManyThereAre() = runBlocking {
+        // Arrange
+        val f = Fixture(emptyList())
+        grantRead(f, GrantPolicy.Auto)
+        f.source.mutate { doc ->
+            repeat(AgentCommandParser.MAX_PANTRY_ITEMS + 5) { upsertPantryItem(doc, "Misc", null, "Item $it", "", null) }
+        }
+
+        // Act
+        f.handler.handle(message(readPantryRequest()))
+
+        // Assert
+        val result = f.replies.single().getValue("result").jsonObject
+        assertEquals((AgentCommandParser.MAX_PANTRY_ITEMS + 5).toString(), result.text("totalItems"))
+        assertEquals(AgentCommandParser.MAX_PANTRY_ITEMS, result.getValue("items").jsonArray.size)
     }
 }
 

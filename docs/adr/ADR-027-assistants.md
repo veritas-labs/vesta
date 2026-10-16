@@ -13,12 +13,18 @@ Settings → Assistants shows a Read and a Write switch per feature. `ListHomes`
   needs no new switch, grant row or migration.
 - **Write does not imply Read.** The add reply still states the item's new stock count; that single-value leak is accepted.
 - **Switches without a command are shown off and disabled** ("Coming soon") until one is built (`AssistantCapability.available`).
-  Today only Pantry Write is live; every Read is not. A bounded query command (never a replica) is what makes a Read switch live.
+  Live today: Pantry Write and Pantry Read. A bounded query command (never a replica) is what makes a Read switch live.
 - **Policy stays per Home** (`ask` applies to all the Home's granted capabilities) and defaults to Ask for Read and Write alike.
 - The stored capability name changed from `PantryAdd` to `PantryWrite`; old rows are rewritten the first time they are read
   (`AssistantRepository.renameLegacyGrants`), so the kits schema and migration 18 are untouched.
 - The private calendar and tasks documents (ADR-029, ADR-031) are not covered by the Calendar and Tasks features; they will
   be separate features, off by default, when a command for them exists.
+
+- **Pantry Read (2026-10-16)** is `Read` of `urn:vesta:document:<homeId>:pantry` (`ReadPantry`). The reply is an `Accept` with a `Collection`
+  of `schema:Product`s (name, categories, size, gtin, stock), most-used first, capped at 200 with `totalItems` giving the real count.
+  It is a bounded answer, not a replica; it is not recorded in the command log (answered fresh), and under Ask the agent re-sends the
+  same id after Allow once. Desktop only, like every assistant command. Skill: `scripts/agent-pantry-read.sh`.
+
 
 The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
 

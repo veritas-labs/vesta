@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.acceptance
 
+import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.vesta.agent.AssistantCapability
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -131,6 +132,11 @@ class AssistantsAcceptanceTest {
                     "schema:typeOfGood": {"type": "schema:Product", "schema:name": "Milk"}}}
     """.trimIndent()
 
+    private fun readPantryCommand(id: String, home: String = "home-1") = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "urn:vesta:document:$home:pantry"}}
+    """.trimIndent()
+
     private fun listHomesCommand(id: String) = """
         {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
          "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "urn:vesta:homes"}}
@@ -215,6 +221,29 @@ class AssistantsAcceptanceTest {
         assertEquals("Accept", world.replies.single().getValue("type").jsonPrimitive.content)
         onNodeWithTag(AssistantsTestTags.row(bot)).assertIsDisplayed()
         onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
+    }
+
+    @Test
+    fun iCanLetMyBotReadThePantryWithoutLettingItAdd() = runComposeUiTest {
+        // Arrange — Given a bot added with Pantry Read only (asking each time switched off), and milk in the Pantry
+        val world = World()
+        showAssistants(world)
+        tap(AssistantsTestTags.AddButton)
+        onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.PantryRead))
+        tapInForm(AssistantEditTestTags.askEachTime("home-1"))
+        tapInForm(AssistantEditTestTags.SaveButton)
+        waitForIdle()
+        runBlocking { world.pantries.getValue("home-1").mutate { upsertPantryItem(it, "Dairy", null, "Milk", "", null) } }
+
+        // Act — When it reads the Pantry and then tries to add
+        world.botSends(readPantryCommand("urn:uuid:r1"))
+        world.botSends(addCommand("urn:uuid:c1"))
+
+        // Assert — Then it sees the milk, and the add is refused
+        val items = world.replies[0].getValue("result").jsonObject.getValue("items").jsonArray
+        assertEquals(listOf("Milk"), items.map { it.jsonObject.getValue("schema:name").jsonPrimitive.content })
+        assertEquals(NotPermittedSummary, world.replies[1].getValue("summary").jsonPrimitive.content)
     }
 
     @Test

@@ -125,9 +125,21 @@ class AgentCommandParserTest {
     }
 
     @Test
-    fun rejectsAReadOfAnythingButTheHomesCollection() {
+    fun parsesAPantryReadRequest() {
         // Arrange
         val payload = read(objectId = "urn:vesta:document:home-1:pantry")
+
+        // Act
+        val result = AgentCommandParser.parse(payload)
+
+        // Assert
+        assertEquals(ParseResult.Command(ReadPantry("urn:uuid:l1", "home-1")), result)
+    }
+
+    @Test
+    fun rejectsAReadOfAnythingButTheHomesCollectionOrAPantry() {
+        // Arrange
+        val payload = read(objectId = "urn:vesta:document:home-1:cookbook")
 
         // Act
         val result = invalid(payload)

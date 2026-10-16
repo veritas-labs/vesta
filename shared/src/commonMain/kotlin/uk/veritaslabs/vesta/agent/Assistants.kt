@@ -15,8 +15,8 @@ enum class AssistantCapability(val feature: AssistantFeature?, val kind: Assista
     /** See the Home in a [ListHomes] answer. Implied by every other capability. */
     ListHomes(null, null, true),
 
-    /** Read the Home's Pantry; no command yet. */
-    PantryRead(AssistantFeature.Pantry, AssistantAccessKind.Read, false),
+    /** Read the Home's Pantry ([ReadPantry]). */
+    PantryRead(AssistantFeature.Pantry, AssistantAccessKind.Read, true),
 
     /** Add to the Home's Pantry ([AddPantryItem]). */
     PantryWrite(AssistantFeature.Pantry, AssistantAccessKind.Write, true),

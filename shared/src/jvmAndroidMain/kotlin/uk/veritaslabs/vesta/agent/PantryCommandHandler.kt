@@ -7,6 +7,7 @@ import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.adjustStock
 import uk.veritaslabs.vesta.automerge.pantryDedupKey
+import uk.veritaslabs.vesta.automerge.readPantry
 import uk.veritaslabs.vesta.automerge.readPantryItem
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
 import uk.veritaslabs.vesta.pantry.PackageSize
@@ -98,6 +99,13 @@ class PantryCommandHandler(
             return
         }
 
+        // Reading a Pantry is answered fresh every time, like ListHomes, so it is not in the command log. Under Ask the
+        // agent re-sends the same id after the user's Allow once, which `decide` uses up.
+        if (parsed is ParseResult.Command && parsed.command is ReadPantry) {
+            readPantry(sender, parsed.command)
+            return
+        }
+
         // A repeat of a command already answered gets that answer again, whatever its grant says now: it tells the
         // agent nothing it was not told the first time, and under Ask it must not raise a second card.
         commandLog.reply(sender, commandId)?.let { previous ->
@@ -133,7 +141,7 @@ class PantryCommandHandler(
             is ParseResult.Invalid -> reject(commandId, parsed.reason).also { rejection = parsed.reason }
             is ParseResult.Command -> when (val command = parsed.command) {
                 is AddPantryItem -> apply(command) { rejection = it }
-                is ListHomes -> return // answered above
+                is ListHomes, is ReadPantry -> return // answered above
             }
             ParseResult.NotACommand -> return
         }
@@ -146,6 +154,39 @@ class PantryCommandHandler(
             if (rejection == null) ActivityOutcome.Applied else ActivityOutcome.Rejected,
             rejection?.let { "$summary: $it" } ?: summary,
         )
+    }
+
+    /** Answers [command] with the Home's Pantry if [sender] holds Pantry Read for it, else rejects or holds it. */
+    private suspend fun readPantry(sender: String, command: ReadPantry) {
+        val capability = AssistantCapability.PantryRead
+        val summary = "Read the Pantry"
+        when (access.decide(sender, command.homeId, capability, command.commandId)) {
+            AccessDecision.Allow -> Unit
+            AccessDecision.NotPermitted -> {
+                log("rejected command ${command.commandId} from $sender: no PantryRead grant for home ${command.homeId}")
+                send(sender, reject(command.commandId, NotPermittedSummary))
+                access.recordActivity(sender, command.homeId, capability, command.commandId, ActivityOutcome.Rejected, "$summary: $NotPermittedSummary")
+                return
+            }
+            AccessDecision.Ask -> {
+                log("held command ${command.commandId} from $sender: waiting for the user to allow it")
+                access.hold(sender, command.homeId, capability, command.commandId, summary)
+                send(sender, reject(command.commandId, WaitingForApprovalSummary))
+                return
+            }
+        }
+        val source = resolveSource(command.homeId)
+        if (source == null) {
+            send(sender, reject(command.commandId, "unknown home"))
+            access.recordActivity(sender, command.homeId, capability, command.commandId, ActivityOutcome.Rejected, "$summary: unknown home")
+            return
+        }
+        val items = source.inspect { it.readPantry() }
+        val refs = items.take(AgentCommandParser.MAX_PANTRY_ITEMS).map {
+            PantryItemRef(it.id, it.title, it.primaryCategory, it.secondaryCategory, it.packageSize, it.barcode, it.stockCount)
+        }
+        send(sender, AgentReplies.pantry(newId(), command.commandId, command.homeId, refs, items.size))
+        access.recordActivity(sender, command.homeId, capability, command.commandId, ActivityOutcome.Applied, "Read ${items.size} Pantry item(s)")
     }
 
     /** Applies [command] to its Home's Pantry and returns the reply JSON. */

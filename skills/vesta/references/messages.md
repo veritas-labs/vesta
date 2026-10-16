@@ -32,6 +32,28 @@ Reply — an `Accept` whose `result` lists only the Homes the user has granted y
 
 Read-only, so it is answered freshly each time.
 
+## Read the Pantry — `Read` of a Home's pantry
+
+Needs the user's Pantry **Read** permission for that Home (a Write-only grant is refused with "not permitted for this home").
+
+```json
+{"@context": CONTEXT, "type": "Read", "id": "urn:uuid:…",
+ "object": {"type": "Collection", "id": "urn:vesta:document:<homeId>:pantry"}}
+```
+
+Reply — an `Accept` whose `result` lists the most-used items first, at most 200 (`totalItems` is how many the Pantry holds):
+
+```json
+{"@context": CONTEXT, "type": "Accept", "id": "urn:uuid:…", "inReplyTo": "<your id>", "object": "<your id>",
+ "result": {"type": "Collection", "id": "urn:vesta:document:<homeId>:pantry", "totalItems": 1,
+            "items": [{"type": "schema:Product", "id": "<pantry key>", "schema:name": "Heinz Ketchup",
+                       "schema:category": ["Condiments", "Ketchup"], "schema:size": "1 bottle",
+                       "schema:gtin": "5000157024671", "schema:amountOfThisGood": 3}]}}
+```
+
+`schema:size` and `schema:gtin` are left out when the item has none; `schema:amountOfThisGood` is the stock count.
+Read-only, so it is answered freshly each time and a repeat is never "already processed".
+
 ## Add to the Pantry — `Add` of a `schema:Product`
 
 ```json
