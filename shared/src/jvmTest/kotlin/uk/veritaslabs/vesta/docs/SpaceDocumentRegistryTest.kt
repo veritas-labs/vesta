@@ -1,4 +1,12 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.docs
+
+import uk.veritaslabs.kits.docs.Scope
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.SpaceDocumentRegistry
+import uk.veritaslabs.kits.docs.SpaceDocumentType
+import uk.veritaslabs.kits.docs.changesSince
 
 import java.io.File
 import kotlin.test.Test
@@ -15,9 +23,9 @@ import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
-class HomeDocumentRegistryTest {
+class SpaceDocumentRegistryTest {
 
-    private object Stub : HomeDocument {
+    private object Stub : SpaceDocument {
         override suspend fun generateSync(state: SyncState): ByteArray? = null
         override suspend fun receiveSync(state: SyncState, message: ByteArray) = Unit
         override suspend fun isInSync(state: SyncState) = true
@@ -26,10 +34,10 @@ class HomeDocumentRegistryTest {
         override suspend fun applyChanges(changes: ByteArray) = Unit
     }
 
-    private fun type(feature: String, scope: Scope = Scope.Shared, open: suspend (String) -> HomeDocument? = { Stub }) =
-        HomeDocumentType(feature, module = "m-$feature", scope = scope, open = open, localChanges = emptyFlow())
+    private fun type(feature: String, scope: Scope = Scope.Shared, open: suspend (String) -> SpaceDocument? = { Stub }) =
+        SpaceDocumentType(feature, module = "m-$feature", scope = scope, open = open, localChanges = emptyFlow())
 
-    private val registry = HomeDocumentRegistry(
+    private val registry = SpaceDocumentRegistry(
         listOf(type("pantry"), type("private-tasks", Scope.Private), type("shopping-list")),
     )
 
@@ -39,7 +47,7 @@ class HomeDocumentRegistryTest {
         val parsed = registry.parse("home-1:pantry")
 
         // Assert
-        assertEquals("home-1", parsed?.homeId)
+        assertEquals("home-1", parsed?.spaceId)
         assertEquals("pantry", parsed?.type?.feature)
     }
 
@@ -60,7 +68,7 @@ class HomeDocumentRegistryTest {
         val parsed = registry.parse("a:b:pantry")
 
         // Assert
-        assertEquals("a:b", parsed?.homeId)
+        assertEquals("a:b", parsed?.spaceId)
         assertEquals("pantry", parsed?.type?.feature)
     }
 
@@ -85,13 +93,13 @@ class HomeDocumentRegistryTest {
     @Test
     fun rejectsDuplicateFeatureKeys() {
         // Arrange / Act / Assert
-        assertFailsWith<IllegalArgumentException> { HomeDocumentRegistry(listOf(type("pantry"), type("pantry"))) }
+        assertFailsWith<IllegalArgumentException> { SpaceDocumentRegistry(listOf(type("pantry"), type("pantry"))) }
     }
 
     @Test
     fun rejectsFeatureKeysContainingAColon() {
         // Arrange / Act / Assert
-        assertFailsWith<IllegalArgumentException> { HomeDocumentRegistry(listOf(type("a:b"))) }
+        assertFailsWith<IllegalArgumentException> { SpaceDocumentRegistry(listOf(type("a:b"))) }
     }
 
     @Test
@@ -122,7 +130,7 @@ class HomeDocumentRegistryTest {
     fun openDelegatesToTheTypeWithTheHomeId() = runTest {
         // Arrange
         var opened: String? = null
-        val sut = HomeDocumentRegistry(listOf(type("pantry") { opened = it; Stub }))
+        val sut = SpaceDocumentRegistry(listOf(type("pantry") { opened = it; Stub }))
 
         // Act
         val document = sut.open("home-1", "home-1:pantry")
@@ -135,7 +143,7 @@ class HomeDocumentRegistryTest {
     @Test
     fun openReturnsNullForAnUnknownIdAndWhenTheTypeHasNoDocument() = runTest {
         // Arrange
-        val sut = HomeDocumentRegistry(listOf(type("pantry") { null }))
+        val sut = SpaceDocumentRegistry(listOf(type("pantry") { null }))
 
         // Act
         val unknown = sut.open("home-1", "home-1:nonsense")
@@ -160,13 +168,13 @@ class HomeDocumentRegistryTest {
     }
 
     @Test
-    fun theDocsPackageImportsNoFeatureCode() {
+    fun theDocsKitImportsNothingOfVesta() {
         // Arrange
         val dir = listOf(
-            "src/jvmAndroidMain/kotlin/uk/veritaslabs/vesta/docs",
-            "shared/src/jvmAndroidMain/kotlin/uk/veritaslabs/vesta/docs",
+            "src/jvmAndroidMain/kotlin/uk/veritaslabs/kits/docs",
+            "shared/src/jvmAndroidMain/kotlin/uk/veritaslabs/kits/docs",
         ).map(::File).first { it.isDirectory }
-        val allowed = listOf("uk.veritaslabs.vesta.docs", "uk.veritaslabs.vesta.db")
+        val allowed = emptyList<String>()
 
         // Act
         val offending = dir.walk().filter { it.extension == "kt" }.flatMap { file ->

@@ -1,3 +1,5 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.datasync
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
@@ -38,9 +40,9 @@ import uk.veritaslabs.vesta.automerge.retireRosterMember
 import uk.veritaslabs.vesta.automerge.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.setRosterRole
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.mailbox.changesSince
-import uk.veritaslabs.vesta.mailbox.encodeHeads
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.changesSince
+import uk.veritaslabs.kits.docs.encodeHeads
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
 
@@ -277,12 +279,12 @@ internal class HomeRosters(
     }
 
     /**
-     * [homeId]'s roster as a [HomeDocument], for the registry; null when this device has no roster for it yet (no such
+     * [homeId]'s roster as a [SpaceDocument], for the registry; null when this device has no roster for it yet (no such
      * Home), as the mailbox has always treated it.
      */
-    suspend fun homeDocument(homeId: String): HomeDocument? {
+    suspend fun homeDocument(homeId: String): SpaceDocument? {
         if (heads(homeId) == null) return null
-        return object : HomeDocument {
+        return object : SpaceDocument {
             override suspend fun generateSync(state: SyncState) = generate(homeId, state)
             override suspend fun receiveSync(state: SyncState, message: ByteArray) { receive(homeId, state, message) }
             override suspend fun isInSync(state: SyncState) = this@HomeRosters.isInSync(homeId, state)

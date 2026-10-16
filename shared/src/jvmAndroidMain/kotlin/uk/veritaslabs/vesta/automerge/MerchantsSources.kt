@@ -3,12 +3,12 @@ package uk.veritaslabs.vesta.automerge
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharedFlow
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.docs.HomeDocumentStore
+import uk.veritaslabs.kits.docs.SpaceDocumentStore
 
 /** One shared [MerchantsDocumentSource] per Home (see [PantrySources] for why there must be exactly one). */
 class MerchantsSources(database: KitsDatabase) {
 
-    private val store = HomeDocumentStore(
+    private val store = SpaceDocumentStore(
         database, "merchants", { Clock.System.now().toEpochMilliseconds() },
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed -> MerchantsDocumentSource(document, persist, changed) },
@@ -18,5 +18,5 @@ class MerchantsSources(database: KitsDatabase) {
     val localChanges: SharedFlow<String> = store.localChanges
 
     /** [homeId]'s merchants source, opened on first use; null if there is no such Home. */
-    suspend fun forHome(homeId: String): MerchantsDocumentSource? = store.forHome(homeId)
+    suspend fun forHome(homeId: String): MerchantsDocumentSource? = store.forSpace(homeId)
 }

@@ -1,4 +1,6 @@
-package uk.veritaslabs.vesta.docs
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
+package uk.veritaslabs.kits.docs
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.jvm.optionals.getOrNull
@@ -18,13 +20,13 @@ import org.automerge.SyncState
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
-class HomeDocumentStoreTest {
+class SpaceDocumentStoreTest {
 
     private class TestSource(
         val document: Document,
         private val persist: suspend (ByteArray) -> Unit,
         private val onLocalChange: () -> Unit,
-    ) : HomeDocument {
+    ) : SpaceDocument {
         suspend fun refresh() = persist(document.save())
 
         suspend fun edit(key: String) {
@@ -50,7 +52,7 @@ class HomeDocumentStoreTest {
         refreshNew: suspend (TestSource) -> Unit = { it.refresh() },
         create: suspend (Document, suspend (ByteArray) -> Unit, () -> Unit) -> TestSource? =
             { document, persist, onLocalChange -> TestSource(document, persist, onLocalChange) },
-    ) = HomeDocumentStore(
+    ) = SpaceDocumentStore(
         database,
         feature = "test-feature",
         nowMillis = { 42L },
@@ -67,8 +69,8 @@ class HomeDocumentStoreTest {
         val sut = storeOver(database) { d, p, c -> opened++; TestSource(d, p, c) }
 
         // Act
-        val first = assertNotNull(sut.forHome("home-1"))
-        val second = sut.forHome("home-1")
+        val first = assertNotNull(sut.forSpace("home-1"))
+        val second = sut.forSpace("home-1")
 
         // Assert
         assertSame(first, second)
@@ -80,15 +82,15 @@ class HomeDocumentStoreTest {
         // Arrange
         val database = openInMemoryDatabase()
         val sut = storeOver(database)
-        val beforeHomeExists = sut.forHome("home-1")
+        val beforeHomeExists = sut.forSpace("home-1")
         database.homeQueries.insert("home-1", "Home", "family", 0L)
-        val before = assertNotNull(sut.forHome("home-1"))
+        val before = assertNotNull(sut.forSpace("home-1"))
 
         // Act
         database.homeQueries.deleteById("home-1")
-        val whileDeleted = sut.forHome("home-1")
+        val whileDeleted = sut.forSpace("home-1")
         database.homeQueries.insert("home-1", "Home", "family", 0L)
-        val after = sut.forHome("home-1")
+        val after = sut.forSpace("home-1")
 
         // Assert
         assertNull(beforeHomeExists)
@@ -106,12 +108,12 @@ class HomeDocumentStoreTest {
         val tx = seeded.startTransaction()
         tx.set(ObjectId.ROOT, "stored-key", "v")
         tx.commit()
-        database.automergeDocumentQueries.upsert(homeDocumentId("home-1", "test-feature"), "home-1", "test-feature", seeded.save(), 1L)
+        database.automergeDocumentQueries.upsert(spaceDocumentId("home-1", "test-feature"), "home-1", "test-feature", seeded.save(), 1L)
         var refreshed = false
         val sut = storeOver(database, refreshNew = { refreshed = true })
 
         // Act
-        val source = assertNotNull(sut.forHome("home-1"))
+        val source = assertNotNull(sut.forSpace("home-1"))
 
         // Assert
         assertEquals(true, source.has("stored-key"))
@@ -126,7 +128,7 @@ class HomeDocumentStoreTest {
         val sut = storeOver(database)
 
         // Act
-        sut.forHome("home-1")
+        sut.forSpace("home-1")
 
         // Assert
         val stored = assertNotNull(database.automergeDocumentQueries.selectById("home-1:test-feature").awaitAsOneOrNull())
@@ -141,7 +143,7 @@ class HomeDocumentStoreTest {
         val database = openInMemoryDatabase()
         database.homeQueries.insert("home-1", "Home", "family", 0L)
         val sut = storeOver(database)
-        val source = assertNotNull(sut.forHome("home-1"))
+        val source = assertNotNull(sut.forSpace("home-1"))
         val emitted = mutableListOf<String>()
         val job = launch(start = CoroutineStart.UNDISPATCHED) { sut.localChanges.collect { emitted += it } }
 
@@ -169,9 +171,9 @@ class HomeDocumentStoreTest {
         val sut = storeOver(database) { d, p, c -> attempts++; if (ready) TestSource(d, p, c) else null }
 
         // Act
-        val notYet = sut.forHome("home-1")
+        val notYet = sut.forSpace("home-1")
         ready = true
-        val now = sut.forHome("home-1")
+        val now = sut.forSpace("home-1")
 
         // Assert
         assertNull(notYet)

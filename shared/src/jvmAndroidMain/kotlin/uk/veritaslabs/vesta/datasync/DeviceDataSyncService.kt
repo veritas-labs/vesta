@@ -1,4 +1,13 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.datasync
+
+import uk.veritaslabs.kits.docs.SyncEnvelope
+import uk.veritaslabs.kits.docs.SyncAcknowledgement
+import uk.veritaslabs.kits.docs.SyncEventRecorder
+import uk.veritaslabs.kits.docs.SyncModules
+import uk.veritaslabs.kits.docs.SyncTargets
+import uk.veritaslabs.kits.docs.ChangesWaiting
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
@@ -17,9 +26,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.docs.HomeDocumentRegistry
-import uk.veritaslabs.vesta.docs.HomeDocumentType
-import uk.veritaslabs.vesta.docs.Scope
+import uk.veritaslabs.kits.docs.SpaceDocumentRegistry
+import uk.veritaslabs.kits.docs.SpaceDocumentType
+import uk.veritaslabs.kits.docs.Scope
 import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.ProfileDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
@@ -31,9 +40,9 @@ import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeConfig
 import uk.veritaslabs.vesta.home.HomeChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
-import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
-import uk.veritaslabs.vesta.mailbox.MailboxReader
-import uk.veritaslabs.vesta.mailbox.MailboxWriter
+import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
+import uk.veritaslabs.kits.docs.MailboxReader
+import uk.veritaslabs.kits.docs.MailboxWriter
 import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.profile.ProfileChangeListener
@@ -48,7 +57,7 @@ import uk.veritaslabs.kits.x0x.X0xEventHub
  * and the app supplies only its own types. [publishRosters] runs after a live roster sync message has been applied and
  * projected, so this device's own member and devices are written back into the roster.
  */
-internal fun rosterDocumentType(rosters: HomeRosters, publishRosters: suspend () -> Unit) = HomeDocumentType(
+internal fun rosterDocumentType(rosters: HomeRosters, publishRosters: suspend () -> Unit) = SpaceDocumentType(
     "roster", SyncModules.Members, Scope.Shared, rosters::homeDocument, rosters.changes,
     afterReceive = { homeId -> rosters.project(homeId) },
     afterSync = { publishRosters() }, resyncsHome = true,
@@ -78,7 +87,7 @@ class DeviceDataSyncService(
     private val database: KitsDatabase,
     private val devices: SyncedDeviceRepository,
     private val deviceName: () -> String,
-    documentTypes: List<HomeDocumentType>,
+    documentTypes: List<SpaceDocumentType>,
     private val interval: Duration = 30.seconds,
     private val peerBackoff: Duration = 2.minutes,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
@@ -108,8 +117,8 @@ class DeviceDataSyncService(
      * The one list of Home document types: the roster, which the engine registers itself, then the [documentTypes] the app
      * gave; the acknowledgement, activity module and private-id lookups go through it.
      */
-    private val documentRegistry = HomeDocumentRegistry(listOf(rosterDocumentType(rosters) { publishRosters() }) + documentTypes)
-    private val mailboxDocuments = HomeMailboxDocuments(documentRegistry)
+    private val documentRegistry = SpaceDocumentRegistry(listOf(rosterDocumentType(rosters) { publishRosters() }) + documentTypes)
+    private val mailboxDocuments = SpaceMailboxDocuments(documentRegistry)
     private val mailboxWriter = MailboxWriter(client, database, mailboxDocuments) { groups.mailboxStoreId(it) }
     private val mailboxReader = MailboxReader(client, database, mailboxDocuments, recorder) { groups.mailboxStoreId(it) }
 
@@ -384,7 +393,7 @@ class DeviceDataSyncService(
 
     /** The Home a shared document belongs to; null for a private type's document and for anything the registry doesn't know. */
     private fun homeIdOf(documentId: String): String? =
-        documentRegistry.parse(documentId)?.takeIf { it.type.scope == Scope.Shared }?.homeId
+        documentRegistry.parse(documentId)?.takeIf { it.type.scope == Scope.Shared }?.spaceId
 
     /**
      * Syncs every document with its peers ([peersFor]), starting each peer's sync over. Automerge's sync state assumes
@@ -537,7 +546,7 @@ class DeviceDataSyncService(
     // The Sync activity log (ADR-033) records Home documents only; the registry and Profile belong to no Home. Recording never
     // changes a sync result: the recorder swallows its own failures, and reading heads is guarded here the same way.
 
-    private fun activityHomeId(documentId: String): String? = documentRegistry.parse(documentId)?.homeId
+    private fun activityHomeId(documentId: String): String? = documentRegistry.parse(documentId)?.spaceId
 
     private suspend fun noteSent(documentId: String, peer: String) {
         val homeId = activityHomeId(documentId) ?: return

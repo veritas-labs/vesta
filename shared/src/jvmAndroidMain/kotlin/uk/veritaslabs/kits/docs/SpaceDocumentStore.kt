@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.docs
+package uk.veritaslabs.kits.docs
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -9,16 +9,16 @@ import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import uk.veritaslabs.kits.store.KitsDatabase
 
-/** The id a Home's [feature] document is stored and synced under: `<homeId>:<feature>`. */
-internal fun homeDocumentId(homeId: String, feature: String) = "$homeId:$feature"
+/** The id a Space's [feature] document is stored and synced under: `<spaceId>:<feature>`. */
+public fun spaceDocumentId(spaceId: String, feature: String) = "$spaceId:$feature"
 
 /**
- * One shared source [S] per Home for one [feature], opened on first use. Every `*Sources` class repeated this; there
- * must be exactly one source per document per Home, or two in-memory copies would diverge. A private variant of a
+ * One shared source [S] per Space for one [feature], opened on first use. Every `*Sources` class repeated this; there
+ * must be exactly one source per document per Space, or two in-memory copies would diverge. A private variant of a
  * feature (private tasks, private calendar) is simply another store with its own [feature] string.
  *
  * [create] builds the source over the opened [Document]. It is given [persist] (stores the document's bytes under this
- * Home and feature) and `onLocalChange` (which the source must call after a local edit, never after an incoming sync;
+ * Space and feature) and `onLocalChange` (which the source must call after a local edit, never after an incoming sync;
  * it feeds [localChanges]). It returns null when the source cannot be opened yet (Shopping without a Pantry), in which
  * case nothing is cached and any earlier entry is evicted.
  *
@@ -28,13 +28,13 @@ internal fun homeDocumentId(homeId: String, feature: String) = "$homeId:$feature
  * document is stored straight away. It is a hook rather than an interface bound on [S] so a source need not change
  * shape to be stored here; typically `{ it.refresh() }`.
  */
-internal class HomeDocumentStore<S : HomeDocument>(
+public class SpaceDocumentStore<S : SpaceDocument>(
     private val database: KitsDatabase,
     val feature: String,
     private val nowMillis: () -> Long,
     private val refreshNew: suspend (S) -> Unit,
     private val create: suspend (
-        homeId: String,
+        spaceId: String,
         document: Document,
         persist: suspend (ByteArray) -> Unit,
         onLocalChange: () -> Unit,
@@ -46,39 +46,39 @@ internal class HomeDocumentStore<S : HomeDocument>(
     private val sources = mutableMapOf<String, S>()
     private val _localChanges = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
-    /** The id of a Home each time its document is edited on this device (not when a sync brings in a change). */
+    /** The id of a Space each time its document is edited on this device (not when a sync brings in a change). */
     val localChanges: SharedFlow<String> = _localChanges.asSharedFlow()
 
-    /** [homeId]'s source, opened on first use; null if there is no such Home or [create] cannot open it yet. */
-    suspend fun forHome(homeId: String): S? = lock.withLock {
-        if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) {
-            sources.remove(homeId)
+    /** [spaceId]'s source, opened on first use; null if there is no such Space or [create] cannot open it yet. */
+    suspend fun forSpace(spaceId: String): S? = lock.withLock {
+        if (database.homeQueries.selectById(spaceId).awaitAsOneOrNull() == null) {
+            sources.remove(spaceId)
             return@withLock null
         }
-        sources[homeId]?.let { return@withLock it }
-        val source = openHomeDocument(database, homeId, feature, nowMillis, refreshNew, create, newDocument) { _localChanges.tryEmit(homeId) }
+        sources[spaceId]?.let { return@withLock it }
+        val source = openSpaceDocument(database, spaceId, feature, nowMillis, refreshNew, create, newDocument) { _localChanges.tryEmit(spaceId) }
         if (source == null) {
-            sources.remove(homeId)
+            sources.remove(spaceId)
             return@withLock null
         }
-        sources[homeId] = source
+        sources[spaceId] = source
         source
     }
 }
 
 /**
- * The open path [HomeDocumentStore.forHome] uses, also callable on its own (the `openXDocumentSource` functions): loads
- * [homeId]'s [feature] document from [database] or starts an empty one, builds the source with [create], and calls
- * [refreshNew] when nothing was stored so the empty document is stored straight away. Does not check the Home exists.
+ * The open path [SpaceDocumentStore.forSpace] uses, also callable on its own (the `openXDocumentSource` functions): loads
+ * [spaceId]'s [feature] document from [database] or starts an empty one, builds the source with [create], and calls
+ * [refreshNew] when nothing was stored so the empty document is stored straight away. Does not check the Space exists.
  */
-internal suspend fun <S : HomeDocument> openHomeDocument(
+public suspend fun <S : SpaceDocument> openSpaceDocument(
     database: KitsDatabase,
-    homeId: String,
+    spaceId: String,
     feature: String,
     nowMillis: () -> Long,
     refreshNew: suspend (S) -> Unit,
     create: suspend (
-        homeId: String,
+        spaceId: String,
         document: Document,
         persist: suspend (ByteArray) -> Unit,
         onLocalChange: () -> Unit,
@@ -87,12 +87,12 @@ internal suspend fun <S : HomeDocument> openHomeDocument(
     onLocalChange: () -> Unit,
 ): S? {
     val queries = database.automergeDocumentQueries
-    val documentId = homeDocumentId(homeId, feature)
+    val documentId = spaceDocumentId(spaceId, feature)
     val stored = queries.selectById(documentId).awaitAsOneOrNull()
     val source = create(
-        homeId,
+        spaceId,
         Document.load(stored?.bytes ?: newDocument()),
-        { bytes -> queries.upsert(documentId, homeId, feature, bytes, nowMillis()) },
+        { bytes -> queries.upsert(documentId, spaceId, feature, bytes, nowMillis()) },
         onLocalChange,
     ) ?: return null
     if (stored == null) refreshNew(source)

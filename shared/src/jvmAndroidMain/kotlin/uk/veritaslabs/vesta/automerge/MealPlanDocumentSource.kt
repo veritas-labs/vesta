@@ -6,10 +6,10 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.automerge.Document
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.docs.homeDocumentId
-import uk.veritaslabs.vesta.docs.openHomeDocument
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.spaceDocumentId
+import uk.veritaslabs.kits.docs.openSpaceDocument
 import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.MealPlan
@@ -19,7 +19,7 @@ import uk.veritaslabs.vesta.ui.screens.MealSlot
 private const val MealPlanFeature = "mealplan"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s meal plan document. */
-fun mealPlanDocumentId(homeId: String): String = homeDocumentId(homeId, MealPlanFeature)
+fun mealPlanDocumentId(homeId: String): String = spaceDocumentId(homeId, MealPlanFeature)
 
 /**
  * A [MealPlanSource] backed by a meal plan Automerge [document] (ADR-028). Same threading contract as
@@ -34,7 +34,7 @@ class MealPlanDocumentSource private constructor(
     private val nowMillis: () -> Long,
     private val newGuestId: () -> String,
     override val plan: Flow<MealPlan>,
-) : MealPlanSource, HomeDocument by core {
+) : MealPlanSource, SpaceDocument by core {
 
     constructor(
         document: Document,
@@ -101,7 +101,7 @@ suspend fun openMealPlanDocumentSource(
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
 ): MealPlanDocumentSource = checkNotNull(
-    openHomeDocument(
+    openSpaceDocument(
         database, homeId, MealPlanFeature, nowMillis,
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed -> MealPlanDocumentSource(document, persist, changed, nowMillis) },

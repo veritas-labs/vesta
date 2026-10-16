@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.datasync
+package uk.veritaslabs.kits.docs
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.time.Clock
@@ -10,7 +10,7 @@ import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.kits.store.KitsDatabase
 
 /** The kinds of [SyncEventRecorder] event, as stored in `SyncEvent.kind`. */
-internal object SyncEventKinds {
+public object SyncEventKinds {
     const val Received = "received"
     const val Sent = "sent"
     const val Failed = "failed"
@@ -26,29 +26,29 @@ internal object SyncEventKinds {
 }
 
 /** The modules of the sync machinery itself; the app's own are named by its document types. A [SyncEventRecorder] event can name either, as stored in `SyncEvent.module`. Never content, only which part moved. */
-internal object SyncModules {
+public object SyncModules {
     const val Members = "members"
 
-    /** Mailbox events belong to the Home as a whole rather than to one module. */
+    /** Mailbox events belong to the Space as a whole rather than to one module. */
     const val Mailbox = "mailbox"
 }
 
 /**
  * Keeps the Sync activity log (docs/adr/ADR-033-sync-activity.md): a content-free, local record of what moved between this
- * device and others, per Home. Events are buffered in memory and written by [flush], which the sync service calls at the end
- * of each round. The same event (Home, module, peer, kind and detail) within five minutes of the last one is not a new row but a
+ * device and others, per Space. Events are buffered in memory and written by [flush], which the sync service calls at the end
+ * of each round. The same event (Space, module, peer, kind and detail) within five minutes of the last one is not a new row but a
  * higher `count` on it, so a busy hour is a handful of rows rather than thousands.
  *
  * Recording must never fail a sync: every method swallows its own failures (cancellation aside), and a failed [flush]
  * drops what it was holding.
  */
-class SyncEventRecorder(
+public class SyncEventRecorder(
     private val database: KitsDatabase,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
     private class Pending(
-        val homeId: String,
+        val spaceId: String,
         val module: String,
         val peer: String?,
         val kind: String,
@@ -63,37 +63,37 @@ class SyncEventRecorder(
     private val lastSyncedInMemory = mutableMapOf<String, Long>()
     private val lastSyncedWritten = mutableMapOf<String, Long>()
 
-    /** [peer] sent us changes to [module] of [homeId]. */
-    suspend fun received(homeId: String, module: String, peer: String) =
-        record(homeId, module, peer, SyncEventKinds.Received, null)
+    /** [peer] sent us changes to [module] of [spaceId]. */
+    suspend fun received(spaceId: String, module: String, peer: String) =
+        record(spaceId, module, peer, SyncEventKinds.Received, null)
 
-    /** We sent [peer] changes to [module] of [homeId]. */
-    suspend fun sent(homeId: String, module: String, peer: String) =
-        record(homeId, module, peer, SyncEventKinds.Sent, null)
+    /** We sent [peer] changes to [module] of [spaceId]. */
+    suspend fun sent(spaceId: String, module: String, peer: String) =
+        record(spaceId, module, peer, SyncEventKinds.Sent, null)
 
-    /** Syncing [module] of [homeId] with [peer] failed; [detail] says why, in words that name no content. */
-    suspend fun failed(homeId: String, module: String, peer: String, detail: String) =
-        record(homeId, module, peer, SyncEventKinds.Failed, detail)
+    /** Syncing [module] of [spaceId] with [peer] failed; [detail] says why, in words that name no content. */
+    suspend fun failed(spaceId: String, module: String, peer: String, detail: String) =
+        record(spaceId, module, peer, SyncEventKinds.Failed, detail)
 
-    /** Who belongs to [homeId] changed in a way involving [peer]; [detail] says how. */
-    suspend fun membership(homeId: String, peer: String, detail: String) =
-        record(homeId, SyncModules.Members, peer, SyncEventKinds.Membership, detail)
+    /** Who belongs to [spaceId] changed in a way involving [peer]; [detail] says how. */
+    suspend fun membership(spaceId: String, peer: String, detail: String) =
+        record(spaceId, SyncModules.Members, peer, SyncEventKinds.Membership, detail)
 
-    /** Changes passed through [homeId]'s mailbox, [incoming] or outgoing; [peer] is the other device when known. */
-    suspend fun mailbox(homeId: String, incoming: Boolean, peer: String?) = record(
-        homeId, SyncModules.Mailbox, peer, if (incoming) SyncEventKinds.MailboxIn else SyncEventKinds.MailboxOut, null,
+    /** Changes passed through [spaceId]'s mailbox, [incoming] or outgoing; [peer] is the other device when known. */
+    suspend fun mailbox(spaceId: String, incoming: Boolean, peer: String?) = record(
+        spaceId, SyncModules.Mailbox, peer, if (incoming) SyncEventKinds.MailboxIn else SyncEventKinds.MailboxOut, null,
     )
 
     /**
-     * [peer] sent something in a format newer than this version reads, for [module] of [homeId]; [detail] is the version or the
+     * [peer] sent something in a format newer than this version reads, for [module] of [spaceId]; [detail] is the version or the
      * name of the document type, never content. Repeats of the same thing fold into one row.
      */
-    suspend fun unsupportedVersion(homeId: String, module: String, peer: String?, detail: String) =
-        record(homeId, module, peer, SyncEventKinds.UnsupportedVersion, safeDetail(detail))
+    suspend fun unsupportedVersion(spaceId: String, module: String, peer: String?, detail: String) =
+        record(spaceId, module, peer, SyncEventKinds.UnsupportedVersion, safeDetail(detail))
 
     /** [peer] sent a message of a family this version knows, with a `kind` it doesn't; [detail] is that kind. */
-    suspend fun unknownMessage(homeId: String, peer: String?, detail: String) =
-        record(homeId, SyncModules.Members, peer, SyncEventKinds.UnknownMessage, safeDetail(detail))
+    suspend fun unknownMessage(spaceId: String, peer: String?, detail: String) =
+        record(spaceId, SyncModules.Members, peer, SyncEventKinds.UnknownMessage, safeDetail(detail))
 
     /**
      * Notes that this device synced with [peer] just now. The time is kept in memory at once, and written to the table
@@ -137,11 +137,11 @@ class SyncEventRecorder(
         }
     }
 
-    /** Writes one event; a failure (a Home deleted since, say) drops only that event, not the rest of the batch. */
+    /** Writes one event; a failure (a Space deleted since, say) drops only that event, not the rest of the batch. */
     private suspend fun write(event: Pending) {
         try {
             val open = database.syncEventQueries.findOpen(
-                homeId = event.homeId,
+                homeId = event.spaceId,
                 module = event.module,
                 peerAgent = event.peer,
                 kind = event.kind,
@@ -150,7 +150,7 @@ class SyncEventRecorder(
             ).awaitAsOneOrNull()
             if (open == null) {
                 database.syncEventQueries.insert(
-                    event.homeId, event.at, event.lastAt, event.kind, event.module, event.peer, event.detail, event.count,
+                    event.spaceId, event.at, event.lastAt, event.kind, event.module, event.peer, event.detail, event.count,
                 )
             } else {
                 database.syncEventQueries.bump(maxOf(open.lastAt, event.lastAt), open.count + event.count, open.id)
@@ -173,28 +173,28 @@ class SyncEventRecorder(
         }
     }
 
-    /** Forgets every event of [homeId], buffered or written, for when the Home is deleted or left. */
-    suspend fun forgetHome(homeId: String) {
+    /** Forgets every event of [spaceId], buffered or written, for when the Space is deleted or left. */
+    suspend fun forgetHome(spaceId: String) {
         try {
-            lock.withLock { buffer.removeAll { it.homeId == homeId } }
-            database.syncEventQueries.deleteForHome(homeId)
+            lock.withLock { buffer.removeAll { it.spaceId == spaceId } }
+            database.syncEventQueries.deleteForHome(spaceId)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
-            // Nothing to do: the rows go with the Home anyway (ON DELETE CASCADE).
+            // Nothing to do: the rows go with the Space anyway (ON DELETE CASCADE).
         }
     }
 
-    private suspend fun record(homeId: String, module: String, peer: String?, kind: String, detail: String?) {
+    private suspend fun record(spaceId: String, module: String, peer: String?, kind: String, detail: String?) {
         try {
             val now = nowMillis()
             lock.withLock {
                 val same = buffer.lastOrNull {
-                    it.homeId == homeId && it.module == module && it.peer == peer && it.kind == kind && it.detail == detail &&
+                    it.spaceId == spaceId && it.module == module && it.peer == peer && it.kind == kind && it.detail == detail &&
                         now - it.lastAt < CollapseWindowMillis
                 }
                 if (same == null) {
-                    buffer.add(Pending(homeId, module, peer, kind, now, now, detail, 1))
+                    buffer.add(Pending(spaceId, module, peer, kind, now, now, detail, 1))
                 } else {
                     same.lastAt = now
                     same.count++

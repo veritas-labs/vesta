@@ -1,4 +1,8 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.datasync
+
+import uk.veritaslabs.kits.docs.SyncableDocument
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.time.Clock

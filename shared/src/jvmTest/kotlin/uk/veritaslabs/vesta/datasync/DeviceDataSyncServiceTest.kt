@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.docs.SyncEnvelope
+import uk.veritaslabs.kits.docs.SyncEventRecorder
+import uk.veritaslabs.kits.docs.SyncModules
+
 import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.home.homeRepository
 import uk.veritaslabs.vesta.getDeviceName

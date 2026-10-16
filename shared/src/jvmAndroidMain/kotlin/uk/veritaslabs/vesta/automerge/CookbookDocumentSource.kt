@@ -6,10 +6,10 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.automerge.Document
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.docs.homeDocumentId
-import uk.veritaslabs.vesta.docs.openHomeDocument
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.spaceDocumentId
+import uk.veritaslabs.kits.docs.openSpaceDocument
 import uk.veritaslabs.kits.blobs.BlobReference
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.CookbookSource
@@ -18,7 +18,7 @@ import uk.veritaslabs.vesta.ui.screens.Recipe
 private const val CookbookFeature = "cookbook"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s cookbook document. */
-fun cookbookDocumentId(homeId: String): String = homeDocumentId(homeId, CookbookFeature)
+fun cookbookDocumentId(homeId: String): String = spaceDocumentId(homeId, CookbookFeature)
 
 /**
  * A [CookbookSource] backed by a cookbook Automerge [document] (ADR-022). Recipes are keys of the document's root map, so there is no
@@ -32,7 +32,7 @@ class CookbookDocumentSource private constructor(
     private val state: MutableStateFlow<List<Recipe>>,
     private val core: AutomergeDocumentCore,
     private val newKey: () -> String,
-) : CookbookSource, HomeDocument by core {
+) : CookbookSource, SpaceDocument by core {
 
     constructor(
         document: Document,
@@ -84,7 +84,7 @@ suspend fun openCookbookDocumentSource(
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
 ): CookbookDocumentSource = checkNotNull(
-    openHomeDocument(
+    openSpaceDocument(
         database, homeId, CookbookFeature, nowMillis,
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed -> CookbookDocumentSource(document, persist, changed) },

@@ -1,10 +1,10 @@
-package uk.veritaslabs.vesta.datasync
+package uk.veritaslabs.kits.docs
 
 /**
  * The wire format of ADR-006: `[1 byte: id length N][N bytes: document id, UTF-8][Automerge sync message]`. An
  * Automerge sync message doesn't say which document it is for, and every direct message arrives on one stream.
  */
-class SyncEnvelope(val documentId: String, val message: ByteArray) {
+public class SyncEnvelope(val documentId: String, val message: ByteArray) {
 
     fun encode(): ByteArray {
         val id = documentId.encodeToByteArray()

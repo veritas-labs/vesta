@@ -6,10 +6,10 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.automerge.Document
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.docs.homeDocumentId
-import uk.veritaslabs.vesta.docs.openHomeDocument
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.spaceDocumentId
+import uk.veritaslabs.kits.docs.openSpaceDocument
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.Merchant
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
@@ -17,7 +17,7 @@ import uk.veritaslabs.vesta.ui.screens.MerchantsSource
 private const val MerchantsFeature = "merchants"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s merchants document. */
-fun merchantsDocumentId(homeId: String): String = homeDocumentId(homeId, MerchantsFeature)
+fun merchantsDocumentId(homeId: String): String = spaceDocumentId(homeId, MerchantsFeature)
 
 /**
  * A [MerchantsSource] backed by a merchants Automerge [document] (ADR-026). Merchants are keys of the document's root map, so there is no
@@ -31,7 +31,7 @@ class MerchantsDocumentSource private constructor(
     private val state: MutableStateFlow<List<Merchant>>,
     private val core: AutomergeDocumentCore,
     private val newKey: () -> String,
-) : MerchantsSource, HomeDocument by core {
+) : MerchantsSource, SpaceDocument by core {
 
     constructor(
         document: Document,
@@ -74,7 +74,7 @@ suspend fun openMerchantsDocumentSource(
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
 ): MerchantsDocumentSource = checkNotNull(
-    openHomeDocument(
+    openSpaceDocument(
         database, homeId, MerchantsFeature, nowMillis,
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed -> MerchantsDocumentSource(document, persist, changed) },

@@ -1,4 +1,9 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.datasync
+
+import uk.veritaslabs.kits.docs.ChangesWaiting
+import uk.veritaslabs.kits.docs.SyncTargets
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlin.test.Test

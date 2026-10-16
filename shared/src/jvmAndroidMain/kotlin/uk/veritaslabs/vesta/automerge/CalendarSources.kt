@@ -4,19 +4,19 @@ import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharedFlow
 import uk.veritaslabs.vesta.calendar.EventCalendar
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.docs.HomeDocumentStore
-import uk.veritaslabs.vesta.docs.homeDocumentId
+import uk.veritaslabs.kits.docs.SpaceDocumentStore
+import uk.veritaslabs.kits.docs.spaceDocumentId
 
 private const val CalendarFeature = "calendar"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s calendar document. */
-fun calendarDocumentId(homeId: String): String = homeDocumentId(homeId, CalendarFeature)
+fun calendarDocumentId(homeId: String): String = spaceDocumentId(homeId, CalendarFeature)
 
 /**
  * Id of the user's private calendar in [homeId]: kept per Home, but unlike the Home's own documents it only ever syncs between the
  * user's paired devices (ADR-029). It must not end in `:calendar`, which would make it the Home's shared calendar.
  */
-fun privateCalendarDocumentId(homeId: String): String = homeDocumentId(homeId, PrivateCalendarFeature)
+fun privateCalendarDocumentId(homeId: String): String = spaceDocumentId(homeId, PrivateCalendarFeature)
 
 private const val PrivateCalendarFeature = "private-calendar"
 
@@ -26,12 +26,12 @@ class CalendarSources(
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
-    private val shared = HomeDocumentStore(
+    private val shared = SpaceDocumentStore(
         database, CalendarFeature, nowMillis,
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed -> CalendarDocumentSource(document, EventCalendar.Home, persist, changed) },
     )
-    private val personal = HomeDocumentStore(
+    private val personal = SpaceDocumentStore(
         database, PrivateCalendarFeature, nowMillis,
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed -> CalendarDocumentSource(document, EventCalendar.Private, persist, changed) },
@@ -44,8 +44,8 @@ class CalendarSources(
     val privateChanges: SharedFlow<String> = personal.localChanges
 
     /** [homeId]'s calendar source, opened on first use; null if there is no such Home. */
-    suspend fun forHome(homeId: String): CalendarDocumentSource? = shared.forHome(homeId)
+    suspend fun forHome(homeId: String): CalendarDocumentSource? = shared.forSpace(homeId)
 
     /** The user's private calendar in [homeId], opened on first use; null if there is no such Home. */
-    suspend fun privateForHome(homeId: String): CalendarDocumentSource? = personal.forHome(homeId)
+    suspend fun privateForHome(homeId: String): CalendarDocumentSource? = personal.forSpace(homeId)
 }

@@ -1,4 +1,17 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.mailbox
+
+import uk.veritaslabs.kits.docs.MailboxDocuments
+import uk.veritaslabs.kits.docs.MailboxEntry
+import uk.veritaslabs.kits.docs.SnapshotKeys
+import uk.veritaslabs.kits.docs.SnapshotManifest
+import uk.veritaslabs.kits.docs.MailboxReader
+import uk.veritaslabs.kits.docs.MailboxWriter
+import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
+import uk.veritaslabs.kits.docs.SyncEventKinds
+import uk.veritaslabs.kits.docs.SyncEventRecorder
+import uk.veritaslabs.kits.docs.SyncModules
 
 import uk.veritaslabs.vesta.getDeviceName
 import kotlin.test.Test
@@ -15,9 +28,6 @@ import uk.veritaslabs.vesta.automerge.storeEmptyShoppingList
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import uk.veritaslabs.vesta.datasync.HomeRosters
-import uk.veritaslabs.vesta.datasync.SyncEventKinds
-import uk.veritaslabs.vesta.datasync.SyncEventRecorder
-import uk.veritaslabs.vesta.datasync.SyncModules
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
@@ -50,7 +60,7 @@ class MailboxTest {
         val node = network.node(agentId)
         var storeId: String? = null
         val merchants = uk.veritaslabs.vesta.automerge.MerchantsSources(database)
-        val documents = HidingDocuments(HomeMailboxDocuments(uk.veritaslabs.vesta.datasync.TestHomeDocuments(database, rosters, publishRosters = {}, sources = uk.veritaslabs.vesta.automerge.VestaHomeSources(database, pantries = pantries, shoppingLists = lists, merchants = merchants)).registry))
+        val documents = HidingDocuments(SpaceMailboxDocuments(uk.veritaslabs.vesta.datasync.TestHomeDocuments(database, rosters, publishRosters = {}, sources = uk.veritaslabs.vesta.automerge.VestaHomeSources(database, pantries = pantries, shoppingLists = lists, merchants = merchants)).registry))
         var writer = MailboxWriter(node, database, documents) { storeId }
         val recorder = SyncEventRecorder(database)
         val reader = MailboxReader(node, database, documents, recorder) { storeId }

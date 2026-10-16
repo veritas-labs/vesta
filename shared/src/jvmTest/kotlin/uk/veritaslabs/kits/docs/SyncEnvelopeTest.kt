@@ -1,4 +1,6 @@
-package uk.veritaslabs.vesta.datasync
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
+package uk.veritaslabs.kits.docs
 
 import kotlin.test.Test
 import kotlin.test.assertContentEquals

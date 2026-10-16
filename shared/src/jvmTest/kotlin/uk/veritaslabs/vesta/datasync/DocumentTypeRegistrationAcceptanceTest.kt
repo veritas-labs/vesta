@@ -1,5 +1,7 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.docs.SyncEnvelope
+
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.home.homeRepository
@@ -35,18 +37,18 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.docs.HomeDocumentStore
-import uk.veritaslabs.vesta.docs.HomeDocumentType
-import uk.veritaslabs.vesta.docs.Scope
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.SpaceDocumentStore
+import uk.veritaslabs.kits.docs.SpaceDocumentType
+import uk.veritaslabs.kits.docs.Scope
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.profile.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /** A throwaway document type that exists only in this test: a map of note ids to text, as an Automerge document. */
-private class ProbeDocument(document: Document, persist: suspend (ByteArray) -> Unit, onLocalChange: () -> Unit) : HomeDocument {
+private class ProbeDocument(document: Document, persist: suspend (ByteArray) -> Unit, onLocalChange: () -> Unit) : SpaceDocument {
     private val state = MutableStateFlow(document.readNotes())
     private val core = AutomergeDocumentCore(document, { state.value = document.readNotes() }, persist, onLocalChange)
     val notes get() = state
@@ -71,7 +73,7 @@ private fun Document.readNotes(): List<String> =
     mapEntries(ObjectId.ROOT).getOrNull().orEmpty().mapNotNull { (it.value as? AmValue.Str)?.value }.sorted()
 
 /**
- * A document type the sync engine has never heard of, registered through [HomeDocumentType] only
+ * A document type the sync engine has never heard of, registered through [SpaceDocumentType] only
  * (docs/plans/document-registry-and-source-collapse-plan.md, WP9; criteria in docs/testing/acceptance-tests.md,
  * "Document type registry (this plan)"). Nothing in the engine, the mailbox, the acknowledgement check, Sync activity or
  * Changes waiting names `probe`; the only thing done to the engine is handing it the extra type.
@@ -92,7 +94,7 @@ class DocumentTypeRegistrationAcceptanceTest {
         val devices = SyncedDeviceRepository(database)
         val receivedDocuments = ConcurrentLinkedQueue<String>()
 
-        private fun store(feature: String) = HomeDocumentStore(
+        private fun store(feature: String) = SpaceDocumentStore(
             database, feature, { System.currentTimeMillis() },
             refreshNew = { it.refresh() },
             create = { _, document, persist, changed -> ProbeDocument(document, persist, changed) },
@@ -104,8 +106,8 @@ class DocumentTypeRegistrationAcceptanceTest {
         val sync = DeviceDataSyncService(
             node, database, devices, ::getDeviceName,
             VestaHomeSources(database).documentTypes() + listOf(
-                HomeDocumentType(probe, probeModule, Scope.Shared, shared::forHome, shared.localChanges),
-                HomeDocumentType(privateProbe, probeModule, Scope.Private, personal::forHome, personal.localChanges),
+                SpaceDocumentType(probe, probeModule, Scope.Shared, shared::forSpace, shared.localChanges),
+                SpaceDocumentType(privateProbe, probeModule, Scope.Private, personal::forSpace, personal.localChanges),
             ),
             interval = 50.milliseconds, activityRefresh = 20.milliseconds,
             seeding = VestaHomeSeeding(VestaHomeSources(database), database),
@@ -132,11 +134,11 @@ class DocumentTypeRegistrationAcceptanceTest {
             storeEmptyPantry(database, id)
         }
 
-        suspend fun addProbe(homeId: String, key: String, text: String) = shared.forHome(homeId)!!.add(key, text)
-        suspend fun addPrivateProbe(homeId: String, key: String, text: String) = personal.forHome(homeId)!!.add(key, text)
-        suspend fun probeNotes(homeId: String) = shared.forHome(homeId)?.notes?.value
-        suspend fun privateProbeNotes(homeId: String) = personal.forHome(homeId)?.notes?.value
-        suspend fun probeHeads(homeId: String) = shared.forHome(homeId)!!.heads()
+        suspend fun addProbe(homeId: String, key: String, text: String) = shared.forSpace(homeId)!!.add(key, text)
+        suspend fun addPrivateProbe(homeId: String, key: String, text: String) = personal.forSpace(homeId)!!.add(key, text)
+        suspend fun probeNotes(homeId: String) = shared.forSpace(homeId)?.notes?.value
+        suspend fun privateProbeNotes(homeId: String) = personal.forSpace(homeId)?.notes?.value
+        suspend fun probeHeads(homeId: String) = shared.forSpace(homeId)!!.heads()
 
         suspend fun activity(homeId: String) = database.syncEventQueries.selectPage(homeId, Long.MAX_VALUE, 100).awaitAsList()
         suspend fun changesWaiting(homeId: String) = sync.syncActivity.snapshot(homeId).first().changesWaiting

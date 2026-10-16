@@ -1,9 +1,11 @@
-package uk.veritaslabs.vesta.mailbox
+package uk.veritaslabs.kits.docs
+
+import uk.veritaslabs.kits.KitsInternalApi
 
 import kotlin.random.Random
 
 /**
- * One value in a Home's `mailbox` group store (docs/adr/ADR-020-syncing-without-overlapping-online-time.md): a slice of
+ * One value in a Space's `mailbox` group store (docs/adr/ADR-020-syncing-without-overlapping-online-time.md): a slice of
  * the Automerge changes a device made to one document. x0x refuses a value over 64 KiB, so changes larger than
  * [MaxPartBytes] are cut into parts, written under consecutive keys and put back together by the reader.
  *
@@ -11,7 +13,8 @@ import kotlin.random.Random
  * version byte lets a sealed form be added later without breaking old entries. The deposit number is random per attempt,
  * so a reader never joins parts of two attempts when a failed deposit is written again over the same keys.
  */
-internal class MailboxEntry(
+@KitsInternalApi
+public class MailboxEntry(
     val documentId: String,
     val deposit: Int,
     val part: Int,

@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.automerge.Document
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.docs.homeDocumentId
-import uk.veritaslabs.vesta.docs.openHomeDocument
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.spaceDocumentId
+import uk.veritaslabs.kits.docs.openSpaceDocument
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesSource
@@ -22,7 +22,7 @@ import uk.veritaslabs.vesta.ui.screens.PantrySource
 private const val PantryFeature = "pantry"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s Pantry document. */
-fun pantryDocumentId(homeId: String): String = homeDocumentId(homeId, PantryFeature)
+fun pantryDocumentId(homeId: String): String = spaceDocumentId(homeId, PantryFeature)
 
 /**
  * A [PantrySource] backed by a Pantry Automerge [document] (ADR-008).
@@ -42,7 +42,7 @@ class PantryDocumentSource private constructor(
     private val state: MutableStateFlow<PantryContents>,
     private val categoryState: MutableStateFlow<List<PantryCategoryGroup>>,
     private val core: AutomergeDocumentCore,
-) : PantrySource, PantryCategoriesSource, HomeDocument by core {
+) : PantrySource, PantryCategoriesSource, SpaceDocument by core {
 
     constructor(
         document: Document,
@@ -182,7 +182,7 @@ suspend fun openPantryDocumentSource(
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
 ): PantryDocumentSource = checkNotNull(
-    openHomeDocument(
+    openSpaceDocument(
         database, homeId, PantryFeature, nowMillis,
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed ->

@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.automerge.Document
 import uk.veritaslabs.vesta.calendar.CalendarEvent
 import uk.veritaslabs.vesta.calendar.EventCalendar
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
 import uk.veritaslabs.vesta.ui.screens.CalendarSource
 
 /**
@@ -18,7 +18,7 @@ class CalendarDocumentSource private constructor(
     private val core: AutomergeDocumentCore,
     override val calendar: EventCalendar,
     override val events: Flow<List<CalendarEvent>>,
-) : CalendarSource, HomeDocument by core {
+) : CalendarSource, SpaceDocument by core {
 
     constructor(
         document: Document,

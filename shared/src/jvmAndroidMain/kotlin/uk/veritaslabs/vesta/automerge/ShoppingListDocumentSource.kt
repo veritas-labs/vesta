@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.automerge.Document
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
-import uk.veritaslabs.vesta.docs.homeDocumentId
-import uk.veritaslabs.vesta.docs.openHomeDocument
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
+import uk.veritaslabs.kits.docs.spaceDocumentId
+import uk.veritaslabs.kits.docs.openSpaceDocument
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.ui.screens.ShoppingListItem
@@ -18,7 +18,7 @@ import uk.veritaslabs.vesta.ui.screens.ShoppingListSource
 private const val ShoppingListFeature = "shopping-list"
 
 /** ADR-006's `"$homeId:$feature"` id of [homeId]'s shopping-list document. */
-fun shoppingListDocumentId(homeId: String): String = homeDocumentId(homeId, ShoppingListFeature)
+fun shoppingListDocumentId(homeId: String): String = spaceDocumentId(homeId, ShoppingListFeature)
 
 /**
  * A [ShoppingListSource] backed by a shopping-list Automerge [document] (ADR-008, fourth amendment), downstream of
@@ -31,7 +31,7 @@ class ShoppingListDocumentSource private constructor(
     private val state: MutableStateFlow<List<ShoppingListItem>>,
     private val core: AutomergeDocumentCore,
     private val pantry: PantryDocumentSource,
-) : ShoppingListSource, HomeDocument by core {
+) : ShoppingListSource, SpaceDocument by core {
 
     constructor(
         document: Document,
@@ -171,7 +171,7 @@ suspend fun openShoppingListDocumentSource(
     nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     onLocalChange: () -> Unit = {},
 ): ShoppingListDocumentSource = checkNotNull(
-    openHomeDocument(
+    openSpaceDocument(
         database, homeId, ShoppingListFeature, nowMillis,
         refreshNew = { it.refresh() },
         create = { _, document, persist, changed -> ShoppingListDocumentSource(document, pantry, persist, changed) },

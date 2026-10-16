@@ -1,4 +1,10 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.datasync
+
+import uk.veritaslabs.kits.docs.SyncEventRecorder
+import uk.veritaslabs.kits.docs.SyncEventKinds
+import uk.veritaslabs.kits.docs.ChangesWaiting
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import java.util.concurrent.ConcurrentHashMap

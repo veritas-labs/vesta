@@ -1,3 +1,5 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.automerge
 
 import kotlin.test.Test
@@ -7,9 +9,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.automerge.Document
 import org.automerge.ObjectId
-import uk.veritaslabs.vesta.mailbox.changesSince
-import uk.veritaslabs.vesta.mailbox.decodeHeads
-import uk.veritaslabs.vesta.mailbox.encodeHeads
+import uk.veritaslabs.kits.docs.changesSince
+import uk.veritaslabs.kits.docs.decodeHeads
+import uk.veritaslabs.kits.docs.encodeHeads
 
 /** What the mailbox relies on from Automerge's `encodeChangesSince` / `applyEncodedChanges` (ADR-020 plan, slice 3). */
 class EncodedChangesTest {

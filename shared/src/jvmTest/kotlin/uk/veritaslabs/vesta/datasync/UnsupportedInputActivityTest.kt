@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.docs.SyncEnvelope
+import uk.veritaslabs.kits.docs.SyncEventKinds
+import uk.veritaslabs.kits.docs.SyncModules
+
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import kotlin.io.encoding.Base64
 import kotlin.test.AfterTest

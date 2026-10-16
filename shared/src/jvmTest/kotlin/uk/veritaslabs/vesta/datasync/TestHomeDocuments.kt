@@ -2,8 +2,8 @@ package uk.veritaslabs.vesta.datasync
 
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.docs.HomeDocumentRegistry
-import uk.veritaslabs.vesta.docs.HomeDocumentType
+import uk.veritaslabs.kits.docs.SpaceDocumentRegistry
+import uk.veritaslabs.kits.docs.SpaceDocumentType
 
 /**
  * The registry the engine builds (the roster it registers itself, then the app's types), for tests that need the
@@ -14,7 +14,7 @@ internal class TestHomeDocuments(
     val rosters: HomeRosters,
     publishRosters: suspend () -> Unit,
     sources: VestaHomeSources = VestaHomeSources(database),
-    extraTypes: List<HomeDocumentType> = emptyList(),
+    extraTypes: List<SpaceDocumentType> = emptyList(),
 ) {
-    val registry = HomeDocumentRegistry(listOf(rosterDocumentType(rosters, publishRosters)) + sources.documentTypes() + extraTypes)
+    val registry = SpaceDocumentRegistry(listOf(rosterDocumentType(rosters, publishRosters)) + sources.documentTypes() + extraTypes)
 }

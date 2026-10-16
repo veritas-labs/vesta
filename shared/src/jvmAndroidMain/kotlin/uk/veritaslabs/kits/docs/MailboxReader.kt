@@ -1,17 +1,17 @@
-package uk.veritaslabs.vesta.mailbox
+package uk.veritaslabs.kits.docs
+
+import uk.veritaslabs.kits.KitsInternalApi
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uk.veritaslabs.vesta.datasync.SyncEventRecorder
-import uk.veritaslabs.vesta.datasync.SyncModules
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.x0x.X0xClient
 
 private const val AutomergeExceptionClass = "org.automerge.AutomergeException"
 
 /**
- * Applies what other devices left in a Home's `mailbox` store to this device's documents
+ * Applies what other devices left in a Space's `mailbox` store to this device's documents
  * (docs/adr/ADR-020-syncing-without-overlapping-online-time.md).
  *
  * [fetch] lists the store, and for each other writer reads the entries after the last one it dealt with, in order, puts a
@@ -25,18 +25,19 @@ private const val AutomergeExceptionClass = "org.automerge.AutomergeException"
  * newer deposit is skipped, and a damaged one is skipped. An entry from a newer format is noted in Sync activity (ADR-034) and
  * not read, and the saved place stays before it, so a Vesta that can read it later still finds it; entries after it are read as usual,
  * and this run remembers how far ([Held]) so it doesn't apply them again every round. Only a snapshot that covers it ends the wait.
- * The same holds for an entry (or snapshot document) for a document this version doesn't have, or a Home it doesn't have yet.
+ * The same holds for an entry (or snapshot document) for a document this version doesn't have, or a Space it doesn't have yet.
  *
  * A gap that the writer's newest complete snapshot ([SnapshotKeys]) covers is not waited for: the writer has deleted those
  * entries, or they are about to be, and the snapshot holds everything they did, so it is applied and the place moves to the end
  * of what it covers. That is how a device that was away for longer than the writer keeps entries (or is new) catches up.
  */
-internal class MailboxReader(
+@KitsInternalApi
+public class MailboxReader(
     private val client: X0xClient,
     private val database: KitsDatabase,
     private val documents: MailboxDocuments,
     private val recorder: SyncEventRecorder? = null,
-    private val storeId: suspend (homeId: String) -> String?,
+    private val storeId: suspend (spaceId: String) -> String?,
 ) {
 
     private val lock = Mutex()
@@ -49,9 +50,9 @@ internal class MailboxReader(
     /** What a writer has in the store, as listed. */
     private class Listing(val sequences: MutableSet<Long> = mutableSetOf(), val manifests: MutableSet<Long> = mutableSetOf(), val chunks: MutableMap<Long, MutableSet<Int>> = mutableMapOf())
 
-    /** Reads [homeId]'s mailbox; returns how many deposits were applied. A Home with no open store reads nothing. */
-    suspend fun fetch(homeId: String): Int = lock.withLock {
-        val store = storeId(homeId) ?: return 0
+    /** Reads [spaceId]'s mailbox; returns how many deposits were applied. A Space with no open store reads nothing. */
+    suspend fun fetch(spaceId: String): Int = lock.withLock {
+        val store = storeId(spaceId) ?: return 0
         val self = checkNotNull(client.agent().agentId) { "x0x did not report this device's agent id" }
         val writers = mutableMapOf<String, Listing>()
         for (key in client.listStoreKeys(store).map { it.key }) {
@@ -64,20 +65,20 @@ internal class MailboxReader(
         }
         var applied = 0
         for ((writer, listing) in writers) {
-            if (writer != self) applied += readWriter(homeId, store, writer, listing)
+            if (writer != self) applied += readWriter(spaceId, store, writer, listing)
         }
         applied
     }
 
-    private suspend fun readWriter(homeId: String, store: String, writer: String, listing: Listing): Int {
-        val start = database.mailboxQueries.selectLastRead(homeId, writer).awaitAsOneOrNull() ?: -1L
+    private suspend fun readWriter(spaceId: String, store: String, writer: String, listing: Listing): Int {
+        val start = database.mailboxQueries.selectLastRead(spaceId, writer).awaitAsOneOrNull() ?: -1L
         var mark = start
         var applied = 0
         var assembler = Assembler()
         var sequence = start + 1
         var snapshot: Snapshot? = null // loaded once, if a gap needs it
         var snapshotLoaded = false
-        val key = homeId to writer
+        val key = spaceId to writer
         var earlier = held[key]?.takeIf { start + 1 <= it.at } // an entry in a newer format an earlier round stopped the saved place at
         var holding = false // an entry in a newer format was seen: the saved place stays before it
         var heldAt = -1L
@@ -92,11 +93,11 @@ internal class MailboxReader(
                 if (sequence !in listing.sequences) {
                     if (!snapshotLoaded) {
                         snapshotLoaded = true
-                        snapshot = latestCompleteSnapshot(homeId, store, writer, listing)
+                        snapshot = latestCompleteSnapshot(spaceId, store, writer, listing)
                     }
                     val covering = snapshot?.takeIf { it.coversThrough >= sequence } ?: break
                     val gapStart = sequence
-                    val result = applySnapshot(homeId, covering)
+                    val result = applySnapshot(spaceId, covering)
                     applied += result.applied
                     assembler = Assembler()
                     through = covering.coversThrough
@@ -105,7 +106,7 @@ internal class MailboxReader(
                         holding = false // the snapshot holds everything the writer did up to here
                     } else {
                         // It holds a document this version lacks: keep the place before the gap, so the snapshot is read again once it is known.
-                        result.unknown.forEach { recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, it) }
+                        result.unknown.forEach { recorder?.unsupportedVersion(spaceId, SyncModules.Mailbox, writer, it) }
                         if (!holding) heldAt = gapStart
                         holding = true
                     }
@@ -121,7 +122,7 @@ internal class MailboxReader(
                     val version = if (entry == null) MailboxEntry.newerVersion(bytes) else null
                     if (version != null) {
                         // Still too new. What follows it was applied in an earlier round: carry on from there.
-                        recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, "v$version")
+                        recorder?.unsupportedVersion(spaceId, SyncModules.Mailbox, writer, "v$version")
                         holding = true
                         heldAt = resumed.at
                         through = resumed.doneThrough
@@ -137,7 +138,7 @@ internal class MailboxReader(
                     if (version != null) {
                         if (!holding) heldAt = sequence
                         holding = true
-                        recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, "v$version")
+                        recorder?.unsupportedVersion(spaceId, SyncModules.Mailbox, writer, "v$version")
                     }
                     advance(sequence)
                     sequence++
@@ -148,12 +149,12 @@ internal class MailboxReader(
                     Assembler.Outcome.Stray -> advance(sequence) // the rest of its group was lost or replaced
                     Assembler.Outcome.Pending -> Unit
                     is Assembler.Outcome.Complete -> {
-                        when (apply(homeId, outcome.documentId, outcome.changes)) {
+                        when (apply(spaceId, outcome.documentId, outcome.changes)) {
                             Applied.Yes -> applied++
                             Applied.Damaged -> Unit
                             Applied.UnknownDocument -> {
-                                // A document this version lacks (or a Home it doesn't have yet): keep the place before the group, so an update reads it.
-                                recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, documentType(outcome.documentId))
+                                // A document this version lacks (or a Space it doesn't have yet): keep the place before the group, so an update reads it.
+                                recorder?.unsupportedVersion(spaceId, SyncModules.Mailbox, writer, documentType(outcome.documentId))
                                 if (!holding) heldAt = groupStart
                                 holding = true
                             }
@@ -165,7 +166,7 @@ internal class MailboxReader(
             }
         } finally {
             if (holding) held[key] = Held(heldAt, through) else held.remove(key)
-            if (mark != start) database.mailboxQueries.upsertLastRead(homeId, writer, mark)
+            if (mark != start) database.mailboxQueries.upsertLastRead(spaceId, writer, mark)
         }
         return applied
     }
@@ -173,12 +174,12 @@ internal class MailboxReader(
     private class Snapshot(val generation: Long, val coversThrough: Long, val store: String, val writer: String, val chunkCount: Int)
 
     /** The newest generation whose manifest and every chunk are listed, or null. */
-    private suspend fun latestCompleteSnapshot(homeId: String, store: String, writer: String, listing: Listing): Snapshot? {
+    private suspend fun latestCompleteSnapshot(spaceId: String, store: String, writer: String, listing: Listing): Snapshot? {
         for (generation in listing.manifests.sortedDescending()) {
             val bytes = client.getValue(store, SnapshotKeys.manifest(writer, generation)) ?: continue
             val manifest = SnapshotManifest.decode(bytes)
             if (manifest == null) {
-                SnapshotManifest.newerVersion(bytes)?.let { recorder?.unsupportedVersion(homeId, SyncModules.Mailbox, writer, "v$it") }
+                SnapshotManifest.newerVersion(bytes)?.let { recorder?.unsupportedVersion(spaceId, SyncModules.Mailbox, writer, "v$it") }
                 continue
             }
             val present = listing.chunks[generation].orEmpty()
@@ -192,11 +193,11 @@ internal class MailboxReader(
 
     private enum class Applied { Yes, Damaged, UnknownDocument }
 
-    /** The document type of a mailbox document id (`<home id>:<type>`), for the log. */
+    /** The document type of a mailbox document id (`<space id>:<type>`), for the log. */
     private fun documentType(documentId: String): String = documentId.substringAfterLast(':')
 
     /** Applies every document of [snapshot]. A chunk that has gone (it was replaced) applies none. */
-    private suspend fun applySnapshot(homeId: String, snapshot: Snapshot): SnapshotResult {
+    private suspend fun applySnapshot(spaceId: String, snapshot: Snapshot): SnapshotResult {
         val assembler = Assembler()
         val documentsAndChanges = mutableListOf<Pair<String, ByteArray>>()
         for (chunk in 0 until snapshot.chunkCount) {
@@ -204,7 +205,7 @@ internal class MailboxReader(
             val entry = MailboxEntry.decode(bytes) ?: continue
             (assembler.offer(entry) as? Assembler.Outcome.Complete)?.let { documentsAndChanges += it.documentId to it.changes }
         }
-        val results = documentsAndChanges.map { (documentId, changes) -> documentId to apply(homeId, documentId, changes) }
+        val results = documentsAndChanges.map { (documentId, changes) -> documentId to apply(spaceId, documentId, changes) }
         return SnapshotResult(
             results.count { it.second == Applied.Yes },
             results.filter { it.second == Applied.UnknownDocument }.map { documentType(it.first) }.toSet(),
@@ -212,8 +213,8 @@ internal class MailboxReader(
     }
 
     /** Applies the changes; [Applied.UnknownDocument] when this version has no such document (keep the entry), [Applied.Damaged] when the changes are invalid. */
-    private suspend fun apply(homeId: String, documentId: String, changes: ByteArray): Applied {
-        val document = documents.open(homeId, documentId) ?: return Applied.UnknownDocument
+    private suspend fun apply(spaceId: String, documentId: String, changes: ByteArray): Applied {
+        val document = documents.open(spaceId, documentId) ?: return Applied.UnknownDocument
         return try {
             document.applyChanges(changes)
             Applied.Yes

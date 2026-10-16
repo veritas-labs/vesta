@@ -1,4 +1,10 @@
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
 package uk.veritaslabs.vesta.datasync
+
+import uk.veritaslabs.kits.docs.SyncModules
+import uk.veritaslabs.kits.docs.SyncTargets
+import uk.veritaslabs.kits.docs.ChangesWaiting
 
 import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.home.homeRepository
@@ -31,8 +37,8 @@ import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.automerge.tasksDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.mailbox.HomeMailboxDocuments
-import uk.veritaslabs.vesta.docs.Scope
+import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
+import uk.veritaslabs.kits.docs.Scope
 import uk.veritaslabs.vesta.profile.ProfileRepository
 
 /**
@@ -66,7 +72,7 @@ class DocumentIdsTest {
         Expected("$homeId:roster", SyncModules.Members, private = false, inMailbox = true, idFor = ::rosterDocumentId),
     )
 
-    private fun mailbox(database: KitsDatabase) = HomeMailboxDocuments(documents(database).registry)
+    private fun mailbox(database: KitsDatabase) = SpaceMailboxDocuments(documents(database).registry)
 
     private fun documents(database: KitsDatabase) =
         TestHomeDocuments(database, HomeRosters(database, ProfileRepository(database, deviceName = ::getDeviceName), deviceName = ::getDeviceName), publishRosters = {})
@@ -135,7 +141,7 @@ class DocumentIdsTest {
     fun theMailboxListsExactlyTheRegistrysSharedDocumentsSoNoTypeCanBeLeftOut() {
         // Arrange
         val documents = documents(openInMemoryDatabase())
-        val mailbox = HomeMailboxDocuments(documents.registry)
+        val mailbox = SpaceMailboxDocuments(documents.registry)
 
         // Act
         val listed = mailbox.documentIds(homeId)

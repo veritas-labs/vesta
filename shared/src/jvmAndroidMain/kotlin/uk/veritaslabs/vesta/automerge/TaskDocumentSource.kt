@@ -3,8 +3,8 @@ package uk.veritaslabs.vesta.automerge
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.automerge.Document
-import uk.veritaslabs.vesta.docs.AutomergeDocumentCore
-import uk.veritaslabs.vesta.docs.HomeDocument
+import uk.veritaslabs.kits.docs.AutomergeDocumentCore
+import uk.veritaslabs.kits.docs.SpaceDocument
 import uk.veritaslabs.vesta.tasks.Task
 import uk.veritaslabs.vesta.tasks.TaskDone
 import uk.veritaslabs.vesta.tasks.TaskList
@@ -20,7 +20,7 @@ class TaskDocumentSource private constructor(
     private val core: AutomergeDocumentCore,
     override val list: TaskList,
     override val snapshot: Flow<TaskSnapshot>,
-) : TaskSource, HomeDocument by core {
+) : TaskSource, SpaceDocument by core {
 
     constructor(
         document: Document,

@@ -1,7 +1,9 @@
-package uk.veritaslabs.vesta.mailbox
+package uk.veritaslabs.kits.docs
+
+import uk.veritaslabs.kits.KitsInternalApi
 
 /**
- * A writer's snapshot of a Home's documents, which lets it delete its old entries
+ * A writer's snapshot of a Space's documents, which lets it delete its old entries
  * (docs/adr/ADR-020-syncing-without-overlapping-online-time.md). A generation is the writer's whole state of every document at a
  * moment after it had deposited every entry up to [SnapshotManifest.coversThrough], so a reader that has none of those entries
  * can take the snapshot instead.
@@ -9,7 +11,8 @@ package uk.veritaslabs.vesta.mailbox
  * Keys: `snapshot/<writer>/<generation>/<chunk>` hold ordinary [MailboxEntry] values (one group of parts per document, chunks
  * numbered from 0), and `snapshot/<writer>/<generation>/manifest` is written last, so a generation without one is incomplete.
  */
-internal object SnapshotKeys {
+@KitsInternalApi
+public object SnapshotKeys {
     private const val Prefix = "snapshot/"
     private const val Manifest = "manifest"
     private const val Digits = 10
@@ -37,7 +40,8 @@ internal object SnapshotKeys {
 }
 
 /** Names what a snapshot covers and how many chunks it has: `[version = 1][covers through: i64][chunk count: i32]`. */
-internal class SnapshotManifest(val coversThrough: Long, val chunkCount: Int) {
+@KitsInternalApi
+public class SnapshotManifest(val coversThrough: Long, val chunkCount: Int) {
 
     fun encode(): ByteArray =
         byteArrayOf(Version) + ByteArray(8) { (coversThrough shr (56 - 8 * it)).toByte() } +

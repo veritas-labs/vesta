@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta.datasync
 
+import uk.veritaslabs.kits.docs.SyncEventKinds
+import uk.veritaslabs.kits.docs.SyncEventRecorder
+import uk.veritaslabs.kits.docs.SyncModules
+
 import uk.veritaslabs.vesta.syncactivity.VestaSyncModules
 import uk.veritaslabs.vesta.getDeviceName
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver

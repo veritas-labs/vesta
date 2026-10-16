@@ -1,4 +1,6 @@
-package uk.veritaslabs.vesta.docs
+@file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
+
+package uk.veritaslabs.kits.docs
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -6,19 +8,19 @@ import org.automerge.Document
 import org.automerge.SyncState
 
 /**
- * The lock-edit-persist machinery every Home document source repeats: it owns the Automerge [document], the [Mutex]
- * that serialises every read and write of it, [persist] and [onLocalChange], and implements [HomeDocument].
+ * The lock-edit-persist machinery every Space document source repeats: it owns the Automerge [document], the [Mutex]
+ * that serialises every read and write of it, [persist] and [onLocalChange], and implements [SpaceDocument].
  *
  * [publish] recomputes the source's state flow(s) from [document]; it runs under the lock, immediately before
  * [persist], whenever the document changed. Same threading contract as the sources: route every read or write of
  * [document] through this class.
  */
-internal class AutomergeDocumentCore(
+public class AutomergeDocumentCore(
     private val document: Document,
     private val publish: () -> Unit,
     private val persist: suspend (ByteArray) -> Unit = {},
     private val onLocalChange: () -> Unit = {},
-) : HomeDocument {
+) : SpaceDocument {
 
     private val lock = Mutex()
 
