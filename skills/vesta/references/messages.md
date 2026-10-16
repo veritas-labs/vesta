@@ -139,6 +139,67 @@ The `Accept` result is a `Collection` (at most 200 items; `totalItems` is the re
 `Update` and `Remove` find the item by `schema:gtin` if given, else by `schema:name` (case-insensitive). Each write replies with an
 `Accept` whose `result` is the line afterwards (for `Remove`, as it was), in the shape above. Writes are recorded by command
 `id`, so a re-sent id is answered, not applied twice. A missing item → `Reject` "unknown item".
+## Cookbook — `Read` (needs Cookbook **Read**), `Add` / `Remove` (need Cookbook **Write**)
+
+Addresses: the collection is `urn:vesta:document:<homeId>:cookbook`; one recipe is `urn:vesta:document:<homeId>:cookbook:<recipeId>`.
+
+**List** — `Read` of the collection (answered fresh each time):
+
+```json
+{"@context": CONTEXT, "type": "Read", "id": "urn:uuid:…",
+ "object": {"type": "Collection", "id": "urn:vesta:document:<homeId>:cookbook"}}
+```
+
+Reply: an `Accept` whose `result` is a `Collection` of summaries, by name, at most 200 (`totalItems` is the real count):
+
+```json
+{"type": "Collection", "id": "urn:vesta:document:<homeId>:cookbook", "totalItems": 1,
+ "items": [{"type": "schema:Recipe", "id": "<recipeId>", "schema:identifier": "<recipeId>", "schema:name": "Pancakes",
+            "schema:description": "…", "schema:recipeCategory": "Breakfast", "schema:recipeYield": 4,
+            "schema:totalTime": "PT15M", "schema:keywords": ["quick"]}]}
+```
+
+**One recipe** — `Read` with `"id": "urn:vesta:document:<homeId>:cookbook:<recipeId>"`. The `result` is that recipe with the extra fields:
+
+```json
+{"type": "schema:Recipe", "id": "<recipeId>", "schema:name": "Pancakes", "schema:prepTime": "PT5M", "schema:cookTime": "PT10M",
+ "schema:recipeIngredient": [{"type": "schema:QuantitativeValue", "schema:name": "plain flour", "schema:value": 200.0,
+                              "schema:unitText": "g", "schema:description": "sifted"}],
+ "schema:recipeInstructions": [{"type": "schema:HowToStep", "schema:text": "Whisk", "schema:performTime": "PT2M"}],
+ "schema:isBasedOn": "https://…"}
+```
+
+Photos and videos are never included (they stay on the user's devices). Unknown id → `Reject` "unknown recipe".
+
+**Add** — `Add` of a `schema:Recipe`, `target` the collection:
+
+```json
+{"@context": CONTEXT, "type": "Add", "id": "urn:uuid:…",
+ "object": {"type": "schema:Recipe", "schema:name": "Pancakes", "schema:description": "…",
+            "schema:recipeCategory": "Breakfast", "schema:recipeYield": 4, "schema:prepTime": "PT5M", "schema:cookTime": "PT10M",
+            "schema:keywords": ["quick", "sweet"], "schema:isBasedOn": "https://…",
+            "schema:recipeIngredient": ["2 eggs", {"type": "schema:QuantitativeValue", "schema:name": "plain flour", "schema:value": 200, "schema:unitText": "g"}],
+            "schema:recipeInstructions": ["Whisk", {"type": "schema:HowToStep", "schema:text": "Fry", "schema:performTime": "PT10M"}]},
+ "target": {"type": "Collection", "id": "urn:vesta:document:<homeId>:cookbook"}}
+```
+
+| Field | Rule |
+| --- | --- |
+| `schema:name` | Required, at most 200 characters; unique in the cookbook ignoring case, else `Reject` "recipe already exists". |
+| `schema:description`, `schema:isBasedOn` | Optional strings, at most 2000 characters. |
+| `schema:recipeCategory` | Optional: Breakfast, Lunch, Dinner (default), Starter, Side, Dessert, Baking, Snack, Drink, Other (any case; anything else → Other). |
+| `schema:recipeYield` | Optional integer 1–999, default 4. |
+| `schema:prepTime`, `schema:cookTime`, `schema:performTime` | Optional ISO 8601 `PT#H#M` (or whole minutes), at most 7 days. |
+| `schema:recipeIngredient` | Optional array, at most 100. Each a string, or an object with `schema:name` (required), `schema:value` (number ≥ 0), `schema:unitText`, `schema:description`. |
+| `schema:recipeInstructions` | Optional array, at most 100, in order. Each a string, or an object with `schema:text` and optional `schema:performTime`. |
+| `schema:keywords` | Optional string (comma-separated) or array, at most 20. |
+
+Reply: an `Accept` whose `result` is `{"type": "schema:Recipe", "id": "<recipeId>", "schema:identifier": "<recipeId>", "schema:name": …}`.
+
+**Remove** — `Remove` of a `schema:Recipe` named by `schema:identifier` (the recipe id) or, failing that, `schema:name` (ignoring case);
+`target` the collection. Same `Accept` reply (the removed recipe); unknown → `Reject` "unknown recipe". Removing is permanent for every device in the Home.
+
+Both writes are recorded by command `id`, so a re-sent id is answered, not applied twice.
 
 ## Rejections
 
@@ -148,6 +209,8 @@ The `Accept` result is a `Collection` (at most 200 items; `totalItems` is the re
 - `not permitted for this home` — you have no grant for that Home (a Home that doesn't exist looks the same)
 - `waiting for approval: the user has been asked, retry once they have answered` — re-send the **same** command id after the user taps Allow once
 - `unknown item` — a `Remove`/`Update` named an item that isn't in that Pantry
+- `unknown recipe` — a cookbook `Read` of one recipe, or a `Remove`, named a recipe that isn't there
+- `recipe already exists` — a recipe with that name (ignoring case) is already in the cookbook
 - `unknown home`
 - `quantity out of range`, `title is required`, `type must be Add or Read`, `target.id must be …`, `payload too large`, …
 

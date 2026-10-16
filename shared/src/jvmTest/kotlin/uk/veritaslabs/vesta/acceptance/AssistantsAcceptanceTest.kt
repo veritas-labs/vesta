@@ -53,6 +53,7 @@ import uk.veritaslabs.vesta.agent.HomeRef
 import uk.veritaslabs.vesta.agent.NotApprovedSummary
 import uk.veritaslabs.vesta.agent.NotPermittedSummary
 import uk.veritaslabs.vesta.agent.PantryCommandHandler
+import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
 import uk.veritaslabs.kits.store.KitsDatabase
@@ -103,6 +104,7 @@ class AssistantsAcceptanceTest {
         val shoppingLists = pantries.mapValues { (_, pantry) ->
             ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
         }
+        val cookbook = CookbookDocumentSource(Document())
         val client = FakeX0xClient()
         private var nextId = 0
 
@@ -125,6 +127,7 @@ class AssistantsAcceptanceTest {
             client = client,
             newId = { "urn:uuid:reply-${nextId++}" },
             log = {},
+            resolveCookbook = { homeId -> cookbook.takeIf { homeId == "home-1" } },
         )
 
         val replies: List<JsonObject> get() = client.sent.map { Json.parseToJsonElement(it.payload.decodeToString()).jsonObject }
@@ -294,6 +297,47 @@ class AssistantsAcceptanceTest {
         assertEquals("1", seen.getValue("got").jsonPrimitive.content)
         assertEquals(NotPermittedSummary, world.replies[3].getValue("summary").jsonPrimitive.content)
         assertEquals(0, world.stock("home-1"))
+    }
+
+    private fun cookbookRead(id: String, objectId: String = "urn:vesta:document:home-1:cookbook") = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "$objectId"}}
+    """.trimIndent()
+
+    private fun addPancakesCommand(id: String) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "Add", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:cookbook"},
+         "object": {"type": "schema:Recipe", "schema:name": "Pancakes", "schema:recipeYield": 4, "schema:cookTime": "PT15M",
+                    "schema:recipeIngredient": ["200g flour", "2 eggs"], "schema:recipeInstructions": ["Mix", "Fry"]}}
+    """.trimIndent()
+
+    @Test
+    fun myBotCanReadAndAddRecipesWithCookbookGrantsOnly() = runComposeUiTest {
+        // Arrange — Given a bot added with Cookbook Read and Write (asking each time switched off) and no Pantry grant
+        val world = World()
+        showAssistants(world)
+        tap(AssistantsTestTags.AddButton)
+        onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.CookbookRead))
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.CookbookWrite))
+        tapInForm(AssistantEditTestTags.askEachTime("home-1"))
+        tapInForm(AssistantEditTestTags.SaveButton)
+        waitForIdle()
+
+        // Act — When it adds a pancake recipe, lists the cookbook, reads the recipe in full, and tries to read the Pantry
+        world.botSends(addPancakesCommand("urn:uuid:c1"))
+        world.botSends(cookbookRead("urn:uuid:r1"))
+        val key = world.replies[1].getValue("result").jsonObject.getValue("items").jsonArray.single().jsonObject
+            .getValue("schema:identifier").jsonPrimitive.content
+        world.botSends(cookbookRead("urn:uuid:r2", "urn:vesta:document:home-1:cookbook:$key"))
+        world.botSends(readPantryCommand("urn:uuid:r3"))
+
+        // Assert — Then the recipe is in the cookbook with its steps, the bot read it back, and the Pantry read is refused
+        val recipe = world.replies[2].getValue("result").jsonObject
+        assertEquals("Pancakes", recipe.getValue("schema:name").jsonPrimitive.content)
+        assertEquals(2, recipe.getValue("schema:recipeInstructions").jsonArray.size)
+        assertEquals(NotPermittedSummary, world.replies[3].getValue("summary").jsonPrimitive.content)
+        assertEquals(listOf("Pancakes"), runBlocking { world.cookbook.recipes.first().map { it.title } })
     }
 
     @Test
