@@ -57,6 +57,8 @@ Seven document types each have a `*DocumentSource` (about 80-250 lines) and a `*
 
 ### 3. x0x client and daemon layer
 
+**Status (2026-10-16): done, except native packaging.** `x0x-kit` and `x0x-kit-testing` `0.1.0` (WP13/WP14). `InviteLifetime` became configuration (`SpacesConfig`). Services only: `X0xStatusCard` and the two network screens stayed in Vesta. The Rust crate, `scripts/build-*-ffi.sh` and the five `Java_uk_veritaslabs_vesta_x0x_X0xBridge_*` JNI exports stay in Vesta and `X0xBridge` keeps the package `uk.veritaslabs.vesta.x0x` inside the kit (WP26, human-owned). iOS targets exist only when the kit is published from a Mac.
+
 The most ready-to-extract layer, already behind an interface with `Abstract…` plus per-platform actuals.
 
 - **Core client.** `X0xClient`, `AbstractX0xClient`, `X0xModels`, `X0xEventHub`, `X0xApiException`.
@@ -73,6 +75,8 @@ Leaks to clean up:
 
 ### 4. Membership, invites and join
 
+**Status: done.** `spaces-kit` `0.1.0` (WP21/WP22). Seeding is the `SpaceSeeding` hook (Vesta's `VestaHomeSeeding`); invite scheme, group and store names and lifetimes are `SpacesConfig`; `MemberRole` left `ui.screens`; Home became Space in the kit API with every persisted and wire name unchanged (ADR-037).
+
 - **`HomeRosterDocument` (405 lines).** A generic "who is in this workspace" CRDT with members, devices, hubs, group id, invites, tombstones and roles, all as flat scalar keys. It is the best candidate for a `Workspace` abstraction.
 - **`HomeJoinService` (365 lines).** The protocol (Invite, Accepted, Left, Removed, Ack, Request, Denied, plus pending-message retry per ADR-017) is domain-neutral except that it imports `storeEmptyPantry` and `storeEmptyShoppingList`. A new Home seeds Vesta's own documents inside the join logic. That must become a hook such as `onWorkspaceCreated`.
 - **`InviteLink`.** The scheme is hard-coded to `vesta://invite` and the payload carries a `homeName`. It needs a configurable scheme and a generic name field.
@@ -86,33 +90,47 @@ Traps:
 
 ### 5. Device pairing and device sync
 
+**Status: done, with one gap.** `sync-kit` `0.1.0` (WP23/WP24; named `sync-kit`, not `device-kit`). The pairing scheme and group names are `DeviceSyncConfig`. The device-sync / Home-sync layering split was not attempted: `DeviceDataSyncService` is one engine. Gap: its `SyncOrder` still names Vesta's nine features inside the kit (see followups).
+
 - **Files.** `DeviceSyncService` (352 lines), `DevicePairingViewModel`, `PairingLink`, `DeviceSyncMessage`, `SyncedDeviceRepository` and the pairing screens are generic.
 - **Coupling.** `PairingLink` is hard-coded to `vesta://pair`. `DeviceSyncService` hard-codes `GroupName = "DeviceSync"` and imports `getDeviceName` from the app's root package.
 - **Layering.** `DeviceDataSyncService` mixes device-to-device data sync with Home sync and mailbox hooks. Split them. Device sync is the primitive. Home sync is the same documents with a different peer set and the mailbox on top.
 
 ### 6. Mailbox (offline catch-up)
 
+**Status: done.** In `docs-kit` (WP19/WP20); `changesSince` and `encodeHeads` left the Vesta package.
+
 `MailboxWriter`, `MailboxReader`, `MailboxEntry`, `MailboxSnapshot` and `StoredHeads` let two devices that are never online together still converge. This is the most reusable idea in the app. It is already written against `MailboxDocuments` and only needs the registry from finding 1. `changesSince` and `encodeHeads` need to leave the Vesta package.
 
 ### 7. Sync activity and diagnostics (ADR-033)
+
+**Status: done for services, not UI.** The recorder is in `docs-kit`; models, repository, `SyncVerdict` and `SyncActivityService` are in `sync-kit`. Sync activity module ids are strings the app supplies (WP6). The view model and screens stayed in Vesta.
 
 `SyncEventRecorder`, `SyncActivityService`, `SyncActivityRepository`, `SyncActivityViewModel`, `SyncVerdict`, `ChangesWaiting`, `SyncAcknowledgement`, `SyncActivityComponents` and `SyncActivityScreen`. Every sync app needs this. To genericise: `SyncModules` (a hard-coded list) and the private-document ids named in `ChangesWaiting.privateDocumentIds`.
 
 ### 8. Assistants and agent commands (ADR-009, ADR-027)
 
+**Status: deferred (WP25), deliberately not done.** Only five generic files (329 lines) are generic; the other seven files are Vesta's wire protocol. Revisit when a second app needs assistants; 25a (mechanical) and 25b (open capability ids, needs an ADR) are specified in the implementation plan.
+
 The grant model (capability, per-workspace policy of Ask or Auto, activity log, approval card) is reusable. Pantry-specific parts are `AddPantryItem`, `PantryCommandHandler` and the `PantryAdd` capability. These sit behind sealed types, so the shape needs a plugin point: a `CommandFamily` registry where an app registers its own commands and capabilities. Keep the two-gate auth design (x0x trust plus in-app approval) unchanged. Also generic: `AgentAllowlist`, `AgentReplies`, `CommandLog`, and the `skills/vesta` skill as a template for per-app skills.
 
 ### 9. Blob storage and transfer (ADR-023)
 
+**Status: done.** `blobs-kit` `0.1.0` (WP16-WP18). `BlobTransferService` finds references through the `BlobReferenceSource` interface the app supplies. `BlobImage` stayed in Vesta.
+
 `BlobStore`, `BlobRepository`, `BlobTransferService`, `TransfersJanitor`, `PhotoEncoder` (with platform actuals), `PhotoFetcher`, `BlobImage`. One coupling blocks reuse: `BlobTransferService` imports `CookbookSources` and scans only the cookbook for blob references. It needs a `BlobReferenceSource` interface that any document can implement. `Placeholder.kt` (287 lines) is Vesta art and stays in the app.
 
 ### 10. Database infrastructure
+
+**Status: done.** ADR-036 chose one `store-kit` that owns the whole schema (option D), `KitsDatabase`, with Vesta's own schema deleted (WP15). The 20 migrations and snapshots are byte-identical copies; the old-database fixture test guards existing installs. The generated query classes still sit in package `uk.veritaslabs.vesta.db` (schema-neutral rename left for later).
 
 - **Generic.** `DatabaseSafety` (downgrade refusal, `VACUUM INTO` backups before upgrade), `DatabaseOpenResult`, `DatabaseDriverFactory` and `DatabaseFiles` (expect/actual), `AutomergeDocument.sq`, `UserDocument.sq`, `AppSetting.sq`, `PeerSync.sq`.
 - **Coupling.** `DatabaseDowngradeException` says "The Vesta database…". `AutomergeDocument.homeId` has a foreign key to `Home(id)`, so a package that owns that table needs a generic `scopeId`.
 - **Unresolved design problem.** There is one 20-version SQLDelight schema for every concern. A shared package cannot own part of a schema an app also owns. Options: per-package databases (cleanest, loses cascade deletes); SQLDelight multi-module with `dependency(project(...))`; or packages exposing `.sq` files that apps include. This must be decided before any database-backed package is extracted.
 
 ### 11. App shell and generic UI
+
+**Status: dropped by decision (services only).** `app-shell-kit` does not exist. Profile moved to `spaces-kit`; settings, theme, licences, onboarding and all generic components stayed in Vesta.
 
 - **Profile.** `ProfileRepository`, `ProfileRegistryDocument`, `ProfileRegistry`, `ProfileChangeListener` are generic apart from the `user:profile` doc id.
 - **Settings and theme.** `AppSettingsRepository` and `ThemeMode` are generic. `VestaTheme` and `VestaTypography` are branding. `AppTheme.Vesta` implies multiple themes, so a theme-token interface that apps implement would work.
@@ -122,6 +140,8 @@ The grant model (capability, per-workspace policy of Ask or Auto, activity log, 
 - **Feature screens worth sharing.** `InviteLinksScreen`, `RedeemInviteScreen`, `MembersScreen`, `MemberDetailScreen`, the `DevicePairing*Screen` set, `HubScreen`, `HubManagerScreen`, `HubTutorialScreen`, `SyncActivityScreen`, `SettingsSyncedDevicesScreen`, `ProfilePickerScreen`, `ProfileNameScreen`. These need a check for hard-coded "Vesta" and "Home" copy and will need string resources or a `Terms` object.
 
 ### 12. App composition
+
+**Status: not done.** There is no composition root. `VestaApp`, `VestaKitConfig`, `VestaHomeSources` and the `main.kt` / `MainActivity` wiring remain Vesta's; a second app would copy them. Consider `SpacesKit.create(config)` when a second app arrives.
 
 `VestaApp` in `App.kt` is 1,035 lines. It builds the database, x0x client, device sync, profiles, hubs, assistants, blobs, settings and onboarding in one composable, with the whole navigation graph. `main.kt` passes nine `open…` lambdas and `dataSync` takes ten positional constructor arguments. A new app would copy all of this. The extracted packages need a composition root, such as `VestaCore.create(config)`, that returns the wired services and leaves only feature-specific parts to the app. The per-document `open…` lambdas are a symptom of finding 1.
 
@@ -150,7 +170,11 @@ The grant model (capability, per-workspace policy of Ask or Auto, activity log, 
 
 ## Revised order
 
-3. Make the registry and engine public inside `:shared` (explicit API; Vesta's ten types supplied from outside; roster hook and SeedGate decisions).
-4. Resolve database composition (item 10).
-5. Rename Home to Space in the API, with compatibility for persisted names.
-6. Create the kits repo; extract `x0x-kit`, then `crdt-docs`, `groups-kit`, `device-kit`, `blobs-kit`, `assistants-kit`; publish; Vesta consumes the artifacts.
+Status on 2026-10-16. The module table above is superseded by the corrected one in [kits-extraction-implementation-plan.md](kits-extraction-implementation-plan.md) and ADR-038: six kits (`x0x-kit`, `store-kit`, `blobs-kit`, `docs-kit`, `spaces-kit`, `sync-kit`) plus `x0x-kit-testing` and `store-kit-testing`; `device-kit` is `sync-kit`, `crdt-docs` is `docs-kit`, `groups-kit` is `spaces-kit`, `app-shell-kit` was dropped, `assistants-kit` is deferred. The kits live in `~/Development/VeritasLabs/vesta-kits` and publish to Maven Local only.
+
+3. Make the registry and engine public inside `:shared` (explicit API; Vesta's ten types supplied from outside; roster hook and SeedGate decisions). **Done** (WP1-WP6; `SeedGate` still not extracted).
+4. Resolve database composition (item 10). **Done** (ADR-036, WP9, WP15).
+5. Rename Home to Space in the API, with compatibility for persisted names. **Done** (ADR-037, WP10 compatibility tests, renames per kit).
+6. Create the kits repo; extract `x0x-kit`, `crdt-docs` (`docs-kit`), `groups-kit` (`spaces-kit`), `device-kit` (`sync-kit`), `blobs-kit`, `assistants-kit`; publish; Vesta consumes the artifacts. **Done except `assistants-kit` (deferred, WP25) and native packaging (WP26, human). Publishing is to Maven Local only; iOS klibs for three kits need a Mac.**
+
+What remains is listed, in priority order, in [kits-extraction-followups.md](kits-extraction-followups.md). The decision record is [ADR-038](../adr/ADR-038-kits-extraction.md).

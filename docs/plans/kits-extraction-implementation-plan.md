@@ -604,6 +604,8 @@ This is the largest and most entangled kit (21 files, 2,625 lines; `HomeRosters`
 
 ## WP25. Assistants: not extracted yet (defer, with a split ready)
 
+**Status (2026-10-16): NOT DONE, intentionally deferred.** Neither 25a nor 25b was run; `agent/` is entirely in Vesta and there is no `assistants-kit`. See `kits-extraction-followups.md`.
+
 **Why defer.** The 5 generic files are 329 lines. The valuable idea (the `CommandFamily` plugin point) needs a redesign of `AgentCommand` (a sealed interface with `AddPantryItem`), `AssistantCapability` (an enum stored by name in `AssistantGrant.capability`) and the parser (`urn:vesta:*`), on the two-gate authorisation path, which the extraction plan says to keep unchanged. That is a design change on a security path with no second consumer to design against, and it is not something to do unattended.
 
 **If it is done later, split it:**
@@ -613,6 +615,8 @@ This is the largest and most entangled kit (21 files, 2,625 lines; `HomeRosters`
 **Recommendation.** Leave `agent/` in Vesta until a second app needs assistants. Update the extraction plan to say so.
 
 ## WP26. Native packaging (the Rust crate) — human-owned
+
+**Status (2026-10-16): NOT DONE, intentionally left to a human.** Vesta still builds `libx0x_ffi.so` and `libx0x_ffi.a` from its own `ffi/` and scripts, and `X0xBridge` keeps the package `uk.veritaslabs.vesta.x0x`. See `kits-extraction-followups.md`.
 
 **JNI exports still use the Vesta package; rename together with the Rust crate when native packaging is done by a human.** That means: rename the package of `X0xBridge` to `uk.veritaslabs.kits.x0x`, rename the five `Java_uk_veritaslabs_vesta_x0x_X0xBridge_*` exports in `lib.rs`, change the proguard keep rule in `androidApp/proguard-rules.pro`, then run Gate D on an emulator. `X0xBridgeSymbolsTest` goes red if only one half is changed.
 
@@ -630,6 +634,15 @@ This is the largest and most entangled kit (21 files, 2,625 lines; `HomeRosters`
 - Update `shared-packages-extraction-plan.md`: status of findings 1-12, the corrected module table (this plan's), `device-kit` renamed `sync-kit`, `app-shell-kit` dropped, `assistants-kit` deferred. Move the infrastructure ADRs (003-008, 012-014, 017-021, 023, 033-035) into the kits repo's `docs/` with a pointer left in Vesta, or leave them and link; pick one.
 - A checklist for version drift: kits' `libs.versions.toml` versus Vesta's (Kotlin, AGP, coroutines, serialization, SQLDelight, automerge).
 - Colo (`~/Development/scratch/ColoPoc`, `town.colo.x0x.X0xClient`) has its own JVM-only x0x client and is the natural first outside consumer of `x0x-kit`; adopting it would be the first test that the API stands without Vesta. Not part of this plan.
+
+**As built (unattended run, 2026-10-16).**
+- **Licences.** `licenseReport { excludeGroups = arrayOf("uk.veritaslabs.kits") }` in Vesta's `build.gradle.kts`. Re-running `generateLicenses` before the fix listed the six kits (not the testing artifacts, which are test-only); after it, the only difference from the committed `licenses.json` is one removal, `net.java.dev.jna:jna:5.17.0`, a stale entry (no runtime classpath of `:shared` has resolved JNA since the Autonomi library was dropped in `fa89c8c`). 603 entries remain; SQLDelight (runtime, coroutines and async extensions, the eygraber driver) and Automerge (`automerge`, `androidnative`) arrive through the kits and are all still listed.
+- **Mac publishing: decided.** Choice: iOS consumes the kits only once they are also published from a Mac; until then the iOS build cannot resolve three of them. Until someone publishes the same `kitsVersion` from a Mac with `publishToMavenLocal`, Vesta's iOS targets do not resolve `x0x-kit`, `x0x-kit-testing` or `sync-kit` (and `docs-kit` never has iOS klibs). Recorded in the kits README and `kits-extraction-followups.md`; ADR-038 has the reasoning. Nothing about iOS has been compiled or run in this extraction (Gate M owed).
+- **Acceptance section.** `docs/testing/acceptance-tests.md` "Kits extraction" extended (items 7-9).
+- **Shared plan updated** (findings 3-12 status and Revised order). The infrastructure ADRs were left in Vesta and linked from ADR-038 (not moved: they cite Vesta code and plans, and the kits repo has no remote to host a link target).
+- **Version drift.** `vesta-kits/scripts/check-version-drift.sh` (no drift on 2026-10-16); the kits README documents it.
+- **Reproducibility.** A fresh `git clone` of vesta-kits ran `./gradlew build apiCheck publishToMavenLocal` green with only what is in git; `ANDROID_HOME` was set (otherwise a gitignored `local.properties` with `sdk.dir`). Vesta then ran `clean` and Gate V against the freshly published artifacts (results in ADR-038 and the final report).
+- **Colo** remains the natural first outside consumer of `x0x-kit`; not started.
 
 ---
 
