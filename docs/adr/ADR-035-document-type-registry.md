@@ -56,6 +56,11 @@ Differences from the plan, and what was left alone:
   registration and cannot be missed in a list.
 - **Tests.** `DocumentIdsTest`, `HomeDocumentRegistryTest`, `VestaHomeDocumentsTest` and the per-type coverage tests pin the
   behaviour; `DeviceDataSyncServiceTest` and the Compose UI acceptance tests are known to be flaky under load.
+- **After the kits extraction (ADR-038).** The registry types and the engine moved to `docs-kit` and `sync-kit` and were renamed
+  (`HomeDocumentType` is `SpaceDocumentType`, `VestaHomeDocuments`' role is the app-supplied list of types, `HomeDocumentRegistry`
+  is `SpaceDocumentRegistry`); Vesta still supplies its ten types through `VestaHomeSources`. The engine's `SyncOrder` list, which this
+  ADR calls the engine's own, still names Vesta's nine features and now lives inside `sync-kit` (a follow-up). Both orders and their tests
+  are unchanged.
 
 ## Consequences
 

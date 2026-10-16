@@ -181,3 +181,15 @@ captured from the code as it was before any rename, and the literals and the dat
    it is opened through the app's open path, *then* it opens at version 20 and the Home, every document, the roster, the pending message and the mailbox
    row are all read back. `ExistingInstallStillOpensTest`. After a test run, `git diff --exit-code shared/src/jvmTest/resources/compat/vesta-v20.db` shows
    the fixture was not regenerated.
+7. **An invite link made by the old build opens on the new one.** *Given* the invite link literal captured before the extraction, *when* the new build
+   decodes it, *then* it names the same Home, inviter and expiry (criterion 2; the literal is never regenerated).
+8. **The kits are not listed as third parties.** *Given* the in-app open source licence list, *when* it is regenerated with `./gradlew generateLicenses`,
+   *then* no entry has a name starting `uk.veritaslabs.kits`, and the kits' own dependencies (SQLDelight, Automerge, the androidx driver) are still listed.
+   Manual: run the task and `git diff` the list; it should change only when a dependency changed.
+9. **The kits build from git alone.** *Given* a fresh clone of vesta-kits, *when* `./gradlew build apiCheck publishToMavenLocal` runs, *then* it passes and
+   Vesta's Gate V passes against the artifacts it published. Manual, at each release (vesta-kits README, "Release checklist").
+10. **Old and new builds sync (manual two-version check).** *Given* one device on a build from before the extraction and one on the new build, in the same
+    Home, *when* either edits the Pantry (and a Task), *then* the other receives the edit, and Sync activity on both lists the event under the same module.
+    Manual because the automated tests run one version; not yet run (needs two devices, Gate D).
+11. **A real user database opens.** *Given* a copy of a real `vesta.db` from before the extraction (not the fixture), *when* the new build opens the copy,
+    *then* every Home, member, document and pending message is intact. Manual; not yet run.
