@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.acceptance
 
+import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
 import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
 import uk.veritaslabs.vesta.automerge.newShoppingListDocument
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
@@ -56,6 +57,7 @@ import uk.veritaslabs.vesta.agent.PantryCommandHandler
 import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.newPantryDocument
+import uk.veritaslabs.vesta.ui.screens.MealSlot
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.ui.components.AgentApprovalCardTestTags
@@ -101,6 +103,7 @@ class AssistantsAcceptanceTest {
             "home-1" to PantryDocumentSource(Document.load(newPantryDocument())),
             "home-2" to PantryDocumentSource(Document.load(newPantryDocument())),
         )
+        val mealPlans = pantries.mapValues { MealPlanDocumentSource(Document()) }
         val shoppingLists = pantries.mapValues { (_, pantry) ->
             ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
         }
@@ -121,6 +124,7 @@ class AssistantsAcceptanceTest {
         fun handler() = PantryCommandHandler(
             resolveSource = { pantries[it] },
             resolveShoppingList = { shoppingLists[it] },
+            resolveMealPlan = { mealPlans[it] },
             listHomes = { listOf(HomeRef("home-1", "The Johnsons"), HomeRef("home-2", "Flat 4")) },
             access = assistants,
             commandLog = DatabaseCommandLog(database),
@@ -338,6 +342,42 @@ class AssistantsAcceptanceTest {
         assertEquals(2, recipe.getValue("schema:recipeInstructions").jsonArray.size)
         assertEquals(NotPermittedSummary, world.replies[3].getValue("summary").jsonPrimitive.content)
         assertEquals(listOf("Pancakes"), runBlocking { world.cookbook.recipes.first().map { it.title } })
+    }
+
+    private fun mealPlanCommand(type: String, id: String, slot: String = "Dinner") = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:mealplan"},
+         "object": {"type": "Object", "schema:startDate": "2026-10-13", "slot": "$slot", "schema:recipe": {"type": "schema:Recipe", "id": "r1"}}}
+    """.trimIndent()
+
+    @Test
+    fun myBotCanPlanMealsAndSeeThePlanWithItsMealPlannerSwitchesAndNothingElse() = runComposeUiTest {
+        // Arrange — Given a bot added with Meal planner Read and Write (asking each time switched off)
+        val world = World()
+        showAssistants(world)
+        tap(AssistantsTestTags.AddButton)
+        onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.MealPlannerRead))
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.MealPlannerWrite))
+        tapInForm(AssistantEditTestTags.askEachTime("home-1"))
+        tapInForm(AssistantEditTestTags.SaveButton)
+        waitForIdle()
+
+        // Act — When it plans a recipe for Dinner, reads the plan, and then tries to add to the Pantry
+        world.botSends(mealPlanCommand("Add", "urn:uuid:p1"))
+        world.botSends(
+            """{"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+                "type": "Read", "id": "urn:uuid:p2", "object": {"type": "Collection", "id": "urn:vesta:document:home-1:mealplan"}}""",
+        )
+        world.botSends(addCommand("urn:uuid:p3"))
+
+        // Assert — Then the plan holds the recipe, the bot saw it, and the Pantry stayed closed and empty
+        val plan = runBlocking { world.mealPlans.getValue("home-1").plan.first() }
+        assertEquals(listOf("r1"), plan.days.values.single().getValue(MealSlot.Dinner))
+        val seen = world.replies[1].getValue("result").jsonObject.getValue("items").jsonArray.single().jsonObject
+        assertEquals("Dinner", seen.getValue("slot").jsonPrimitive.content)
+        assertEquals(NotPermittedSummary, world.replies[2].getValue("summary").jsonPrimitive.content)
+        assertEquals(0, world.stock("home-1"))
     }
 
     @Test

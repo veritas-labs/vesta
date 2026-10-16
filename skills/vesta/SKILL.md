@@ -4,7 +4,7 @@ description: >-
   Acts on a user's Vesta household app from an external AI agent over x0x
   direct messages: lists their Homes, reads a Home's Pantry, adds items to it,
   takes items out and sets exact stock, keeps its shopping list, and reads the
-  cookbook and adds or removes recipes
+  cookbook and adds or removes recipes, and reads and plans meals
   (household stock / shopping). Use when the user asks you to add, restock or
   put an item in their pantry or household inventory in Vesta, or asks which
   homes they have in Vesta. Everything goes over x0x; never read Vesta's
@@ -26,6 +26,9 @@ grants per feature (Pantry Read/Write, Cookbook Read/Write).
 
 You can also keep a Home's **shopping list**: **read** it, **add** an item, **tick** it off (say how many are
 picked up) or **remove** it. Those are the user's Shopping list Read and Shopping list Write switches.
+
+And the **meal plan**: **read** what is planned, **plan** a cookbook recipe for a meal slot of a day, or **unplan** it
+(the user's Meal planner Read and Meal planner Write switches).
 
 ## Before you start — ask the user, don't guess
 
@@ -108,6 +111,16 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
    The list prints `<recipeId>` TAB `<name>` TAB `<category>` TAB `<servings>` TAB `<time>` TAB `<keywords>` (at most 200). Read
    the cookbook first so you don't add a duplicate (names are unique, any case). Photos and videos are never sent or accepted.
    Removing is permanent for the whole household: only on the user's request, and say which recipe went.
+   The **meal plan** holds cookbook recipes by key, per day and slot (`Breakfast`, `Lunch`, `Dinner`). Needs the Meal planner
+   **Read** / **Write** switch:
+   ```sh
+   scripts/agent-mealplan-read.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> [--from 2026-10-12 --to-date 2026-10-18]
+   scripts/agent-mealplan-plan.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> --date 2026-10-13 --slot Dinner --recipe <recipe key>
+   scripts/agent-mealplan-unplan.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId> --date 2026-10-13 --slot Dinner --recipe <recipe key>
+   ```
+   `read` prints `<date>` TAB `<slot>` TAB `<recipe key>` per meal, earliest day first (at most 200; give `--from` / `--to-date`
+   to look at one week). The plan holds only the recipe key; the cookbook says what it is. `plan` is safe to repeat; `unplan`
+   needs the recipe to be planned there ("unknown meal"). Vesta does not check that a key exists in the cookbook.
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes

@@ -13,10 +13,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.automerge.Document
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
+import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
 import uk.veritaslabs.vesta.automerge.ShoppingListDocumentSource
 import uk.veritaslabs.vesta.automerge.newShoppingListDocument
 import uk.veritaslabs.vesta.automerge.adjustStock
 import uk.veritaslabs.vesta.automerge.newPantryDocument
+import uk.veritaslabs.vesta.ui.screens.MealSlot
 import uk.veritaslabs.vesta.automerge.pantryDedupKey
 import uk.veritaslabs.vesta.automerge.readPantryItem
 import uk.veritaslabs.vesta.automerge.upsertPantryItem
@@ -726,6 +728,180 @@ class PantryCommandHandlerTest {
         // Assert
         assertEquals("Take 2 × Milk out of the Pantry", held.summary)
         assertEquals(3, g.stock())
+    }
+
+    // ---- meal plan (MealPlanCommandHandler)
+
+    private class MealFixture(allowed: List<String>) {
+        val plan = MealPlanDocumentSource(Document())
+        val base = Fixture(allowed)
+        val handler = PantryCommandHandler(
+            resolveSource = { base.source },
+            resolveMealPlan = { homeId -> plan.takeIf { homeId == "home-1" } },
+            listHomes = { base.homes },
+            access = base.access,
+            commandLog = base.commandLog,
+            client = base.client,
+            newId = { "urn:uuid:meal-reply-${base.client.sent.size}" },
+            log = {},
+        )
+        val replies get() = base.replies
+        val planned get() = runBlocking { plan.plan.first().days }
+    }
+
+    private fun mealCommand(
+        type: String,
+        id: String = "urn:uuid:ml1",
+        date: String = "2026-10-13",
+        slot: String = "Dinner",
+        recipe: String = "r1",
+    ) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:mealplan"},
+         "object": {"type": "Object", "schema:startDate": "$date", "slot": "$slot", "schema:recipe": {"type": "schema:Recipe", "id": "$recipe"}}}
+    """.trimIndent()
+
+    private fun mealRead(id: String = "urn:uuid:mr1", range: String = "") = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "Read", "id": "$id", "object": {"type": "Collection", "id": "urn:vesta:document:home-1:mealplan"$range}}
+    """.trimIndent()
+
+    private fun mealGrant(f: MealFixture, vararg capabilities: AssistantCapability, policy: GrantPolicy = GrantPolicy.Auto) = runBlocking {
+        f.base.access.save(agent, "", capabilities.map { AssistantGrant("home-1", it, policy) })
+    }
+
+    private fun MealFixture.send(payload: String) = runBlocking { handler.handle(message(payload)) }
+
+    @Test
+    fun aMealPlanWriteGrantLetsAnAssistantPlanAndUnplanARecipe() {
+        // Arrange
+        val f = MealFixture(emptyList())
+        mealGrant(f, AssistantCapability.MealPlannerWrite)
+
+        // Act
+        f.send(mealCommand("Add"))
+        val afterAdd = f.planned
+        f.send(mealCommand("Remove", id = "urn:uuid:ml2"))
+
+        // Assert
+        assertEquals(listOf("r1"), afterAdd.values.single().getValue(MealSlot.Dinner))
+        assertEquals(emptyMap(), f.planned)
+        val result = f.replies.first().getValue("result").jsonObject
+        assertEquals("2026-10-13", result.text("schema:startDate"))
+        assertEquals("Dinner", result.text("slot"))
+    }
+
+    @Test
+    fun planningTheSameRecipeTwiceIsAcceptedAndKeepsOneEntry() {
+        // Arrange
+        val f = MealFixture(emptyList())
+        mealGrant(f, AssistantCapability.MealPlannerWrite)
+
+        // Act
+        f.send(mealCommand("Add"))
+        f.send(mealCommand("Add", id = "urn:uuid:ml2"))
+
+        // Assert
+        assertEquals(listOf("Accept", "Accept"), f.replies.map { it.text("type") })
+        assertEquals(1, f.planned.values.single().getValue(MealSlot.Dinner).size)
+    }
+
+    @Test
+    fun removingARecipeThatIsNotPlannedIsRejected() {
+        // Arrange
+        val f = MealFixture(emptyList())
+        mealGrant(f, AssistantCapability.MealPlannerWrite)
+
+        // Act
+        f.send(mealCommand("Remove"))
+
+        // Assert
+        assertEquals(UnknownMealSummary, f.replies.single().text("summary"))
+    }
+
+    @Test
+    fun aRepeatedMealPlanWriteIsAppliedOnceAndAnsweredAgain() {
+        // Arrange
+        val f = MealFixture(emptyList())
+        mealGrant(f, AssistantCapability.MealPlannerWrite)
+        f.send(mealCommand("Add"))
+        f.send(mealCommand("Remove", id = "urn:uuid:ml2"))
+
+        // Act
+        f.send(mealCommand("Remove", id = "urn:uuid:ml2"))
+
+        // Assert
+        assertEquals(3, f.replies.size)
+        assertEquals(listOf("Accept", "Accept", "Accept"), f.replies.map { it.text("type") })
+    }
+
+    @Test
+    fun readingTheMealPlanListsMealsEarliestFirstAndCanBeLimitedToADateRange() {
+        // Arrange
+        val f = MealFixture(emptyList())
+        mealGrant(f, AssistantCapability.MealPlannerRead, AssistantCapability.MealPlannerWrite)
+        f.send(mealCommand("Add", id = "urn:uuid:a", date = "2026-10-15", slot = "Lunch", recipe = "r2"))
+        f.send(mealCommand("Add", id = "urn:uuid:b", date = "2026-10-13", slot = "Dinner", recipe = "r1"))
+        f.send(mealCommand("Add", id = "urn:uuid:c", date = "2026-10-13", slot = "Breakfast", recipe = "r3"))
+
+        // Act
+        f.send(mealRead(id = "urn:uuid:r-all"))
+        f.send(mealRead(id = "urn:uuid:r-range", range = """, "schema:startDate": "2026-10-14", "schema:endDate": "2026-10-20""""))
+
+        // Assert
+        fun items(index: Int) = f.replies[index].getValue("result").jsonObject.getValue("items").jsonArray.map { it.jsonObject.getValue("schema:recipe").jsonObject.text("id") }
+        assertEquals(listOf("r3", "r1", "r2"), items(3))
+        assertEquals(listOf("r2"), items(4))
+        assertEquals("1", f.replies[4].getValue("result").jsonObject.text("totalItems"))
+    }
+
+    @Test
+    fun aWriteGrantAloneDoesNotLetAnAssistantReadTheMealPlanAndTheOtherWayRound() {
+        // Arrange
+        val writer = MealFixture(emptyList())
+        mealGrant(writer, AssistantCapability.MealPlannerWrite)
+        val reader = MealFixture(emptyList())
+        mealGrant(reader, AssistantCapability.MealPlannerRead)
+
+        // Act
+        writer.send(mealRead())
+        reader.send(mealCommand("Add"))
+
+        // Assert
+        assertEquals(NotPermittedSummary, writer.replies.single().text("summary"))
+        assertEquals(NotPermittedSummary, reader.replies.single().text("summary"))
+        assertEquals(emptyMap(), reader.planned)
+    }
+
+    @Test
+    fun anAskGrantHoldsAMealPlanWriteUntilAllowOnce() {
+        // Arrange
+        val f = MealFixture(emptyList())
+        mealGrant(f, AssistantCapability.MealPlannerWrite, policy = GrantPolicy.Ask)
+        f.send(mealCommand("Add"))
+        val held = f.base.access.pendingCommands.value.single()
+
+        // Act
+        f.base.access.allowOnce(held)
+        f.send(mealCommand("Add"))
+
+        // Assert
+        assertEquals(WaitingForApprovalSummary, f.replies.first().text("summary"))
+        assertEquals("Plan a recipe for Dinner on 2026-10-13", held.summary)
+        assertEquals(1, f.planned.size)
+    }
+
+    @Test
+    fun theMealPlanOfAHomeWithoutAGrantLooksLikeOneThatDoesNotExist() {
+        // Arrange
+        val f = MealFixture(emptyList())
+        runBlocking { f.base.access.save(agent, "", listOf(AssistantGrant("home-2", AssistantCapability.MealPlannerRead, GrantPolicy.Auto))) }
+
+        // Act
+        f.send(mealRead())
+
+        // Assert
+        assertEquals(NotPermittedSummary, f.replies.single().text("summary"))
     }
 
     // ---- shopping list (ShoppingListCommandHandler)

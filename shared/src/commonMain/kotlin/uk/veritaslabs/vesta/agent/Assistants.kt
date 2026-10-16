@@ -27,8 +27,8 @@ enum class AssistantCapability(val feature: AssistantFeature?, val kind: Assista
 
     /** Add and remove recipes ([AddRecipe], [RemoveRecipe]). */
     CookbookWrite(AssistantFeature.Cookbook, AssistantAccessKind.Write, true),
-    MealPlannerRead(AssistantFeature.MealPlanner, AssistantAccessKind.Read, false),
-    MealPlannerWrite(AssistantFeature.MealPlanner, AssistantAccessKind.Write, false),
+    MealPlannerRead(AssistantFeature.MealPlanner, AssistantAccessKind.Read, true),
+    MealPlannerWrite(AssistantFeature.MealPlanner, AssistantAccessKind.Write, true),
     TasksRead(AssistantFeature.Tasks, AssistantAccessKind.Read, false),
     TasksWrite(AssistantFeature.Tasks, AssistantAccessKind.Write, false),
     CalendarRead(AssistantFeature.Calendar, AssistantAccessKind.Read, false),

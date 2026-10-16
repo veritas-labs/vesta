@@ -49,6 +49,8 @@ object AgentCommandParser {
         if (type == "Add" || type == "Remove" || type == "Update") {
             ShoppingListCommandParser.homeId((root["target"] as? JsonObject)?.string("id"))
                 ?.let { return ShoppingListCommandParser.parseWrite(root, commandId, type, it) }
+            MealPlanCommandParser.homeId((root["target"] as? JsonObject)?.string("id"))
+                ?.let { return MealPlanCommandParser.parseWrite(root, commandId, type, it) }
         }
         CookbookCommandParser.parse(root, commandId)?.let { return it }
         return when (root.string("type")) {
@@ -64,6 +66,7 @@ object AgentCommandParser {
         val objectId = (root["object"] as? JsonObject)?.string("id")
         if (objectId == HOMES_COLLECTION_ID) return ParseResult.Command(ListHomes(commandId))
         ShoppingListCommandParser.homeId(objectId)?.let { return ParseResult.Command(ReadShoppingList(commandId, it)) }
+        MealPlanCommandParser.homeId(objectId)?.let { return MealPlanCommandParser.parseRead(root["object"] as JsonObject, commandId, it) }
         val homeId = objectId?.let(::pantryHomeId)
         if (homeId != null) return ParseResult.Command(ReadPantry(commandId, homeId))
         return ParseResult.Invalid(commandId, "object.id must be $HOMES_COLLECTION_ID or $TARGET_PREFIX<homeId>$TARGET_SUFFIX")
