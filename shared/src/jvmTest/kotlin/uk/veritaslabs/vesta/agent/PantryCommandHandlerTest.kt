@@ -310,7 +310,7 @@ class PantryCommandHandlerTest {
         // Arrange
         val f = Fixture(emptyList())
         f.handler.handle(message(command()))
-        f.access.save(agent, "", listOf(AssistantGrant("home-1", AssistantCapability.PantryAdd, GrantPolicy.Auto)))
+        f.access.save(agent, "", listOf(AssistantGrant("home-1", AssistantCapability.PantryWrite, GrantPolicy.Auto)))
 
         // Act
         f.handler.handle(message(command()))

@@ -32,6 +32,7 @@ class AssistantRepository(
 
     private val held = MutableStateFlow<List<PendingCommand>>(emptyList())
     private val allowedOnce = MutableStateFlow<Set<Pair<String, String>>>(emptySet())
+    private var legacyGrantsRenamed = false
 
     /** Every assistant, active and pending, oldest first, re-emitted whenever the table changes. */
     val assistants: Flow<List<Assistant>> = queries.selectAll().asFlow().map { query ->
@@ -46,6 +47,7 @@ class AssistantRepository(
 
     /** [agentId]'s grants, re-emitted whenever they change. */
     fun grants(agentId: String): Flow<List<AssistantGrant>> = queries.selectGrantsFor(agentId).asFlow().map { query ->
+        renameLegacyGrants()
         query.awaitAsList().mapNotNull { row ->
             row.capability.toCapability()?.let { AssistantGrant(row.homeId, it, row.policy.toPolicy()) }
         }
@@ -67,6 +69,24 @@ class AssistantRepository(
     /** When [agentId] last sent a command we recorded, or null. */
     suspend fun lastActiveAt(agentId: String): Long? = queries.selectLastActivityAt(agentId).awaitAsOneOrNull()?.MAX
 
+    /**
+     * Grants saved before ADR-027's feature × Read/Write split name the capability `PantryAdd`; it is now
+     * [AssistantCapability.PantryWrite]. Rewrites those rows once per run, before any grant is read by name.
+     */
+    private suspend fun renameLegacyGrants() {
+        if (legacyGrantsRenamed) return
+        legacyGrantsRenamed = true
+        queries.selectAll().awaitAsList().forEach { assistant ->
+            val rows = queries.selectGrantsFor(assistant.agentId).awaitAsList()
+            if (rows.none { it.capability == LEGACY_PANTRY_ADD }) return@forEach
+            queries.deleteGrantsFor(assistant.agentId)
+            rows.forEach {
+                val name = if (it.capability == LEGACY_PANTRY_ADD) AssistantCapability.PantryWrite.name else it.capability
+                queries.upsertGrant(assistant.agentId, it.homeId, name, it.policy, it.updatedAt)
+            }
+        }
+    }
+
     override suspend fun isActive(agentId: String): Boolean =
         preApproved.allows(agentId) || queries.selectOne(agentId).awaitAsOneOrNull()?.status == ACTIVE
 
@@ -85,6 +105,7 @@ class AssistantRepository(
         commandId: String,
     ): AccessDecision {
         if (preApproved.allows(agentId)) return AccessDecision.Allow
+        renameLegacyGrants()
         val policy = queries.selectGrant(agentId, homeId, capability.name).awaitAsOneOrNull()?.toPolicy()
             ?: return AccessDecision.NotPermitted
         if (policy == GrantPolicy.Auto) return AccessDecision.Allow
@@ -164,6 +185,7 @@ class AssistantRepository(
     }
 
     private companion object {
+        const val LEGACY_PANTRY_ADD = "PantryAdd"
         const val ACTIVE = "active"
         const val APPLIED = "applied"
         const val REJECTED = "rejected"

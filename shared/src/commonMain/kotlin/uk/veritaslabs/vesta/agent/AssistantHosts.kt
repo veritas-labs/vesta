@@ -60,8 +60,8 @@ fun AssistantEditHost(
     val (name, grants, _) = loaded ?: return
     val access = remember(homes, grants) {
         homes.map { home ->
-            val pantry = grants.firstOrNull { it.homeId == home.id && it.capability == AssistantCapability.PantryAdd }
-            HomeAccess(home.id, home.name, pantryAdd = pantry != null, ask = pantry?.policy != GrantPolicy.Auto)
+            val homeGrants = grants.filter { it.homeId == home.id && it.capability != AssistantCapability.ListHomes }
+            HomeAccess(home.id, home.name, homeGrants.map { it.capability }.toSet(), ask = homeGrants.any { it.policy != GrantPolicy.Auto })
         }
     }
     AssistantEditScreen(
@@ -75,8 +75,10 @@ fun AssistantEditHost(
             scope.launch {
                 assistants.save(
                     id, newName,
-                    edited.filter { it.pantryAdd }.map {
-                        AssistantGrant(it.homeId, AssistantCapability.PantryAdd, if (it.ask) GrantPolicy.Ask else GrantPolicy.Auto)
+                    edited.flatMap { home ->
+                        home.capabilities.filter { it.available }.map {
+                            AssistantGrant(home.homeId, it, if (home.ask) GrantPolicy.Ask else GrantPolicy.Auto)
+                        }
                     },
                 )
                 onDone()

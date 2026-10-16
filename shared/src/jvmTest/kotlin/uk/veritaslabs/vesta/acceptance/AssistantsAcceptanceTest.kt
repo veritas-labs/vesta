@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.acceptance
 
+import uk.veritaslabs.vesta.agent.AssistantCapability
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -192,7 +193,7 @@ class AssistantsAcceptanceTest {
         tap(AssistantsTestTags.AddButton)
         onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
         onNodeWithTag(AssistantEditTestTags.NameField).performTextInput("Grok Bot")
-        tapInForm(AssistantEditTestTags.pantryAdd(homeId))
+        tapInForm(AssistantEditTestTags.capability(homeId, AssistantCapability.PantryWrite))
         tapInForm(AssistantEditTestTags.askEachTime(homeId))
         tapInForm(AssistantEditTestTags.SaveButton)
         waitForIdle()
@@ -263,7 +264,7 @@ class AssistantsAcceptanceTest {
 
         // Act — When I tap Review…, allow Pantry-add on The Johnsons without asking, save, and the bot re-sends
         tap(AgentApprovalCardTestTags.Allow)
-        tapInForm(AssistantEditTestTags.pantryAdd("home-1"))
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.PantryWrite))
         tapInForm(AssistantEditTestTags.askEachTime("home-1"))
         tapInForm(AssistantEditTestTags.SaveButton)
         waitForIdle()
@@ -281,7 +282,7 @@ class AssistantsAcceptanceTest {
         showAssistants(world)
         tap(AssistantsTestTags.AddButton)
         onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
-        tapInForm(AssistantEditTestTags.pantryAdd("home-1"))
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.PantryWrite))
         onNodeWithTag(AssistantEditTestTags.askEachTime("home-1")).assertIsOn()
         tapInForm(AssistantEditTestTags.SaveButton)
         waitForIdle()
@@ -309,7 +310,7 @@ class AssistantsAcceptanceTest {
         showAssistants(world)
         tap(AssistantsTestTags.AddButton)
         onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
-        onNodeWithTag(AssistantEditTestTags.pantryAdd("home-1")).assertIsOff()
+        onNodeWithTag(AssistantEditTestTags.capability("home-1", AssistantCapability.PantryWrite)).assertIsOff()
         tapInForm(AssistantEditTestTags.SaveButton)
         waitForIdle()
 
@@ -383,7 +384,7 @@ class AssistantsAcceptanceTest {
 
         // Assert — Then the bot is still listed with its access, and its history shows both adds
         assertEquals(4, world.stock("home-1"))
-        onNodeWithTag(AssistantEditTestTags.pantryAdd("home-1")).assertIsOn()
+        onNodeWithTag(AssistantEditTestTags.capability("home-1", AssistantCapability.PantryWrite)).assertIsOn()
         waitUntilNodeCount(hasTestTag(AssistantEditTestTags.ActivityRow), 2)
         onAllNodesWithTag(AssistantEditTestTags.ActivityRow).assertCountEquals(2)
     }

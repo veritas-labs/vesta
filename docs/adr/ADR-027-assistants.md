@@ -3,6 +3,25 @@
 **Status:** Implemented (2026-10-12), uncommitted; the UI has only run under Compose UI tests, never in the real app, and the real-daemon
 flow (a live bot) is untested. Extends [[ADR-009]] (agent commands) and answers its Open Question 1 (approved-agent management).
 
+## Amendment (2026-10-16): grants are feature × Read/Write
+
+Capabilities are no longer one per command. Each top-level feature (Pantry, Shopping list, Cookbook, Meal planner, Tasks and
+chores, Calendar, Merchants) has a **Read** and a **Write** capability, so a grant reads "Pantry: Write" and the Home card in
+Settings → Assistants shows a Read and a Write switch per feature. `ListHomes` stays implied by any grant.
+
+- **A command declares the capability it needs** (`AddPantryItem` needs `PantryWrite`), so a new command in an existing feature
+  needs no new switch, grant row or migration.
+- **Write does not imply Read.** The add reply still states the item's new stock count; that single-value leak is accepted.
+- **Switches without a command are shown off and disabled** ("Coming soon") until one is built (`AssistantCapability.available`).
+  Today only Pantry Write is live; every Read is not. A bounded query command (never a replica) is what makes a Read switch live.
+- **Policy stays per Home** (`ask` applies to all the Home's granted capabilities) and defaults to Ask for Read and Write alike.
+- The stored capability name changed from `PantryAdd` to `PantryWrite`; old rows are rewritten the first time they are read
+  (`AssistantRepository.renameLegacyGrants`), so the kits schema and migration 18 are untouched.
+- The private calendar and tasks documents (ADR-029, ADR-031) are not covered by the Calendar and Tasks features; they will
+  be separate features, off by default, when a command for them exists.
+
+The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
+
 ## Context
 
 The user runs a personal AI agent (a "Grok Bot") on a cloud VPS with its own x0x instance, and wants it to act for the

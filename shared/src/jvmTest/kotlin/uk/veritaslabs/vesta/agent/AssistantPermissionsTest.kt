@@ -72,7 +72,7 @@ class AssistantPermissionsTest {
 
     private fun JsonObject.text(key: String) = getValue(key).jsonPrimitive.content
 
-    private fun grant(home: String, policy: GrantPolicy) = AssistantGrant(home, AssistantCapability.PantryAdd, policy)
+    private fun grant(home: String, policy: GrantPolicy) = AssistantGrant(home, AssistantCapability.PantryWrite, policy)
 
     @Test
     fun anAutoGrantAppliesTheAddAndRecordsIt() = runBlocking {

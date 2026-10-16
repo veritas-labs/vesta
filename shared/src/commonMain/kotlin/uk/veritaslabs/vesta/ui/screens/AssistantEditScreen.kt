@@ -46,6 +46,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.agent.AssistantAccessKind
+import uk.veritaslabs.vesta.agent.AssistantCapability
+import uk.veritaslabs.vesta.agent.AssistantFeature
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.assistant_activity
@@ -59,7 +62,17 @@ import vesta.shared.generated.resources.assistant_edit_ask_each_time
 import vesta.shared.generated.resources.assistant_edit_name
 import vesta.shared.generated.resources.assistant_edit_name_hint
 import vesta.shared.generated.resources.assistant_edit_no_homes
-import vesta.shared.generated.resources.assistant_edit_pantry_add
+import vesta.shared.generated.resources.assistant_edit_read
+import vesta.shared.generated.resources.assistant_edit_write
+import vesta.shared.generated.resources.assistant_edit_coming_soon
+import vesta.shared.generated.resources.assistant_edit_read_coming_soon
+import vesta.shared.generated.resources.assistant_feature_pantry
+import vesta.shared.generated.resources.assistant_feature_shopping_list
+import vesta.shared.generated.resources.assistant_feature_cookbook
+import vesta.shared.generated.resources.assistant_feature_meal_planner
+import vesta.shared.generated.resources.assistant_feature_tasks
+import vesta.shared.generated.resources.assistant_feature_calendar
+import vesta.shared.generated.resources.assistant_feature_merchants
 import vesta.shared.generated.resources.assistant_edit_remove
 import vesta.shared.generated.resources.assistant_edit_remove_body
 import vesta.shared.generated.resources.ic_close
@@ -85,13 +98,21 @@ internal object AssistantEditTestTags {
     const val ConfirmRemove = "assistant_edit_confirm_remove"
     const val TrustCommand = "assistant_edit_trust_command"
 
-    fun pantryAdd(homeId: String) = "assistant_edit_pantry_add_$homeId"
+    fun capability(homeId: String, capability: AssistantCapability) = "assistant_edit_${capability.name}_$homeId"
     fun askEachTime(homeId: String) = "assistant_edit_ask_$homeId"
     const val ActivityRow = "assistant_edit_activity_row"
 }
 
-/** What an assistant may do in one Home, as the form shows it. [ask] only matters while [pantryAdd] is on. */
-data class HomeAccess(val homeId: String, val homeName: String, val pantryAdd: Boolean, val ask: Boolean)
+/**
+ * What an assistant may do in one Home, as the form shows it: the Read and Write [capabilities] switched on per
+ * feature (never [AssistantCapability.ListHomes], which saving adds). [ask] only matters while any is on.
+ */
+data class HomeAccess(
+    val homeId: String,
+    val homeName: String,
+    val capabilities: Set<AssistantCapability>,
+    val ask: Boolean,
+)
 
 /** One line of an assistant's activity. */
 data class ActivityRow(val summary: String, val homeName: String?, val applied: Boolean)
@@ -297,13 +318,18 @@ private fun HomeAccessCard(access: HomeAccess, onChange: (HomeAccess) -> Unit) {
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
         )
-        SwitchRow(
-            label = stringResource(Res.string.assistant_edit_pantry_add),
-            checked = access.pantryAdd,
-            onCheckedChange = { on -> onChange(access.copy(pantryAdd = on, ask = if (on) true else access.ask)) },
-            modifier = Modifier.testTag(AssistantEditTestTags.pantryAdd(access.homeId)),
-        )
-        if (access.pantryAdd) {
+        AssistantFeature.entries.forEach { feature ->
+            FeatureRow(
+                feature = feature,
+                homeId = access.homeId,
+                granted = access.capabilities,
+                onToggle = { capability, on ->
+                    val next = if (on) access.capabilities + capability else access.capabilities - capability
+                    onChange(access.copy(capabilities = next, ask = if (on && access.capabilities.isEmpty()) true else access.ask))
+                },
+            )
+        }
+        if (access.capabilities.isNotEmpty()) {
             SwitchRow(
                 label = stringResource(Res.string.assistant_edit_ask_each_time),
                 checked = access.ask,
@@ -311,6 +337,76 @@ private fun HomeAccessCard(access: HomeAccess, onChange: (HomeAccess) -> Unit) {
                 modifier = Modifier.testTag(AssistantEditTestTags.askEachTime(access.homeId)),
             )
         }
+    }
+}
+
+/** One feature's name with its Read and Write switches; a capability no command implements yet is off and disabled. */
+@Composable
+private fun FeatureRow(
+    feature: AssistantFeature,
+    homeId: String,
+    granted: Set<AssistantCapability>,
+    onToggle: (AssistantCapability, Boolean) -> Unit,
+) {
+    val read = AssistantCapability.of(feature, AssistantAccessKind.Read)
+    val write = AssistantCapability.of(feature, AssistantAccessKind.Write)
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(feature.label()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            listOf(read, write).forEach { capability ->
+                AccessSwitch(
+                    label = stringResource(if (capability.kind == AssistantAccessKind.Read) Res.string.assistant_edit_read else Res.string.assistant_edit_write),
+                    checked = capability in granted,
+                    enabled = capability.available,
+                    onCheckedChange = { onToggle(capability, it) },
+                    modifier = Modifier.testTag(AssistantEditTestTags.capability(homeId, capability)),
+                )
+            }
+        }
+        if (!read.available && !write.available) {
+            Text(
+                text = stringResource(Res.string.assistant_edit_coming_soon),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (!read.available) {
+            Text(
+                text = stringResource(Res.string.assistant_edit_read_coming_soon),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun AssistantFeature.label() = when (this) {
+    AssistantFeature.Pantry -> Res.string.assistant_feature_pantry
+    AssistantFeature.ShoppingList -> Res.string.assistant_feature_shopping_list
+    AssistantFeature.Cookbook -> Res.string.assistant_feature_cookbook
+    AssistantFeature.MealPlanner -> Res.string.assistant_feature_meal_planner
+    AssistantFeature.Tasks -> Res.string.assistant_feature_tasks
+    AssistantFeature.Calendar -> Res.string.assistant_feature_calendar
+    AssistantFeature.Merchants -> Res.string.assistant_feature_merchants
+}
+
+@Composable
+private fun AccessSwitch(label: String, checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange).padding(start = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 
@@ -350,8 +446,8 @@ private fun ActivityRowView(row: ActivityRow) {
 }
 
 private val AssistantEditPreviewHomes = listOf(
-    HomeAccess("h1", "The Johnsons", pantryAdd = true, ask = false),
-    HomeAccess("h2", "Flat 4", pantryAdd = false, ask = true),
+    HomeAccess("h1", "The Johnsons", setOf(AssistantCapability.PantryWrite), ask = false),
+    HomeAccess("h2", "Flat 4", emptySet(), ask = true),
 )
 private val AssistantEditPreviewActivity = listOf(
     ActivityRow("Add 2 × Heinz Ketchup to the Pantry", "The Johnsons", applied = true),

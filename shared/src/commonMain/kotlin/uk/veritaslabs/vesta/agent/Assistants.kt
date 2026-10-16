@@ -1,15 +1,44 @@
 package uk.veritaslabs.vesta.agent
 
+/** A top-level feature of a Home an assistant can be given access to (ADR-027). */
+enum class AssistantFeature { Pantry, ShoppingList, Cookbook, MealPlanner, Tasks, Calendar, Merchants }
+
+/** Whether a capability looks at a feature's data or changes it. Write does not imply Read. */
+enum class AssistantAccessKind { Read, Write }
+
 /**
- * Something an assistant can be allowed to do in one Home (ADR-027). One per command family; a new command
- * family adds a capability, so no existing grant ever covers it.
+ * Something an assistant can be allowed to do in one Home (ADR-027): [Read] or [Write] on one [AssistantFeature],
+ * plus [ListHomes]. A command declares the capability it needs, so a new command never works under an old grant.
+ * [available] is false while no command implements the capability; the editor shows it switched off.
  */
-enum class AssistantCapability {
+enum class AssistantCapability(val feature: AssistantFeature?, val kind: AssistantAccessKind?, val available: Boolean) {
     /** See the Home in a [ListHomes] answer. Implied by every other capability. */
-    ListHomes,
+    ListHomes(null, null, true),
+
+    /** Read the Home's Pantry; no command yet. */
+    PantryRead(AssistantFeature.Pantry, AssistantAccessKind.Read, false),
 
     /** Add to the Home's Pantry ([AddPantryItem]). */
-    PantryAdd,
+    PantryWrite(AssistantFeature.Pantry, AssistantAccessKind.Write, true),
+    ShoppingListRead(AssistantFeature.ShoppingList, AssistantAccessKind.Read, false),
+    ShoppingListWrite(AssistantFeature.ShoppingList, AssistantAccessKind.Write, false),
+    CookbookRead(AssistantFeature.Cookbook, AssistantAccessKind.Read, false),
+    CookbookWrite(AssistantFeature.Cookbook, AssistantAccessKind.Write, false),
+    MealPlannerRead(AssistantFeature.MealPlanner, AssistantAccessKind.Read, false),
+    MealPlannerWrite(AssistantFeature.MealPlanner, AssistantAccessKind.Write, false),
+    TasksRead(AssistantFeature.Tasks, AssistantAccessKind.Read, false),
+    TasksWrite(AssistantFeature.Tasks, AssistantAccessKind.Write, false),
+    CalendarRead(AssistantFeature.Calendar, AssistantAccessKind.Read, false),
+    CalendarWrite(AssistantFeature.Calendar, AssistantAccessKind.Write, false),
+    MerchantsRead(AssistantFeature.Merchants, AssistantAccessKind.Read, false),
+    MerchantsWrite(AssistantFeature.Merchants, AssistantAccessKind.Write, false),
+    ;
+
+    companion object {
+        /** The capability for [kind] on [feature]. */
+        fun of(feature: AssistantFeature, kind: AssistantAccessKind): AssistantCapability =
+            entries.first { it.feature == feature && it.kind == kind }
+    }
 }
 
 /** Whether a granted capability runs at once ([Auto]) or waits for the user's tap on every command ([Ask]). */

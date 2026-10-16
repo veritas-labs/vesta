@@ -111,17 +111,17 @@ class PantryCommandHandler(
         if (parsed is ParseResult.Command && parsed.command is AddPantryItem) {
             val command = parsed.command
             val summary = "Add ${command.quantity} × ${command.title} to the Pantry"
-            when (access.decide(sender, command.homeId, AssistantCapability.PantryAdd, commandId)) {
+            when (access.decide(sender, command.homeId, AssistantCapability.PantryWrite, commandId)) {
                 AccessDecision.Allow -> Unit
                 AccessDecision.NotPermitted -> {
-                    log("rejected command $commandId from $sender: no PantryAdd grant for home ${command.homeId}")
+                    log("rejected command $commandId from $sender: no PantryWrite grant for home ${command.homeId}")
                     send(sender, reject(commandId, NotPermittedSummary))
-                    access.recordActivity(sender, command.homeId, AssistantCapability.PantryAdd, commandId, ActivityOutcome.Rejected, "$summary: $NotPermittedSummary")
+                    access.recordActivity(sender, command.homeId, AssistantCapability.PantryWrite, commandId, ActivityOutcome.Rejected, "$summary: $NotPermittedSummary")
                     return
                 }
                 AccessDecision.Ask -> {
                     log("held command $commandId from $sender: waiting for the user to allow it")
-                    access.hold(sender, command.homeId, AssistantCapability.PantryAdd, commandId, summary)
+                    access.hold(sender, command.homeId, AssistantCapability.PantryWrite, commandId, summary)
                     send(sender, reject(commandId, WaitingForApprovalSummary))
                     return
                 }
@@ -142,7 +142,7 @@ class PantryCommandHandler(
         val command = (parsed as? ParseResult.Command)?.command as? AddPantryItem
         val summary = command?.let { "Add ${it.quantity} × ${it.title} to the Pantry" } ?: "Invalid command"
         access.recordActivity(
-            sender, command?.homeId, AssistantCapability.PantryAdd, commandId,
+            sender, command?.homeId, AssistantCapability.PantryWrite, commandId,
             if (rejection == null) ActivityOutcome.Applied else ActivityOutcome.Rejected,
             rejection?.let { "$summary: $it" } ?: summary,
         )

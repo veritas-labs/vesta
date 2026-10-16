@@ -104,8 +104,8 @@ class AgentApprovalHostTest {
         val assistants = AssistantRepository(database)
         runBlocking {
             database.homeQueries.insert("home-1", "The Johnsons", "family", 0)
-            assistants.save("agent-1", "Grok Bot", listOf(AssistantGrant("home-1", AssistantCapability.PantryAdd, GrantPolicy.Ask)))
-            assistants.hold("agent-1", "home-1", AssistantCapability.PantryAdd, "c1", "Add 2 × Milk to the Pantry")
+            assistants.save("agent-1", "Grok Bot", listOf(AssistantGrant("home-1", AssistantCapability.PantryWrite, GrantPolicy.Ask)))
+            assistants.hold("agent-1", "home-1", AssistantCapability.PantryWrite, "c1", "Add 2 × Milk to the Pantry")
         }
         setContent { VestaTheme { AgentApprovalHost(assistants, onReview = {}) } }
         waitForIdle()
@@ -117,9 +117,9 @@ class AgentApprovalHostTest {
         // Assert
         onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
         runBlocking {
-            assertEquals(AccessDecision.Allow, assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c1"))
-            assertEquals(AccessDecision.Ask, assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c1"))
-            assertEquals(AccessDecision.Ask, assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c2"))
+            assertEquals(AccessDecision.Allow, assistants.decide("agent-1", "home-1", AssistantCapability.PantryWrite, "c1"))
+            assertEquals(AccessDecision.Ask, assistants.decide("agent-1", "home-1", AssistantCapability.PantryWrite, "c1"))
+            assertEquals(AccessDecision.Ask, assistants.decide("agent-1", "home-1", AssistantCapability.PantryWrite, "c2"))
         }
     }
 
@@ -131,8 +131,8 @@ class AgentApprovalHostTest {
         val assistants = AssistantRepository(database)
         runBlocking {
             database.homeQueries.insert("home-1", "The Johnsons", "family", 0)
-            assistants.save("agent-1", "Grok Bot", listOf(AssistantGrant("home-1", AssistantCapability.PantryAdd, GrantPolicy.Ask)))
-            assistants.hold("agent-1", "home-1", AssistantCapability.PantryAdd, "c1", "Add 2 × Milk to the Pantry")
+            assistants.save("agent-1", "Grok Bot", listOf(AssistantGrant("home-1", AssistantCapability.PantryWrite, GrantPolicy.Ask)))
+            assistants.hold("agent-1", "home-1", AssistantCapability.PantryWrite, "c1", "Add 2 × Milk to the Pantry")
         }
         setContent { VestaTheme { AgentApprovalHost(assistants, onReview = {}) } }
         waitForIdle()
@@ -144,6 +144,6 @@ class AgentApprovalHostTest {
         // Assert
         onNodeWithTag(AgentApprovalCardTestTags.Card).assertDoesNotExist()
         assertEquals(emptyList(), assistants.pendingCommands.value)
-        assertEquals(AccessDecision.Ask, runBlocking { assistants.decide("agent-1", "home-1", AssistantCapability.PantryAdd, "c1") })
+        assertEquals(AccessDecision.Ask, runBlocking { assistants.decide("agent-1", "home-1", AssistantCapability.PantryWrite, "c1") })
     }
 }

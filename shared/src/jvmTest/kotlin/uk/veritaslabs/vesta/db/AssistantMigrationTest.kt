@@ -66,7 +66,7 @@ class AssistantMigrationTest {
             migrated.assistantQueries.selectAll().awaitAsList().associate { it.agentId to (if (it.status == "active") AssistantStatus.Active else AssistantStatus.Pending) },
         )
         assertEquals(setOf("h1", "h2"), assistants.visibleHomes("allowed-agent"))
-        assertEquals(AccessDecision.Allow, assistants.decide("allowed-agent", "h2", AssistantCapability.PantryAdd, "c1"))
-        assertEquals(AccessDecision.NotPermitted, assistants.decide("pending-agent", "h1", AssistantCapability.PantryAdd, "c1"))
+        assertEquals(AccessDecision.Allow, assistants.decide("allowed-agent", "h2", AssistantCapability.PantryWrite, "c1"))
+        assertEquals(AccessDecision.NotPermitted, assistants.decide("pending-agent", "h1", AssistantCapability.PantryWrite, "c1"))
     }
 }

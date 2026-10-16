@@ -20,7 +20,7 @@ class AssistantRepositoryTest {
 
     private suspend fun home(id: String) = database.homeQueries.insert(id, id, "family", 0)
 
-    private fun pantry(homeId: String, policy: GrantPolicy) = AssistantGrant(homeId, AssistantCapability.PantryAdd, policy)
+    private fun pantry(homeId: String, policy: GrantPolicy) = AssistantGrant(homeId, AssistantCapability.PantryWrite, policy)
 
     @Test
     fun anUnknownAgentIsNotActive() = runBlocking {
@@ -60,7 +60,7 @@ class AssistantRepositoryTest {
         // Act / Assert
         assertTrue(assistants.isActive("a1"))
         assertNull(assistants.visibleHomes("a1"))
-        assertEquals(AccessDecision.Allow, assistants.decide("a1", "any-home", AssistantCapability.PantryAdd, "c1"))
+        assertEquals(AccessDecision.Allow, assistants.decide("a1", "any-home", AssistantCapability.PantryWrite, "c1"))
         assertEquals(emptyList(), assistants.assistants.first())
     }
 
@@ -72,7 +72,7 @@ class AssistantRepositoryTest {
         assistants.save("a1", "", emptyList())
 
         // Act
-        val decision = assistants.decide("a1", "h1", AssistantCapability.PantryAdd, "c1")
+        val decision = assistants.decide("a1", "h1", AssistantCapability.PantryWrite, "c1")
 
         // Assert
         assertEquals(AccessDecision.NotPermitted, decision)
@@ -87,8 +87,8 @@ class AssistantRepositoryTest {
         assistants.save("a1", "", listOf(pantry("h1", GrantPolicy.Auto)))
 
         // Act / Assert
-        assertEquals(AccessDecision.Allow, assistants.decide("a1", "h1", AssistantCapability.PantryAdd, "c1"))
-        assertEquals(AccessDecision.NotPermitted, assistants.decide("a1", "h2", AssistantCapability.PantryAdd, "c1"))
+        assertEquals(AccessDecision.Allow, assistants.decide("a1", "h1", AssistantCapability.PantryWrite, "c1"))
+        assertEquals(AccessDecision.NotPermitted, assistants.decide("a1", "h2", AssistantCapability.PantryWrite, "c1"))
     }
 
     @Test
@@ -110,7 +110,7 @@ class AssistantRepositoryTest {
         home("h1")
         val assistants = repository()
         assistants.save("a1", "", listOf(pantry("h1", GrantPolicy.Ask)))
-        assistants.hold("a1", "h1", AssistantCapability.PantryAdd, "c1", "Add 1 × Milk to the Pantry")
+        assistants.hold("a1", "h1", AssistantCapability.PantryWrite, "c1", "Add 1 × Milk to the Pantry")
         val held = assistants.pendingCommands.value.single()
 
         // Act
@@ -118,9 +118,9 @@ class AssistantRepositoryTest {
 
         // Assert
         assertEquals(emptyList(), assistants.pendingCommands.value)
-        assertEquals(AccessDecision.Ask, assistants.decide("a1", "h1", AssistantCapability.PantryAdd, "c2"))
-        assertEquals(AccessDecision.Allow, assistants.decide("a1", "h1", AssistantCapability.PantryAdd, "c1"))
-        assertEquals(AccessDecision.Ask, assistants.decide("a1", "h1", AssistantCapability.PantryAdd, "c1"))
+        assertEquals(AccessDecision.Ask, assistants.decide("a1", "h1", AssistantCapability.PantryWrite, "c2"))
+        assertEquals(AccessDecision.Allow, assistants.decide("a1", "h1", AssistantCapability.PantryWrite, "c1"))
+        assertEquals(AccessDecision.Ask, assistants.decide("a1", "h1", AssistantCapability.PantryWrite, "c1"))
     }
 
     @Test
@@ -129,8 +129,8 @@ class AssistantRepositoryTest {
         val assistants = repository()
 
         // Act
-        assistants.hold("a1", "h1", AssistantCapability.PantryAdd, "c1", "s")
-        assistants.hold("a1", "h1", AssistantCapability.PantryAdd, "c1", "s")
+        assistants.hold("a1", "h1", AssistantCapability.PantryWrite, "c1", "s")
+        assistants.hold("a1", "h1", AssistantCapability.PantryWrite, "c1", "s")
 
         // Assert
         assertEquals(1, assistants.pendingCommands.value.size)
@@ -162,8 +162,8 @@ class AssistantRepositoryTest {
         home("h1")
         val assistants = repository()
         assistants.save("a1", "", listOf(pantry("h1", GrantPolicy.Ask)))
-        assistants.recordActivity("a1", "h1", AssistantCapability.PantryAdd, "c1", ActivityOutcome.Applied, "did it")
-        assistants.hold("a1", "h1", AssistantCapability.PantryAdd, "c2", "s")
+        assistants.recordActivity("a1", "h1", AssistantCapability.PantryWrite, "c1", ActivityOutcome.Applied, "did it")
+        assistants.hold("a1", "h1", AssistantCapability.PantryWrite, "c2", "s")
 
         // Act
         assistants.remove("a1")
@@ -235,5 +235,38 @@ class AssistantRepositoryTest {
 
         // Assert
         assertEquals(listOf("active"), assistants.assistants.first().map { it.agentId })
+    }
+
+    @Test
+    fun aReadGrantDoesNotAllowWritingTheSameFeature() = runBlocking {
+        // Arrange
+        home("h1")
+        val assistants = repository()
+        assistants.save("a1", "Bot", listOf(AssistantGrant("h1", AssistantCapability.PantryRead, GrantPolicy.Auto)))
+
+        // Act
+        val write = assistants.decide("a1", "h1", AssistantCapability.PantryWrite, "c1")
+        val read = assistants.decide("a1", "h1", AssistantCapability.PantryRead, "c1")
+
+        // Assert
+        assertEquals(AccessDecision.NotPermitted, write)
+        assertEquals(AccessDecision.Allow, read)
+    }
+
+    @Test
+    fun aGrantSavedAsPantryAddBeforeTheSplitIsReadAsPantryWrite() = runBlocking {
+        // Arrange
+        home("h1")
+        val assistants = repository()
+        database.assistantQueries.insertActive("a1", "Old bot", 1)
+        database.assistantQueries.upsertGrant("a1", "h1", "PantryAdd", "Auto", 1)
+
+        // Act
+        val decision = assistants.decide("a1", "h1", AssistantCapability.PantryWrite, "c1")
+        val grants = assistants.grants("a1").first()
+
+        // Assert
+        assertEquals(AccessDecision.Allow, decision)
+        assertEquals(listOf(AssistantCapability.PantryWrite), grants.map { it.capability })
     }
 }

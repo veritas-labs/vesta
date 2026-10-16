@@ -1,5 +1,6 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import uk.veritaslabs.vesta.agent.AssistantCapability
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -11,6 +12,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import uk.veritaslabs.vesta.agent.AssistantFeature
+import uk.veritaslabs.vesta.agent.AssistantAccessKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
@@ -18,8 +21,8 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 class AssistantEditScreenTest {
 
     private val homes = listOf(
-        HomeAccess("h1", "The Johnsons", pantryAdd = false, ask = true),
-        HomeAccess("h2", "Flat 4", pantryAdd = true, ask = false),
+        HomeAccess("h1", "The Johnsons", emptySet(), ask = true),
+        HomeAccess("h2", "Flat 4", setOf(AssistantCapability.PantryWrite), ask = false),
     )
 
     @OptIn(ExperimentalTestApi::class)
@@ -49,14 +52,14 @@ class AssistantEditScreenTest {
         // Act
         onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(" bot-1 ")
         onNodeWithTag(AssistantEditTestTags.NameField).performTextInput("Grok Bot")
-        onNodeWithTag(AssistantEditTestTags.pantryAdd("h1")).performClick()
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.PantryWrite)).performClick()
         onNodeWithTag(AssistantEditTestTags.SaveButton).performScrollTo().assertIsEnabled().performClick()
 
         // Assert
         val (id, name, access) = checkNotNull(saved)
         assertEquals("bot-1", id)
         assertEquals("Grok Bot", name)
-        assertEquals(listOf(true, true), access.map { it.pantryAdd })
+        assertEquals(listOf(true, true), access.map { AssistantCapability.PantryWrite in it.capabilities })
         assertEquals(true, access.first { it.homeId == "h1" }.ask)
     }
 
@@ -68,10 +71,10 @@ class AssistantEditScreenTest {
 
         // Act
         onNodeWithTag(AssistantEditTestTags.askEachTime("h1")).assertDoesNotExist()
-        onNodeWithTag(AssistantEditTestTags.pantryAdd("h1")).assertIsOff().performClick()
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.PantryWrite)).assertIsOff().performClick()
 
         // Assert
-        onNodeWithTag(AssistantEditTestTags.pantryAdd("h1")).assertIsOn()
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.PantryWrite)).assertIsOn()
         onNodeWithTag(AssistantEditTestTags.askEachTime("h1")).assertIsOn()
     }
 
@@ -114,5 +117,37 @@ class AssistantEditScreenTest {
 
         // Assert
         onNodeWithTag(AssistantEditTestTags.TrustCommand).assertTextEquals("x0x trust set bot-1 trusted")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun capabilitiesNoCommandImplementsYetAreShownSwitchedOffAndDisabled() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { AssistantEditScreen(agentId = null, initialName = "", homes = homes) } }
+
+        // Act
+        // (no user interaction — checking screen's initial state)
+
+        // Assert
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.PantryWrite)).assertIsEnabled()
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.PantryRead)).assertIsNotEnabled()
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.CookbookWrite)).assertIsNotEnabled()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun everyFeatureHasItsOwnReadAndWriteSwitch() = runComposeUiTest {
+        // Arrange
+        setContent { VestaTheme { AssistantEditScreen(agentId = null, initialName = "", homes = homes) } }
+
+        // Act
+        // (no user interaction — checking screen's initial state)
+
+        // Assert
+        AssistantFeature.entries.forEach { feature ->
+            AssistantAccessKind.entries.forEach { kind ->
+                onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.of(feature, kind))).assertExists()
+            }
+        }
     }
 }

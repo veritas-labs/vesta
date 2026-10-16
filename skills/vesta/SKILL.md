@@ -36,7 +36,8 @@ You need all of these. If any is missing, tell the user exactly what to do
 4. **The Vesta app is running** on that machine.
 
 The user decides what you may do in Vesta (Settings → Assistants): which Homes,
-and whether each add needs their tap. They can add you ahead of time by your
+which features (Read and Write are separate switches per feature; only
+Pantry Write does anything today), and whether each action needs their tap. They can add you ahead of time by your
 agent id (`x0x agent`), or you can just send a command and they will be asked
 to review you (see the outcomes below). You never get a copy of their data.
 
