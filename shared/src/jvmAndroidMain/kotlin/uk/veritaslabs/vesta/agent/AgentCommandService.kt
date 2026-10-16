@@ -28,6 +28,7 @@ import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xEventHub
 import uk.veritaslabs.kits.x0x.createX0xClient
+import uk.veritaslabs.kits.spaces.SpaceRepository
 
 /**
  * App-scope wiring for ADR-009 agent commands. It hands out the one [PantrySources] per database —
@@ -120,7 +121,7 @@ class AgentCommandService(
         val sources = pantrySources(database)
         val handler = PantryCommandHandler(
             resolveSource = sources::forHome,
-            listHomes = { HomeRepository(database, profiles = ProfileRepository(database, deviceName = ::getDeviceName)).homes.first().map { HomeRef(it.id, it.name) } },
+            listHomes = { HomeRepository(SpaceRepository(database, profiles = ProfileRepository(database, deviceName = ::getDeviceName))).homes.first().map { HomeRef(it.id, it.name) } },
             access = assistants(database),
             commandLog = DatabaseCommandLog(database),
             client = client,

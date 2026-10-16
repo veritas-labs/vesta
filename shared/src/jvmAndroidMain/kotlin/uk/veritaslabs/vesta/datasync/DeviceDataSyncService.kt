@@ -39,7 +39,7 @@ import uk.veritaslabs.kits.spaces.SpaceGroupMessage
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.kits.spaces.SpacesConfig
 import uk.veritaslabs.kits.spaces.SpaceChangeListener
-import uk.veritaslabs.vesta.home.RosterChangeListener
+import uk.veritaslabs.kits.spaces.RosterChangeListener
 import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
 import uk.veritaslabs.kits.docs.MailboxReader
 import uk.veritaslabs.kits.docs.MailboxWriter

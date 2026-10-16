@@ -46,10 +46,6 @@ object KitMembership {
 
     /** Individual files of directories that are split between kits. */
     private val files: Map<Kit, Set<String>> = mapOf(
-        Kit.Spaces to setOf( // the 21a and 21b files already live in spaces/
-            "home/HomeRepository", "home/MemberRepository",
-            "home/RosterChangeListener", "home/HomeListItem", "home/HomeDetails",
-        ),
         Kit.Sync to setOf(
             "datasync/DeviceDataSyncService", "datasync/SyncActivityService",
             "devicepairing/PairingLink",
@@ -90,7 +86,7 @@ object KitMembership {
 
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
-        Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), SpacesConfig (WP3) and SpaceSeeding (WP4)
+        Kit.Spaces to 24, // Appendix A's 21 plus MemberRole (WP1), SpacesConfig (WP3) and SpaceSeeding (WP4); HomeListItem and HomeDetails stay in Vesta (a Compose DrawableResource, the Home shape)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
         Kit.Assistants to 5,
     )

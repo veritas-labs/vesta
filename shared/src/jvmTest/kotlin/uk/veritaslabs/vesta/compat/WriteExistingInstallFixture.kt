@@ -15,6 +15,7 @@ import uk.veritaslabs.vesta.datasync.TestHomeDocuments
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.kits.spaces.SpaceJoinMessage
 import uk.veritaslabs.kits.spaces.ProfileRepository
+import uk.veritaslabs.kits.spaces.SpaceRepository
 
 /**
  * The one-off that produced `src/jvmTest/resources/compat/vesta-v20.db` (docs/plans/kits-extraction-implementation-plan.md,
@@ -33,7 +34,7 @@ class WriteExistingInstallFixture {
         val (database, driver) = openAsTheAppDoes(work)
         val profiles = ProfileRepository(database, deviceName = { "Mark's desktop" })
         val rosters = SpaceRosters(database, profiles, nowMillis = { 1_700_000_100_000L }, deviceName = { "Mark's desktop" })
-        val homes = HomeRepository(database, profiles = profiles, nowMillis = { 1_700_000_000_000L })
+        val homes = HomeRepository(SpaceRepository(database, profiles = profiles, nowMillis = { 1_700_000_000_000L }))
 
         // Act
         val me = profiles.current()

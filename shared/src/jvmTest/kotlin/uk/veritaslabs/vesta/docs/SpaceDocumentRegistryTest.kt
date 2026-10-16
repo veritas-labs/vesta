@@ -7,6 +7,7 @@ import uk.veritaslabs.kits.docs.SpaceDocument
 import uk.veritaslabs.kits.docs.SpaceDocumentRegistry
 import uk.veritaslabs.kits.docs.SpaceDocumentType
 import uk.veritaslabs.kits.docs.changesSince
+import uk.veritaslabs.kits.spaces.SpaceRepository
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -157,7 +158,7 @@ class SpaceDocumentRegistryTest {
     fun generatedHomeIdsNeverContainAColon() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
-        val homes = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
+        val homes = HomeRepository(SpaceRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" })))
 
         // Act
         val ids = List(50) { homes.create("Home $it", HomeShape.Flatshare.storageValue) }

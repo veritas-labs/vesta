@@ -9,6 +9,10 @@ import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.spaces.MemberRole
 
+import uk.veritaslabs.kits.spaces.MemberRepository
+import uk.veritaslabs.kits.spaces.RemoveMemberResult
+import uk.veritaslabs.kits.spaces.RoleChangeResult
+import uk.veritaslabs.kits.spaces.RosterChangeListener
 class MemberRepositoryTest {
 
     @Test

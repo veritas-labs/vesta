@@ -71,7 +71,7 @@ import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
 import uk.veritaslabs.kits.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
-import uk.veritaslabs.vesta.home.LeaveResult
+import uk.veritaslabs.kits.spaces.LeaveResult
 import uk.veritaslabs.kits.spaces.SpaceJoining
 import uk.veritaslabs.kits.spaces.SpaceHub
 import uk.veritaslabs.vesta.homegroup.HubViewModel
@@ -122,7 +122,7 @@ import uk.veritaslabs.vesta.ui.screens.OnboardingScreen
 import uk.veritaslabs.vesta.ui.screens.OpenSourceLicensesScreen
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteScreen
-import uk.veritaslabs.vesta.home.MemberRepository
+import uk.veritaslabs.kits.spaces.MemberRepository
 import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.SelectedHome
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
@@ -168,6 +168,7 @@ import uk.veritaslabs.kits.x0x.isReachingNetwork
 import uk.veritaslabs.vesta.ui.components.rememberX0xConnectivity
 import uk.veritaslabs.vesta.ui.components.rememberX0xNetworkDiagnostics
 import uk.veritaslabs.vesta.ui.components.rememberX0xPeers
+import uk.veritaslabs.kits.spaces.SpaceRepository
 
 /** The app-wide currently selected Home; read `LocalSelectedHome.current.homeId` from any composable under [App]. */
 val LocalSelectedHome = compositionLocalOf<SelectedHome> { error("No SelectedHome provided; call within App()") }
@@ -952,7 +953,7 @@ fun VestaApp(
     // Coming back to the app is a moment other devices may be up (ADR-020), so sync then, not at the next timer round.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { deviceDataSync?.syncNow() }
     val profiles = remember { ProfileRepository(database, deviceName = ::getDeviceName, changes = deviceDataSync?.profileChanges) }
-    val homeRepository = remember { HomeRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges) }
+    val homeRepository = remember { HomeRepository(SpaceRepository(database, deviceDataSync?.homeChanges, profiles, deviceDataSync?.rosterChanges)) }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val assistants = remember { assistantsFor?.invoke(database) ?: AssistantRepository(database) }
     val settings = remember { AppSettingsRepository(database) }

@@ -13,7 +13,12 @@ import uk.veritaslabs.kits.spaces.MemberRole
 import uk.veritaslabs.vesta.home.HomeDetails
 import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.ui.screens.HomeShape
+import uk.veritaslabs.kits.spaces.SpaceRepository
 
+import uk.veritaslabs.vesta.home.HomeRepository
+import uk.veritaslabs.kits.spaces.LeaveResult
+import uk.veritaslabs.kits.spaces.MemberRepository
+import uk.veritaslabs.kits.spaces.RosterChangeListener
 class HomeRepositoryTest {
 
     @Test
@@ -75,7 +80,7 @@ class HomeRepositoryTest {
         // Arrange
         val db = openInMemoryDatabase()
         val profiles = ProfileRepository(db, deviceName = { "Mark's laptop" })
-        val repository = HomeRepository(db, profiles = profiles, nowMillis = { 42L })
+        val repository = HomeRepository(SpaceRepository(db, profiles = profiles, nowMillis = { 42L }))
 
         // Act
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
@@ -129,7 +134,7 @@ class HomeRepositoryTest {
     fun leavingAsTheOnlyMemberEndsTheHome() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
-        val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
+        val repository = HomeRepository(SpaceRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" })))
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
@@ -144,7 +149,7 @@ class HomeRepositoryTest {
     fun theOnlyAdminOfAHomeWithOtherMembersCannotLeave() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
-        val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
+        val repository = HomeRepository(SpaceRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" })))
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         db.homeMemberQueries.insert(id, "sam", "Sam", null, "member", 2L)
 
@@ -160,7 +165,7 @@ class HomeRepositoryTest {
     fun anAdminCanLeaveWhenAnotherMemberIsAlsoAnAdmin() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
-        val repository = HomeRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" }))
+        val repository = HomeRepository(SpaceRepository(db, profiles = ProfileRepository(db, deviceName = { "Mark" })))
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         db.homeMemberQueries.insert(id, "sam", "Sam", null, "admin", 2L)
 
@@ -177,7 +182,7 @@ class HomeRepositoryTest {
         // Arrange
         val db = openInMemoryDatabase()
         val profiles = ProfileRepository(db, deviceName = { "Mark" })
-        val repository = HomeRepository(db, profiles = profiles)
+        val repository = HomeRepository(SpaceRepository(db, profiles = profiles))
         val me = profiles.current().id
         db.homeQueries.insert("home-1", "Flat 4B", "flatshare", 1L)
         db.homeMemberQueries.insert("home-1", "sam", "Sam", null, "admin", 1L)
@@ -204,7 +209,7 @@ class HomeRepositoryTest {
                 told += Triple(homeId, memberId, db.homeQueries.selectById(homeId).awaitAsOneOrNull() != null)
             }
         }
-        val repository = HomeRepository(db, profiles = profiles, rosterChanges = listener)
+        val repository = HomeRepository(SpaceRepository(db, profiles = profiles, rosterChanges = listener))
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
 
         // Act
@@ -226,7 +231,7 @@ class HomeRepositoryTest {
             override suspend fun memberRemoved(homeId: String, memberId: String) = Unit
             override suspend fun memberLeft(homeId: String, memberId: String) { told++ }
         }
-        val repository = HomeRepository(db, profiles = profiles, rosterChanges = listener)
+        val repository = HomeRepository(SpaceRepository(db, profiles = profiles, rosterChanges = listener))
         val id = repository.create("Flat 4B", HomeShape.Flatshare.storageValue)
         db.homeMemberQueries.insert(id, "sam", "Sam", null, "member", 2L)
 

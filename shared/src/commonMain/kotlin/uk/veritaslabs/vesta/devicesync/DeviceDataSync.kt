@@ -1,7 +1,7 @@
 package uk.veritaslabs.vesta.devicesync
 
 import uk.veritaslabs.kits.spaces.SpaceChangeListener
-import uk.veritaslabs.vesta.home.RosterChangeListener
+import uk.veritaslabs.kits.spaces.RosterChangeListener
 import uk.veritaslabs.kits.spaces.ProfileChangeListener
 import uk.veritaslabs.kits.spaces.SpaceHub
 import uk.veritaslabs.kits.spaces.SpaceJoining
