@@ -4,6 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import uk.veritaslabs.vesta.calendar.CalendarDate
+import uk.veritaslabs.vesta.ui.screens.MealSlot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -342,6 +344,82 @@ class AgentCommandParserTest {
             val result = invalid(payload)
             assertEquals("urn:uuid:p1", result.commandId)
             assertEquals(true, result.reason.contains(expected.trim()), "'${result.reason}' should mention '$expected'")
+        }
+    }
+
+    private fun mealRead(range: String = "") =
+        ("""{"@context": $context, "type": "Read", "id": "urn:uuid:m1", "object": {"type": "Collection", "id": "urn:vesta:document:home-1:mealplan"$range}}""").encodeToByteArray()
+
+    private fun mealWrite(type: String, fields: String = """"schema:startDate": "2026-10-13", "slot": "Dinner", "schema:recipe": {"type": "schema:Recipe", "id": "r1"}""") =
+        ("""{"@context": $context, "type": "$type", "id": "urn:uuid:m2", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:mealplan"},
+            "object": {"type": "Object", $fields}}""").encodeToByteArray()
+
+    @Test
+    fun parsesAMealPlanReadWithAndWithoutADateRange() {
+        // Arrange
+        val whole = mealRead()
+        val ranged = mealRead(""", "schema:startDate": "2026-10-12", "schema:endDate": "2026-10-18"""")
+
+        // Act
+        val a = AgentCommandParser.parse(whole)
+        val b = AgentCommandParser.parse(ranged)
+
+        // Assert
+        assertEquals(ParseResult.Command(ReadMealPlan("urn:uuid:m1", "home-1", null, null)), a)
+        assertEquals(
+            ParseResult.Command(ReadMealPlan("urn:uuid:m1", "home-1", CalendarDate(2026, 10, 12), CalendarDate(2026, 10, 18))),
+            b,
+        )
+    }
+
+    @Test
+    fun rejectsABadMealPlanDateRange() {
+        // Arrange
+        val cases = mapOf(
+            "schema:startDate must be" to mealRead(""", "schema:startDate": "12/10/2026""""),
+            "schema:endDate must be" to mealRead(""", "schema:endDate": "2026-02-30""""),
+            "must not be before" to mealRead(""", "schema:startDate": "2026-10-18", "schema:endDate": "2026-10-12""""),
+        )
+
+        // Act / Assert
+        cases.forEach { (expected, payload) ->
+            val result = invalid(payload)
+            assertEquals(true, result.reason.contains(expected), "'${result.reason}' should mention '$expected'")
+        }
+    }
+
+    @Test
+    fun parsesPlanningAndUnplanningAMeal() {
+        // Arrange
+        val add = mealWrite("Add")
+        val remove = mealWrite("Remove", """"schema:startDate": "2026-10-13", "slot": "lunch", "schema:recipe": {"type": "schema:Recipe", "id": "r1"}""")
+
+        // Act
+        val planned = AgentCommandParser.parse(add)
+        val unplanned = AgentCommandParser.parse(remove)
+
+        // Assert
+        assertEquals(ParseResult.Command(PlanMeal("urn:uuid:m2", "home-1", CalendarDate(2026, 10, 13), MealSlot.Dinner, "r1")), planned)
+        assertEquals(ParseResult.Command(UnplanMeal("urn:uuid:m2", "home-1", CalendarDate(2026, 10, 13), MealSlot.Lunch, "r1")), unplanned)
+    }
+
+    @Test
+    fun rejectsBadMealPlanWrites() {
+        // Arrange
+        val cases = mapOf(
+            "takes Add or Remove" to mealWrite("Update"),
+            "schema:startDate must be" to mealWrite("Add", """"slot": "Dinner", "schema:recipe": {"type": "schema:Recipe", "id": "r1"}"""),
+            "slot must be one of" to mealWrite("Add", """"schema:startDate": "2026-10-13", "slot": "Brunch", "schema:recipe": {"type": "schema:Recipe", "id": "r1"}"""),
+            "schema:recipe is required" to mealWrite("Add", """"schema:startDate": "2026-10-13", "slot": "Dinner""""),
+            "schema:recipe.id is required" to mealWrite("Add", """"schema:startDate": "2026-10-13", "slot": "Dinner", "schema:recipe": {"type": "schema:Recipe"}"""),
+            "not a recipe key" to mealWrite("Add", """"schema:startDate": "2026-10-13", "slot": "Dinner", "schema:recipe": {"type": "schema:Recipe", "id": "a|b"}"""),
+        )
+
+        // Act / Assert
+        cases.forEach { (expected, payload) ->
+            val result = invalid(payload)
+            assertEquals("urn:uuid:m2", result.commandId)
+            assertEquals(true, result.reason.contains(expected), "'${result.reason}' should mention '$expected'")
         }
     }
 }

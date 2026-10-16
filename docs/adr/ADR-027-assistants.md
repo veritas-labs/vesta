@@ -37,6 +37,14 @@ Settings → Assistants shows a Read and a Write switch per feature. `ListHomes`
   case). A write to a list that has not yet arrived from the Home's creator is refused ("the shopping list is not ready yet"). It never
   touches the Pantry. Code: `ShoppingListCommands.kt` (commands, parser, replies), `ShoppingListCommandHandler.kt` (grant gate and
   apply). Skill: `agent-shopping-read.sh`, `-add.sh`, `-tick.sh`, `-remove.sh`.
+- **Meal planner Read and Write (2026-10-16)** use the document id `urn:vesta:document:<homeId>:mealplan` (the `mealplan` document
+  feature). The plan holds only cookbook recipe keys per day and slot, so that is all a read returns: an `Accept` with a `Collection`
+  of up to 200 meals (`schema:startDate`, `slot`, `schema:recipe.id`), earliest day first, optionally limited by `schema:startDate` /
+  `schema:endDate` on the request's `object`. Write is `Add` (plan a recipe in a slot; repeating it changes nothing) and `Remove` (needs
+  it planned there, else "unknown meal"); `Update` is refused. The key is not checked against the cookbook (the planner shows a missing
+  recipe as removed), and `|` is refused in a key because it separates the parts of a document key. The plan is flat root keys, so there
+  is no unseeded state to wait for. Code: `MealPlanCommands.kt`, `MealPlanCommandHandler.kt`. Skill: `agent-mealplan-read.sh`,
+  `-plan.sh`, `-unplan.sh`.
 
 The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
 

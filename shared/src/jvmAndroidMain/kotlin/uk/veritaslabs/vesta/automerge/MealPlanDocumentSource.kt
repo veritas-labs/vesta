@@ -58,6 +58,12 @@ class MealPlanDocumentSource private constructor(
         state,
     )
 
+    /** Runs [block] against the document without changing, republishing or persisting it. */
+    suspend fun <T> inspect(block: (Document) -> T): T = core.read { block(this) }
+
+    /** Runs [block] against the document, then republishes and persists it. */
+    suspend fun <T> mutate(block: (Document) -> T): T = core.edit { block(this) }
+
     override suspend fun add(date: CalendarDate, slot: MealSlot, recipeKey: String) =
         edit { planMeal(this, date, slot, recipeKey, nowMillis()) }
 

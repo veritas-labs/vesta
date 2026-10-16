@@ -24,6 +24,9 @@ permissions the user grants (Pantry Read, Pantry Write).
 You can also keep a Home's **shopping list**: **read** it, **add** an item, **tick** it off (say how many are
 picked up) or **remove** it. Those are the user's Shopping list Read and Shopping list Write switches.
 
+And the **meal plan**: **read** what is planned, **plan** a cookbook recipe for a meal slot of a day, or **unplan** it
+(the user's Meal planner Read and Meal planner Write switches).
+
 ## Before you start — ask the user, don't guess
 
 You need all of these. If any is missing, tell the user exactly what to do
@@ -93,6 +96,16 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
    line (at most 200). `add` adds to what is wanted (an item already listed has the amounts added together), `tick`
    sets how many are picked up (`--qty 0` un-ticks; safe to repeat), `remove` takes the whole line off. `tick` and `remove`
    need the item to be on the list already ("unknown item"); items are found by `--gtin`, else name (any case).
+   The **meal plan** holds cookbook recipes by key, per day and slot (`Breakfast`, `Lunch`, `Dinner`). Needs the Meal planner
+   **Read** / **Write** switch:
+   ```sh
+   scripts/agent-mealplan-read.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> [--from 2026-10-12 --to-date 2026-10-18]
+   scripts/agent-mealplan-plan.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> --date 2026-10-13 --slot Dinner --recipe <recipe key>
+   scripts/agent-mealplan-unplan.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId> --date 2026-10-13 --slot Dinner --recipe <recipe key>
+   ```
+   `read` prints `<date>` TAB `<slot>` TAB `<recipe key>` per meal, earliest day first (at most 200; give `--from` / `--to-date`
+   to look at one week). The plan holds only the recipe key; the cookbook says what it is. `plan` is safe to repeat; `unplan`
+   needs the recipe to be planned there ("unknown meal"). Vesta does not check that a key exists in the cookbook.
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes

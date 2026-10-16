@@ -140,6 +140,40 @@ The `Accept` result is a `Collection` (at most 200 items; `totalItems` is the re
 `Accept` whose `result` is the line afterwards (for `Remove`, as it was), in the shape above. Writes are recorded by command
 `id`, so a re-sent id is answered, not applied twice. A missing item → `Reject` "unknown item".
 
+## Meal plan — `Read`, `Add`, `Remove` of `urn:vesta:document:<homeId>:mealplan`
+
+The plan holds cookbook **recipe keys** per day and slot, nothing else. Slots are `Breakfast`, `Lunch`, `Dinner` (any case on input).
+
+```json
+{"@context": CONTEXT, "type": "Read", "id": "urn:uuid:…",
+ "object": {"type": "Collection", "id": "urn:vesta:document:<homeId>:mealplan",
+            "schema:startDate": "2026-10-12", "schema:endDate": "2026-10-18"}}
+```
+
+`schema:startDate` / `schema:endDate` are optional, inclusive `yyyy-mm-dd` limits (a bad date or an end before the start is rejected).
+Needs Meal planner **Read**. Reply — an `Accept` whose `result` lists the meals earliest day first, at most 200 (`totalItems` counts all that match):
+
+```json
+{"@context": CONTEXT, "type": "Accept", "id": "urn:uuid:…", "inReplyTo": "<your id>", "object": "<your id>",
+ "result": {"type": "Collection", "id": "urn:vesta:document:<homeId>:mealplan", "totalItems": 1,
+            "items": [{"type": "Object", "id": "urn:vesta:meal:2026-10-13:Dinner:<recipe key>",
+                       "schema:startDate": "2026-10-13", "slot": "Dinner",
+                       "schema:recipe": {"type": "schema:Recipe", "id": "<recipe key>"}}]}}
+```
+
+Planning and unplanning need Meal planner **Write**:
+
+```json
+{"@context": CONTEXT, "type": "Add", "id": "urn:uuid:…",
+ "object": {"type": "Object", "schema:startDate": "2026-10-13", "slot": "Dinner",
+            "schema:recipe": {"type": "schema:Recipe", "id": "<recipe key>"}},
+ "target": {"type": "Collection", "id": "urn:vesta:document:<homeId>:mealplan"}}
+```
+
+`Add` plans the recipe (planning it where it already is changes nothing and is still accepted); `Remove` takes it out and needs it to
+be planned there (else `Reject` "unknown meal"). `Update` is not accepted. Vesta does not check the key against the cookbook. The
+`Accept` `result` is the meal, in the shape above. Writes are recorded by command `id`, so a re-sent id is answered, not applied twice.
+
 ## Rejections
 
 `{"type": "Reject", "inReplyTo": "<your id>", "summary": "<human-readable reason>", …}`. Summaries include:
