@@ -1,6 +1,9 @@
 package uk.veritaslabs.vesta
 
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.useResource
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import java.io.File
@@ -14,10 +17,31 @@ import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.vesta.recipes.HttpRecipeImporter
 
-fun main() = application {
+/**
+ * The window class GNOME and other Linux shells match to the installed `.desktop` file (jpackage names it
+ * `vesta-Vesta.desktop`). Left alone, AWT derives it from the main class, and the app switcher shows that name and no icon.
+ * Must run before the first window opens; a no-op where there is no X11 toolkit (macOS, Windows, Wayland-native).
+ */
+private fun setLinuxWindowClass(name: String) {
+    runCatching {
+        val toolkit = java.awt.Toolkit.getDefaultToolkit()
+        val field = toolkit.javaClass.getDeclaredField("awtAppClassName")
+        field.isAccessible = true
+        field.set(toolkit, name)
+    }
+}
+
+fun main() {
+    setLinuxWindowClass("vesta-Vesta")
+    vestaApplication()
+}
+
+private fun vestaApplication() = application {
+    val icon = remember { BitmapPainter(useResource("vesta-icon.png", ::loadImageBitmap)) }
     Window(
         onCloseRequest = ::exitApplication,
         title = "Vesta",
+        icon = icon,
     ) {
         // One service: the Pantry screen and agent commands must share each Home's Pantry source.
         val agentCommands = remember { AgentCommandService() }

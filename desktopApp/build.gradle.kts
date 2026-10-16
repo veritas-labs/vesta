@@ -21,9 +21,16 @@ val (vestaMajor, vestaMinor) = vestaVersion.split('.', '-').take(2).map { it.toI
 // patch and pre-release stage folded together, 0-9999
 val vestaPatchAndStage = vestaBuildCode % 10_000
 
+// The window icon: the 512px in-app logo from /branding (see branding/README.md and TRADEMARK.md).
+tasks.processResources {
+    from(rootProject.file("branding/compose/drawable/img_app_logo.png")) { rename { "vesta-icon.png" } }
+}
+
 compose.desktop {
     application {
         mainClass = "uk.veritaslabs.vesta.MainKt"
+        // AWT's X11 toolkit is opened up so main.kt can set the window class the Linux shell matches to the .desktop file.
+        jvmArgs += listOf("--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED")
         jvmArgs += listOf("-Dvesta.version=$vestaVersion", "-Dvesta.build=$vestaBuildCode")
 
         nativeDistributions {
