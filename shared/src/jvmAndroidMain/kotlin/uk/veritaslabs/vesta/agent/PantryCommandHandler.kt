@@ -4,6 +4,7 @@ import kotlin.io.encoding.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import uk.veritaslabs.vesta.automerge.CalendarDocumentSource
 import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
 import uk.veritaslabs.vesta.automerge.MealPlanDocumentSource
@@ -56,12 +57,14 @@ class PantryCommandHandler(
     private val log: (String) -> Unit = { System.err.println("[agent-commands] $it") },
     resolveCookbook: suspend (homeId: String) -> CookbookDocumentSource? = { null },
     resolveTasks: suspend (homeId: String) -> TaskDocumentSource? = { null },
+    resolveCalendar: suspend (homeId: String) -> CalendarDocumentSource? = { null },
 ) {
     private val lock = Mutex()
     private val shoppingList = ShoppingListCommandHandler(resolveShoppingList, access, commandLog, newId, ::send, log)
     private val cookbook = CookbookCommandHandler(resolveCookbook, access, commandLog, ::send, newId, log)
     private val mealPlan = MealPlanCommandHandler(resolveMealPlan, access, commandLog, newId, ::send, log)
     private val tasks = TasksCommandHandler(resolveTasks, access, commandLog, ::send, newId, log)
+    private val calendar = CalendarCommandHandler(resolveCalendar, access, commandLog, ::send, newId, log)
 
     suspend fun handle(message: X0xDirectMessage) = lock.withLock {
         try {
@@ -133,6 +136,7 @@ class PantryCommandHandler(
             mealPlan.read(sender, parsed.command)
             return
         }
+        if (parsed is ParseResult.Command && calendar.read(sender, parsed.command)) return
 
         // A repeat of a command already answered gets that answer again, whatever its grant says now: it tells the
         // agent nothing it was not told the first time, and under Ask it must not raise a second card.
@@ -176,6 +180,7 @@ class PantryCommandHandler(
 
         if (parsed is ParseResult.Command && cookbook.write(sender, parsed.command)) return
         if (parsed is ParseResult.Command && tasks.write(sender, parsed.command)) return
+        if (parsed is ParseResult.Command && calendar.write(sender, parsed.command)) return
 
         var rejection: String? = null
         val reply = when (parsed) {
@@ -185,10 +190,11 @@ class PantryCommandHandler(
                 is ReducePantryStock -> reduce(command) { rejection = it }
                 is SetPantryStock -> setStock(command) { rejection = it }
                 is ListHomes, is ReadPantry, is ReadShoppingList, is ShoppingWriteCommand,
-                is ReadCookbook, is ReadRecipe, is AddRecipe, is RemoveRecipe -> return // answered above
-                is ReadMealPlan, is MealPlanWriteCommand -> return // answered above
                 is ReadCookbook, is ReadRecipe, is AddRecipe, is RemoveRecipe,
-                is ReadTasks, is TasksWriteCommand -> return // answered above
+                is ReadMealPlan, is MealPlanWriteCommand,
+                is ReadTasks, is TasksWriteCommand,
+                is ReadCalendar, is CalendarWriteCommand,
+                -> return // answered above
             }
             ParseResult.NotACommand -> return
         }

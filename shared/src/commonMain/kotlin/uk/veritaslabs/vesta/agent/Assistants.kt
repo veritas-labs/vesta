@@ -34,8 +34,11 @@ enum class AssistantCapability(val feature: AssistantFeature?, val kind: Assista
 
     /** Add, tick and remove shared tasks ([TasksWriteCommand]). */
     TasksWrite(AssistantFeature.Tasks, AssistantAccessKind.Write, true),
-    CalendarRead(AssistantFeature.Calendar, AssistantAccessKind.Read, false),
-    CalendarWrite(AssistantFeature.Calendar, AssistantAccessKind.Write, false),
+    /** Read the Home's shared calendar ([ReadCalendar]). */
+    CalendarRead(AssistantFeature.Calendar, AssistantAccessKind.Read, true),
+
+    /** Add, change and remove events on the Home's shared calendar ([AddCalendarEvent] and friends). */
+    CalendarWrite(AssistantFeature.Calendar, AssistantAccessKind.Write, true),
     MerchantsRead(AssistantFeature.Merchants, AssistantAccessKind.Read, false),
     MerchantsWrite(AssistantFeature.Merchants, AssistantAccessKind.Write, false),
     ;

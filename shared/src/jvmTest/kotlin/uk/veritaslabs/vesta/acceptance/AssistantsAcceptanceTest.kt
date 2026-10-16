@@ -54,7 +54,9 @@ import uk.veritaslabs.vesta.agent.HomeRef
 import uk.veritaslabs.vesta.agent.NotApprovedSummary
 import uk.veritaslabs.vesta.agent.NotPermittedSummary
 import uk.veritaslabs.vesta.agent.PantryCommandHandler
+import uk.veritaslabs.vesta.automerge.CalendarDocumentSource
 import uk.veritaslabs.vesta.automerge.CookbookDocumentSource
+import uk.veritaslabs.vesta.calendar.EventCalendar
 import uk.veritaslabs.vesta.automerge.TaskDocumentSource
 import uk.veritaslabs.vesta.tasks.TaskList
 import uk.veritaslabs.vesta.automerge.PantryDocumentSource
@@ -110,6 +112,7 @@ class AssistantsAcceptanceTest {
             ShoppingListDocumentSource(Document.load(newShoppingListDocument()), pantry)
         }
         val cookbook = CookbookDocumentSource(Document())
+        val calendar = CalendarDocumentSource(Document(), EventCalendar.Home)
         val tasks = TaskDocumentSource(Document(), TaskList.Home)
         val client = FakeX0xClient()
         private var nextId = 0
@@ -135,6 +138,7 @@ class AssistantsAcceptanceTest {
             newId = { "urn:uuid:reply-${nextId++}" },
             log = {},
             resolveCookbook = { homeId -> cookbook.takeIf { homeId == "home-1" } },
+            resolveCalendar = { homeId -> calendar.takeIf { homeId == "home-1" } },
             resolveTasks = { homeId -> tasks.takeIf { homeId == "home-1" } },
         )
 
@@ -382,6 +386,39 @@ class AssistantsAcceptanceTest {
         assertEquals("Dinner", seen.getValue("slot").jsonPrimitive.content)
         assertEquals(NotPermittedSummary, world.replies[2].getValue("summary").jsonPrimitive.content)
         assertEquals(0, world.stock("home-1"))
+    }
+
+    private fun calendarCommand(type: String, id: String, node: String) = """
+        {"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}],
+         "type": "$type", "id": "$id", "target": {"type": "Collection", "id": "urn:vesta:document:home-1:calendar"}, "object": $node}
+    """.trimIndent()
+
+    @Test
+    fun myBotCanKeepTheHomeCalendarWithCalendarGrantsOnly() = runComposeUiTest {
+        // Arrange — Given a bot added with Calendar Read and Write (asking each time switched off) and no Pantry grant
+        val world = World()
+        showAssistants(world)
+        tap(AssistantsTestTags.AddButton)
+        onNodeWithTag(AssistantEditTestTags.AgentIdField).performTextInput(bot)
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.CalendarRead))
+        tapInForm(AssistantEditTestTags.capability("home-1", AssistantCapability.CalendarWrite))
+        tapInForm(AssistantEditTestTags.askEachTime("home-1"))
+        tapInForm(AssistantEditTestTags.SaveButton)
+        waitForIdle()
+
+        // Act — When it adds a dentist visit, moves it by an hour, reads the calendar, and tries to read the Pantry
+        world.botSends(calendarCommand("Add", "urn:uuid:k1", """{"type": "schema:Event", "schema:name": "Dentist", "schema:startDate": "2026-10-20T10:00:00Z", "schema:endDate": "2026-10-20T11:00:00Z"}"""))
+        val id = world.replies[0].getValue("result").jsonObject.getValue("schema:identifier").jsonPrimitive.content
+        world.botSends(calendarCommand("Update", "urn:uuid:k2", """{"type": "schema:Event", "schema:identifier": "$id", "schema:startDate": "2026-10-20T11:00:00Z"}"""))
+        world.botSends("""{"@context": ["https://www.w3.org/ns/activitystreams", {"schema": "https://schema.org/"}], "type": "Read", "id": "urn:uuid:k3", "object": {"type": "Collection", "id": "urn:vesta:document:home-1:calendar"}}""")
+        world.botSends(readPantryCommand("urn:uuid:k4"))
+
+        // Assert — Then the bot read back the moved event in UTC, the app's calendar holds it, and the Pantry read is refused
+        val seen = world.replies[2].getValue("result").jsonObject.getValue("items").jsonArray.single().jsonObject
+        assertEquals("2026-10-20T11:00:00Z", seen.getValue("schema:startDate").jsonPrimitive.content)
+        assertEquals("2026-10-20T12:00:00Z", seen.getValue("schema:endDate").jsonPrimitive.content)
+        assertEquals(listOf("Dentist"), runBlocking { world.calendar.events.first().map { it.title } })
+        assertEquals(NotPermittedSummary, world.replies[3].getValue("summary").jsonPrimitive.content)
     }
 
     @Test

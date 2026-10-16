@@ -130,6 +130,7 @@ class AgentCommandService(
             newId = { "urn:uuid:${Uuid.random()}" },
             resolveCookbook = cookbookSources(database)::forHome,
             resolveTasks = taskSources(database)::forHome,
+            resolveCalendar = calendarSources(database)::forHome,
         )
         X0xEventHub(client).directMessages.collect { message ->
             // Its own coroutine so a slow reply doesn't hold up the stream; the handler serialises itself.
