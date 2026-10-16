@@ -7,12 +7,12 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.automerge.InviteStatus
-import uk.veritaslabs.vesta.automerge.inviteSecretHash
+import uk.veritaslabs.kits.spaces.InviteStatus
+import uk.veritaslabs.kits.spaces.inviteSecretHash
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.homejoin.InviteLink
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 
 class HomeRostersInviteTest {
 

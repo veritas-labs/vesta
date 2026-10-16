@@ -22,7 +22,7 @@ import org.automerge.SyncState
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.x0x.X0xApiException
 
 /** A Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) across devices on the fake mesh. */

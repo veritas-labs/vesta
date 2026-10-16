@@ -8,7 +8,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 
 /** Marking a device unpaired across the Homes that list it (docs/plans/unpaired-device-gap-plan.md, slice 1). */
 class HomeRostersGoneTest {

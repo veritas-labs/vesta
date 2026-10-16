@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.automerge
+package uk.veritaslabs.kits.spaces
 
 import kotlin.jvm.optionals.getOrNull
 import org.automerge.AmValue
@@ -12,7 +12,7 @@ private const val AvatarKey = "avatar"
 private const val CreatedAtKey = "createdAt"
 private const val NamedKey = "named"
 
-/** Id of the user's Profile document, which isn't scoped to any Home (docs/adr/ADR-014-home-membership.md). */
+/** Id of the user's Profile document, which isn't scoped to any Space (docs/adr/ADR-014-home-membership.md). */
 const val ProfileDocumentId = "user:profile"
 
 /** One Profile as the document holds it. */
@@ -29,10 +29,10 @@ data class RegistryProfile(
 }
 
 /*
- * A map at the document root with one entry per Profile id, like the Home registry (ADR-013) and for the same reason:
+ * A map at the document root with one entry per Profile id, like the Space registry (ADR-013) and for the same reason:
  * no wrapping map for two devices to create concurrently. A person normally has one Profile, but two devices that
  * each made one before they were paired write two entries; every device then picks the same one (see [canonical]), so
- * they converge on a single id, which is the person's member id in every Home.
+ * they converge on a single id, which is the person's member id in every Space.
  */
 
 /** Every Profile in the document. */

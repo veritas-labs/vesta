@@ -12,20 +12,20 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import uk.veritaslabs.vesta.automerge.InviteStatus
-import uk.veritaslabs.vesta.automerge.inviteSecretHash
+import uk.veritaslabs.kits.spaces.InviteStatus
+import uk.veritaslabs.kits.spaces.inviteSecretHash
 import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
-import uk.veritaslabs.vesta.home.HomeChangeListener
-import uk.veritaslabs.vesta.home.StoredHome
+import uk.veritaslabs.kits.spaces.SpaceChangeListener
+import uk.veritaslabs.kits.spaces.StoredSpace
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.InviteLink
 import uk.veritaslabs.vesta.homejoin.JoinRequest
 import uk.veritaslabs.vesta.homejoin.RequestResult
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
 /** The admin side of invite links (docs/adr/ADR-018-invite-links.md): requests, approval and admission. */
@@ -42,8 +42,8 @@ class HomeJoinRequestsTest {
         val node = network.node("agent-admin")
         val join = HomeJoinService(
             node, database, rosters,
-            object : HomeChangeListener {
-                override suspend fun saved(home: StoredHome) = Unit
+            object : SpaceChangeListener {
+                override suspend fun saved(home: StoredSpace) = Unit
                 override suspend fun deleted(id: String) = Unit
             },
             profiles, VestaHomeSeeding(VestaHomeSources(database), database), nowMillis = { now },

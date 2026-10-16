@@ -17,8 +17,8 @@ import kotlinx.coroutines.runBlocking
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.automerge.CalendarSources
-import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
-import uk.veritaslabs.vesta.automerge.ProfileDocumentId
+import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
+import uk.veritaslabs.kits.spaces.ProfileDocumentId
 import uk.veritaslabs.vesta.automerge.CookbookSources
 import uk.veritaslabs.vesta.automerge.MealPlanSources
 import uk.veritaslabs.vesta.automerge.MerchantsSources
@@ -32,14 +32,14 @@ import uk.veritaslabs.vesta.automerge.merchantsDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.privateCalendarDocumentId
 import uk.veritaslabs.vesta.automerge.privateTasksDocumentId
-import uk.veritaslabs.vesta.automerge.rosterDocumentId
+import uk.veritaslabs.kits.spaces.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.automerge.tasksDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
 import uk.veritaslabs.kits.docs.Scope
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 
 /**
  * Pins what the document registry refactor must not change (docs/plans/document-registry-and-source-collapse-plan.md, WP0):
@@ -175,7 +175,7 @@ class DocumentIdsTest {
         val expected = listOf("user:homes", "user:profile")
 
         // Act
-        val actual = listOf(HomeRegistryDocumentId, ProfileDocumentId)
+        val actual = listOf(SpaceRegistryDocumentId, ProfileDocumentId)
 
         // Assert
         assertEquals(expected, actual)

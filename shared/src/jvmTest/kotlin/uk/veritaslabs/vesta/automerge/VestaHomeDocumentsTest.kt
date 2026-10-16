@@ -10,7 +10,7 @@ import uk.veritaslabs.vesta.datasync.HomeRosters
 import uk.veritaslabs.vesta.datasync.TestHomeDocuments
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.docs.Scope
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 
 class VestaHomeDocumentsTest {
 

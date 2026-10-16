@@ -8,11 +8,13 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.HomeDetails
 import uk.veritaslabs.vesta.home.HomeListItem
 import uk.veritaslabs.vesta.home.MemberRole
 
+import uk.veritaslabs.kits.spaces.SpaceChangeListener
+import uk.veritaslabs.kits.spaces.StoredSpace
 /** What happened when the current user tried to leave a Home. */
 enum class LeaveResult {
     /** They left: the Home is gone from this device, and from their other devices as they sync. */
@@ -25,7 +27,7 @@ enum class LeaveResult {
 /** Reads and writes Homes in the local [KitsDatabase], telling [changes] about each change. */
 class HomeRepository(
     private val database: KitsDatabase,
-    private val changes: HomeChangeListener? = null,
+    private val changes: SpaceChangeListener? = null,
     private val profiles: ProfileRepository,
     private val rosterChanges: RosterChangeListener? = null,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
@@ -59,7 +61,7 @@ class HomeRepository(
             role = MemberRole.Admin.storageValue,
             joinedAt = createdAt,
         )
-        changes?.saved(StoredHome(id, name, shape, createdAt))
+        changes?.saved(StoredSpace(id, name, shape, createdAt))
         return id
     }
 
@@ -67,7 +69,7 @@ class HomeRepository(
     suspend fun update(id: String, name: String, shape: String) {
         database.homeQueries.updateHome(name, shape, id)
         database.homeQueries.selectById(id).awaitAsOneOrNull()
-            ?.let { changes?.saved(StoredHome(it.id, it.name, it.shape, it.createdAt)) }
+            ?.let { changes?.saved(StoredSpace(it.id, it.name, it.shape, it.createdAt)) }
     }
 
     /**

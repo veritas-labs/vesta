@@ -39,19 +39,17 @@ object KitMembership {
 
     /** Whole directories that belong to one kit, with the files that stay behind in Vesta. */
     private val directories: Map<String, Pair<Kit, Set<String>>> = mapOf(
-        "profile/" to (Kit.Spaces to emptySet()),
+        "spaces/" to (Kit.Spaces to emptySet()), // WP21: the spaces files, moving here from home/, homejoin/, homegroup/, profile/, datasync/ and automerge/
         "devicesync/" to (Kit.Sync to emptySet()),
         "blobs/" to (Kit.Blobs to emptySet()),
     )
 
     /** Individual files of directories that are split between kits. */
     private val files: Map<Kit, Set<String>> = mapOf(
-        Kit.Spaces to setOf(
-            "datasync/HomeRosters", "datasync/HomeRegistry", "datasync/HomeJoinService",
-            "datasync/HomeGroups", "datasync/HomeHubs", "datasync/ProfileRegistry", "datasync/HomeSeeding",
-            "automerge/HomeRosterDocument", "automerge/HomeRegistryDocument",
-            "automerge/InviteSecrets", "automerge/ProfileRegistryDocument",
-            "home/HomeRepository", "home/MemberRepository", "home/HomeChangeListener",
+        Kit.Spaces to setOf( // the 21a files (documents, registries, profile) already live in spaces/
+            "datasync/HomeRosters", "datasync/HomeJoinService",
+            "datasync/HomeGroups", "datasync/HomeHubs",
+            "home/HomeRepository", "home/MemberRepository",
             "home/RosterChangeListener", "home/MemberRole", "home/HomeListItem", "home/HomeDetails", "home/HomeConfig",
             "homejoin/HomeJoining", "homejoin/HomeJoinMessage", "homejoin/InviteLink",
             "homegroup/HomeHub", "homegroup/HomeGroupMessage",
@@ -96,7 +94,7 @@ object KitMembership {
 
     /** File counts from Appendix A, so a rename that silently drops a file out of a kit is noticed. */
     val expectedFileCounts: Map<Kit, Int> = mapOf(
-        Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and HomeSeeding (WP4)
+        Kit.Spaces to 26, // Appendix A's 21 plus MemberRole, HomeListItem, HomeDetails (WP1), HomeConfig (WP3) and SpaceSeeding (WP4)
         Kit.Sync to 13, // plus SyncedDevice (WP1) and DeviceSyncConfig (WP3)
         Kit.Assistants to 5,
     )

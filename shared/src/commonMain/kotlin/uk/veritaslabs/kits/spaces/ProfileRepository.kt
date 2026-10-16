@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.profile
+package uk.veritaslabs.kits.spaces
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.coroutines.asFlow
@@ -13,7 +13,7 @@ import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.db.Profile as ProfileRow
 
 /**
- * The person using the app: their [id] is their member id in every Home (docs/adr/ADR-014-home-membership.md).
+ * The person using the app: their [id] is their member id in every Space (docs/adr/ADR-014-home-membership.md).
  * [named] is false while [displayName] is only a placeholder taken from the device, so the user is yet to choose one.
  */
 data class CurrentProfile(
@@ -64,8 +64,8 @@ class ProfileRepository(
     }
 
     /**
-     * Sets the user's display name, which also marks it as chosen. Their memberships in every Home carry the new name,
-     * and [changes] is told so it reaches their other devices and the Homes' other members.
+     * Sets the user's display name, which also marks it as chosen. Their memberships in every Space carry the new name,
+     * and [changes] is told so it reaches their other devices and the Spaces' other members.
      */
     suspend fun rename(name: String): RenameResult {
         if (!ProfileNameRules.isValid(name)) return RenameResult.InvalidName
@@ -83,7 +83,7 @@ class ProfileRepository(
      * Makes [profile] this device's Profile, as the user's other devices already know them: the id and details are
      * taken over from the Profile this device has, and the person's memberships follow the new id
      * (docs/adr/ADR-014-home-membership.md). Does nothing if it already is. Returns the id this device had, if
-     * it changed, so the Homes can retire it.
+     * it changed, so the Spaces can retire it.
      */
     suspend fun adopt(profile: CurrentProfile): String? = lock.withLock {
         val existing = database.profileQueries.selectAll().awaitAsList().firstOrNull()

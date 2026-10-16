@@ -8,13 +8,13 @@ import java.io.File
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 import org.automerge.Document
-import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
+import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.datasync.HomeRosters
 import uk.veritaslabs.vesta.datasync.TestHomeDocuments
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 
 /**
  * The one-off that produced `src/jvmTest/resources/compat/vesta-v20.db` (docs/plans/kits-extraction-implementation-plan.md,
@@ -49,7 +49,7 @@ class WriteExistingInstallFixture {
         val documents = TestHomeDocuments(database, rosters, publishRosters = {}, sources = VestaHomeSources(database))
         documents.registry.documentIds(homeId).forEach { documents.registry.open(homeId, it) }
         VestaHomeSources(database).pantries.forHome(homeId)?.addPrimary("Fixture drinks")
-        database.userDocumentQueries.upsert(HomeRegistryDocumentId, Document().save(), 1_700_000_000_000L)
+        database.userDocumentQueries.upsert(SpaceRegistryDocumentId, Document().save(), 1_700_000_000_000L)
         database.pendingMessageQueries.upsert("agent-2", homeId, HomeJoinMessage.LeftKind, HomeJoinMessage.encode(HomeJoinMessage.Left(homeId, me.id)), 1_700_000_000_000L)
         database.mailboxQueries.upsertHeads(homeId, "$homeId:pantry", ByteArray(32) { it.toByte() })
         database.homeGroupQueries.upsert(homeId, "group-1", null)

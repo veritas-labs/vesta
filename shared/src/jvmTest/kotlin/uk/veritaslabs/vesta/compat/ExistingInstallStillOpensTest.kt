@@ -9,14 +9,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
+import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.vesta.datasync.HomeRosters
 import uk.veritaslabs.vesta.datasync.TestHomeDocuments
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 
 /**
  * A copy of a version-20 database written by the code before the Kits extraction (`vesta-v20.db`, produced once by
@@ -98,7 +98,7 @@ class ExistingInstallStillOpensTest {
         val ids = registry.documentIds(homeId)
         val opened = ids.map { registry.open(homeId, it) }
         val stored = database.automergeDocumentQueries.selectByHome(homeId).awaitAsList().map { it.documentId }.toSet()
-        val userDocument = database.userDocumentQueries.selectById(HomeRegistryDocumentId).awaitAsList()
+        val userDocument = database.userDocumentQueries.selectById(SpaceRegistryDocumentId).awaitAsList()
         driver.close()
 
         // Assert

@@ -123,7 +123,7 @@ import uk.veritaslabs.vesta.ui.screens.OpenSourceLicensesScreen
 import uk.veritaslabs.vesta.ui.screens.InviteLinksScreen
 import uk.veritaslabs.vesta.ui.screens.RedeemInviteScreen
 import uk.veritaslabs.vesta.home.MemberRepository
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.SelectedHome
 import uk.veritaslabs.vesta.ui.screens.HomeDashboardScreen
 import uk.veritaslabs.vesta.ui.screens.HomeEditScreen

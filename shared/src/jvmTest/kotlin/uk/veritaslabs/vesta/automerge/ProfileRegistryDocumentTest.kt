@@ -5,6 +5,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import org.automerge.Document
 
+import uk.veritaslabs.kits.spaces.RegistryProfile
+import uk.veritaslabs.kits.spaces.canonical
+import uk.veritaslabs.kits.spaces.putProfile
+import uk.veritaslabs.kits.spaces.readProfiles
 class ProfileRegistryDocumentTest {
 
     @Test

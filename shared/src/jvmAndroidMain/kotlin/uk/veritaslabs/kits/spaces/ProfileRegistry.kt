@@ -1,6 +1,6 @@
 @file:OptIn(uk.veritaslabs.kits.KitsInternalApi::class)
 
-package uk.veritaslabs.vesta.datasync
+package uk.veritaslabs.kits.spaces
 
 import uk.veritaslabs.kits.docs.SyncableDocument
 
@@ -13,17 +13,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.automerge.Document
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.automerge.ProfileDocumentId
-import uk.veritaslabs.vesta.automerge.canonical
-import uk.veritaslabs.vesta.automerge.putProfile
-import uk.veritaslabs.vesta.automerge.readProfiles
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.profile.CurrentProfile
-import uk.veritaslabs.vesta.profile.ProfileRepository
-
 /**
  * The user's Profile as an Automerge document that syncs between their devices, so that all of them are one member of
- * every Home (docs/adr/ADR-014-home-membership.md). The `Profile` table stays what the app reads; [publish] writes
+ * every Space (docs/adr/ADR-014-home-membership.md). The `Profile` table stays what the app reads; [publish] writes
  * this device's Profile into the document and [project] makes the device take on the one the document settles on.
  */
 internal class ProfileRegistry(

@@ -29,8 +29,8 @@ import org.automerge.SyncState
 import uk.veritaslabs.kits.docs.SpaceDocumentRegistry
 import uk.veritaslabs.kits.docs.SpaceDocumentType
 import uk.veritaslabs.kits.docs.Scope
-import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
-import uk.veritaslabs.vesta.automerge.ProfileDocumentId
+import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
+import uk.veritaslabs.kits.spaces.ProfileDocumentId
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicesync.AgentDetails
 import uk.veritaslabs.vesta.devicesync.DeviceDataSync
@@ -38,20 +38,23 @@ import uk.veritaslabs.vesta.devicesync.DeviceSyncMessage
 import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
 import uk.veritaslabs.vesta.home.HomeConfig
-import uk.veritaslabs.vesta.home.HomeChangeListener
+import uk.veritaslabs.kits.spaces.SpaceChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
 import uk.veritaslabs.kits.docs.SpaceMailboxDocuments
 import uk.veritaslabs.kits.docs.MailboxReader
 import uk.veritaslabs.kits.docs.MailboxWriter
 import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
-import uk.veritaslabs.vesta.profile.ProfileChangeListener
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileChangeListener
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 import uk.veritaslabs.kits.x0x.X0xEventHub
 
+import uk.veritaslabs.kits.spaces.ProfileRegistry
+import uk.veritaslabs.kits.spaces.SpaceRegistry
+import uk.veritaslabs.kits.spaces.SpaceSeeding
 /**
  * The roster's document type. The roster is membership machinery, so the engine registers it, first (the mailbox's order),
  * and the app supplies only its own types. [publishRosters] runs after a live roster sync message has been applied and
@@ -69,7 +72,7 @@ private const val MaxBufferedPerHome = 64
 
 /**
  * Syncs the user's data between their own paired devices (docs/adr/ADR-013-device-data-sync.md): the Home registry
- * ([HomeRegistry]), the user's Profile ([ProfileRegistry]) and each Home's Pantry and shopping-list documents, as Automerge sync messages in x0x direct messages
+ * ([SpaceRegistry]), the user's Profile ([ProfileRegistry]) and each Home's Pantry and shopping-list documents, as Automerge sync messages in x0x direct messages
  * ([SyncEnvelope], ADR-006). The peers are the devices in the DeviceSync group roster ([SyncedDeviceRepository]),
  * and messages from anyone else are ignored, so group membership is the access control.
  *
@@ -94,16 +97,16 @@ class DeviceDataSyncService(
     private val recorder: SyncEventRecorder = SyncEventRecorder(database, nowMillis),
     activityRefresh: Duration = 20.seconds,
     homeConfig: HomeConfig = HomeConfig(),
-    seeding: HomeSeeding,
+    seeding: SpaceSeeding,
 ) : DeviceDataSync {
 
-    private val registry = HomeRegistry(database, seeding)
+    private val registry = SpaceRegistry(database, seeding)
     private val profiles = ProfileRepository(database, deviceName = deviceName)
     private val profile = ProfileRegistry(database, profiles)
     private val rosters = HomeRosters(database, profiles, deviceName = deviceName)
 
     /** The Home registry, which also forgets a Home's Sync activity (ADR-033) when the Home is deleted or left on this device. */
-    private val homeListener = object : HomeChangeListener by registry {
+    private val homeListener = object : SpaceChangeListener by registry {
         override suspend fun deleted(id: String) {
             registry.deleted(id)
             recorder.forgetHome(id)
@@ -167,7 +170,7 @@ class DeviceDataSyncService(
         )
     }
 
-    override val homeChanges: HomeChangeListener get() = homeListener
+    override val homeChanges: SpaceChangeListener get() = homeListener
 
     override val joining: HomeJoining get() = join
 
@@ -198,11 +201,11 @@ class DeviceDataSyncService(
     private val waiting = mutableMapOf<String, MutableList<Triple<String, String, ByteArray>>>()
 
     override suspend fun run() = coroutineScope {
-        registry.importLocalHomes()
+        registry.importLocalSpaces()
         attempt { profile.publish() }
         attempt { publishRosters() }
         launch { X0xEventHub(client).directMessages.collect { message -> launch { attempt { handle(message) } } } }
-        launch { registry.changes.collect { attempt { syncDocument(HomeRegistryDocumentId) } } }
+        launch { registry.changes.collect { attempt { syncDocument(SpaceRegistryDocumentId) } } }
         launch { registry.changes.collect { attempt { publishRosters() } } }
         launch { profile.changes.collect { attempt { syncDocument(ProfileDocumentId) } } }
         documentRegistry.types.forEach { type ->
@@ -328,7 +331,7 @@ class DeviceDataSyncService(
 
     /** Notes a document id this version doesn't know, from a peer of the Home it names (`<home id>:<document type>`), as needing a newer Vesta. */
     private suspend fun recordUnknownDocument(sender: String, documentId: String) {
-        if (documentId == HomeRegistryDocumentId || documentId == ProfileDocumentId) return
+        if (documentId == SpaceRegistryDocumentId || documentId == ProfileDocumentId) return
         if (documentRegistry.parse(documentId) != null) return
         val homeId = documentId.substringBeforeLast(':', "").takeIf { it.isNotEmpty() } ?: return
         if (database.homeQueries.selectById(homeId).awaitAsOneOrNull() == null) return
@@ -443,7 +446,7 @@ class DeviceDataSyncService(
     }
 
     private suspend fun documentIds(): List<String> =
-        listOf(HomeRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
+        listOf(SpaceRegistryDocumentId, ProfileDocumentId) + database.homeQueries.selectAll().awaitAsList()
             .flatMap { home -> documentRegistry.documentIds(home.id).sortedBy { syncOrderOf(it) } }
 
     /**
@@ -456,7 +459,7 @@ class DeviceDataSyncService(
     }
 
     private suspend fun receive(sender: String, documentId: String, message: ByteArray) {
-        if (documentId == HomeRegistryDocumentId) {
+        if (documentId == SpaceRegistryDocumentId) {
             registry.receive(stateFor(documentId, sender), message)
             val created = registry.project()
             // Homes can now exist that a Pantry message was waiting for.
@@ -518,7 +521,7 @@ class DeviceDataSyncService(
             if (connected.add(peer)) attempt { client.connectAgent(peer) }
             while (true) {
                 val message = when (documentId) {
-                    HomeRegistryDocumentId -> registry.generate(state)
+                    SpaceRegistryDocumentId -> registry.generate(state)
                     ProfileDocumentId -> profile.generate(state)
                     else -> documentRegistry.parse(documentId)?.let { (homeId, type) -> type.open(homeId)?.generateSync(state) }
                 } ?: break

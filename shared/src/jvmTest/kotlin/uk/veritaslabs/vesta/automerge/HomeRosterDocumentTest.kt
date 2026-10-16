@@ -7,6 +7,27 @@ import kotlin.test.assertTrue
 import org.automerge.Document
 import org.automerge.ObjectId
 
+import uk.veritaslabs.kits.spaces.InviteStatus
+import uk.veritaslabs.kits.spaces.RosterInvite
+import uk.veritaslabs.kits.spaces.RosterMember
+import uk.veritaslabs.kits.spaces.addRosterHub
+import uk.veritaslabs.kits.spaces.claimRosterDevice
+import uk.veritaslabs.kits.spaces.clearRosterGone
+import uk.veritaslabs.kits.spaces.inviteSecretHash
+import uk.veritaslabs.kits.spaces.markRosterGone
+import uk.veritaslabs.kits.spaces.newInviteSecret
+import uk.veritaslabs.kits.spaces.putRosterInvite
+import uk.veritaslabs.kits.spaces.putRosterMember
+import uk.veritaslabs.kits.spaces.readInvites
+import uk.veritaslabs.kits.spaces.readRoster
+import uk.veritaslabs.kits.spaces.readRosterGone
+import uk.veritaslabs.kits.spaces.readRosterHubs
+import uk.veritaslabs.kits.spaces.releaseRosterDevice
+import uk.veritaslabs.kits.spaces.removeRosterHub
+import uk.veritaslabs.kits.spaces.retireRosterMember
+import uk.veritaslabs.kits.spaces.revokeRosterInvite
+import uk.veritaslabs.kits.spaces.setRosterRole
+import uk.veritaslabs.kits.spaces.useRosterInvite
 class HomeRosterDocumentTest {
 
     @Test

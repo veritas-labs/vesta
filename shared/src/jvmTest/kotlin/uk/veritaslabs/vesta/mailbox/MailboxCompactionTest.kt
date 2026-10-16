@@ -28,7 +28,7 @@ import uk.veritaslabs.vesta.datasync.HomeRosters
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.kits.x0x.testing.FakeX0xNetwork
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
 
 /** Garbage collection of a Home's mailbox (ADR-020 plan, slice 5): snapshots, deleting old entries, and readers that jump. */

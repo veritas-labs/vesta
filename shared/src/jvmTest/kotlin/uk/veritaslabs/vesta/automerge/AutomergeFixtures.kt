@@ -15,7 +15,7 @@ import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.calendar.CalendarEvent
 import uk.veritaslabs.vesta.calendar.EventCalendar
 import uk.veritaslabs.vesta.calendar.EventRepeat
-import uk.veritaslabs.vesta.home.StoredHome
+import uk.veritaslabs.kits.spaces.StoredSpace
 import uk.veritaslabs.vesta.tasks.Task
 import uk.veritaslabs.vesta.tasks.TaskDone
 import uk.veritaslabs.vesta.tasks.TaskList
@@ -33,6 +33,19 @@ import uk.veritaslabs.vesta.ui.screens.RecipeStep
 import uk.veritaslabs.vesta.ui.screens.RecipeType
 import uk.veritaslabs.vesta.ui.screens.Weekday
 
+import uk.veritaslabs.kits.spaces.addRosterHub
+import uk.veritaslabs.kits.spaces.claimRosterDevice
+import uk.veritaslabs.kits.spaces.deleteRegistrySpace
+import uk.veritaslabs.kits.spaces.markRosterGone
+import uk.veritaslabs.kits.spaces.putProfile
+import uk.veritaslabs.kits.spaces.putRegistrySpace
+import uk.veritaslabs.kits.spaces.putRosterInvite
+import uk.veritaslabs.kits.spaces.putRosterMember
+import uk.veritaslabs.kits.spaces.retireRosterMember
+import uk.veritaslabs.kits.spaces.revokeRosterInvite
+import uk.veritaslabs.kits.spaces.setRosterDeviceName
+import uk.veritaslabs.kits.spaces.setRosterGroup
+import uk.veritaslabs.kits.spaces.useRosterInvite
 /**
  * The checked-in Automerge fixtures (ADR-034 "Tests"): real document bytes in the shapes Vesta has shipped, loaded by the
  * tests with the current code. See `src/jvmTest/resources/fixtures/automerge/README.md` for what each file is and how it was
@@ -409,10 +422,10 @@ object AutomergeFixtures {
 
     private fun homeRegistryCurrent(): ByteArray {
         val doc = Document()
-        putRegistryHome(doc, StoredHome("home-1", "The Flat", "family", 1_790_000_000_000))
-        putRegistryHome(doc, StoredHome("home-2", "Granny's", "couple", 1_790_000_500_000))
-        putRegistryHome(doc, StoredHome("home-3", "Old House", "family", 1_780_000_000_000))
-        deleteRegistryHome(doc, "home-3")
+        putRegistrySpace(doc, StoredSpace("home-1", "The Flat", "family", 1_790_000_000_000))
+        putRegistrySpace(doc, StoredSpace("home-2", "Granny's", "couple", 1_790_000_500_000))
+        putRegistrySpace(doc, StoredSpace("home-3", "Old House", "family", 1_780_000_000_000))
+        deleteRegistrySpace(doc, "home-3")
         return doc.save()
     }
 

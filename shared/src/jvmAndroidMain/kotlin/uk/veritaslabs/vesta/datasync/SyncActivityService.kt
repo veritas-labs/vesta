@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.merge
 import uk.veritaslabs.vesta.db.SyncEvent
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.devicesync.SyncedDeviceRepository
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.syncactivity.PeerActivity
 import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
 import uk.veritaslabs.vesta.syncactivity.SyncEventFilter

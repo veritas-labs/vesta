@@ -1,4 +1,4 @@
-package uk.veritaslabs.vesta.automerge
+package uk.veritaslabs.kits.spaces
 
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -10,7 +10,7 @@ private const val SecretBytes = 16
 fun newInviteSecret(): String = Base64.UrlSafe.encode(ByteArray(SecretBytes).also { SecureRandom().nextBytes(it) })
 
 /**
- * What the Home's roster stores in place of an invite's secret: its SHA-256 as lower-case hex. The roster is readable by
+ * What the Space's roster stores in place of an invite's secret: its SHA-256 as lower-case hex. The roster is readable by
  * every member, so it must not hold the secret itself.
  */
 fun inviteSecretHash(secret: String): String =

@@ -9,10 +9,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.home.HomeConfig
-import uk.veritaslabs.vesta.automerge.RosterMember
+import uk.veritaslabs.kits.spaces.RosterMember
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.homegroup.HomeGroupMessage
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.kits.x0x.X0xApiException
 import uk.veritaslabs.kits.x0x.X0xClient

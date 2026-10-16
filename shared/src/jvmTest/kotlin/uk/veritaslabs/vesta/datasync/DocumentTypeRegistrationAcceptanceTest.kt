@@ -43,7 +43,7 @@ import uk.veritaslabs.kits.docs.SpaceDocumentStore
 import uk.veritaslabs.kits.docs.SpaceDocumentType
 import uk.veritaslabs.kits.docs.Scope
 import uk.veritaslabs.vesta.home.HomeRepository
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 

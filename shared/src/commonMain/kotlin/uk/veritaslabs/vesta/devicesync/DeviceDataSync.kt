@@ -1,8 +1,8 @@
 package uk.veritaslabs.vesta.devicesync
 
-import uk.veritaslabs.vesta.home.HomeChangeListener
+import uk.veritaslabs.kits.spaces.SpaceChangeListener
 import uk.veritaslabs.vesta.home.RosterChangeListener
-import uk.veritaslabs.vesta.profile.ProfileChangeListener
+import uk.veritaslabs.kits.spaces.ProfileChangeListener
 import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homejoin.HomeJoining
 import uk.veritaslabs.vesta.syncactivity.SyncActivityRepository
@@ -25,7 +25,7 @@ data class AgentDetails(
  */
 interface DeviceDataSync {
     /** Pass to the [uk.veritaslabs.vesta.home.HomeRepository] so Home changes made here reach the other devices. */
-    val homeChanges: HomeChangeListener
+    val homeChanges: SpaceChangeListener
 
     /** Pass to the [uk.veritaslabs.vesta.home.MemberRepository] so role changes made here reach the Home's other members. */
     val rosterChanges: RosterChangeListener

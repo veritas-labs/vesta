@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberListItem
 import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.home.HomeDetails

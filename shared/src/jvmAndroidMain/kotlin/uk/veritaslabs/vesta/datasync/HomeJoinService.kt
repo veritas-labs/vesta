@@ -15,10 +15,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.veritaslabs.vesta.home.HomeConfig
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.home.HomeChangeListener
-import uk.veritaslabs.vesta.home.StoredHome
-import uk.veritaslabs.vesta.automerge.InviteStatus
-import uk.veritaslabs.vesta.automerge.inviteSecretHash
+import uk.veritaslabs.kits.spaces.SpaceChangeListener
+import uk.veritaslabs.kits.spaces.StoredSpace
+import uk.veritaslabs.kits.spaces.InviteStatus
+import uk.veritaslabs.kits.spaces.inviteSecretHash
 import uk.veritaslabs.vesta.homejoin.ActiveInvite
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
 import uk.veritaslabs.vesta.homejoin.HomeJoining
@@ -27,11 +27,12 @@ import uk.veritaslabs.vesta.homejoin.JoinRequest
 import uk.veritaslabs.vesta.homejoin.PendingJoin
 import uk.veritaslabs.vesta.homejoin.RedeemResult
 import uk.veritaslabs.vesta.homejoin.RequestResult
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
+import uk.veritaslabs.kits.spaces.SpaceSeeding
 private const val PendingStatus = "pending"
 private const val ApprovedStatus = "approved"
 private const val DeclinedStatus = "declined"
@@ -50,9 +51,9 @@ internal class HomeJoinService(
     private val client: X0xClient,
     private val database: KitsDatabase,
     private val rosters: HomeRosters,
-    private val homes: HomeChangeListener,
+    private val homes: SpaceChangeListener,
     private val profiles: ProfileRepository,
-    private val seeding: HomeSeeding,
+    private val seeding: SpaceSeeding,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val messageLifetime: Duration = 14.days,
     private val recorder: SyncEventRecorder? = null,
@@ -355,7 +356,7 @@ internal class HomeJoinService(
         database.homeQueries.insert(invite.homeId, invite.homeName, invite.shape, invite.createdAt)
         // The admin seeded the Pantry; ours starts empty and fills from theirs (ADR-013).
         seeding.placeholdersForArrived(invite.homeId)
-        homes.saved(StoredHome(invite.homeId, invite.homeName, invite.shape, invite.createdAt))
+        homes.saved(StoredSpace(invite.homeId, invite.homeName, invite.shape, invite.createdAt))
         // A device only syncs a Home with the agents its roster lists, so it has to be told who invited it.
         rosters.admit(invite.homeId, invite.inviterMemberId, invite.inviterName, MemberRole.Admin.storageValue, sender)
         rosters.admit(invite.homeId, joiner.memberId, joiner.name, MemberRole.Member.storageValue, joiner.agentId)

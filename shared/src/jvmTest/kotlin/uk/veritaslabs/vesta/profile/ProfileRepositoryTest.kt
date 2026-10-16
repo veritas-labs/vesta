@@ -7,6 +7,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
+import uk.veritaslabs.kits.spaces.CurrentProfile
+import uk.veritaslabs.kits.spaces.ProfileChangeListener
+import uk.veritaslabs.kits.spaces.ProfileRepository
+import uk.veritaslabs.kits.spaces.RenameResult
 class ProfileRepositoryTest {
 
     @Test

@@ -19,7 +19,7 @@ import kotlinx.coroutines.test.runTest
 import org.automerge.SyncState
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 import uk.veritaslabs.vesta.home.HomeRepository
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 
 class SpaceDocumentRegistryTest {

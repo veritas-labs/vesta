@@ -24,7 +24,7 @@ import uk.veritaslabs.vesta.automerge.VestaHomeSources
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.getDeviceName
 import uk.veritaslabs.vesta.home.HomeRepository
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xEventHub
 import uk.veritaslabs.kits.x0x.createX0xClient

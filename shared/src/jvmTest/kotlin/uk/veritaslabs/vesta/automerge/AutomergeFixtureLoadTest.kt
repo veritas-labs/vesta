@@ -25,6 +25,17 @@ import uk.veritaslabs.vesta.ui.screens.PlannedMeal
 import uk.veritaslabs.vesta.ui.screens.RecipeType
 import uk.veritaslabs.vesta.ui.screens.Weekday
 
+import uk.veritaslabs.kits.spaces.RegistrySpace
+import uk.veritaslabs.kits.spaces.canonical
+import uk.veritaslabs.kits.spaces.readInvites
+import uk.veritaslabs.kits.spaces.readProfiles
+import uk.veritaslabs.kits.spaces.readRoster
+import uk.veritaslabs.kits.spaces.readRosterDeviceNames
+import uk.veritaslabs.kits.spaces.readRosterGone
+import uk.veritaslabs.kits.spaces.readRosterGoneDevices
+import uk.veritaslabs.kits.spaces.readRosterGroup
+import uk.veritaslabs.kits.spaces.readRosterHubs
+import uk.veritaslabs.kits.spaces.readSpaceRegistry
 /**
  * Loads every checked-in fixture (see [AutomergeFixtures]) with the current code and asserts what the readers return
  * (ADR-034 "Tests"). A fixture that gains an assertion keeps it: these files are what real devices hold.
@@ -590,23 +601,23 @@ class AutomergeFixtureLoadTest {
         val doc = AutomergeFixtures.load("home-registry-current.automerge")
 
         // Act
-        val homes = doc.readHomeRegistry().associateBy { it.id }
+        val homes = doc.readSpaceRegistry().associateBy { it.id }
 
         // Assert
         assertEquals(setOf("home-1", "home-2", "home-3"), homes.keys)
-        assertEquals(RegistryHome("home-1", "The Flat", "family", 1_790_000_000_000, false), homes.getValue("home-1"))
+        assertEquals(RegistrySpace("home-1", "The Flat", "family", 1_790_000_000_000, false), homes.getValue("home-1"))
         assertTrue(homes.getValue("home-3").deleted)
-        assertEquals("couple", homes.getValue("home-2").shape)
+        assertEquals("couple", homes.getValue("home-2").kind)
     }
 
     @Test
     fun aHomeRegistryWithUnknownKeysReadsTheSameAsWithout() {
         // Arrange
-        val current = AutomergeFixtures.load("home-registry-current.automerge").readHomeRegistry()
+        val current = AutomergeFixtures.load("home-registry-current.automerge").readSpaceRegistry()
         val extras = AutomergeFixtures.load("home-registry-extra-keys.automerge")
 
         // Act
-        val homes = extras.readHomeRegistry()
+        val homes = extras.readSpaceRegistry()
 
         // Assert
         assertEquals(3, homes.size)
@@ -684,7 +695,7 @@ class AutomergeFixtureLoadTest {
         val tasks = AutomergeFixtures.load("tasks-current.automerge").withFutureMapAt()
 
         // Act
-        val homeList = homes.readHomeRegistry()
+        val homeList = homes.readSpaceRegistry()
         val profileList = profiles.readProfiles()
 
         // Assert

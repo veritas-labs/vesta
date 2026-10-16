@@ -1,10 +1,11 @@
-package uk.veritaslabs.vesta.automerge
+package uk.veritaslabs.kits.spaces
 
 import kotlin.jvm.optionals.getOrNull
 import org.automerge.AmValue
 import org.automerge.Document
 import org.automerge.ObjectId
 import org.automerge.Read
+import uk.veritaslabs.kits.docs.spaceDocumentId
 
 private const val RosterFeature = "roster"
 private const val MemberPrefix = "member:"
@@ -26,10 +27,10 @@ private const val MaxUsesField = "maxUses"
 private const val RevokedField = "revoked"
 private const val UsedByPrefix = "usedBy:"
 
-/** ADR-006's `"$homeId:$feature"` id of [homeId]'s roster document. */
-fun rosterDocumentId(homeId: String): String = "$homeId:$RosterFeature"
+/** ADR-006's `"$spaceId:$feature"` id of [spaceId]'s roster document (the same string the home-era code made). */
+fun rosterDocumentId(spaceId: String): String = spaceDocumentId(spaceId, RosterFeature)
 
-/** One member as the roster holds it, with the agents that act for them in this Home. */
+/** One member as the roster holds it, with the agents that act for them in this Space. */
 data class RosterMember(
     val memberId: String,
     val name: String,
@@ -44,7 +45,7 @@ data class RosterMember(
 }
 
 /*
- * A Home's roster (docs/adr/ADR-014-home-membership.md) is a flat set of scalar keys at the document root:
+ * A Space's roster (docs/adr/ADR-014-home-membership.md) is a flat set of scalar keys at the document root:
  *
  *   member:<memberId>:name | avatar | role | joinedAt | removed     one person
  *   device:<agentId>  =  <memberId>                                the agents that act for that person
@@ -55,7 +56,7 @@ data class RosterMember(
  * same value merge to exactly that value. So any device may write its own person's keys, and a device writes only its
  * own `device:` key.
  *
- * The Home's x0x group (docs/adr/ADR-021-home-x0x-group.md) is one more scalar, `group = <groupId>`. Its always-on hubs
+ * The Space's x0x group (docs/adr/ADR-021-home-x0x-group.md) is one more scalar, `group = <groupId>`. Its always-on hubs
  * (docs/adr/ADR-020, agents in the group that replicate the mailbox; a hub may also be a member's device) are one key each,
  * `hub:<agentId> = true`, so two admins adding different hubs at once merge to both. Before several hubs were allowed the
  * roster held one scalar, `hub = <agentId>`: it is still read as a hub, and removing that agent deletes it.
@@ -177,7 +178,7 @@ fun Read.readRosterGone(): Map<String, String> =
         .mapNotNull { entry -> (entry.value as? AmValue.Str)?.value?.let { entry.key.removePrefix(GonePrefix) to it } }
         .toMap()
 
-/** The agents to take out of the Home's group: those marked gone whose claim still names the member who marked them (a tombstone for anyone else's device is ignored). */
+/** The agents to take out of the Space's group: those marked gone whose claim still names the member who marked them (a tombstone for anyone else's device is ignored). */
 fun Read.readRosterGoneDevices(): Set<String> =
     readRosterGone().filter { (agent, member) -> (get(ObjectId.ROOT, "$DevicePrefix$agent").getOrNull() as? AmValue.Str)?.value == member }.keys
 
@@ -349,10 +350,10 @@ fun useRosterInvite(doc: Document, secretHash: String, memberId: String): Boolea
     return true
 }
 
-/** The id of the Home's x0x group, or null while the roster has none. */
+/** The id of the Space's x0x group, or null while the roster has none. */
 fun Read.readRosterGroup(): String? = (get(ObjectId.ROOT, GroupKey).getOrNull() as? AmValue.Str)?.value
 
-/** Names [groupId] as the Home's x0x group, replacing any other. Returns whether anything changed. */
+/** Names [groupId] as the Space's x0x group, replacing any other. Returns whether anything changed. */
 fun setRosterGroup(doc: Document, groupId: String): Boolean {
     val tx = doc.startTransaction()
     if ((tx.get(ObjectId.ROOT, GroupKey).getOrNull() as? AmValue.Str)?.value == groupId) {
@@ -364,7 +365,7 @@ fun setRosterGroup(doc: Document, groupId: String): Boolean {
     return true
 }
 
-/** The agents recorded as the Home's always-on hubs: every `hub:<agentId>` key, and the older single `hub` value. */
+/** The agents recorded as the Space's always-on hubs: every `hub:<agentId>` key, and the older single `hub` value. */
 fun Read.readRosterHubs(): Set<String> {
     val hubs = mutableSetOf<String>()
     (get(ObjectId.ROOT, HubKey).getOrNull() as? AmValue.Str)?.value?.takeIf { it.isNotEmpty() }?.let { hubs += it }
@@ -374,7 +375,7 @@ fun Read.readRosterHubs(): Set<String> {
     return hubs
 }
 
-/** Records [agentId] as one of the Home's hubs, beside any others. Returns whether anything changed. */
+/** Records [agentId] as one of the Space's hubs, beside any others. Returns whether anything changed. */
 fun addRosterHub(doc: Document, agentId: String): Boolean {
     val tx = doc.startTransaction()
     val key = "$HubPrefix$agentId"

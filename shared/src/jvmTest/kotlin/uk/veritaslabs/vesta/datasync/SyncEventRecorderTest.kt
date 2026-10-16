@@ -15,9 +15,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
-import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
-import uk.veritaslabs.vesta.automerge.ProfileDocumentId
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
+import uk.veritaslabs.kits.spaces.ProfileDocumentId
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.db.SyncEvent
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
@@ -318,7 +318,7 @@ class SyncEventRecorderTest {
 
         // Assert
         assertEquals(expected, actual)
-        assertNull(registry.moduleOf(HomeRegistryDocumentId))
+        assertNull(registry.moduleOf(SpaceRegistryDocumentId))
         assertNull(registry.moduleOf(ProfileDocumentId))
     }
 }

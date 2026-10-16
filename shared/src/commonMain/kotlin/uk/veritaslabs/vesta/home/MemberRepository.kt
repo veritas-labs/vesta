@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberListItem
 import uk.veritaslabs.vesta.home.MemberRole
 

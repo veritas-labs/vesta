@@ -64,16 +64,16 @@ import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.vesta.home.LeaveResult
 import uk.veritaslabs.vesta.home.RemoveMemberResult
 import uk.veritaslabs.vesta.homejoin.HomeJoinMessage
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.ui.screens.HomeShape
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
 import org.automerge.SyncState
-import uk.veritaslabs.vesta.automerge.HomeRegistryDocumentId
+import uk.veritaslabs.kits.spaces.SpaceRegistryDocumentId
 import uk.veritaslabs.vesta.automerge.pantryDocumentId
 import uk.veritaslabs.vesta.automerge.merchantsDocumentId
 import uk.veritaslabs.vesta.automerge.cookbookDocumentId
 import uk.veritaslabs.vesta.automerge.mealPlanDocumentId
-import uk.veritaslabs.vesta.automerge.rosterDocumentId
+import uk.veritaslabs.kits.spaces.rosterDocumentId
 import uk.veritaslabs.vesta.automerge.shoppingListDocumentId
 import uk.veritaslabs.vesta.ui.screens.ShoppingItemDetails
 import uk.veritaslabs.vesta.automerge.ShoppingListSources
@@ -82,6 +82,7 @@ import uk.veritaslabs.vesta.calendar.CalendarDate
 import uk.veritaslabs.vesta.ui.screens.MealSlot
 import uk.veritaslabs.kits.x0x.X0xDirectMessage
 
+import uk.veritaslabs.kits.spaces.SpaceRegistry
 class DeviceDataSyncServiceTest {
 
     private val network = FakeX0xNetwork()
@@ -1594,9 +1595,9 @@ class DeviceDataSyncServiceTest {
             aDocument.receive(aState, case.peer(replica, homeId)!!.generate(SyncState())!!)
             val documentMessages = mutableListOf<ByteArray>()
             while (true) documentMessages += aDocument.generate(aState) ?: break
-            val aRegistry = HomeRegistry(a.database, VestaHomeSeeding(VestaHomeSources(a.database, a.pantries), a.database))
+            val aRegistry = SpaceRegistry(a.database, VestaHomeSeeding(VestaHomeSources(a.database, a.pantries), a.database))
             val registryState = SyncState()
-            aRegistry.receive(registryState, HomeRegistry(replica.database, VestaHomeSeeding(VestaHomeSources(replica.database, replica.pantries), replica.database)).generate(SyncState())!!)
+            aRegistry.receive(registryState, SpaceRegistry(replica.database, VestaHomeSeeding(VestaHomeSources(replica.database, replica.pantries), replica.database)).generate(SyncState())!!)
             val registryMessages = mutableListOf<ByteArray>()
             while (true) registryMessages += aRegistry.generate(registryState) ?: break
             val sender = a.agentId
@@ -1604,7 +1605,7 @@ class DeviceDataSyncServiceTest {
             val homesBeforeRegistry = b.homeNames()
 
             // Act
-            registryMessages.forEach { b.sync.handle(directMessage(sender, HomeRegistryDocumentId, it)) }
+            registryMessages.forEach { b.sync.handle(directMessage(sender, SpaceRegistryDocumentId, it)) }
 
             // Assert
             assertTrue(documentMessages.isNotEmpty() && registryMessages.isNotEmpty(), "${case.name}: nothing to hand to B")

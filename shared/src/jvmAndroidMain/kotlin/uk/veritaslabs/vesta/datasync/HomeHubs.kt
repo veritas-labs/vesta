@@ -11,7 +11,7 @@ import uk.veritaslabs.vesta.homegroup.HomeHub
 import uk.veritaslabs.vesta.homegroup.HubEnrolment
 import uk.veritaslabs.vesta.homegroup.HubResult
 import uk.veritaslabs.vesta.homegroup.HubState
-import uk.veritaslabs.vesta.profile.ProfileRepository
+import uk.veritaslabs.kits.spaces.ProfileRepository
 import uk.veritaslabs.vesta.home.MemberRole
 import uk.veritaslabs.kits.x0x.X0xApiException
 import uk.veritaslabs.kits.x0x.X0xClient
