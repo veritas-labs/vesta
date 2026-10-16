@@ -30,6 +30,18 @@ Settings → Assistants shows a Read and a Write switch per feature. `ListHomes`
   delta-from-local-value method as the UI (`correctStock`, ADR-008: not exact under concurrent edits). Items must exist ("unknown item")
   and are found by gtin, else name ignoring case. Skill: `agent-pantry-reduce.sh`, `agent-pantry-set.sh`.
 
+- **Cookbook Read and Write (2026-10-16)** are live. Addresses: `urn:vesta:document:<homeId>:cookbook` (the collection) and
+  `...:cookbook:<recipeKey>` (one recipe). `Read` of the collection lists recipes as `schema:Recipe` summaries (id, name, description,
+  category, yield, total time, keywords), by name, capped at 200 with the real `totalItems`; `Read` of one recipe adds ingredients
+  (`schema:QuantitativeValue`), steps (`schema:HowToStep`, ISO 8601 `performTime`), prep/cook time and `isBasedOn`. Photos and videos are
+  references that stay on the devices (ADR-022/023) and are never sent or accepted. Not logged for replay; Ask holds until Allow once.
+  `Add` of a `schema:Recipe` to the collection (name required; yield 1–999, durations up to 7 days, at most 100 ingredients, 100 steps, 20
+  keywords; ingredients and steps may be plain strings) and `Remove` by `schema:identifier` or `schema:name` are under **Cookbook Write**,
+  replayed by command id. A name already in the cookbook (ignoring case) is "recipe already exists" so a looping bot cannot pile up
+  duplicates; a missing recipe is "unknown recipe". Rating, favourite and notes are not exposed. Code: `CookbookCommands.kt` (parser,
+  replies, commands) and `CookbookCommandHandler.kt`, hooked into `PantryCommandHandler` by two calls. Skill: `agent-cookbook-read.sh`,
+  `agent-cookbook-add.sh`, `agent-cookbook-remove.sh`.
+
 The rest of this ADR still says `PantryAdd` in places; read it as `PantryWrite`.
 
 ## Context

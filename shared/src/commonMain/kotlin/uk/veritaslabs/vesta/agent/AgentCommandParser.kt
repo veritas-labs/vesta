@@ -44,6 +44,7 @@ object AgentCommandParser {
         fun invalid(reason: String) = ParseResult.Invalid(commandId, reason)
 
         if (commandId == null) return invalid("id is required")
+        CookbookCommandParser.parse(root, commandId)?.let { return it }
         return when (root.string("type")) {
             "Add" -> parseAdd(root, commandId)
             "Remove" -> parseStockChange(root, commandId, set = false)

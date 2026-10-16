@@ -131,7 +131,7 @@ class AssistantEditScreenTest {
         // Assert
         onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.PantryWrite)).assertIsEnabled()
         onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.ShoppingListRead)).assertIsNotEnabled()
-        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.CookbookWrite)).assertIsNotEnabled()
+        onNodeWithTag(AssistantEditTestTags.capability("h1", AssistantCapability.MerchantsWrite)).assertIsNotEnabled()
     }
 
     @OptIn(ExperimentalTestApi::class)

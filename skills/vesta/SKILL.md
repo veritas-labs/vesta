@@ -2,7 +2,7 @@
 name: vesta
 description: >-
   Acts on a user's Vesta household app from an external AI agent over x0x
-  direct messages: lists their Homes, reads a Home's Pantry, adds items to it, takes items out and sets exact stock
+  direct messages: lists their Homes, reads a Home's Pantry, adds items to it, takes items out and sets exact stock, reads the cookbook and adds or removes recipes
   (household stock / shopping). Use when the user asks you to add, restock or
   put an item in their pantry or household inventory in Vesta, or asks which
   homes they have in Vesta. Everything goes over x0x; never read Vesta's
@@ -18,8 +18,9 @@ files to find ids — Vesta gives them to you over x0x.
 
 Today you can: **list the user's Homes**, **read a Home's Pantry** (what is in
 stock), **add an item** (adds to the stock count), **take some out** (lowers it, never
-below 0) and **set the stock to an exact number**. Reading and changing are separate
-permissions the user grants (Pantry Read, Pantry Write).
+below 0) and **set the stock to an exact number**. You can also **read the cookbook**
+and **add or remove recipes**. Reading and changing are separate permissions the user
+grants per feature (Pantry Read/Write, Cookbook Read/Write).
 
 ## Before you start — ask the user, don't guess
 
@@ -78,6 +79,18 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
    ```
    Prefer **set** when you know the true count (repeating it is harmless); use **reduce** for "we used one". Reduce is not
    safe to repeat: see Retrying safely. Items are found by `--gtin` if you give it, else by name (any case).
+
+   **Cookbook.** Recipes live in the Home's cookbook; Cookbook **Read** and **Write** are their own switches:
+   ```sh
+   scripts/agent-cookbook-read.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId>                    # list
+   scripts/agent-cookbook-read.sh   --agent-instance <name> --to <vesta-agent-id> --home <homeId> --recipe <recipeId>   # one, in full
+   scripts/agent-cookbook-add.sh    --agent-instance <name> --to <vesta-agent-id> --home <homeId> --title "Pancakes" \
+     --category Breakfast --servings 4 --cook PT15M --ingredient "200g plain flour" --ingredient "2 eggs" --step "Whisk" --step "Fry"
+   scripts/agent-cookbook-remove.sh --agent-instance <name> --to <vesta-agent-id> --home <homeId> --recipe <recipeId>
+   ```
+   The list prints `<recipeId>` TAB `<name>` TAB `<category>` TAB `<servings>` TAB `<time>` TAB `<keywords>` (at most 200). Read
+   the cookbook first so you don't add a duplicate (names are unique, any case). Photos and videos are never sent or accepted.
+   Removing is permanent for the whole household: only on the user's request, and say which recipe went.
 4. **Tell the user what happened**, from the script's output and exit code.
 
 ## Outcomes
@@ -89,6 +102,8 @@ Run the scripts from this skill's `scripts/` directory (bash, needs `curl`,
 | exit 3, "not permitted for this home" | You're added, but have no grant to add to that Home (the Home may not exist; Vesta says the same either way). | List the Homes again (you only see Homes you may use). If it isn't there, ask the user to grant you that Home in Settings → Assistants. Don't retry unchanged. |
 | exit 3, "waiting for approval…" | The user set your access to *ask each time* and has been asked. | Tell the user to tap **Allow once** in Vesta, then re-send the **same** command (same `--id`). |
 | exit 3, "unknown item" | Reduce/set named an item that isn't in that Pantry. | Read the Pantry for the exact name, or add it first. |
+| exit 3, "unknown recipe" | A cookbook read or remove named a recipe that isn't in that cookbook. | List the cookbook again for the recipe id. |
+| exit 3, "recipe already exists" | A recipe with that name (any case) is already in the cookbook. | Read it instead of adding it again. |
 | exit 3, "unknown home" | That Home id doesn't exist. | List the Homes again and re-ask. |
 | exit 3, anything else | Vesta says the request was malformed; the reason is printed. | Fix the request (e.g. quantity out of range, empty title). Don't retry unchanged. |
 | exit 4, no reply | Silent drop: the daemons don't trust each other (step 3), or the app isn't running. | Ask the user to check trust in **both** directions and that Vesta is open. Don't loop. |
