@@ -40,11 +40,11 @@ payload="$(jq -cn --argjson ctx "$CONTEXT" --arg id "$command_id" --arg home "$h
     "@context": $ctx,
     "type": "Update",
     "id": $id,
-    "object": {
+    "object": ({
       "type": "schema:TypeAndQuantityNode",
       "schema:typeOfGood": ({"type": "schema:Product", "schema:name": $title}
         + (if $gtin != "" then {"schema:gtin": $gtin} else {} end))
-    } + (if $qty != "" then {"schema:amountOfThisGood": ($qty | tonumber)} else {} end),
+    } + (if $qty != "" then {"schema:amountOfThisGood": ($qty | tonumber)} else {} end)),
     "target": {"type": "Collection", "id": ("urn:vesta:document:" + $home + ":shopping-list")}
   }')"
 
