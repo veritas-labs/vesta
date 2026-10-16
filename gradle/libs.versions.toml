@@ -47,6 +47,7 @@ kits-x0x = { module = "uk.veritaslabs.kits:x0x-kit", version.ref = "kits" }
 kits-store = { module = "uk.veritaslabs.kits:store-kit", version.ref = "kits" }
 kits-docs = { module = "uk.veritaslabs.kits:docs-kit", version.ref = "kits" }
 kits-spaces = { module = "uk.veritaslabs.kits:spaces-kit", version.ref = "kits" }
+kits-sync = { module = "uk.veritaslabs.kits:sync-kit", version.ref = "kits" }
 kits-blobs = { module = "uk.veritaslabs.kits:blobs-kit", version.ref = "kits" }
 kits-storeTesting = { module = "uk.veritaslabs.kits:store-kit-testing", version.ref = "kits" }
 kits-x0xTesting = { module = "uk.veritaslabs.kits:x0x-kit-testing", version.ref = "kits" }

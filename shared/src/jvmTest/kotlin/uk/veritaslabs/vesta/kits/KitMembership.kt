@@ -17,6 +17,7 @@ enum class Kit(val label: String) {
     Docs("docs"),
     /** Extracted in WP22: consumed as the published `uk.veritaslabs.kits:spaces-kit` (common part with iOS, services JVM and Android). */
     Spaces("spaces"),
+    /** Extracted in WP24: consumed as the published `uk.veritaslabs.kits:sync-kit` (common part needs a Mac for iOS, the engine is JVM and Android). */
     Sync("sync"),
     /** Extracted in WP18: consumed as the published `uk.veritaslabs.kits:blobs-kit`. */
     Blobs("blobs"),
@@ -26,7 +27,7 @@ enum class Kit(val label: String) {
 
 object KitMembership {
     /** Kits that have been extracted: `:shared` imports them but must not contain their sources. */
-    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store, Kit.Blobs, Kit.Docs, Kit.Spaces)
+    val extracted: Set<Kit> = setOf(Kit.X0x, Kit.Store, Kit.Blobs, Kit.Docs, Kit.Spaces, Kit.Sync)
 
     /** The package each extracted kit publishes, so a stray copy of its sources is noticed. */
     val extractedPackages: Map<Kit, String> = mapOf(
@@ -35,6 +36,7 @@ object KitMembership {
         Kit.Blobs to "uk.veritaslabs.kits.blobs",
         Kit.Docs to "uk.veritaslabs.kits.docs",
         Kit.Spaces to "uk.veritaslabs.kits.spaces",
+        Kit.Sync to "uk.veritaslabs.kits.sync",
     )
 
     private val platformSuffix = Regex("\\.(android|jvm|ios)$")

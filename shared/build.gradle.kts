@@ -105,6 +105,9 @@ kotlin {
             // Membership: Spaces, rosters, invites, the registries, profiles and the join/group services, extracted to vesta-kits.
             // Its common part has an iOS variant; the Automerge-based services are JVM and Android only.
             api(libs.kits.spaces)
+            // Device data sync, device pairing and the Sync activity models, extracted to vesta-kits. Like x0x-kit its iOS
+            // variant exists only when published from a Mac; the engine is JVM and Android only.
+            api(libs.kits.sync)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
