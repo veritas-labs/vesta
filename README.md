@@ -67,7 +67,7 @@ Vesta on the desktop talks to an **x0x daemon that you install and run yourself*
    ```
 
    The app finds the daemon through its data directory (`~/.local/share/x0x`, or whatever `X0X_DATA_DIR` points at), so
-   start x0x first or leave it running. Use **x0x 0.46.3 or newer**. If the app says it can't find x0x, this is why.
+   start x0x first or leave it running. Use **x0x 0.48.0 or newer**. If the app says it can't find x0x, this is why.
 
 2. Install Vesta from the [latest release](../../releases/latest):
 
@@ -116,6 +116,7 @@ Then:
 ./gradlew :desktopApp:run                 # desktop app (needs x0x running)
 ./gradlew :androidApp:assembleDebug       # Android debug APK
 ./gradlew :desktopApp:packageDeb          # Linux .deb (run on Linux)
+./scripts/package-appimage.sh            # Linux AppImage (needs appimagetool on PATH)
 ./gradlew :desktopApp:packageDmg          # macOS .dmg (run on macOS)
 ./gradlew :desktopApp:packageMsi          # Windows .msi (run on Windows)
 ```
@@ -196,7 +197,7 @@ ffi/x0x-ffi/                  Rust crate: wraps x0x::server::{serve, DaemonConfi
   ├─ src/lib.rs               C ABI (x0x_ffi_start/_port/_api_token/_shutdown/_last_error)
   │                           + JNI shims for Android (X0xBridge)
   ├─ include/x0x_ffi.h        C header (used by Kotlin/Native cinterop on iOS)
-  └─ Cargo.toml               depends on the published `x0x` crate (0.40.x)
+  └─ Cargo.toml               depends on the published `x0x` crate (0.48.x)
 
 scripts/build-android-ffi.sh  cargo build per Android ABI (NDK clang) →
                               androidApp/src/main/jniLibs/<abi>/libx0x_ffi.so

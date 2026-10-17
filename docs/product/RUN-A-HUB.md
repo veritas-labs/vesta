@@ -8,7 +8,7 @@ computer of yours that runs Vesta can be one too (see below).
 ## What you need
 
 - A computer that is on most of the time: a desktop or laptop that is rarely switched off, a Raspberry Pi, a home server.
-- **x0x version 0.46.3 or newer** (older versions cannot open the encrypted group store the mailbox lives in). Check with
+- **x0x version 0.48.0 or newer** (older versions cannot open the encrypted group store the mailbox lives in). Check with
   `x0xd --version`. Install it from [the x0x project](https://github.com/saorsa-labs/x0x).
 - A Home admin's phone, with Vesta open, while you set it up.
 

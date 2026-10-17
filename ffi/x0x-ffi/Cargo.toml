@@ -15,7 +15,7 @@ name = "x0x_ffi"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-x0x = "0.46.3"
+x0x = "0.48.0"
 anyhow = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time"] }
 libc = "0.2"
