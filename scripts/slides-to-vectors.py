@@ -7,7 +7,7 @@ theme, so this script recolours by role instead:
 
   ink    -> the theme's text colour (black in light, warm white in dark); mid greys (shading) sit on the ramp between ink and paper
   paper  -> the theme's background colour (so the picture sits on the screen with no visible square)
-  blobs  -> left alone
+  blobs  -> left alone in light; scaled darker in dark ("blob_scale"), so the warm-white line work shows against them
 
 Run from anywhere:  python3 -I scripts/slides-to-vectors.py
 Output goes to branding/compose/drawable/ (the brand-art folder) and is symlinked into
@@ -53,8 +53,8 @@ RAMPED = {"vesta-the-virgin-goddess": "img_vesta_line"}
 
 # Keep in step with VestaLightColorScheme / VestaDarkColorScheme in VestaTheme.kt.
 THEMES = {
-    "": {"ink": "#1D1B16", "paper": "#F5F4ED"},
-    "_dark": {"ink": "#EDE5D8", "paper": "#15130F"},
+    "": {"ink": "#1D1B16", "paper": "#F5F4ED", "blob_scale": 1.0},
+    "_dark": {"ink": "#EDE5D8", "paper": "#15130F", "blob_scale": 0.55},
 }
 
 PATH = re.compile(r'<path\s+transform="translate\(0,0\)"\s+fill="([^"]+)"\s+d="([^"]+)"\s*/>')
@@ -111,8 +111,11 @@ def convert(svg: str, theme: dict, name: str, ramped: bool = False) -> tuple[str
             if role == "blob" and max(r, g, b) - min(r, g, b) <= 10:
                 # A grey that is not ink or paper is shading on the line work (a plate's shadow, say): follow the same ramp.
                 colour = ramp(theme, r, g, b)
+            elif role == "blob":
+                k = theme["blob_scale"]
+                colour = f"#{round(r * k):02X}{round(g * k):02X}{round(b * k):02X}"
             else:
-                colour = theme[role] if role in theme else f"#{r:02X}{g:02X}{b:02X}"
+                colour = theme[role]
         paths.append(f'    <path android:fillColor="{colour}" android:pathData="{" ".join(d.split())}"/>')
     # The very first shape is the full-canvas background; it must have been classified as paper.
     if counts["paper"] == 0:
