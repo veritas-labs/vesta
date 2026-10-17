@@ -52,19 +52,20 @@ class AppSettingsRepositoryTest {
     }
 
     @Test
-    fun mobileDataIsOnUntilTheUserTurnsItOffAndThenStaysOff() = runTest {
+    fun mobileDataFollowsThePlatformDefaultUntilTheUserChoosesAndThenStaysChosen() = runTest {
         // Arrange
         val db = openInMemoryDatabase()
-        val initial = AppSettingsRepository(db).useMobileData()
+        val phoneInitial = AppSettingsRepository(db, useMobileDataByDefault = false).useMobileData()
+        val emulatorInitial = AppSettingsRepository(db, useMobileDataByDefault = true).useMobileData()
 
         // Act
-        AppSettingsRepository(db).setUseMobileData(false)
-        val afterOff = AppSettingsRepository(db).useMobileData()
-        AppSettingsRepository(db).setUseMobileData(true)
-        val afterOn = AppSettingsRepository(db).useMobileData()
+        AppSettingsRepository(db, useMobileDataByDefault = false).setUseMobileData(true)
+        val afterOn = AppSettingsRepository(db, useMobileDataByDefault = false).useMobileData()
+        AppSettingsRepository(db, useMobileDataByDefault = true).setUseMobileData(false)
+        val afterOff = AppSettingsRepository(db, useMobileDataByDefault = true).useMobileData()
 
         // Assert
-        assertEquals(listOf(true, false, true), listOf(initial, afterOff, afterOn))
+        assertEquals(listOf(false, true, true, false), listOf(phoneInitial, emulatorInitial, afterOn, afterOff))
     }
 
     @Test

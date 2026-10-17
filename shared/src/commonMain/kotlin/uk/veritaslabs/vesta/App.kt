@@ -266,7 +266,7 @@ fun App(
     }
     val darkTheme = themeMode.isDark(isSystemInDarkTheme())
     SystemBarsAppearance(darkTheme)
-    // On until the user opts out; saved in [settings]. Platforms that run x0x in-process stop it on mobile data unless this is on.
+    // Off on a phone until the user opts in (on in an emulator); saved in [settings]. Platforms that run x0x in-process stop it on mobile data unless this is on.
     // The policy is only set once the saved choice is known, so a saved "off" is never briefly overridden by the default.
     LaunchedEffect(useMobileData, settingsLoaded) { if (settingsLoaded) X0xNetworkPolicy.useMobileData.value = useMobileData }
     val snackbarHost = remember { SnackbarHostState() }

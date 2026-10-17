@@ -5,6 +5,9 @@ interface Platform {
 
     /** Whether this device can be on a metered mobile connection, so a "Use mobile data" choice means something. */
     val hasMobileData: Boolean get() = true
+
+    /** Whether "Use mobile data" starts on before the user has chosen: off on a real phone, to spare their data plan. */
+    val useMobileDataByDefault: Boolean get() = true
 }
 
 expect fun getPlatform(): Platform

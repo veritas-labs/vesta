@@ -7,7 +7,19 @@ import uk.veritaslabs.kits.x0x.X0xAndroid
 
 class AndroidPlatform : Platform {
     override val name: String = "Android ${Build.VERSION.SDK_INT}"
+
+    // An emulator's connection is the developer machine's, so it counts as unmetered and x0x may use it.
+    override val useMobileDataByDefault: Boolean = isEmulator()
 }
+
+private fun isEmulator(): Boolean =
+    Build.FINGERPRINT.startsWith("generic") ||
+        Build.FINGERPRINT.contains("emulator") ||
+        Build.HARDWARE.contains("goldfish") ||
+        Build.HARDWARE.contains("ranchu") ||
+        Build.PRODUCT.contains("sdk_gphone") ||
+        Build.MODEL.contains("Emulator") ||
+        Build.MODEL.contains("Android SDK built for")
 
 actual fun getPlatform(): Platform = AndroidPlatform()
 

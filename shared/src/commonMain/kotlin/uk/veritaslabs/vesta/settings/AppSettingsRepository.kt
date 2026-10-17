@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.settings
 
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import uk.veritaslabs.vesta.calendar.CalendarSettings
+import uk.veritaslabs.vesta.getPlatform
 import uk.veritaslabs.vesta.calendar.WeekStart
 import uk.veritaslabs.kits.store.KitsDatabase
 import uk.veritaslabs.vesta.ui.theme.AppTheme
@@ -11,7 +12,10 @@ import uk.veritaslabs.vesta.ui.theme.ThemeMode
 data class Appearance(val appTheme: AppTheme = AppTheme.Vesta, val themeMode: ThemeMode = ThemeMode.System)
 
 /** The app's device-level preferences, kept in the database so they survive relaunches. Not synced between devices. */
-class AppSettingsRepository(private val database: KitsDatabase) {
+class AppSettingsRepository(
+    private val database: KitsDatabase,
+    private val useMobileDataByDefault: Boolean = getPlatform().useMobileDataByDefault,
+) {
     /** The saved [Appearance]; anything not saved yet, or no longer recognised, is the default. */
     suspend fun appearance(): Appearance = Appearance(
         appTheme = read(ThemeKey)?.let { name -> AppTheme.entries.firstOrNull { it.name == name } } ?: AppTheme.Vesta,
@@ -22,8 +26,8 @@ class AppSettingsRepository(private val database: KitsDatabase) {
 
     suspend fun setThemeMode(themeMode: ThemeMode) = database.appSettingQueries.upsert(ThemeModeKey, themeMode.name)
 
-    /** Whether the user lets x0x use mobile data; on until they turn it off. */
-    suspend fun useMobileData(): Boolean = read(UseMobileDataKey) != false.toString()
+    /** Whether the user lets x0x use mobile data; until they choose, the platform's default (off on a phone, on in an emulator). */
+    suspend fun useMobileData(): Boolean = read(UseMobileDataKey)?.toBooleanStrictOrNull() ?: useMobileDataByDefault
 
     suspend fun setUseMobileData(useMobileData: Boolean) = database.appSettingQueries.upsert(UseMobileDataKey, useMobileData.toString())
 
