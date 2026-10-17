@@ -82,6 +82,8 @@ import uk.veritaslabs.vesta.ui.flows.MerchantsFlow
 import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.CalendarSettingsController
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
+import androidx.compose.ui.backhandler.BackHandler
+import androidx.compose.ui.ExperimentalComposeUiApi
 import uk.veritaslabs.vesta.ui.screens.AddedToPantryScreen
 import uk.veritaslabs.vesta.ui.flows.CalendarFlow
 import uk.veritaslabs.vesta.ui.flows.TasksFlow
@@ -194,6 +196,7 @@ private enum class SettingsDestination { Settings, Assistants, SyncedDevices, Pr
  * (the Home picker tells waiting join requests so); it polls the local daemon by default. With [deviceSync], the Synced devices screen (under Settings, from the Home picker) lists and
  * removes the user's real devices; without one (previews) it is always empty.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 @Preview
 fun App(
@@ -277,6 +280,21 @@ fun App(
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 val currentProfile = profile
+                // The system back gesture steps out of whichever overlay is showing, the way each screen's own back arrow does;
+                // without this it would finish the activity.
+                val overlayBack: (() -> Unit)? = when {
+                    onboarding != null -> { { onboarding = null } }
+                    afterNaming != null -> { { afterNaming = null } }
+                    assistantEdit != null && assistants != null -> { { assistantEdit = null } }
+                    homeId != null && editTarget == null -> null
+                    joinSession != null && homeJoining != null -> { { joinSession = null } }
+                    pairingSession != null && deviceSync != null -> { { pairingSession = null } }
+                    settingsDestination == SettingsDestination.Settings -> { { settingsDestination = null } }
+                    settingsDestination != null -> { { settingsDestination = SettingsDestination.Settings } }
+                    editTarget != null && homeRepository != null -> { { editTarget = null } }
+                    else -> null
+                }
+                BackHandler(enabled = overlayBack != null) { overlayBack?.invoke() }
                 val tourMode = onboarding
                 if (tourMode != null) {
                     OnboardingScreen(
@@ -429,6 +447,7 @@ fun App(
  * [PantryScreen] (its FAB opens [PantryItemEditScreen], whose saves go to [pantrySource] and show up
  * in the Pantry). Without a [pantrySource] the Pantry is empty and saves are dropped.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun HomeContent(
     homeId: String,
@@ -515,6 +534,30 @@ private fun HomeContent(
     var categoriesBackTo by remember { mutableStateOf(HomeDestination.Pantry) }
     // Where the Sync activity screen's back arrow returns to: the dashboard or the hub manager it was opened from.
     var syncActivityBackTo by remember { mutableStateOf(HomeDestination.Dashboard) }
+    // The system back gesture does what the current screen's back arrow does (from the dashboard, back to the Home picker).
+    BackHandler {
+        when (destination) {
+            HomeDestination.Dashboard -> selectedHome.clear()
+            HomeDestination.Members, HomeDestination.HubManager, HomeDestination.Pantry, HomeDestination.MealPlanner,
+            HomeDestination.Marketplace, HomeDestination.Calendar, HomeDestination.Tasks, HomeDestination.ShoppingList,
+            -> destination = HomeDestination.Dashboard
+            HomeDestination.MemberDetail, HomeDestination.InviteLinks -> destination = HomeDestination.Members
+            HomeDestination.SyncActivity -> destination = syncActivityBackTo
+            HomeDestination.HubTutorial, HomeDestination.Hub -> destination = HomeDestination.HubManager
+            HomeDestination.Cookbook -> {
+                destination = if (cookbookRecipeKey != null) HomeDestination.MealPlanner else HomeDestination.Dashboard
+                cookbookRecipeKey = null
+            }
+            HomeDestination.Merchants -> destination = HomeDestination.Marketplace
+            HomeDestination.CalendarSettings -> destination = HomeDestination.Calendar
+            HomeDestination.ShoppingListFilter, HomeDestination.ShoppingAddedToPantry, HomeDestination.ShoppingItemEdit ->
+                destination = HomeDestination.ShoppingList
+            HomeDestination.ShoppingItemEditPackage -> destination = HomeDestination.ShoppingItemEdit
+            HomeDestination.PantryCategories -> destination = categoriesBackTo
+            HomeDestination.PantryItemEdit -> destination = HomeDestination.Pantry
+            HomeDestination.PantryItemEditPackage -> destination = HomeDestination.PantryItemEdit
+        }
+    }
     when (destination) {
         HomeDestination.Dashboard -> HomeDashboardScreen(
             homeName = homeName,
