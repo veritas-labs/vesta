@@ -231,7 +231,8 @@ fun TasksScreen(
     val currentView = TasksView.entries[view]
 
     Scaffold(
-        modifier = modifier.fillMaxSize().safeDrawingPadding(),
+        // The background goes on before the inset padding so it fills the area behind the system bars, as MealPlannerScreen's does.
+        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
