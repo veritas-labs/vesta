@@ -575,7 +575,7 @@ private fun ListView(
             art = EmptyStateArt.QuietDay,
             title = stringResource(if (mineOnly) Res.string.tasks_empty_mine_title else Res.string.tasks_empty_title),
             body = stringResource(if (mineOnly) Res.string.tasks_empty_mine_body else Res.string.tasks_empty_body),
-            modifier = Modifier.fillMaxSize().testTag(TasksTestTags.Empty),
+            modifier = Modifier.fillMaxSize().padding(bottom = FabClearance).testTag(TasksTestTags.Empty),
         )
         return
     }

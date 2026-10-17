@@ -270,7 +270,7 @@ fun CookbookScreen(
                 }
             }
             if (visible.isEmpty()) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(start = contentPadding, end = contentPadding, bottom = FabClearance), contentAlignment = Alignment.Center) {
                     EmptyState(
                         if (recipes.isEmpty()) EmptyStateArt.Cookbook else EmptyStateArt.NoResults,
                         title = stringResource(if (recipes.isEmpty()) Res.string.cookbook_empty_title else Res.string.cookbook_no_matches),

@@ -279,6 +279,7 @@ fun CalendarScreen(
                     Icon(
                         painterResource(Res.drawable.ic_chevron_right),
                         contentDescription = stringResource(if (expanded) Res.string.calendar_previous_month else Res.string.calendar_previous_week),
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.rotate(180f),
                     )
                 }
@@ -286,6 +287,7 @@ fun CalendarScreen(
                     Icon(
                         painterResource(Res.drawable.ic_chevron_right),
                         contentDescription = stringResource(if (expanded) Res.string.calendar_collapse else Res.string.calendar_expand),
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.rotate(if (expanded) -90f else 90f),
                     )
                 }
@@ -293,6 +295,7 @@ fun CalendarScreen(
                     Icon(
                         painterResource(Res.drawable.ic_chevron_right),
                         contentDescription = stringResource(if (expanded) Res.string.calendar_next_month else Res.string.calendar_next_week),
+                        tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }
             }
@@ -302,10 +305,11 @@ fun CalendarScreen(
             Text(
                 "${selected.day} ${months[selected.month - 1]} ${selected.year}",
                 style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.testTag(CalendarTestTags.SelectedDay),
             )
             if (dayEvents.isEmpty()) {
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = FabClearance), contentAlignment = Alignment.Center) {
                     // As big as fits above the words, up to 200dp.
                     val pictureSize = (maxHeight - 48.dp).coerceIn(0.dp, 200.dp)
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {

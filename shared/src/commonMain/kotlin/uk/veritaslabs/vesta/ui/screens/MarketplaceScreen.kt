@@ -82,13 +82,19 @@ fun MarketplaceScreen(
                 .testTag(MarketplaceTestTags.LocalMerchants),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(painterResource(Res.drawable.ic_merchants), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+            Icon(
+                painterResource(Res.drawable.ic_merchants),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(end = 16.dp),
+            )
             Text(
                 stringResource(Res.string.marketplace_local_merchants),
                 style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f),
             )
-            Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null)
+            Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

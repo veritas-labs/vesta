@@ -364,6 +364,7 @@ private fun WeekHeader(
                 Icon(
                     painterResource(Res.drawable.ic_chevron_right),
                     contentDescription = stringResource(Res.string.meal_planner_previous_week),
+                    tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.rotate(180f),
                 )
             }
@@ -375,7 +376,11 @@ private fun WeekHeader(
                 modifier = Modifier.weight(1f).testTag(MealPlannerTestTags.WeekRange),
             )
             IconButton(onClick = onNextWeek, modifier = Modifier.testTag(MealPlannerTestTags.NextWeek)) {
-                Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = stringResource(Res.string.meal_planner_next_week))
+                Icon(
+                    painterResource(Res.drawable.ic_chevron_right),
+                    contentDescription = stringResource(Res.string.meal_planner_next_week),
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
             }
         }
         if (showThisWeek) {

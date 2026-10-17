@@ -338,7 +338,7 @@ fun ShoppingListScreen(
             }
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = contentPadding)) {
                 if (items.isEmpty()) {
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = FabClearance), contentAlignment = Alignment.Center) {
                         EmptyState(
                             EmptyStateArt.Shopping,
                             title = stringResource(Res.string.shopping_empty_title),
