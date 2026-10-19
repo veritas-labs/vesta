@@ -1,6 +1,7 @@
 package uk.veritaslabs.vesta
 
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.useResource
@@ -55,7 +56,11 @@ private fun vestaApplication() = application {
             openPrivateCalendar = { database, homeId -> agentCommands.privateCalendar(database, homeId) },
             openTasks = { database, homeId -> agentCommands.tasks(database, homeId) },
             openPrivateTasks = { database, homeId -> agentCommands.privateTasks(database, homeId) },
-            backgroundServices = { database -> agentCommands.run(database) },
+            backgroundServices = { database ->
+                // The morning digest (ADR-040) runs beside the agent commands for as long as the app does.
+                launch { runMorningDigest(database, agentCommands.taskSources(database)) { window.toFront(); window.requestFocus() } }
+                agentCommands.run(database)
+            },
             assistantsFor = agentCommands::assistants,
             dataSync = { database, client, devices ->
                 agentCommands.homeSources(database).let { sources ->

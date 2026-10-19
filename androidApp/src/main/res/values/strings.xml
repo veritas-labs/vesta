@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Vesta</string>
+    <string name="morning_digest_channel">Tasks for today</string>
+    <string name="morning_digest_channel_description">A morning note of today\'s tasks that have no time set</string>
+    <plurals name="morning_digest_title">
+        <item quantity="one">%d task today</item>
+        <item quantity="other">%d tasks today</item>
+    </plurals>
+    <string name="morning_digest_with_home">%1$s (%2$s)</string>
+    <string name="morning_digest_private">Private tasks today</string>
 </resources>

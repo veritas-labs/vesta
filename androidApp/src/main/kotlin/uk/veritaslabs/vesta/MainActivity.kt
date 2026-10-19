@@ -1,5 +1,9 @@
 package uk.veritaslabs.vesta
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import java.io.File
 import uk.veritaslabs.vesta.automerge.VestaHomeSources
+import uk.veritaslabs.vesta.home.TasksDeepLink
 import uk.veritaslabs.vesta.automerge.CookbookBlobReferences
 import uk.veritaslabs.vesta.automerge.homeIdsOf
 import uk.veritaslabs.vesta.agent.AgentCommandService
@@ -18,12 +23,29 @@ import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.vesta.recipes.HttpRecipeImporter
 
 class MainActivity : ComponentActivity() {
+    // The activity is singleTop, so a tap on the digest while the app is open arrives here rather than in a new instance.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        openTasksIfAsked(intent)
+    }
+
+    private fun openTasksIfAsked(intent: Intent?) {
+        intent?.getStringExtra(ExtraTasksHomeId)?.let { TasksDeepLink.request(it) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         // App-private storage for the embedded x0x daemon and the local database.
         VestaAndroid.install(this)
+
+        // The morning digest (ADR-040): arm today's or tomorrow's 07:00 alarm, and on Android 13+ ask once for permission to show it.
+        MorningDigest.arm(this)
+        openTasksIfAsked(intent)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+        }
 
         // The Pantry screen and device sync must share each Home's Pantry source, so both go through this service.
         // TODO(ADR-009): agent commands are wired on desktop only. To enable them here, also pass

@@ -71,6 +71,7 @@ import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
 import uk.veritaslabs.kits.x0x.createX0xClient
 import uk.veritaslabs.vesta.home.HomeRepository
+import uk.veritaslabs.vesta.home.TasksDeepLink
 import uk.veritaslabs.kits.spaces.LeaveResult
 import uk.veritaslabs.kits.spaces.SpaceJoining
 import uk.veritaslabs.kits.spaces.SpaceHub
@@ -242,6 +243,11 @@ fun App(
     // Drop the selection if its Home goes away (deleted, or left).
     LaunchedEffect(homes, selectedHome) {
         homes.collect { list -> selectedHome.homeId.value?.let { id -> if (list.none { it.id == id }) selectedHome.clear() } }
+    }
+    // A tap on the morning digest (ADR-040) selects that Home; its Tasks open in the Home itself. A Home that no longer exists drops the request.
+    val tasksRequest by TasksDeepLink.homeId.collectAsStateWithLifecycle()
+    LaunchedEffect(tasksRequest, homeList) {
+        tasksRequest?.let { id -> if (homeList.any { it.id == id }) selectedHome.select(id) }
     }
     // Follows the system until the user picks light or dark in Settings; saved in [settings] when there is one.
     var themeMode by remember { mutableStateOf(ThemeMode.System) }
@@ -483,6 +489,13 @@ private fun HomeContent(
     val isAdmin = memberList.any { it.isYou && it.role == MemberRole.Admin }
     var destination by remember { mutableStateOf(HomeDestination.Dashboard) }
     var viewingMemberId by remember { mutableStateOf<String?>(null) }
+    val tasksRequest by TasksDeepLink.homeId.collectAsStateWithLifecycle()
+    LaunchedEffect(tasksRequest) {
+        if (tasksRequest == homeId) {
+            destination = HomeDestination.Tasks
+            TasksDeepLink.consume(homeId)
+        }
+    }
     // Opening a Home or its Pantry asks for a sync now (ADR-020), rather than showing what the next timer round brings.
     LaunchedEffect(homeId, destination == HomeDestination.Pantry) { onOpened() }
     var editingItem by remember { mutableStateOf<PantryItemDetails?>(null) }

@@ -193,3 +193,24 @@ captured from the code as it was before any rename, and the literals and the dat
     Manual because the automated tests run one version; not yet run (needs two devices, Gate D).
 11. **A real user database opens.** *Given* a copy of a real `vesta.db` from before the extraction (not the fixture), *when* the new build opens the copy,
     *then* every Home, member, document and pending message is intact. Manual; not yet run.
+
+## Morning digest (ADR-040)
+
+1. **Today's tasks with no time are listed.** *Given* open tasks due today, one with no time and one at 09:00, one with no date, one due tomorrow, *when* the
+   digest is built, *then* only the no-time task due today is in it. `MorningDigestTest.aTaskDueTodayWithNoTimeIsIncludedAndOneWithATimeIsNot`,
+   `tasksDueOnOtherDaysAndTasksWithNoDateAreNotIncluded`.
+2. **A done occurrence is left out; a repeating chore's next one is not.** `MorningDigestTest.aDoneOccurrenceIsLeftOutButTheNextOccurrenceOfARepeatingChoreStillCounts`.
+3. **Only my tasks.** *Given* a task assigned to someone else, one to me, one to anyone and a private one, *then* all but the first are listed.
+   `MorningDigestTest.aTaskAssignedToSomeoneElseIsLeftOutAndOneForMeOrAnyoneIsIncluded`.
+4. **Read with no screen open.** *Given* Home and private tasks in the database, *when* the digest is read, *then* both lists are included with their Home's
+   name, a Home I am not in adds nothing, and no profile gives nothing. `MorningDigestReaderTest`.
+5. **Due from 07:00, once a day, at the next 07:00.** `MorningDigestTest.theDigestIsDueFromSevenAndOnlyOncePerDay`, `theNextDigestIsTodaysSevenIfAheadAndTomorrowsIfNot`,
+   `theNextDigestFollowsTheDeviceOffset`.
+6. **Manual, on a real Android device (not yet run).** *Given* a task due today with no time and the permission granted, *when* the device sleeps through
+   07:00 and is then picked up, *then* one notification lists the task and the screen was not woken at 07:00; it does not appear a second time that day;
+   after a reboot past 07:00 it appears once; a private task's title is not on the locked screen.
+7. **A tap opens that Home's Tasks.** `TasksDeepLinkTest` (the request is held until its Home consumes it). Manual, on a real Android device (not yet run):
+   *Given* the digest is showing, *when* I tap it, *then* Vesta opens in the Home of the first task listed, on its Tasks, whether the app was closed or already open.
+8. **Desktop shows it once, after 07:00, while running.** `MorningDigestRunnerTest` (nothing before 07:00; once after, and the day remembered; an empty day is not
+   retried; yesterday's does not stop today's). Manual, in the desktop app (not yet run): *Given* a task due today with no time, *when* Vesta is running at
+   or after 07:00, *then* one tray notice lists it; clicking it raises the window on that Home's Tasks; it does not repeat that day or after a restart.
