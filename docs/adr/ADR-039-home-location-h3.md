@@ -196,6 +196,12 @@ touching neighbours (a tolerance of about 100 m). The polygon join took about 6 
 - **Adjacency**, counting a pair as neighbours only if the smaller polygon is at most 20% inside the larger (10,257 pairs
   were nested and dropped; the result barely moves between 5% and 50%): 61,355 edges, mean 5.6, median 6, p99 11,
   **maximum 113**, 921 islands with none; **119 KB zlib**. Names table plus adjacency is about **0.58 MB** for GB.
+- **Parents.** All 21,931 polygon-backed GB localities have a parent, and every parent is in the table. The parent's
+  subtype is `county` for 11,741, `locality` for 10,132 (46%, the nested cases) and `region` for 58. The UI therefore shows
+  the **full chain** ("Newport, Isle of Wight, England"), not just the immediate parent, which would be a county for some
+  localities and a locality for others. Whether choosing a town includes the businesses of localities nested inside it is
+  **not designed**. A nested locality can also be a neighbour of other localities while its parent covers a much larger area.
+  Other countries are not checked: some may skip the county level or give no parent.
 - Not re-run for locality only: the cell-to-division index (the 0.69 MB figure ranks every subtype), and the places units.
 
 ## Decision
