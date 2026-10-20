@@ -31,7 +31,63 @@ H3 maths itself (`com.uber:h3` 4.5.1, desktop): cells match DuckDB's H3 extensio
 throw (callers must range-check), NaN does.
 
 **Not measured:** any Android run (the emulator crashed on start, so the test APKs were built but never installed), iOS, a
-UK-wide or world index (size is extrapolated, not measured), and Overture's behaviour across releases.
+world index, and Overture's behaviour across releases. (A UK-wide index was measured in the second spike, below.)
+
+### Second spike: a UK-wide index stored on Autonomi (2026-10-19, desktop + local devnet; scratch code, not in the repo)
+
+Overture release `2026-09-23.1`, the 24,171 GB `division_area` rows with `class = land`, DuckDB 1.5.6 with its H3
+extension. For each res-9 cell the most specific division containing the cell centre was kept (microhood, neighborhood,
+macrohood, locality, county, region, country, in that order, smaller area first), and consecutive cells with the same
+division were merged into runs.
+
+| Measure | Result |
+|---|---|
+| Cells / runs | 2.65M cells, 318k runs |
+| Whole UK, one file | **0.69 MB** (zlib; varint deltas over base-7 H3 ordinals, 16-byte UUID table per shard) |
+| Sharded by res-2 H3 prefix | 13 shards, largest 184 KB, plus a 491 B root chunk listing shard addresses |
+| Exact vs point-in-polygon (25.7k random UK land points) | **97.1%**; 0.2% have no cell |
+| Wrong answers with a differing cell in the ring around them | about 93% (730 of 788), so they can be flagged |
+| Same lookup read back through `ant chunk get` (400 points) | 97.8% exact; 99.8% identical to the in-memory table (the rest are absent cells inside a run, which return a division) |
+| Network calls per lookup, devnet | cold: 3 (pointer resolve, root, one shard), 84 KB, about 1 s; warm: 1 |
+
+The 97.1% matches the first spike's 97.0%, on a far larger and more varied area.
+
+**What the index stores.** Only the cell to **GERS division id** mapping, one id per cell: the most specific division, with
+no ancestors, names or subtype. The id is `division_area.division_id`, which is the `id` of the row in Overture's `division`
+type and is the GERS id of the division. It is **not** `division_area.id`, the id of the area row. All 16,272 ids in the
+index were found in the `division` table. Water is excluded (`class = land`), so a point at sea returns no cell.
+
+**Names and hierarchy are a separate table**, built from the `division` type: the 16,272 indexed divisions plus their
+ancestors (16,451 in all, none outside GB). Columns: 16-byte id, subtype (7 values), parent as an index into the same table,
+primary name. It is **0.37 MB** zlib (0.50 MB raw): ids 0.26 MB (incompressible), names 0.08 MB, parents 0.02 MB, subtypes
+1.4 KB. Together with the 0.69 MB of shards that is **about 1.06 MB** for ids, names and ancestry. The shards and the table
+both hold the 16 ids; having shards refer to table positions instead would save about 0.26 MB of that (**estimated, not
+built**), for about 0.8 MB. Only each division's primary name is kept, no translations.
+
+**A silent failure to avoid.** DuckDB's `h3_polygon_wkt_to_cells` returns **zero cells for every MULTIPOLYGON** with no
+error. The first UK run dropped all 235 of them (the country, every region, Highland, most counties) and looked
+plausible; the unresolved points clustered in Scotland and gave it away. Split with `ST_Dump` first. The first spike's
+1,260 Kent and east London polygons were not re-checked for this.
+
+**Autonomi facts verified** (`ant` 0.3.11, a local 25-node devnet with an Anvil EVM chain, not Arbitrum Sepolia):
+
+- `ant chunk put/get` store a raw chunk of **1 byte to exactly 4 MiB (4,194,304 bytes)**; one byte more is rejected. A raw
+  chunk needs no data map and has no 3-chunk minimum (unlike `ant file`).
+- A chunk's address is the **BLAKE3 hash of its content**, so a copy fetched from any mirror can be verified by the client.
+- Pointers (`ant pointer create/update/get/resolve/finality`) are owner-signed and mutable; `update` raised the counter and
+  changed the target. A fresh pointer reports `open (its owner can move it)` until transferred.
+- Mainnet storage quotes (`ant file cost`) are per chunk, about 0.05 ANT, almost independent of size (a 2.9 KB and a 28.6 MB
+  file cost 0.149 and 0.465 ANT for 3 and 11 chunks), so a few larger shards are cheaper than many small ones. Not tested
+  with a funded mainnet wallet; devnet prices are not mainnet prices.
+- **Android.** The published `com.autonomi:ant-android:0.0.8-rc.1` AAR exposes `Client.chunkGet`, `chunkPut` and
+  `chunkExists`, and `connectDefault` needs no wallet, so reading a chunk is possible in process. It has **no pointer
+  API**; the pointer operations exist only in the `ant` CLI and the `antd` daemon. The AAR is 38 MB with 27-40 MB native
+  libraries per ABI (arm64-v8a, armeabi-v7a, x86_64), the same cost that led to its removal from the app
+  (`docs/plans/android-app-size-reduction.md`, WP4). **Nothing was run on Android**: only the exposed API was inspected.
+
+**Not measured in the second spike:** mainnet latency and cost, an Android run, a world index, names in other languages,
+shards that refer to table positions (estimated only), and whether the index could be cut below res 9 (the first spike
+measured 91.3% at res 8/9).
 
 ## Decision
 
@@ -83,11 +139,24 @@ member-facing copy depends on which document carries the Home's shared fields.
      no native packaging, but is code we own and must verify against the reference library on a large set of points.
    - `io.github.luneo7:h3` is a repackage of Uber's library under another group id, not a different implementation.
 2. **Geocoder.** Open-Meteo's geocoding API is the working assumption (shared with the weather widget); not tested here.
-3. **GERS step: how.** Options: (a) a precomputed cell-to-division file, bundled with the app (fully offline, updates with app
-   releases) or hosted as a static file (the host sees a coarse request); (b) reading Overture directly (about 4 MB for
-   candidates, 41-95 MB for the exact answer; desktop only until a Parquet reader is shown to run on Android). A UK-wide
-   index size must be measured first.
-4. **Region.** UK only or global, for any bundled index.
+3. **GERS step: how.** Options: (a) a precomputed cell-to-division index; (b) reading Overture directly (about 4 MB for
+   candidates, 41-95 MB for the exact answer; desktop only until a Parquet reader is shown to run on Android). The second
+   spike measured (a) for the UK: 0.69 MB of ids plus 0.37 MB of names and ancestry (about 1.06 MB), so it is small enough to **bundle with the app** (fully offline, updates
+   with app releases), and also small enough to serve from any content-addressed store. Where it lives is still open:
+   - **Bundled in the app.** No network request at all, so nothing to disclose for this step. About 1.06 MB for the UK; a
+     world index is not measured.
+   - **Autonomi raw chunks** (root chunk, shards of up to 4 MiB, a pointer to the current root). Lookup is 1 call warm and
+     3 cold on a devnet, and the network sees one opaque chunk address for an area of about 1,700 km2 (res-4) or larger
+     (res-2 in the spike). Costs about 0.05 ANT per chunk per release, unverified on mainnet; chunks are permanent and
+     unchanged shards dedupe across releases. **Blocked on Android:** the embedded client has chunk get but no pointer API
+     and a 38 MB library per ABI, so on Android the root address would have to ship with the app (or arrive another way),
+     and the library would have to come back in a dynamic feature module or similar. Desktop can use `antd`.
+   - **A hosted static file or HTTP mirror** of the same chunks. Because a chunk's address is its BLAKE3 hash, the client can
+     verify every byte, so the mirror need not be trusted; the host would see a coarse request and the device's IP address.
+   Keep the format transport-agnostic (`get(hash) -> bytes`) so all three can read it. The first GERS slice can bundle the
+   UK index and add Autonomi later.
+4. **Region.** UK only or global. The UK is about 1.06 MB with names; a world index is extrapolated, not measured, and would need the
+   root-and-shards layout rather than one file.
 5. **Visibility to members** (see 4 above).
 6. **Default resolution.** 8 is the working default. 9 is closer to the earlier "1 km rounding"; coarser reveals less.
 
@@ -112,4 +181,8 @@ member-facing copy depends on which document carries the Home's shared fields.
   across", unless a reverse-geocoded label is added, which would be a second outbound request needing its own disclosure.
 - The first outbound request carrying user-typed text to a third party, so it needs a line in the privacy notes.
 - Weather (ADR-024) and merchants (ADR-026) can use the Home's cell centre instead of asking again.
-- Boundary-straddling is accepted and surfaced, not hidden.
+- Boundary-straddling is accepted and surfaced, not hidden. About 97% of lookups are exact at res 9 and most of the rest
+  can be flagged because a neighbouring cell disagrees; an exact answer would need a further tier of simplified polygons.
+- The index builder must split MULTIPOLYGONs before filling, and should check that no large division comes back empty.
+- The GERS step is cheaper than first thought (a UK index with names is about 1 MB), which weakens the case for a network lookup
+  unless the index must update between app releases.
