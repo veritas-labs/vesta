@@ -1,4 +1,4 @@
-# ADR-039: Grounding a Home to a place (H3 cell, GERS later)
+# ADR-039: Grounding a Home to a place (country and division, optional H3 cell)
 
 **Status:** Proposed (2026-10-19). Not accepted and not implemented. The H3 **library choice is deliberately left open**
 (see "Open decisions"). Supersedes the "where does the location come from" question left open in ADR-024 (weather widget).
@@ -7,7 +7,7 @@
 
 New features need a Home tied to a real-world place. The question that started this was "what is the GERS division of this
 Home?", so Vesta can join the Overture/Colo world (inspections, division x0x groups, places). Overture's public data gives
-divisions as polygons; the only input Vesta has is a place the user names. Two requirements shape everything:
+divisions as polygons; the only input Vesta has is a place the user names, and the user may not be at home when they set the Home up. Two requirements shape everything:
 
 - **Transparent.** The user must be able to see what is stored, what leaves the device, and who sees it.
 - **Private.** Vesta has no server and a local-first stance. A location should be no more precise than the feature needs.
@@ -167,39 +167,93 @@ was requested, and so roughly which division the user chose; packing several div
 **Not measured in the third spike:** FR and AU at res 9, any world figure, the places directory and the real chunk format,
 mainnet cost, decoding on a phone, and a name or category search index for businesses.
 
+### Neighbours without the cell index (2026-10-20, desktop; scratch code, not in the repo)
+
+The names table holds only containment (id, subtype, parent, name), so it cannot say which divisions are *next to* each
+other; siblings (same parent) are not neighbours. A precomputed adjacency list added to the table would. Measured on all
+24,171 GB land areas: two divisions are neighbours when their polygons of the **same subtype** touch or overlap.
+
+- 73,827 edges; mean 6.1 neighbours, median 6, p99 11; 1,117 divisions (islands) have none.
+- **147 KB zlib in total, 6.1 B per division**, when the table is ordered spatially (by the H3 cell of each division's
+  centroid) and each list is varint deltas of table indices. In UUID order the same lists are 306 KB (12.6 B per division),
+  because neighbours land far apart in the table. The names table should therefore be spatially ordered.
+- 11 divisions have over 100 "neighbours" (maximum 3,041). They are Northern Ireland districts tagged `locality` that
+  *contain* ordinary localities, so containment is being counted. The builder must use touches only (or ignore pairs whose
+  overlap area is non-trivial); the true figure is somewhat lower.
+- The table has 16,451 divisions, not 24,171, so its list is smaller still; 0.15 MB is an upper bound for GB.
+
+Not measured: DE or any other country, neighbours across subtypes (a neighbourhood next to a locality), and near-but-not-
+touching neighbours (a tolerance of about 100 m). The polygon join took about 6 minutes on this machine for GB.
+
+**Locality only (decision 6).** Re-measured for GB with localities that have a polygon:
+
+- Overture holds **50,102 localities in GB but only 21,931 have an area**. The other 28,171 are point-only: no polygon, so
+  they cannot be assigned from a cell, have no neighbours, and cannot own businesses by position. They are left out. (Including
+  them would make the names table 1.1 MB, of which 0.8 MB is incompressible ids.)
+- **Names table: 22,093 rows** (21,931 localities, 157 counties, 4 regions, 1 country), spatially ordered: ids 353 KB, parent
+  5 KB, names 105 KB, **464 KB zlib in total**. This is larger than the 0.37 MB table above because that held only the
+  16,272 leaf-most divisions plus ancestors, and many localities were hidden under neighbourhoods.
+- **Adjacency**, counting a pair as neighbours only if the smaller polygon is at most 20% inside the larger (10,257 pairs
+  were nested and dropped; the result barely moves between 5% and 50%): 61,355 edges, mean 5.6, median 6, p99 11,
+  **maximum 113**, 921 islands with none; **119 KB zlib**. Names table plus adjacency is about **0.58 MB** for GB.
+- Not re-run for locality only: the cell-to-division index (the 0.69 MB figure ranks every subtype), and the places units.
+
 ## Decision
 
-### 1. A Home's location is an H3 cell, not coordinates
+### 1. A Home's location is a country and a chosen division, with an optional coarse cell
 
-A cell says only that the point is somewhere inside it; it does not say where. Storing the cell (default **resolution 8**,
-about 0.5 km edge) is therefore a real coarsening, and replaces the "round to two decimals" idea. Anything needing a
-coordinate (weather, distance) uses the cell centre, accurate to about the cell size. The exact point the user typed or
-picked is never stored.
+Setting up a Home must not assume the user is at home, so it cannot start from a GPS fix. What is stored is:
 
-### 2. GERS divisions are derived from the cell, as a later opt-in
+- `country` (ISO 3166-1 alpha-2);
+- `divisionId`, the GERS id of the division the user picked, and the Overture release the id came from (ids can change
+  between releases);
+- optionally a **cell** (default **resolution 8**, about 0.5 km edge) with a `source` tag: `device` (a fix taken at home),
+  `postcode`, or `division` (the division's centroid, coarser, resolution 7). A cell says only that the point is somewhere
+  inside it, so it is a real coarsening. Anything needing a coordinate (weather, distance) uses the cell centre, accurate to
+  about the cell size. The exact point a user typed or the device reported is never stored.
 
-The cell centre is enough input for the division lookup, so GERS needs no second question to the user. It is a separate,
-optional step, "Link your area to Overture divisions", not part of setting a location, and it is not built in this ADR's first
-slice. It will be designed when something needs it (Colo interop, merchants), choosing then between the options in
-"Open decisions". Because a cell can straddle a division boundary, that step must show the candidates and ask the user to
-confirm when the cell's neighbours disagree. It must also record the Overture release it used, since GERS ids can change
-between releases.
+### 2. The user finds their division by name; the cell index is only a shortcut
+
+The cell-to-division index (second spike) is needed only when the entry starts from a point (device location, postcode).
+The main path does not use it:
+
+1. **Country.** Defaulted from the device locale; the user can change it.
+2. **Fetch that country's names table** (id, subtype, parent, name; 0.37 MB for GB, measured; DE about 0.7 MB, *estimate*),
+   from the bundled copy or from Autonomi (open decision 3). No coordinates are involved.
+3. **Search or drill down** to a division (region, county, locality, then neighbourhood where it exists). Results show the
+   parent chain ("Newport, Isle of Wight, England") because names repeat. **Only `locality` divisions are selectable**
+   (decision 6); counties and regions appear only as the parent chain.
+4. **Neighbouring divisions** come from an adjacency list shipped with the table (see "Neighbours without the cell index";
+   about 0.12 MB for GB, locality only), not from the cell index. Divisions that merely share a parent are not neighbours.
+5. **Confirm.** The chosen division, its parent chain, and its neighbours are shown; nothing is saved until the user
+   confirms.
+
+Open issues for this path, all *unmeasured*: Overture's primary name is usually the local-language name (searching "Cologne"
+for "Köln" needs common names, which enlarge the table); localities that Overture holds only as points (no polygon) cannot be selected; and the table size for countries bigger than DE.
+
+Optional shortcuts, each producing the same candidate list (leaf division, its parents, and flagged neighbours) through the
+cell index: **device location** ("I'm at home now", an OS permission, no desktop equivalent), and **postcode** where a
+postcode-to-point table is shipped (UK first; open decision 2). A postcode centroid is rarely as accurate as a res-9 cell,
+and a postcode can straddle divisions, so postcode entry always shows the candidates and asks. A map pin is last (it needs
+tiles and so the network). The postcode never leaves the device.
 
 ### 3. The flow
 
-1. **Entry.** Home settings, "Location". Optional; nothing prompts for it and nothing runs in the background.
-2. **Town or postcode first.** The user types a place. A geocoder turns it into one point; manual coordinates are the
-   second option; device location (an OS permission, no desktop equivalent) is last, and may never be built.
-3. **Disclosure before sending the text.** A screen states, before any request: who receives it (the geocoder's host), what
-   is sent (the typed text only), what is not (Home name, members, device id, any coordinate), and what cannot be hidden (the
-   host sees the device's IP address). Buttons: Continue, Enter coordinates instead, Not now.
-4. **Show the cell.** The result is drawn as a hexagon, labelled with its rough size ("about 1 km across"), and the user can
-   pick a coarser one. Nothing is saved until they confirm.
-5. **Saved.** Only the cell id and the resolution. The geocoder's point is discarded.
+1. **Entry.** Home setup and Home settings, "Location". Optional; nothing prompts for it after setup and nothing runs in the
+   background.
+2. **Country, then name search** (decision 2). If the names table is bundled, no request is made; if it is fetched from
+   Autonomi or a mirror, a disclosure screen first states who can see the request (the node or host serving it, and the
+   device's IP address) and that the request names a country pack, not the user's division.
+3. **Shortcuts** (device location, postcode) are secondary buttons on the same screen, each with its own disclosure
+   (the OS permission prompt; for a postcode, that it stays on the device).
+4. **Show and confirm.** The division is drawn on its parent chain, with its neighbours listed; if a cell was derived, it is
+   drawn as a hexagon labelled with its rough size. Nothing is saved until the user confirms.
+5. **Saved.** `country`, `divisionId`, the release, and optionally the cell with its `source`. A point is never saved.
 6. **Forget.** One button clears the location from the Home and every device.
-7. **Audit.** The geocoding request is recorded in the sync activity surface (ADR-033): host, date, text sent.
+7. **Audit.** Any request made for the location (names table, index shard) is recorded in the sync activity surface
+   (ADR-033): host, date, and what was asked for.
 
-After step 5 no further request is made; the Home never re-geocodes unless the user edits the location.
+After step 5 no further request is made unless the user edits the location or opens the business list.
 
 ### 4. Where it lives
 
@@ -217,6 +271,16 @@ a sole trader, so whether even those may be published is **open pending a legal 
 done, nothing from `places` is uploaded. The Overture licence terms for each theme also need checking before any
 redistribution.
 
+### 6. Only localities matter
+
+Vesta connects consumers to local traders, so the only division subtype the app selects, indexes or lists businesses for is
+`locality` (towns, villages and cities). Microhood, neighbourhood, macrohood and county divisions are not offered to the user;
+counties and regions are kept only so a locality can show its parent chain. This supersedes the earlier "leaf-most of any
+subtype" ranking for everything built after this decision (the figures in the second and third spikes used it, and have not
+been re-run). Localities nest in Overture (about 10,000 pairs of overlapping localities in GB, for example the Northern
+Ireland districts over their towns), so a point still takes the **smallest** locality containing it, and the adjacency list
+must not count a contained locality as a neighbour.
+
 ## Open decisions
 
 1. **H3 library.** Untested on Android; the candidates and their known limits:
@@ -226,7 +290,12 @@ redistribution.
    - **A small pure-Kotlin implementation** of just point to cell, cell to centre, parent and neighbours. Runs everywhere,
      no native packaging, but is code we own and must verify against the reference library on a large set of points.
    - `io.github.luneo7:h3` is a repackage of Uber's library under another group id, not a different implementation.
-2. **Geocoder.** Open-Meteo's geocoding API is the working assumption (shared with the weather widget); not tested here.
+2. **Postcode tables.** Postcode entry needs a postcode-to-point table per country, shipped with the app (a hosted geocoder
+   would send the text to a third party). Precision varies a lot: a full UK postcode is about 15 addresses, a US ZIP or German
+   PLZ is several km across, Canada's free data is only the first three characters, and some countries have no postcodes.
+   Sources and licences (ONS/OS open data for the UK, GeoNames postal codes for many countries) are from memory and **must be
+   checked**. Name search (decision 2) does not depend on this, so it can be deferred, UK first. A hosted geocoder
+   (Open-Meteo's, shared with the weather widget) remains a fallback needing its own disclosure; not tested here.
 3. **GERS step: how.** Options: (a) a precomputed cell-to-division index; (b) reading Overture directly (about 4 MB for
    candidates, 41-95 MB for the exact answer; desktop only until a Parquet reader is shown to run on Android). The second
    spike measured (a) for the UK: 0.69 MB of ids plus 0.37 MB of names and ancestry (about 1.06 MB), so it is small enough to **bundle with the app** (fully offline, updates
@@ -255,24 +324,30 @@ redistribution.
 ## Acceptance criteria
 
 1. With no location set, no network request is ever made for it, and the Home works as before.
-2. Before any request, I am told who receives what I typed, what is not sent, and that my IP address is visible to them; I can
+2. Setting up a Home away from home works: I choose my country (defaulted from the device locale) and search for my town by
+   name, with no position taken from the device.
+3. Search results show each division's parent chain, so two places with the same name can be told apart.
+4. Before any request for the names table or an index shard, I am told who can see it and that my IP address is visible; I can
    decline and nothing is sent.
-3. After typing a town or postcode I see the area as a cell with its approximate size before anything is saved.
-4. What is saved is the cell and resolution only; the point the geocoder returned is not stored anywhere.
-5. I can enter coordinates by hand and no request is made.
-6. A latitude outside -90..90 or longitude outside -180..180 is rejected before conversion.
-7. Forgetting the location removes it from the Home and from my paired devices.
-8. The geocoding request appears in the sync activity list with its host and the text sent.
-9. The same input always produces the same cell on desktop and Android.
+5. I see the chosen division and its neighbouring divisions before anything is saved.
+6. What is saved is the country, the division id, the Overture release, and optionally a cell with its source; no
+   position is stored anywhere.
+7. A postcode I type is never sent over the network.
+8. A latitude outside -90..90 or longitude outside -180..180 is rejected before conversion.
+9. Forgetting the location removes it from the Home and from my paired devices.
+10. Each request made for the location appears in the sync activity list with its host and what was asked for.
+11. The same point always produces the same cell on desktop and Android.
 
 ## Consequences
 
-- No Overture dependency, index or hosting is needed for the first slice; the cost moves to choosing and packaging an H3
-  implementation.
-- Homes lose a human-readable name for the place until the GERS step exists; the UI can only show "an area about 1 km
-  across", unless a reverse-geocoded label is added, which would be a second outbound request needing its own disclosure.
-- The first outbound request carrying user-typed text to a third party, so it needs a line in the privacy notes.
-- Weather (ADR-024) and merchants (ADR-026) can use the Home's cell centre instead of asking again.
+- Setup no longer needs a position, so it works away from home. The first slice needs the per-country names table and
+  adjacency list built and shipped (UK, locality only: about 0.6 MB together, measured), plus an H3 implementation if cells are stored.
+- Homes get a human-readable place (the chosen division and its parents) with no reverse geocoding.
+- A name search against a bundled table sends nothing; a fetched table or shard is an outbound request needing a line in the
+  privacy notes.
+- Weather (ADR-024) and merchants (ADR-026) can use the cell centre, or the division centroid when there is no cell.
+- The names table must be ordered spatially (it halves the adjacency list) and the builder must count touching, not
+  containing, divisions as neighbours.
 - Boundary-straddling is accepted and surfaced, not hidden. About 97% of lookups are exact at res 9 and most of the rest
   can be flagged because a neighbouring cell disagrees; an exact answer would need a further tier of simplified polygons.
 - The index builder must split MULTIPOLYGONs before filling, and should check that no large division comes back empty.
