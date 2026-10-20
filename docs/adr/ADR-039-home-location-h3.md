@@ -83,11 +83,89 @@ plausible; the unresolved points clustered in Scotland and gave it away. Split w
   `chunkExists`, and `connectDefault` needs no wallet, so reading a chunk is possible in process. It has **no pointer
   API**; the pointer operations exist only in the `ant` CLI and the `antd` daemon. The AAR is 38 MB with 27-40 MB native
   libraries per ABI (arm64-v8a, armeabi-v7a, x86_64), the same cost that led to its removal from the app
-  (`docs/plans/android-app-size-reduction.md`, WP4). **Nothing was run on Android**: only the exposed API was inspected.
+  (`docs/plans/android-app-size-reduction.md`, WP4). **Nothing was run on Android**: only the exposed API was inspected. Pointer support is expected in a later release (the
+maintainers' plan is unconfirmed); that would close the API gap but not the library size.
 
 **Not measured in the second spike:** mainnet latency and cost, an Android run, a world index, names in other languages,
 shards that refer to table positions (estimated only), and whether the index could be cut below res 9 (the first spike
 measured 91.3% at res 8/9).
+
+### Third spike: other countries, businesses, and the user flow (2026-10-20, desktop; scratch code, not in the repo)
+
+Same Overture release (`2026-09-23.1`). Numbers marked *estimate* were not built or encoded.
+
+**Divisions in other countries** (res 9 unless noted; shard encoding as above):
+
+| Country | Land areas | Divisions in index | Runs | Size |
+|---|---|---|---|---|
+| GB | 24,171 | 16,272 | 318k | 0.69 MB |
+| DE | 40,394 | 30,249 | 832k | 1.59 MB (more neighbourhood-level detail than GB) |
+| AU, res 7 only | 16,668 | 13,831 | 190k | about 0.48 MB *estimate* (1.35 B per run + 16 B per division) |
+
+The run-based estimate was calibrated on GB, where it reproduced 318,253 runs against 318,254 and 0.69 MB. FR and AU at
+res 9 did not finish. Size follows boundary detail, not land area. Overture has **1,078,697 land areas in 272 countries**;
+extrapolating from GB and DE gives roughly **60-100 MB for the world, 0.1-3 MB per country** (*estimate*, two data
+points, Latin-script names assumed). That argues for **one pack per country**, fetched only for the user's country.
+
+**The builder must work top-down.** Filling every res-9 cell works for GB (2.65M cells) but not for a large country:
+Australia is tens of millions of cells and the attempt reached 22 GB of memory before it was stopped; the FR run died too.
+Fill at a coarse resolution and subdivide only the cells a boundary crosses, so cost follows the output size, not the area.
+
+**Businesses (Overture `places`).** 81,455,423 places worldwide, 3,235,716 in GB (by the first address's country).
+The GB records were encoded as: 16-byte id, position as deltas in cell order, category, confidence, primary name; sorted by
+res-9 cell, each column compressed with zlib.
+
+| Column | MB (GB, zlib) |
+|---|---|
+| Ids (16 B each, incompressible) | 51.8 |
+| Names | 26.6 |
+| Positions | 9.7 |
+| Category (1,797 distinct) | 4.4 |
+| Confidence | 2.6 |
+| **Total** | **94.9, or 29.3 B per place** |
+
+The world would be about 2.4 GB (*estimate*). Ids are over half of it, so a business index cannot be bundled with the app.
+In this release `categories` has become `basic_category` and `taxonomy`; the index used `taxonomy.primary`. Only 0.17% of
+GB places fall outside every division cell; a ring-3 fallback leaves 6.
+
+**Buildings are out of scope** (decision 2026-10-20). There are 2.53 billion worldwide and about 29.6M in GB; ids alone
+would be 16 bytes each, about 40 GB for the world and over 9,000 chunks per release. Addresses (474M rows) are not
+pursued either.
+
+**The user flow, sized.** A user in the UK picks a home division from their position, then browses its businesses.
+
+1. The device converts the position to a res-9 cell (microseconds, no network).
+2. Candidate divisions: pointer, root chunk and the one res-2 shard for the cell (3 calls cold, 84 KB measured on the
+   devnet), then the leaf division and its parents. Divisions found in the cells around the point are offered as
+   neighbours, flagged when the cell sits near a boundary. Names come from the 0.37 MB table, fetched once and cached.
+3. The user picks a division. Only its GERS id and the Overture release are stored.
+4. Businesses: each place is assigned to its leaf division, and divisions are cut top-down so each unit holds at most
+   25,000 places (2,785 units in GB: median 35 places, p90 about 5,000, largest about 45,000, or 1.3 MB). Units are packed
+   into chunks in spatial order, and a small places directory (estimated at about 40 KB; **not built**) maps a division to
+   its chunk. The device fetches that chunk; neighbours usually share it. The 45 GB divisions above the cut (counties and
+   larger) are shown as too large to browse and need search or category filters instead.
+
+**Chunk size is the main tuning choice**, because Autonomi returns whole chunks. Simulated with 600 random place positions
+standing in for users (this over-represents towns), at 29.4 B per place:
+
+| Chunk target | Chunks, GB places | Median fetch, home division | p90 | Median, home plus adjacent (about 1 km) | Cost per release (*estimate*, 0.05 ANT per chunk) |
+|---|---|---|---|---|---|
+| 64 KiB | 1,721 | 248 KB (about 5 chunks) | 639 KB | 317 KB | about 86 ANT |
+| **256 KiB** | **508** | **258 KB (about 2 chunks)** | **639 KB** | **366 KB** | **about 25 ANT** |
+| 1 MiB | 111 | 920 KB | 1,039 KB | 986 KB | about 6 ANT |
+| 4 MiB | 24 | 4,107 KB | 4,187 KB | 4,123 KB | about 1 ANT |
+
+Going below 256 KiB does not help, because the median user's own division is already about 250 KB. 4 MiB downloads about
+sixteen times what is needed. **256-512 KiB is the working choice.**
+
+Totals for one GB release: about 96 MB of storage (0.69 MB of shards, 0.37 MB of names, 95 MB of places), about 524 chunks
+at 256 KiB. A first-time user transfers about 0.7 MB (root and shard about 10 KB, names 0.37 MB, directory about 40 KB,
+places chunk about 260 KB); later lookups cost one chunk per new division, and about 1 MB is cached on the device. Client
+compute is expected to be milliseconds (**not measured on a phone**). The node serving a places chunk can see which chunk
+was requested, and so roughly which division the user chose; packing several divisions into one chunk blurs this a little.
+
+**Not measured in the third spike:** FR and AU at res 9, any world figure, the places directory and the real chunk format,
+mainnet cost, decoding on a phone, and a name or category search index for businesses.
 
 ## Decision
 
@@ -129,6 +207,16 @@ On the Home, synced to the user's paired devices like the Home's name and shape 
 shown to other Home members (a Home is a shared household, and a 0.5 km cell is coarse) is an open decision, because the
 member-facing copy depends on which document carries the Home's shared fields.
 
+### 5. Business data stored on Autonomi excludes personal information
+
+Autonomi storage is permanent and public, so anything published cannot be taken back or corrected. Business records
+published there therefore carry **no phone numbers, email addresses or other personal information**. The record
+measured in the third spike already holds none of the contact fields: id, primary name, position, category and
+confidence only; no phones, emails, websites, social links or free-text addresses. Names and positions can still identify
+a sole trader, so whether even those may be published is **open pending a legal review** (not yet done); until it is
+done, nothing from `places` is uploaded. The Overture licence terms for each theme also need checking before any
+redistribution.
+
 ## Open decisions
 
 1. **H3 library.** Untested on Android; the candidates and their known limits:
@@ -159,6 +247,10 @@ member-facing copy depends on which document carries the Home's shared fields.
    root-and-shards layout rather than one file.
 5. **Visibility to members** (see 4 above).
 6. **Default resolution.** 8 is the working default. 9 is closer to the earlier "1 km rounding"; coarser reveals less.
+7. **Businesses.** Whether to offer a business list at all, and from where. Blocked on the legal review in section 5 and the
+   Overture licence check. If it goes ahead: chunk target (256-512 KiB working choice), who pays for the near-full
+   re-upload each release (place data changes constantly, so tiles do not dedupe the way divisions do), and a name or
+   category search index, which is not designed.
 
 ## Acceptance criteria
 
@@ -186,3 +278,7 @@ member-facing copy depends on which document carries the Home's shared fields.
 - The index builder must split MULTIPOLYGONs before filling, and should check that no large division comes back empty.
 - The GERS step is cheaper than first thought (a UK index with names is about 1 MB), which weakens the case for a network lookup
   unless the index must update between app releases.
+- Divisions scale as one pack per country (0.1-3 MB each, world about 60-100 MB, an estimate); the builder has to work
+  top-down because filling every res-9 cell of a large country exhausts memory.
+- A business list is feasible for the UK (about 260 KB per lookup, about 95 MB stored per release) but is gated on the PII
+  and licence questions, and on funding a near-full upload each release. Buildings are not pursued.
