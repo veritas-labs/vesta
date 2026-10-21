@@ -3,7 +3,7 @@
 Written 2026-10-21 as the follow-on to [the area-picker plan](ADR-039-marketplace-location-plan.md) (its WP8b). The picker is built and
 was walked by hand on desktop against the devnet (country, home locality, neighbours all worked on real data). Its last screen says
 "Nearby merchants will appear here once business data is available." This plan builds the data and the list behind that sentence.
-**Status: planned, nothing built.**
+**Status: WP-P0 and WP-P1 done (2026-10-21); P2 onward not started.** WP-P1 refinements: places are re-extracted from release 2026-09-23.1; each locality has two groups, `inside` then `nearby` (flag on every directory range), so the client can show both counts and fetch inside first; zlib is per chunk; the root `VGP1` is a plain list (381 chunks, one root chunk); the pointer lives in `places.key`. Formats and the run are in `scripts/gers-index/README.md` (Places).
 
 **Scope of this plan: the devnet only.** The data is uploaded to the local devnet, never to mainnet. The PII legal review
 (ADR-039 decision 5) and the Overture `places` licence check therefore do **not** block it, but they **do** block any mainnet

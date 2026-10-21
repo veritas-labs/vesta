@@ -7,10 +7,13 @@ Subcommands (run in order; each is restartable):
   adjacency  touching localities (nested ones excluded) -> <work>/<cc>_edges.parquet
   build    encode shards, names table, adjacency; upload chunks; set the pointer -> <work>/out/published.json
   verify   fetch everything back over the network and compare with point-in-polygon on sample points
+  places-extract  Overture places (one country) -> <work>/places/<cc>_places_<release>.parquet (allowed columns only, see PLACES_COLUMNS)
+  places   assign places to localities, encode VGD1/VGP2/VGC1/VGP1, upload to the local devnet -> <work>/out/places_published.json
+  verify-places  fetch a random sample of localities back over the network and compare every place with the source
 
 See README.md in this directory. Format notes are in the docstrings of the encode_* functions.
 """
-import argparse, bisect, json, os, random, struct, subprocess, sys, time, zlib
+import argparse, bisect, concurrent.futures, hashlib, json, os, random, re, struct, subprocess, sys, time, zlib
 import duckdb
 
 RELEASE = "2026-09-23.1"
@@ -56,6 +59,7 @@ def fmt_uuid(h): return f"{h[:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:]}"
 
 # ---- ant CLI -------------------------------------------------------------------------------------------------------
 def ant(*a):
+    require_devnet()
     r = subprocess.run(ANT + list(a), env=ENV, capture_output=True, text=True)
     if r.returncode: raise RuntimeError(r.stderr + r.stdout)
     lines = r.stdout.strip().splitlines()
@@ -284,12 +288,355 @@ def cmd_verify(a):
         return " > ".join(out)
     print("sample:", path(row), "| centroid:", cent[row], "| neighbours:", [names[j] for j in adj[row]][:6])
 
+# ---- places: formats (ADR-039 places plan, WP-P1) ------------------------------------------------------------------
+# All integers are little-endian where fixed width ("<"), and LEB128 varints (7 bits per byte, least-significant group
+# first, high bit = more bytes follow) elsewhere. zigzag(d) = 2d for d >= 0, -2d-1 for d < 0. Strings are UTF-8, NUL-terminated.
+# Every blob below is zlib (RFC 1950, as Python zlib.compress / java.util.zip.Inflater) except the root, which is raw.
+PLACES_S3 = "s3://overturemaps-us-west-2/release/{rel}/theme=places/type=place/*.parquet"
+PLACES_BBOX = {"GB": (-9.0, 2.1, 49.8, 61.0)}   # xmin, xmax, ymin, ymax: only a row-group pruning hint, the country filter decides
+NEAR_CRS = {"GB": "EPSG:27700"}                  # metric CRS for the nearby-distance rule; add one per country
+NEAR_CAP_M = 5000                                # a place outside every polygon joins the nearest polygon locality within this
+CHUNK_TARGET = 256 * 1024                        # compressed bytes per data chunk (upper bound)
+MAX_UNIT_PLACES = 2000                           # a locality's group is split into units of at most this many places
+# The ONLY columns that are ever extracted, held or encoded. name = Overture names.primary; category = taxonomy.primary;
+# grp = taxonomy.hierarchy[0] (DuckDB: [1]). No phone, email, website, social, brand or address column, by construction.
+PLACES_EXTRACT = (("id", "id"), ("name", "names.primary"), ("lat", "ST_Y(geometry)"), ("lon", "ST_X(geometry)"),
+                  ("confidence", "confidence"), ("category", "taxonomy.primary"), ("grp", "taxonomy.hierarchy[1]"))
+PLACES_COLUMNS = tuple(a for a, _ in PLACES_EXTRACT)
+CONTACT_WORDS = re.compile(r"phone|email|website|social|address|brand|contact|freeform|postcode|url|link", re.I)
+
+def assert_no_contact_columns(cols):
+    """Runtime pin: refuses any column that is not in PLACES_COLUMNS or that looks like contact/address data."""
+    bad = [c for c in cols if c not in PLACES_COLUMNS or CONTACT_WORDS.search(c)]
+    if bad: raise AssertionError(f"places data must only carry {PLACES_COLUMNS}; refusing columns {bad}")
+    return list(cols)
+
+def extract_select():
+    """The SELECT list of places-extract, built from PLACES_EXTRACT (the address column is read only in the WHERE filter)."""
+    assert_no_contact_columns(PLACES_COLUMNS)
+    return ", ".join(f"{e} AS {a}" for a, e in PLACES_EXTRACT)
+
+PLACES_MAGIC = b"VGD1"
+def encode_unit(pl, ci):
+    """One unit = the places of one group (inside or nearby) of one locality, at most MAX_UNIT_PLACES, in H3 order.
+    pl: [(id uuid string, name, lat degrees, lon degrees, confidence 0..1 or None, category name)]; ci: category name -> index.
+    Layout (all columns have n entries): varint n, n*16 B uuid, n*varint zigzag(dLat), n*varint zigzag(dLon) (microdegrees,
+    round(deg*1e6), each delta against the previous place of the unit, the first against 0), n*varint category index
+    (into the category table), n*1 B confidence = round(conf*255) (0 if absent), n*(NUL-terminated name)."""
+    b = bytearray(varint(len(pl)))
+    b += b"".join(bytes.fromhex(r[0].replace("-", "")) for r in pl)
+    for k in (2, 3):
+        prev = 0
+        for r in pl: v = round(r[k] * 1e6); b += varint(zigzag(v - prev)); prev = v
+    for r in pl: b += varint(ci[r[5]])
+    b += bytes(min(255, max(0, round((r[4] or 0) * 255))) for r in pl)
+    for r in pl: b += (r[1] or "").replace("\0", " ").encode() + b"\0"
+    return bytes(b)
+
+def decode_unit(b, i):
+    """-> ([(uuid hex without dashes, name, lat_e6, lon_e6, confidence byte, category index)], index after the unit)."""
+    n, i = read_varint(b, i)
+    ids = [b[i+16*k: i+16*k+16].hex() for k in range(n)]; i += 16*n
+    cols = []
+    for _ in range(2):
+        col, prev = [], 0
+        for _ in range(n): z, i = read_varint(b, i); prev += unzigzag(z); col.append(prev)
+        cols.append(col)
+    cat = []
+    for _ in range(n): c, i = read_varint(b, i); cat.append(c)
+    conf = list(b[i:i+n]); i += n
+    names = []
+    for _ in range(n): j = b.index(0, i); names.append(bytes(b[i:j]).decode()); i = j+1
+    return list(zip(ids, names, cols[0], cols[1], conf, cat)), i
+
+def encode_data_chunk(units):
+    """VGD1 data chunk = zlib( b"VGD1", unit, unit, ... ). Units are concatenated with no framing: the directory (VGP2) gives
+    each range's offset and length in the DECOMPRESSED bytes (offsets count the 4 magic bytes, so the first is 4)."""
+    return zlib.compress(PLACES_MAGIC + b"".join(units), 9)
+def decode_data_chunk(blob):
+    b = zlib.decompress(blob)
+    if b[:4] != PLACES_MAGIC: raise ValueError(f"unsupported places chunk: magic {bytes(b[:4])!r}, expected {PLACES_MAGIC!r}")
+    return b
+
+DIR_MAGIC = b"VGP2"
+def encode_places_dir(chunk_sizes, ranges, nrows):
+    """VGP2 directory. zlib( b"VGP2", varint nChunks, nChunks*varint compressed size of that data chunk in bytes (what a
+    fetch downloads; chunk i is the i-th address of the root), varint nRows (= rows of the VGN2 names table, same order),
+    then for each names-table row: varint nRanges, nRanges*( varint chunkIndex, varint offset, varint length,
+    varint (count << 1 | nearby) ) ).
+    A range is one unit: bytes [offset, offset+length) of the decompressed chunk, holding `count` places. The low bit says
+    which group the range holds: 0 = inside (the place is inside the locality polygon), 1 = nearby (outside every polygon,
+    this locality is the nearest within NEAR_CAP_M; NEVER describe these as "in" the locality). Per row all inside ranges come
+    first, then all nearby ranges; within a group the places run in H3 (res 9) order across the ranges, so a prefix of the
+    ranges is a spatially compact subset. A row with no places is one 0 byte. Count of a group = sum of its ranges' counts.
+    ranges: {row: [(chunk, offset, length, count, nearby)]}."""
+    b = bytearray(DIR_MAGIC) + varint(len(chunk_sizes))
+    for s in chunk_sizes: b += varint(s)
+    b += varint(nrows)
+    for r in range(nrows):
+        rs = ranges.get(r, []); b += varint(len(rs))
+        for ch, off, ln, cnt, nb in rs: b += varint(ch) + varint(off) + varint(ln) + varint(cnt << 1 | nb)
+    return zlib.compress(bytes(b), 9)
+
+def decode_places_dir(blob):
+    """-> (chunk_sizes, [per row: [(chunk, offset, length, count, nearby)]])."""
+    b = zlib.decompress(blob)
+    if b[:4] != DIR_MAGIC: raise ValueError(f"unsupported places directory: magic {bytes(b[:4])!r}, expected {DIR_MAGIC!r}")
+    nc, i = read_varint(b, 4); sizes = []
+    for _ in range(nc): s, i = read_varint(b, i); sizes.append(s)
+    n, i = read_varint(b, i); rows = []
+    for _ in range(n):
+        k, i = read_varint(b, i); rs = []
+        for _ in range(k):
+            ch, i = read_varint(b, i); off, i = read_varint(b, i); ln, i = read_varint(b, i); cn, i = read_varint(b, i)
+            rs.append((ch, off, ln, cn >> 1, cn & 1))
+        rows.append(rs)
+    return sizes, rows
+
+CAT_MAGIC = b"VGC1"
+def encode_categories(groups, cats):
+    """VGC1 category table. zlib( b"VGC1", varint nGroups, nGroups*(NUL-terminated group name), varint nCats,
+    nCats*(NUL-terminated category name), nCats*varint group index ). Both lists are ordered by place count, most
+    common first. groups = top-level taxonomy groups (about 13); cats = [(category name = taxonomy.primary, group name)].
+    A place's category varint indexes `cats`; its group is cats[i].group."""
+    gi = {g: i for i, g in enumerate(groups)}
+    b = bytearray(CAT_MAGIC) + varint(len(groups))
+    for g in groups: b += g.encode() + b"\0"
+    b += varint(len(cats))
+    for c, _ in cats: b += c.encode() + b"\0"
+    for _, g in cats: b += varint(gi[g])
+    return zlib.compress(bytes(b), 9)
+
+def decode_categories(blob):
+    """-> (groups [name], cats [(category name, group index)])."""
+    b = zlib.decompress(blob)
+    if b[:4] != CAT_MAGIC: raise ValueError(f"unsupported category table: magic {bytes(b[:4])!r}, expected {CAT_MAGIC!r}")
+    ng, i = read_varint(b, 4); groups = []
+    for _ in range(ng): j = b.index(0, i); groups.append(b[i:j].decode()); i = j+1
+    nc, i = read_varint(b, i); names = []
+    for _ in range(nc): j = b.index(0, i); names.append(b[i:j].decode()); i = j+1
+    cats = []
+    for k in range(nc): g, i = read_varint(b, i); cats.append((names[k], g))
+    return groups, cats
+
+PLACES_ROOT_HDR = struct.Struct("<4s16s2s32s32sI")
+def encode_places_root(locality_release, country, dir_addr, cat_addr, chunk_addrs):
+    """VGP1 root, NOT compressed, little-endian: 4 B magic b"VGP1", 16 B ASCII locality release (the release of the VGI2/VGN2
+    pack the directory rows refer to, space-padded), 2 B ASCII country, 32 B directory address (VGP2), 32 B category table
+    address (VGC1), u32 chunk count, then chunk count * 32 B data chunk addresses (VGD1), index = chunkIndex of the directory.
+    Addresses are raw 32-byte chunk addresses (hex in the JSON files)."""
+    r = PLACES_ROOT_HDR.pack(b"VGP1", locality_release.encode().ljust(16), country.encode(), bytes.fromhex(dir_addr), bytes.fromhex(cat_addr), len(chunk_addrs))
+    return r + b"".join(bytes.fromhex(a) for a in chunk_addrs)
+def parse_places_root(b):
+    magic, rel, cc, da, ca, n = PLACES_ROOT_HDR.unpack_from(b)
+    if magic != b"VGP1": raise ValueError(f"unsupported places root: magic {magic!r}, expected b'VGP1'")
+    o = PLACES_ROOT_HDR.size
+    return dict(release=rel.decode().strip(), country=cc.decode(), directory=da.hex(), categories=ca.hex(), chunks=[b[o+32*k: o+32*k+32].hex() for k in range(n)])
+
+def pack_chunks(units, target=CHUNK_TARGET):
+    """units: [blob] in packing order. Greedy: each chunk takes consecutive units while the raw size fits a budget derived
+    from the running compression ratio, then is compressed and shrunk (units handed back to the next chunk) until the zlib
+    result is <= target. A unit is never split. -> (chunks [compressed bytes], where [(chunk, offset, length)] per unit)."""
+    n = len(units); chunks = []; where = [None]*n; i = 0; ratio = 0.75
+    while i < n:
+        budget = int(target / ratio * 0.97); j = i; raw = 4
+        while j < n and (j == i or raw + len(units[j]) <= budget): raw += len(units[j]); j += 1
+        while True:
+            body = PLACES_MAGIC + b"".join(units[i:j]); z = zlib.compress(body, 9)
+            if len(z) <= target or j - i == 1: break
+            want = (len(body) - 4) * target / len(z) * 0.97; raw = 0; k = i
+            while k < j - 1 and raw + len(units[k]) <= want: raw += len(units[k]); k += 1
+            j = max(i + 1, k)
+        off = 4
+        for u in range(i, j): where[u] = (len(chunks), off, len(units[u])); off += len(units[u])
+        chunks.append(z); ratio = 0.5*ratio + 0.5*len(z)/len(body); i = j
+    return chunks, where
+
+# ---- places: safety, upload ----------------------------------------------------------------------------------------
+ANVIL_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+REAL_WALLET_ENV = ("EVM_NETWORK", "EVM_PRIVATE_KEY", "EVM_RPC_URL", "EVM_PAYMENT_TOKEN_ADDRESS", "EVM_DATA_PAYMENTS_ADDRESS",
+                   "ANT_PRIVATE_KEY", "ANT_EVM_NETWORK", "AUTONOMI_PRIVATE_KEY", "WALLET_PRIVATE_KEY")
+def require_devnet():
+    """Refuses (SystemExit) unless the local devnet manifest exists and every ant call is pinned to it with the Anvil test key
+    and `--evm-network local`, and no real-wallet / network override is set in the environment."""
+    man = f"{DEVNET}/ant/devnet-manifest.json"
+    if not os.path.isfile(man): sys.exit(f"refusing to run: devnet manifest {man} not found (places only go to the local devnet)")
+    if ANT[ANT.index("--devnet-manifest") + 1] != man or ANT[ANT.index("--evm-network") + 1] != "local" or ENV.get("SECRET_KEY") != ANVIL_KEY:
+        sys.exit("refusing to run: the ant command is not pinned to the local devnet with the Anvil test key")
+    bad = [k for k in REAL_WALLET_ENV if os.environ.get(k)] + (["SECRET_KEY"] if os.environ.get("SECRET_KEY") not in (None, "", ANVIL_KEY) else [])
+    if bad: sys.exit(f"refusing to run: real-wallet or network settings in the environment: {bad}")
+
+def put_retry(path, tries=5):
+    for k in range(tries):
+        try: return put_chunk(path)
+        except RuntimeError:
+            if k == tries - 1: raise
+            time.sleep(2 ** k)
+
+def set_pointer(key, addr):
+    if not os.path.exists(key): subprocess.run(["ant", "pointer", "keygen", "-o", key], check=True, capture_output=True)
+    pa = subprocess.run(["ant", "pointer", "address", "-k", key], capture_output=True, text=True).stdout.split()[-1]
+    try: ant("pointer", "create", "-k", key, addr)
+    except RuntimeError: ant("pointer", "update", "-k", key, addr)
+    return pa
+
+# ---- places: subcommands -------------------------------------------------------------------------------------------
+def places_src(a): return f"{a.work}/places/{a.country}_places_{a.release}.parquet"
+def places_assigned(a): return f"{a.work}/places/{a.country}_assigned_{a.release}.parquet"
+
+def cmd_places_extract(a):
+    """Overture places -> parquet with PLACES_COLUMNS only. `addresses` is read in the WHERE (country) and never selected."""
+    c = connect(a.work, ("spatial",)); c.sql("INSTALL httpfs; LOAD httpfs; SET s3_region='us-west-2'"); t = time.time()
+    os.makedirs(f"{a.work}/places", exist_ok=True); cc = a.country
+    bb = PLACES_BBOX.get(cc); box = f" AND bbox.xmin BETWEEN {bb[0]} AND {bb[1]} AND bbox.ymin BETWEEN {bb[2]} AND {bb[3]}" if bb else ""
+    c.sql(f"""COPY (SELECT {extract_select()} FROM read_parquet('{PLACES_S3.format(rel=a.release)}')
+        WHERE addresses[1].country = '{cc}'{box}) TO '{places_src(a)}' (FORMAT parquet, COMPRESSION zstd)""")
+    cols = [r[0] for r in c.sql(f"describe select * from '{places_src(a)}'").fetchall()]
+    assert cols == list(PLACES_COLUMNS), cols; assert_no_contact_columns(cols)
+    print("places", c.sql(f"select count(*) from '{places_src(a)}'").fetchone()[0], "columns", cols, f"{time.time()-t:.0f}s")
+
+def assign(c, a, rowmap):
+    """Writes <work>/places/<cc>_assigned_<release>.parquet: PLACES_COLUMNS + loc (names-table row) + nearby (0/1) + h9, for
+    every place with a name that is placed. Smallest containing polygon wins (area in degrees^2, ties by id); otherwise the
+    nearest polygon locality within NEAR_CAP_M (distance in metres in NEAR_CRS); otherwise left out. -> counts dict."""
+    t = time.time(); cc = a.country; crs = NEAR_CRS.get(cc) or sys.exit(f"no metric CRS for {cc}: add it to NEAR_CRS")
+    src = places_src(a); assert_no_contact_columns([r[0] for r in c.sql(f"describe select * from '{src}'").fetchall()])
+    c.sql("CREATE OR REPLACE TABLE rowmap(div VARCHAR, loc INTEGER)")
+    c.executemany("INSERT INTO rowmap VALUES (?, ?)", list(rowmap.items()))
+    c.sql(f"CREATE OR REPLACE TABLE ar AS SELECT division_id, ST_GeomFromText(wkt) g FROM '{a.work}/{cc}_area.parquet'")
+    c.sql("ALTER TABLE ar ADD COLUMN ar DOUBLE; UPDATE ar SET ar = ST_Area(g)")
+    c.sql(f"""CREATE OR REPLACE TABLE p AS SELECT row_number() OVER () AS rn, id, replace(trim("name"), chr(0), ' ') AS "name", lat, lon, confidence,
+        coalesce(category, 'unknown') AS category, coalesce(grp, 'unknown') AS grp, ST_Point(lon, lat) pt FROM '{src}'""")
+    total = c.sql("select count(*) from p").fetchone()[0]
+    c.sql("DELETE FROM p WHERE name IS NULL OR name = ''"); kept = c.sql("select count(*) from p").fetchone()[0]
+    c.sql("""CREATE OR REPLACE TABLE inside AS SELECT p.rn, arg_min(ar.division_id, (ar.ar, ar.division_id)) div
+             FROM p JOIN ar ON ST_Intersects(ar.g, p.pt) GROUP BY p.rn""")
+    n_in = c.sql("select count(*) from inside").fetchone()[0]; print("inside", n_in, f"{time.time()-t:.0f}s", flush=True)
+    c.sql(f"CREATE OR REPLACE TABLE ax AS SELECT division_id, ST_Transform(g,'EPSG:4326','{crs}',always_xy:=true) g FROM ar")
+    c.sql("CREATE OR REPLACE TABLE ab AS SELECT division_id, g, ST_XMin(g) x0, ST_XMax(g) x1, ST_YMin(g) y0, ST_YMax(g) y1 FROM ax")
+    c.sql(f"""CREATE OR REPLACE TABLE rest AS SELECT rn, ST_X(m) x, ST_Y(m) y FROM (SELECT rn, ST_Transform(pt,'EPSG:4326','{crs}',always_xy:=true) m FROM p
+              WHERE rn NOT IN (SELECT rn FROM inside))""")
+    n = c.sql("select count(*) from rest").fetchone()[0]
+    c.sql("CREATE OR REPLACE TABLE near AS SELECT * FROM (SELECT NULL::BIGINT rn, NULL::VARCHAR div, NULL::DOUBLE d) WHERE false"); step = 200000
+    for lo in range(0, n, step):
+        c.sql(f"""INSERT INTO near SELECT rn, arg_min(division_id, (d, division_id)), min(d) FROM (
+            SELECT r.rn, b.division_id, ST_Distance(b.g, ST_Point(r.x, r.y)) d FROM (SELECT * FROM rest ORDER BY rn LIMIT {step} OFFSET {lo}) r
+            JOIN ab b ON r.x BETWEEN b.x0-{NEAR_CAP_M} AND b.x1+{NEAR_CAP_M} AND r.y BETWEEN b.y0-{NEAR_CAP_M} AND b.y1+{NEAR_CAP_M}) WHERE d <= {NEAR_CAP_M} GROUP BY rn""")
+        print("  nearby batch", lo, f"{time.time()-t:.0f}s", flush=True)
+    n_near = c.sql("select count(*) from near").fetchone()[0]
+    cols = ", ".join(f"p.{x}" for x in PLACES_COLUMNS)
+    c.sql(f"""COPY (SELECT {cols}, rowmap.loc AS loc, CASE WHEN i.rn IS NULL THEN 1 ELSE 0 END AS nearby, h3_latlng_to_cell(p.lat, p.lon, 9) AS h9
+        FROM p LEFT JOIN inside i ON i.rn = p.rn LEFT JOIN near n ON n.rn = p.rn JOIN rowmap ON rowmap.div = coalesce(i.div, n.div))
+        TO '{places_assigned(a)}' (FORMAT parquet, COMPRESSION zstd)""")
+    counts = dict(total=total, no_name=total-kept, inside=n_in, nearby=n_near, left_out=kept-n_in-n_near)
+    assert counts["no_name"] + n_in + n_near + counts["left_out"] == total
+    print("assign", counts, f"{time.time()-t:.0f}s"); return counts
+
+def cmd_places(a):
+    if not a.no_upload: require_devnet()
+    c = connect(a.work); out = f"{a.work}/out"; pd = f"{out}/places"; os.makedirs(pd, exist_ok=True); cc = a.country; t0 = time.time()
+    ids = decode_names(open(f"{out}/names.bin", "rb").read())[0]; nrows = len(ids)
+    pub0 = json.load(open(f"{out}/published.json")); assert pub0["country"] == cc, "out/published.json is for another country"
+    counts = assign(c, a, {fmt_uuid(h): i for i, h in enumerate(ids)})
+    cats = c.sql(f"select category, mode(grp), count(*) from '{places_assigned(a)}' group by 1 order by 3 desc, 1").fetchall()
+    groups = [r[0] for r in c.sql(f"select grp, count(*) from '{places_assigned(a)}' group by 1 order by 2 desc, 1").fetchall()]
+    ci = {r[0]: i for i, r in enumerate(cats)}
+    cb = encode_categories(groups, [(r[0], r[1]) for r in cats]); open(f"{pd}/categories.bin", "wb").write(cb)
+    q = c.sql(f"select loc, nearby, id, name, lat, lon, confidence, category from '{places_assigned(a)}' order by loc, nearby, h9, id")
+    blobs, meta = [], []; cur = None; buf = []
+    def flush():
+        for k in range(0, len(buf), MAX_UNIT_PLACES):
+            part = buf[k:k+MAX_UNIT_PLACES]; blobs.append(encode_unit(part, ci)); meta.append((cur[0], cur[1], len(part)))
+    while True:
+        rows = q.fetchmany(200000)
+        if not rows: break
+        for r in rows:
+            if (r[0], r[1]) != cur: flush(); cur = (r[0], r[1]); buf = []
+            buf.append(r[2:])
+    flush()
+    chunks, where = pack_chunks(blobs)
+    ranges = {}
+    for (row, nb, cnt), (ch, off, ln) in zip(meta, where): ranges.setdefault(row, []).append((ch, off, ln, cnt, nb))
+    db = encode_places_dir([len(z) for z in chunks], ranges, nrows); open(f"{pd}/directory.bin", "wb").write(db)
+    for f in os.listdir(pd):
+        if f.startswith("chunk_"): os.remove(f"{pd}/{f}")
+    paths = []
+    for k, z in enumerate(chunks): p = f"{pd}/chunk_{k:04d}.bin"; open(p, "wb").write(z); paths.append(p)
+    tot = sum(map(len, chunks)); print(f"{len(chunks)} chunks, {tot} B ({tot/2**20:.1f} MiB), max {max(map(len, chunks))}; directory {len(db)} B; categories {len(cb)} B ({len(cats)} categories, {len(groups)} groups); {len(ranges)} localities with places; encode {time.time()-t0:.0f}s", flush=True)
+    counts.update(localities_with_places=len(ranges), categories=len(cats), groups=len(groups), units=len(blobs))
+    up_s = 0.0
+    if a.no_upload: addrs = ["0"*64]*len(chunks); da = ca = "0"*64
+    else:
+        cache_p = f"{pd}/uploaded.json"; done = {} if a.fresh or not os.path.exists(cache_p) else json.load(open(cache_p)); t = time.time()
+        def put(p):
+            h = hashlib.sha256(open(p, "rb").read()).hexdigest()
+            if h not in done: done[h] = put_retry(p)
+            return done[h]
+        addrs = [None]*len(paths); failed = []
+        with concurrent.futures.ThreadPoolExecutor(a.workers) as ex:
+            futs = {ex.submit(put, p): k for k, p in enumerate(paths)}
+            for n, f in enumerate(concurrent.futures.as_completed(futs), 1):
+                try: addrs[futs[f]] = f.result()
+                except Exception as e: failed.append(futs[f]); print("  failed", futs[f], str(e)[-200:], flush=True)
+                if n % 25 == 0: print(f"  uploaded {n}/{len(paths)} {time.time()-t:.0f}s", flush=True); json.dump(done, open(cache_p, "w"))
+        for k in failed: addrs[k] = put(paths[k])    # one at a time, with retries; raises if it still fails
+        da, ca = put(f"{pd}/directory.bin"), put(f"{pd}/categories.bin"); json.dump(done, open(cache_p, "w")); up_s = time.time() - t
+        print(f"uploaded {len(paths)} chunks + directory + categories in {up_s:.0f}s ({len(failed)} needed a serial retry)")
+    root = encode_places_root(pub0["release"], cc, da, ca, addrs); open(f"{pd}/root.bin", "wb").write(root)
+    ra = "0"*64 if a.no_upload else put_retry(f"{pd}/root.bin")
+    pub = dict(country=cc, release=a.release, locality_release=pub0["release"], locality_root=pub0["root"], root=ra, directory=da, categories=ca,
+               chunk_count=len(chunks), chunks=addrs, counts=counts, bytes=tot + len(db) + len(cb) + len(root), upload_seconds=round(up_s, 1), near_cap_m=NEAR_CAP_M)
+    if not a.no_upload:
+        try: pub["pointer"] = set_pointer(f"{a.work}/places.key", ra)
+        except Exception as e: print("pointer not placed:", str(e)[-200:])
+    json.dump(pub, open(f"{out}/places_published.json", "w"), indent=1); print(json.dumps({k: v for k, v in pub.items() if k != "chunks"}, indent=1))
+
+def cmd_verify_places(a):
+    """Reads the places pack back over the network (root -> directory, categories -> chunks) for a random sample of localities and
+    checks every place against the assigned source: id set per group, name, position within 1 microdegree, category, group,
+    confidence; inside/nearby counts and ordering against the directory; whole-directory totals against places_published.json."""
+    require_devnet(); c = connect(a.work); out = f"{a.work}/out"; pub = json.load(open(f"{out}/places_published.json")); tmp = f"{a.work}/dl_places"; os.makedirs(tmp, exist_ok=True)
+    if pub.get("pointer"): assert ant("pointer", "resolve", pub["pointer"]) == pub["root"], "pointer does not resolve to the root"
+    root = parse_places_root(get_chunk(pub["root"], f"{tmp}/root")[0]); assert root["chunks"] == pub["chunks"] and root["country"] == a.country
+    sizes, drows = decode_places_dir(get_chunk(root["directory"], f"{tmp}/dir")[0]); groups, cats = decode_categories(get_chunk(root["categories"], f"{tmp}/cat")[0])
+    assert len(sizes) == len(root["chunks"]) and len(drows) == len(decode_names(open(f"{out}/names.bin", "rb").read())[0])
+    tin = sum(r[3] for rs in drows for r in rs if not r[4]); tn = sum(r[3] for rs in drows for r in rs if r[4])
+    assert (tin, tn) == (pub["counts"]["inside"], pub["counts"]["nearby"]), (tin, tn, pub["counts"])
+    print(f"root ok: release {root['release']}, {len(root['chunks'])} chunks; directory totals inside {tin} nearby {tn}; {len(cats)} categories in {len(groups)} groups")
+    have = [i for i, rs in enumerate(drows) if rs]; sample = random.Random(a.seed).sample(have, min(a.n, len(have))); need = sorted({r[0] for i in sample for r in drows[i]})
+    cache = {}; t = time.time()
+    def fetch(k): return k, decode_data_chunk(get_chunk(root["chunks"][k], f"{tmp}/c{k}")[0])
+    with concurrent.futures.ThreadPoolExecutor(a.workers) as ex:
+        for k, raw in ex.map(fetch, need): cache[k] = raw
+    print(f"fetched {len(need)} chunks, {sum(sizes[k] for k in need)/1e6:.1f} MB compressed, {time.time()-t:.0f}s")
+    want = {}
+    for r in c.sql(f"select loc, nearby, id, name, lat, lon, confidence, category, grp from '{places_assigned(a)}' where loc in ({','.join(map(str, sample))})").fetchall():
+        want.setdefault((r[0], r[1]), {})[r[2].replace("-", "")] = r[3:]
+    checked = 0
+    for row in sample:
+        seen_nearby = False; got = {0: {}, 1: {}}; cnt = {0: 0, 1: 0}
+        for ch, off, ln, cn, nb in drows[row]:
+            assert not (seen_nearby and not nb), f"row {row}: inside range after a nearby range"; seen_nearby |= bool(nb)
+            pl, end = decode_unit(cache[ch], off); assert end == off + ln and len(pl) == cn, (row, ch, off, ln, end, len(pl), cn)
+            cnt[nb] += cn
+            for pid, name, la, lo, conf, cat in pl: assert pid not in got[nb]; got[nb][pid] = (name, la, lo, conf, cat)
+        for nb in (0, 1):
+            w = want.get((row, nb), {}); assert set(w) == set(got[nb]) and cnt[nb] == len(w), f"row {row} group {nb}: {len(got[nb])} read, {len(w)} expected"
+            for pid, (name, la, lo, conf, cat) in got[nb].items():
+                wn, wla, wlo, wc, wcat, wgrp = w[pid]
+                assert name == wn and cats[cat][0] == wcat and groups[cats[cat][1]] == wgrp, (pid, name, wn, cats[cat], wcat, wgrp)
+                assert abs(la - wla*1e6) <= 1 and abs(lo - wlo*1e6) <= 1, (pid, la, wla, lo, wlo)
+                assert conf == min(255, max(0, round((wc or 0)*255))), (pid, conf, wc); checked += 1
+    print(f"verify-places ok: {len(sample)} localities, {checked} places match the source (id, name, position within 1 microdegree, category, group, confidence); inside/nearby counts match the directory")
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("cmd", choices=["extract", "cells", "adjacency", "build", "verify"])
+    p.add_argument("cmd", choices=["extract", "cells", "adjacency", "build", "verify", "places-extract", "places", "verify-places"])
     p.add_argument("--country", default="GB"); p.add_argument("--release", default=RELEASE)
     p.add_argument("--work", default=os.path.expanduser("~/Development/scratch/gers-index"))
     p.add_argument("--no-upload", action="store_true", help="build: encode only"); p.add_argument("--points", help="verify: parquet with id, lat, lon")
-    p.add_argument("-n", type=int, default=400)
-    a = p.parse_args(); os.makedirs(a.work, exist_ok=True); globals()["cmd_" + a.cmd](a)
+    p.add_argument("-n", type=int, default=400, help="verify: points; verify-places: localities (use 300)")
+    p.add_argument("--workers", type=int, default=4, help="places, verify-places: parallel ant calls"); p.add_argument("--fresh", action="store_true", help="places: forget which chunks were already uploaded")
+    p.add_argument("--seed", type=int, default=1, help="verify-places: sample seed")
+    a = p.parse_args(); os.makedirs(a.work, exist_ok=True); globals()["cmd_" + a.cmd.replace("-", "_")](a)
 if __name__ == "__main__": main()
