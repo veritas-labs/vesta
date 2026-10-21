@@ -623,7 +623,9 @@ class AutomergeFixtureLoadTest {
 
         // Assert
         assertEquals(3, homes.size)
-        assertEquals(current.toSet(), homes.toSet())
+        // Unknown string keys now read as attributes (spaces-kit 0.1.1); everything else is unchanged.
+        assertEquals(current.toSet(), homes.map { it.copy(attributes = emptyMap()) }.toSet())
+        assertEquals(setOf(mapOf("futureField" to "x")), homes.map { it.attributes }.toSet())
     }
 
     @Test
