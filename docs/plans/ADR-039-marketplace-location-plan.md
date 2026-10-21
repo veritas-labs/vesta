@@ -2,7 +2,7 @@
 
 Written 2026-10-21 so a fresh session can build the Marketplace's location capture from [ADR-039](../adr/ADR-039-home-location-h3.md)
 without re-deriving context. Read the ADR first (decisions 0-6, the locality-only spike section, open decisions 2, 3 and 7); this
-plan says **how to build it in this codebase**, in what order, and how to verify it. **Status: WP1-WP6 built (2026-10-21), WP7 in progress.** As built: see the ADR's "As built" section for the differences
+plan says **how to build it in this codebase**, in what order, and how to verify it. **Status: WP1-WP7 built (2026-10-21); the by-hand desktop run is still owed.** As built: see the ADR's "As built" section for the differences
 (country step lists only available countries, `VGN2` magic in the names payload, BLAKE3 not checked). The data builder exists: `scripts/gers-index/` (README is its runbook).
 
 ## Goal
