@@ -199,8 +199,9 @@ touching neighbours (a tolerance of about 100 m). The polygon join took about 6 
 - **Parents.** All 21,931 polygon-backed GB localities have a parent, and every parent is in the table. The parent's
   subtype is `county` for 11,741, `locality` for 10,132 (46%, the nested cases) and `region` for 58. The UI therefore shows
   the **full chain** ("Newport, Isle of Wight, England"), not just the immediate parent, which would be a county for some
-  localities and a locality for others. Whether choosing a town includes the businesses of localities nested inside it is
-  **not designed**. A nested locality can also be a neighbour of other localities while its parent covers a much larger area.
+  localities and a locality for others. Choosing a town does not include the businesses of localities nested inside it;
+  the picker lists nested localities as separate rows (decision 3, step 5). A nested locality can also be a neighbour of other
+  localities while its parent covers a much larger area.
   Other countries are not checked: some may skip the county level or give no parent.
 - Not re-run for locality only: the cell-to-division index (the 0.69 MB figure ranks every subtype), and the places units.
 
@@ -264,13 +265,18 @@ tiles and so the network). The postcode never leaves the device.
    - The home locality is ticked and locked. Neighbours start unticked.
    - Sorted by distance (or by merchant count when the places directory has it), not alphabetically.
    - Each row shows its merchant count, so a user in a village of 300 can see which neighbours are worth ticking, and a user
-     in a city can see that none are. (Needs the places directory, not built.)
+     in a city can see that none are. The counts are aggregates and carry no personal information; they need the places
+     directory, which is not built. Building it is local processing and is not gated on the legal review; only uploading place
+     chunks is (decision 5).
    - Only the nearest ten are shown, with a search box and "show more"; some localities have over 100 neighbours.
    - A footer shows the approximate download, about 260 KB per extra locality, and warns when the total is large. A longer
      list also tells the network more about the user's area, and the footer says so.
    - Prompt wording: "Also search nearby places", not "Select all localities".
-   - Nesting rule: **not designed** (see the parents bullet in the locality-only spike section). Until decided, show a
-     contained locality as part of its parent's group rather than as a separate neighbour.
+   - **Nested localities are shown** as their own rows, labelled "inside X" or "contains Y", alongside touching neighbours.
+     The containing locality is the parent pointer when the parent is a locality; the contained ones are its inverse, so no
+     extra data is needed. Each place belongs to its smallest locality, so ticking a parent and its child never counts a
+     business twice; but ticking only a parent leaves out the businesses of the localities nested in it, which is why they
+     are listed.
 6. **Confirm and save.** `country`, `divisionId`, the release, and optionally the cell with its `source` are stored on the
    Home. The extra localities are stored as a **Marketplace search-area preference** (a set of `divisionId`s), separate from
    the home locality so that where a Home is does not depend on how far its members shop. A point is never saved.
