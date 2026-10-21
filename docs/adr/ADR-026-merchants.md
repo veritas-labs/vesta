@@ -106,3 +106,4 @@ See `MerchantsAcceptanceTest`. For the Pantry link (`PantryMerchantsAcceptanceTe
 - **Real-app run.** The screens have only been exercised by Compose UI tests; nobody has looked at them on desktop or an
   emulator, so layout and polish are unchecked.
 - Sync is tested on the fake mesh only, as with the other documents.
+- **Marketplace search area (ADR-039).** The Marketplace also has a *Nearby merchants* row that captures the user's home locality and the neighbouring localities to search; nothing reads it yet (the business list is gated on ADR-039's legal review).

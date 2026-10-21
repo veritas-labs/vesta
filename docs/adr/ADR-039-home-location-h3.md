@@ -1,6 +1,6 @@
 # ADR-039: Grounding a Home to a place (country and locality, captured by the Marketplace)
 
-**Status:** Proposed (2026-10-19). Not accepted and not implemented. The H3 **library choice is deliberately left open**
+**Status:** Proposed (2026-10-19); the desktop Marketplace picker is built (2026-10-21, see "As built"), not accepted and never run in the real app. The H3 **library choice is deliberately left open**
 (see "Open decisions"). Supersedes the "where does the location come from" question left open in ADR-024 (weather widget).
 
 ## Context
@@ -407,3 +407,32 @@ must not count a contained locality as a neighbour.
   top-down because filling every res-9 cell of a large country exhausts memory.
 - A business list is feasible for the UK (about 260 KB per lookup, about 95 MB stored per release) but is gated on the PII
   and licence questions, and on funding a near-full upload each release. Buildings are not pursued.
+
+## As built (2026-10-21, desktop only; plan: [ADR-039-marketplace-location-plan.md](../plans/ADR-039-marketplace-location-plan.md))
+
+Built as WP1-WP6 of the plan, one commit per work package, by a team of sub-agents. The UI has **not been run in the real app**,
+only under Compose UI tests; Android and iOS show "not available on this device yet".
+
+- **Nothing is bundled.** The desktop app fetches the root, names and adjacency chunks from Autonomi through the standalone `antd`
+  REST daemon (`GET /v1/chunks/{hex}`), after the disclosure screen, and caches them under `~/.vesta/locality-cache` by address.
+  Caching happens only after the whole pack decodes. Configuration is `VESTA_LOCALITY_ROOT` (the root chunk's address) or
+  `VESTA_LOCALITY_POINTER`, and `VESTA_ANTD_PORT`. The installed `antd` 0.15.0 has **no pointer routes** (the source checkout of
+  2026-10-19 does), so in practice the root address is configured; the pointer path is written but untested. The **BLAKE3
+  content-address check is not implemented** (the repo has no BLAKE3 library; `ChunkVerifier` is the hook), so a hostile node
+  could serve wrong data that still decodes.
+- **Names table format `VGN2`** adds each locality's centroid (microdegrees, delta-coded) so neighbours sort by distance. The
+  magic is at the start of the names payload, not in the root. Counties and regions carry 0,0. GB names chunk is 579 KB.
+- **Where the choice is stored:** on the user's Home registry entry, as string attributes (`locality.country`, `locality.home`,
+  `locality.release`, `locality.cell`, `locality.cellSource`, `area.<id>` = `1` or `0`). That needed a change to the `veritas-kits`
+  repo: `spaces-kit` 0.1.1 (generic `attributes` on a Space) and 0.1.2 (`SpaceAttributes` exposed as
+  `DeviceDataSync.spaceAttributes`), both local to this machine's Maven repository. The registry is per user, so Home members never
+  receive it. Side effect: unknown string keys on a registry entry now read as attributes instead of being ignored.
+- **Differences from the decisions above:** the country step lists only the countries the pack offers (GB), not a world list with
+  unsupported ones disabled; relation labels read from the row's side ("Inside X" for a place nested in the home); a saved area with
+  no nearby places reads "Searching in X"; "Not now" ends the flow with nothing requested; editing without a cached pack shows the
+  disclosure first.
+- **Not built:** the device-location and postcode shortcuts (and so the H3 library choice, open decisions 1 and 2), the cell stored
+  with a `cellSource`, the audit entry in Sync activity (decision 3, step 8), merchant counts and the download-size footer (need the
+  places directory), and everything about the business list itself (gated on the legal review).
+- **Unrelated failure seen:** `EmptyStateIllustrationsTest.aDayWithNoEventsShowsTheQuietDayPicture` fails on `main` without these
+  changes; the area tests are not the cause.
