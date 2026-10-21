@@ -203,7 +203,19 @@ touching neighbours (a tolerance of about 100 m). The polygon join took about 6 
   the picker lists nested localities as separate rows (decision 3, step 5). A nested locality can also be a neighbour of other
   localities while its parent covers a much larger area.
   Other countries are not checked: some may skip the county level or give no parent.
-- Not re-run for locality only: the cell-to-division index (the 0.69 MB figure ranks every subtype), and the places units.
+- **Cell index rebuilt, locality only** (`scripts/gers-index/`, see its README; smallest containing locality wins): 1,694,669
+  res-9 cells (not 2.65M: localities do not cover all land), 21,429 distinct localities, 12 shards, **0.90 MB** (largest shard
+  269 KB). That is *larger* than the 0.69 MB all-subtype index, because locality boundaries are more fragmented there than
+  the big county and region areas the old ranking let win. Published to the local devnet with the names table (466 KB) and
+  adjacency (119 KB) as raw chunks plus a root chunk and a pointer: **1.49 MB, 15 chunks**, read back over the network.
+  502 localities have a polygon but no cell of their own (smaller than a res-9 cell, or covered by nested ones).
+- **Half of GB businesses are in no locality polygon.** On 20,000 sampled places, **9,805 (49%) lie inside no locality
+  polygon** (the index agrees on 9,814); the 28,171 point-only localities and areas outside any town or village account for
+  this. Of the 10,195 inside a polygon: 95.9% get the exact smallest locality, 0.5% get no answer, 3.6% get a different
+  locality (46 places outside any polygon get a neighbouring locality from a merged run, 0.2%). A "businesses in my locality"
+  list built on polygons would miss about half of businesses; Overture's point-only localities, or assigning to the nearest
+  locality, need deciding (open decision 7).
+- Not re-run for locality only: the places units and chunk sizes (2,785 units, 508 chunks).
 
 ## Decision
 
@@ -353,6 +365,9 @@ must not count a contained locality as a neighbour.
    Overture licence check. If it goes ahead: chunk target (256-512 KiB working choice), who pays for the near-full
    re-upload each release (place data changes constantly, so tiles do not dedupe the way divisions do), and a name or
    category search index, which is not designed.
+   Also **where the other half of places go**: about 49% of GB places sit inside no locality polygon (see the locality-only
+   spike section). Options: assign to the nearest locality (point or polygon), use the point-only localities, or accept
+   that rural businesses are found only through larger areas.
 
 ## Acceptance criteria
 
