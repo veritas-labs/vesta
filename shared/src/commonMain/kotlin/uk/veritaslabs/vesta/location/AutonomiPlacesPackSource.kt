@@ -18,9 +18,8 @@ data class PlacesPackConfig(val pointer: String?, val root: String?)
  * chunks a set of localities needs ([fetchUnits]). Every chunk is read from [cache] first and stored only after it has decoded,
  * so a bad chunk is never kept; with the chunks cached everything works offline.
  *
- * Known gap, as for [AutonomiLocalityPackSource]: an Autonomi chunk address is BLAKE3 of its content, the repo has no BLAKE3,
- * so by default nothing is verified ([ChunkVerifier.None]) and a node could serve wrong bytes for an address. The decoders
- * reject malformed chunks, but a well-formed forgery would pass. A [verifier] that implements BLAKE3 closes it.
+ * Verification is as for [AutonomiLocalityPackSource]: the factories pass [Blake3ChunkVerifier], so a chunk whose BLAKE3 hash is
+ * not its address is neither used nor cached.
  */
 class AutonomiPlacesPackSource(
     private val client: AutonomiClient,

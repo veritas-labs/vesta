@@ -456,9 +456,10 @@ only under Compose UI tests; Android and iOS show "not available on this device 
   REST daemon (`GET /v1/chunks/{hex}`), after the disclosure screen, and caches them under `~/.vesta/locality-cache` by address.
   Caching happens only after the whole pack decodes. Configuration is `VESTA_LOCALITY_ROOT` (the root chunk's address) or
   `VESTA_LOCALITY_POINTER`, and `VESTA_ANTD_PORT`. The installed `antd` 0.15.0 has **no pointer routes** (the source checkout of
-  2026-10-19 does), so in practice the root address is configured; the pointer path is written but untested. The **BLAKE3
-  content-address check is not implemented** (the repo has no BLAKE3 library; `ChunkVerifier` is the hook), so a hostile node
-  could serve wrong data that still decodes.
+  2026-10-19 does), so in practice the root address is configured; the pointer path is written but untested. Every chunk
+  is checked against its address with a **BLAKE3 implementation in `Blake3.kt`** (no dependency; tested against reference
+  hashes), through `Blake3ChunkVerifier` which the desktop factories pass to both pack sources. A wrong chunk is not used or
+  cached, and a cached chunk that fails is fetched again.
 - **Names table format `VGN2`** adds each locality's centroid (microdegrees, delta-coded) so neighbours sort by distance. The
   magic is at the start of the names payload, not in the root. Counties and regions carry 0,0. GB names chunk is 579 KB.
 - **Where the choice is stored:** on the user's Home registry entry, as string attributes (`locality.country`, `locality.home`,
@@ -496,7 +497,7 @@ The business list behind the Saved card's "See businesses". UI under Compose tes
   directory `675e97cabf045c7cc0c7e456c0481394d9cd21139c23545a0ac8eeff6488592c`, categories `11a6368138157ed4231039dfd5917baa24e3a7d49754c90b39274d0644b0388e`,
   places pointer `b25531634e901256a8cc7f26076d12a87556fad956bcbd5044dcc01ee9f1cbaa`, built against locality root `926c6fc377dd9cddede73afcdd6e1622a30aef30561860c251dc3fe8950eff3f`.
   A restarted devnet is empty and needs `places` re-run.
-- **Not done:** BLAKE3 verification of data chunks (about 400 chunks make the missing check matter more); an entry in Sync activity; **mainnet
+- **Not done:** an entry in Sync activity; **mainnet
   upload**, gated on the legal review (section 5) and the Overture licence check; countries other than GB; Android and iOS (the embedded client
   has no chunk-by-address path); merchant counts inside the picker's neighbour list; claiming a listing and the ADR-026 link (rows are Overture
   businesses, not registered merchants); the **businesses paragraph of the disclosure is a draft awaiting the user's sign-off**; 177,874 placed

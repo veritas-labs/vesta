@@ -312,6 +312,7 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
     `noPlacesRequestIsMadeBeforeTheDisclosureIsAccepted`; `MarketplaceAreaBusinessesFlowTest.theDisclosureMentionsBusinessesAndNothingIsFetchedBeforeContinue`;
     `MarketplaceAreaBusinessesViewModelTest.nothingIsRequestedBeforeTheDisclosureIsAccepted`, `decliningTheDisclosureRequestsNothing`.
     The disclosure's businesses paragraph is a draft awaiting the user's sign-off.
-13. **Places are verified against their address. Not built yet.** The BLAKE3 content-address check is not implemented (as for the locality pack); a hostile node
-    could serve wrong data that still decodes.
+13. **Places are verified against their address. Covered at the source.** Given a chunk whose bytes do not hash (BLAKE3) to its address,
+    when the pack is loaded, then it is not used and not cached (`AutonomiLocalityPackSourceTest`, `Blake3Test`); the desktop
+    factories use the real verifier.
 14. **Fetches appear in Sync activity. Not built yet.** Same as criterion 10 of the section above.

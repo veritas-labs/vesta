@@ -28,9 +28,9 @@ fun interface ChunkVerifier {
  * is resolved through the client on every load (it can move, so its target is never cached) and, when the client
  * cannot resolve it, [LocalityPackConfig.root] is used. With the chunks cached, [load] works offline.
  *
- * Known gap: an Autonomi chunk address is BLAKE3 of its content, but the repo has no BLAKE3 and adds none for this,
- * so by default nothing is verified ([ChunkVerifier.None]) and a node could serve wrong bytes for an address. The
- * decoders reject malformed chunks, but a well-formed forgery would pass. A [verifier] that implements BLAKE3 closes it.
+ * Verification: an Autonomi chunk address is the BLAKE3 hash of its content. The default [verifier] accepts everything (tests
+ * use fake addresses); the platform factories pass [Blake3ChunkVerifier], which rejects fetched and cached chunks that do not
+ * match their address. A cached chunk that fails is ignored and fetched again.
  */
 class AutonomiLocalityPackSource(
     private val client: AutonomiClient,

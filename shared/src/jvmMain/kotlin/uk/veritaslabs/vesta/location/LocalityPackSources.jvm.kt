@@ -39,7 +39,7 @@ fun localityPackConfig(): LocalityPackConfig {
 }
 
 fun createLocalityPackSource(client: AutonomiClient, cacheDir: File): LocalityPackSource =
-    AutonomiLocalityPackSource(client, localityPackConfig(), DiskChunkCache(cacheDir), JvmInflater())
+    AutonomiLocalityPackSource(client, localityPackConfig(), DiskChunkCache(cacheDir), JvmInflater(), Blake3ChunkVerifier)
 
 /** Reads the places pack's address from env `VESTA_PLACES_POINTER` / `VESTA_PLACES_ROOT`, else `vesta.places*` properties. */
 fun placesPackConfig(): PlacesPackConfig {
@@ -52,4 +52,4 @@ fun placesPackConfig(): PlacesPackConfig {
 }
 
 fun createPlacesPackSource(client: AutonomiClient, cacheDir: File): PlacesPackSource =
-    AutonomiPlacesPackSource(client, placesPackConfig(), DiskChunkCache(cacheDir), JvmInflater())
+    AutonomiPlacesPackSource(client, placesPackConfig(), DiskChunkCache(cacheDir), JvmInflater(), Blake3ChunkVerifier)

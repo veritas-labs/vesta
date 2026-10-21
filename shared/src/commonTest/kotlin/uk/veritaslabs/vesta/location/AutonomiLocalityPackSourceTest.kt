@@ -302,4 +302,43 @@ class AutonomiLocalityPackSourceTest {
         assertEquals(null, state)
         assertEquals(0, client.calls)
     }
+
+    private fun hex(bytes: ByteArray) = bytes.joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }
+
+    @Test
+    fun withTheBlake3VerifierChunksThatMatchTheirAddressLoad() = runTest {
+        // Arrange: the names and adjacency addresses sit at offsets 23 and 55 of the root chunk
+        val names = TinyPack.namesChunk()
+        val adjacency = TinyPack.adjacencyChunk()
+        val root = TinyPack.rootChunk()
+        Blake3.hash(names).copyInto(root, 23)
+        Blake3.hash(adjacency).copyInto(root, 55)
+        val rootAddress = hex(Blake3.hash(root))
+        val chunks = mutableMapOf(
+            rootAddress to root,
+            hex(Blake3.hash(names)) to names,
+            hex(Blake3.hash(adjacency)) to adjacency,
+        )
+        val source = source(FakeClient(chunks), config = LocalityPackConfig(null, rootAddress), verifier = Blake3ChunkVerifier)
+
+        // Act
+        val state = source.load()
+
+        // Assert
+        assertIs<LocalityPackState.Ready>(state)
+    }
+
+    @Test
+    fun withTheBlake3VerifierAChunkThatDoesNotMatchItsAddressIsRejectedAndNotCached() = runTest {
+        // Arrange
+        val cache = MemoryCache()
+        val source = source(FakeClient(goodChunks()), cache, verifier = Blake3ChunkVerifier)
+
+        // Act
+        val state = source.load()
+
+        // Assert
+        assertEquals(LocalityPackState.Unreachable("chunk failed verification"), state)
+        assertTrue(cache.entries.isEmpty())
+    }
 }

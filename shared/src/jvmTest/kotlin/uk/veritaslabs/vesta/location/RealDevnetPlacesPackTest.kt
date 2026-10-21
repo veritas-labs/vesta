@@ -26,7 +26,7 @@ class RealDevnetPlacesPackTest {
         val cacheDir = kotlin.io.path.createTempDirectory("places-cache").toFile()
         try {
             val source = AutonomiPlacesPackSource(
-                StandaloneAutonomiClient(port), PlacesPackConfig(null, rootAddress), DiskChunkCache(cacheDir), JvmInflater(),
+                StandaloneAutonomiClient(port), PlacesPackConfig(null, rootAddress), DiskChunkCache(cacheDir), JvmInflater(), Blake3ChunkVerifier,
             )
 
             // Act
