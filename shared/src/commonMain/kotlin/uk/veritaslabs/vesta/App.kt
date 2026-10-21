@@ -75,6 +75,8 @@ import uk.veritaslabs.vesta.location.RegistryHomeLocationRepository
 import uk.veritaslabs.vesta.location.UnavailableHomeLocationRepository
 import uk.veritaslabs.vesta.location.UnavailableLocalityPackSource
 import uk.veritaslabs.vesta.location.LocalityPackSource
+import uk.veritaslabs.vesta.location.PlacesPackSource
+import uk.veritaslabs.vesta.location.UnavailablePlacesPackSource
 import uk.veritaslabs.vesta.location.deviceRegionCode
 import uk.veritaslabs.vesta.ui.flows.MarketplaceAreaFlow
 import uk.veritaslabs.vesta.ui.screens.MarketplaceAreaViewModel
@@ -219,9 +221,10 @@ fun App(
     settings: AppSettingsRepository? = null,
     x0xConnectivity: @Composable () -> X0xConnectivity = { rememberX0xConnectivity() },
     localityPackSource: LocalityPackSource = UnavailableLocalityPackSource,
+    placesPackSource: PlacesPackSource = UnavailablePlacesPackSource,
     homeLocationRepository: HomeLocationRepository = UnavailableHomeLocationRepository,
     homeContent: @Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit = { id, name, onEditHome ->
-        HomeContent(id, name, onEditHome = onEditHome, locationRepository = homeLocationRepository, localityPackSource = localityPackSource)
+        HomeContent(id, name, onEditHome = onEditHome, locationRepository = homeLocationRepository, localityPackSource = localityPackSource, placesPackSource = placesPackSource)
     },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
@@ -491,6 +494,7 @@ internal fun HomeContent(
     onOpened: () -> Unit = {},
     locationRepository: HomeLocationRepository = UnavailableHomeLocationRepository,
     localityPackSource: LocalityPackSource = UnavailableLocalityPackSource,
+    placesPackSource: PlacesPackSource = UnavailablePlacesPackSource,
 ) {
     val scope = rememberCoroutineScope()
     var leaveBlocked by remember { mutableStateOf(false) }
@@ -1008,6 +1012,7 @@ fun VestaApp(
     fileImporter: FileImporter? = null,
     ownDeviceCanBeHub: Boolean = false,
     localityPackSource: LocalityPackSource = UnavailableLocalityPackSource,
+    placesPackSource: PlacesPackSource = UnavailablePlacesPackSource,
 ) {
     val opened = remember { openKitsDatabase(DatabaseDriverFactory(VestaDatabaseLocation), VestaKitConfig.appName) }
     val database = when (opened) {
@@ -1080,6 +1085,7 @@ fun VestaApp(
             profiles = profiles,
             settings = settings,
             localityPackSource = localityPackSource,
+            placesPackSource = placesPackSource,
             homeLocationRepository = homeLocationRepository,
             homeContent = homeContent ?: { homeId, homeName, onEditHome ->
                 val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
@@ -1115,6 +1121,7 @@ fun VestaApp(
                     onOpened = { deviceDataSync?.syncNow() },
                     locationRepository = homeLocationRepository,
                     localityPackSource = localityPackSource,
+                    placesPackSource = placesPackSource,
                 )
             },
         )

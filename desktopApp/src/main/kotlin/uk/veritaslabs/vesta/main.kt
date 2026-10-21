@@ -18,6 +18,7 @@ import uk.veritaslabs.vesta.automerge.VestaHomeSeeding
 import uk.veritaslabs.kits.sync.DeviceDataSyncService
 import uk.veritaslabs.vesta.autonomi.createAutonomiClient
 import uk.veritaslabs.vesta.location.createLocalityPackSource
+import uk.veritaslabs.vesta.location.createPlacesPackSource
 import uk.veritaslabs.vesta.recipes.HttpRecipeImporter
 
 /**
@@ -50,6 +51,7 @@ private fun vestaApplication() = application {
         val agentCommands = remember { AgentCommandService() }
         // The place names for the Marketplace area picker (ADR-039), fetched from Autonomi and kept under the app's data directory.
         val localityPackSource = remember { createLocalityPackSource(createAutonomiClient(), File(System.getProperty("user.home"), ".vesta/locality-cache")) }
+        val placesPackSource = remember { createPlacesPackSource(createAutonomiClient(), File(System.getProperty("user.home"), ".vesta/places-cache")) }
         VestaApp(
             openPantry = { database, homeId -> agentCommands.pantry(database, homeId) },
             openShoppingList = { database, homeId -> agentCommands.shoppingList(database, homeId) },
@@ -86,6 +88,7 @@ private fun vestaApplication() = application {
             fileImporter = remember { DesktopFileImporter(window) },
             ownDeviceCanBeHub = true,
             localityPackSource = localityPackSource,
+            placesPackSource = placesPackSource,
         )
     }
 }
