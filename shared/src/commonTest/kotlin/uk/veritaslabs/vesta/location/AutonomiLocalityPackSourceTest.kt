@@ -187,6 +187,19 @@ class AutonomiLocalityPackSourceTest {
     }
 
     @Test
+    fun aPackThatDoesNotDecodeLeavesNothingInTheCache() = runTest {
+        // Arrange
+        val chunks = goodChunks().apply { put(namesAddress, TinyPack.namesChunk(magic = "XXXX")) }
+        val cache = MemoryCache()
+
+        // Act
+        source(FakeClient(chunks), cache).load()
+
+        // Assert
+        assertTrue(cache.entries.isEmpty())
+    }
+
+    @Test
     fun aRootThatDoesNotDecodeIsUnreachable() = runTest {
         // Arrange
         val chunks = goodChunks().apply { put(rootAddress, byteArrayOf(1, 2, 3)) }

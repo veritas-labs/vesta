@@ -55,11 +55,15 @@ class AutonomiLocalityPackSource(
         if (config.pointer == null && config.root == null) return LocalityPackState.Unconfigured
         if (!client.supportsChunks && !isCachedLocally()) return LocalityPackState.NotAvailableOnDevice
         return try {
+            // Fetched chunks are cached only once the whole pack has decoded, so a bad chunk is never kept.
+            val fetched = mutableMapOf<String, ByteArray>()
             val rootAddress = resolveRootAddress()
-            val root = LocalityRoot.parse(chunk(rootAddress))
-            val names = chunk(root.namesAddress)
-            val adjacency = chunk(root.adjacencyAddress)
-            LocalityPackState.Ready(root, LocalityPack.parse(names, adjacency, inflater))
+            val root = LocalityRoot.parse(chunk(rootAddress, fetched))
+            val names = chunk(root.namesAddress, fetched)
+            val adjacency = chunk(root.adjacencyAddress, fetched)
+            val pack = LocalityPack.parse(names, adjacency, inflater)
+            fetched.forEach { (address, bytes) -> cache.put(address, bytes) }
+            LocalityPackState.Ready(root, pack)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Failure) {
@@ -79,11 +83,11 @@ class AutonomiLocalityPackSource(
         return config.root ?: throw Failure("locality pointer could not be resolved")
     }
 
-    private suspend fun chunk(address: String): ByteArray {
+    private suspend fun chunk(address: String, fetched: MutableMap<String, ByteArray>): ByteArray {
         cache.get(address)?.takeIf { verifier.matches(address, it) }?.let { return it }
         val bytes = client.chunkGet(address) ?: throw Failure("chunk $address could not be fetched")
         if (!verifier.matches(address, bytes)) throw Failure("chunk failed verification")
-        cache.put(address, bytes)
+        fetched[address] = bytes
         return bytes
     }
 }
