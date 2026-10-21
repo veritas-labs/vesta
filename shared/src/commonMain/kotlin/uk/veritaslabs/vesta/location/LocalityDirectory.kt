@@ -86,13 +86,14 @@ class LocalityDirectory(private val pack: LocalityPack) {
     fun distanceMetres(a: String, b: String): Double? {
         val from = centroid(a) ?: return null
         val to = centroid(b) ?: return null
-        val lat1 = from.lat / MICRO * RADIANS
-        val lat2 = to.lat / MICRO * RADIANS
-        val dLat = lat2 - lat1
-        val dLon = (to.lon - from.lon) / MICRO * RADIANS
-        val h = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2)
-        return 2 * EARTH_RADIUS_METRES * atan2(sqrt(h), sqrt(1 - h))
+        return distanceMetres(from, to.lat / MICRO, to.lon / MICRO)
     }
+
+    /** The names-table row of [id], the index the places directory uses; null when the id is not in the pack. */
+    fun rowOf(id: String): Int? = rowIndex(id)
+
+    /** The id at names-table [row]. */
+    fun idOf(row: Int): String = pack.uuid(row)
 
     private fun rowIndex(id: String): Int? = rowById[id.lowercase()]
 
@@ -117,5 +118,15 @@ class LocalityDirectory(private val pack: LocalityPack) {
         private const val MICRO = 1_000_000.0
         private const val RADIANS = 3.141592653589793 / 180.0
         private const val EARTH_RADIUS_METRES = 6_371_000.0
+
+        /** Great-circle distance in metres from [from] to a point given in degrees. */
+        internal fun distanceMetres(from: Microdegrees, latitude: Double, longitude: Double): Double {
+            val lat1 = from.lat / MICRO * RADIANS
+            val lat2 = latitude * RADIANS
+            val dLat = lat2 - lat1
+            val dLon = (longitude - from.lon / MICRO) * RADIANS
+            val h = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2)
+            return 2 * EARTH_RADIUS_METRES * atan2(sqrt(h), sqrt(1 - h))
+        }
     }
 }
