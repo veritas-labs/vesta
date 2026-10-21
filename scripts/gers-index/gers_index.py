@@ -91,21 +91,30 @@ def decode_shard(blob):
         s = prev+g; starts.append(s); ends.append(s+l); divs.append(d); prev = s+l
     return uuids, starts, ends, divs
 
+NAMES_MAGIC = b"VGN2"
 def encode_names(rows, subtypes):
-    """rows: [(uuid, subtype, parent_row_index_or_-1, name)] in table order. zlib( varint nSub, nSub*(NUL-terminated name),
-    varint n, n*16 B uuid, n subtype bytes, n*varint (parent index + 1, 0 = none), n*(NUL-terminated name) )."""
+    """rows: [(uuid, subtype, parent_row_index_or_-1, name, lat_e6, lon_e6)] in table order (lat/lon: centroid in integer
+    millionths of a degree, 0,0 for ancestor rows that have no polygon). Format VGN2:
+    zlib( b"VGN2", varint nSub, nSub*(NUL-terminated name), varint n, n*16 B uuid, n subtype bytes,
+          n*varint (parent index + 1, 0 = none), n*(NUL-terminated name),
+          n*varint zigzag(dLat), n*varint zigzag(dLon) ), each delta against the previous row (first row against 0)."""
     sub = {s: i for i, s in enumerate(subtypes)}
-    b = bytearray(varint(len(subtypes)))
+    b = bytearray(NAMES_MAGIC) + varint(len(subtypes))
     for s in subtypes: b += s.encode() + b"\0"
     b += varint(len(rows))
     b += b"".join(bytes.fromhex(r[0].replace("-", "")) for r in rows)
     b += bytes(sub[r[1]] for r in rows)
     b += b"".join(varint(r[2]+1) for r in rows)
     b += b"".join((r[3] or "").encode() + b"\0" for r in rows)
+    for k in (4, 5):
+        prev = 0
+        for r in rows: b += varint(zigzag(r[k]-prev)); prev = r[k]
     return zlib.compress(bytes(b), 9)
 
 def decode_names(blob):
-    b = zlib.decompress(blob); ns, i = read_varint(b, 0); subtypes = []
+    b = zlib.decompress(blob)
+    if b[:4] != NAMES_MAGIC: raise ValueError(f"unsupported names table: magic {bytes(b[:4])!r}, expected {NAMES_MAGIC!r} (rebuild with this version)")
+    ns, i = read_varint(b, 4); subtypes = []
     for _ in range(ns):
         j = b.index(0, i); subtypes.append(b[i:j].decode()); i = j+1
     n, i = read_varint(b, i)
@@ -116,7 +125,12 @@ def decode_names(blob):
     names = []
     for _ in range(n):
         j = b.index(0, i); names.append(b[i:j].decode()); i = j+1
-    return ids, st, par, names
+    cent = []
+    for _ in range(2):
+        col, prev = [], 0
+        for _ in range(n): z, i = read_varint(b, i); prev += unzigzag(z); col.append(prev)
+        cent.append(col)
+    return ids, st, par, names, list(zip(*cent))   # centroids: [(lat_e6, lon_e6)] per row
 
 def encode_adjacency(adj, n):
     """zlib( n * (varint degree, degree * varint zigzag(index - previous index)) ), row i's first delta is against i."""
@@ -182,16 +196,19 @@ def cmd_adjacency(a):
     print("touching pairs", c.sql(f"select count(*) from e where ov <= {OVERLAP_NESTED}").fetchone()[0], "nested pairs dropped", c.sql(f"select count(*) from e where ov > {OVERLAP_NESTED}").fetchone()[0], f"{time.time()-t:.0f}s")
 
 def table_rows(c, work, cc):
-    """Names-table rows: every locality with a polygon, spatially ordered (H3 res 6 of the centroid), then their ancestors."""
+    """Names-table rows: every locality with a polygon, spatially ordered (H3 res 6 of the centroid), then their ancestors.
+    Each row ends with the centroid (lat, lon) in millionths of a degree; ancestors have no polygon here, so they get 0, 0."""
     rows = {r[0]: r for r in c.sql(f"select id, subtype, parent_division_id, name from '{work}/{cc}_div.parquet'").fetchall()}
-    loc = [r[0] for r in c.sql(f"""select division_id from '{work}/{cc}_area.parquet'
-        order by h3_latlng_to_cell(ST_Y(ST_Centroid(ST_GeomFromText(wkt))), ST_X(ST_Centroid(ST_GeomFromText(wkt))), 6), division_id""").fetchall()]
+    cen = {}; loc = []
+    for u, la, lo in c.sql(f"""select division_id, ST_Y(ST_Centroid(ST_GeomFromText(wkt))) la, ST_X(ST_Centroid(ST_GeomFromText(wkt))) lo
+        from '{work}/{cc}_area.parquet' order by h3_latlng_to_cell(la, lo, 6), division_id""").fetchall():
+        loc.append(u); cen[u] = (round(la*1e6), round(lo*1e6))
     keep, seen = [], set(loc)
     for u in loc:
         x = rows[u][2]
         while x and x in rows and x not in seen: seen.add(x); keep.append(x); x = rows[x][2]
     order = loc + sorted(keep); ix = {u: i for i, u in enumerate(order)}
-    return [(u, rows[u][1], ix.get(rows[u][2], -1), rows[u][3]) for u in order], ix
+    return [(u, rows[u][1], ix.get(rows[u][2], -1), rows[u][3], *cen.get(u, (0, 0))) for u in order], ix
 
 def cmd_build(a):
     c = connect(a.work); cc = a.country; out = f"{a.work}/out"; os.makedirs(out, exist_ok=True)
@@ -242,7 +259,7 @@ class Client:
 def cmd_verify(a):
     c = connect(a.work); cc = a.country; pub = json.load(open(f"{a.work}/out/published.json"))
     cl = Client(pub["pointer"], f"{a.work}/dl"); cl.load_root(); assert cl.root["shards"] and cl.root["country"] == cc
-    ids, st, par, names = decode_names(cl._get(cl.root["names"], "names")); adj = decode_adjacency(cl._get(cl.root["adjacency"], "adj"), len(ids))
+    ids, st, par, names, cent = decode_names(cl._get(cl.root["names"], "names")); adj = decode_adjacency(cl._get(cl.root["adjacency"], "adj"), len(ids))
     print(f"root ok: release {cl.root['release']}, {len(cl.root['shards'])} shards; names {len(ids)} rows; adjacency {sum(map(len, adj))//2} edges")
     pts = c.sql(f"select lat, lon from '{a.points}' order by hash(id) limit {a.n}").fetchall() if a.points else []
     c.sql(f"CREATE OR REPLACE TEMP TABLE aa AS SELECT division_id id, ST_GeomFromText(wkt) g, ST_Area(ST_GeomFromText(wkt)) ar FROM '{a.work}/{cc}_area.parquet'")
@@ -254,12 +271,18 @@ def cmd_verify(a):
         truth = c.sql(f"select id from aa where ST_Contains(g, ST_Point({lon},{lat})) order by ar limit 1").fetchone(); truth = truth[0] if truth else None
         n += 1; ok += (got == truth); none += (got is None)
     if n: print(f"{n} points: exact vs smallest containing polygon {ok/n:.3f}; no answer {none/n:.3f}; cold lookup {first[0]} calls, {first[1]} B (after the names/adjacency fetch), {first[2]:.2f}s; total {cl.calls} calls, {cl.bytes/1e3:.0f} KB, {len(cl.shards)} shards")
+    bad = 0; worst = 0; m = 0   # centroids: decoded vs ST_Centroid of the polygon, within 1 microdegree
+    for u, la, lo in c.sql(f"select division_id, ST_Y(ST_Centroid(g)), ST_X(ST_Centroid(g)) from (select division_id, ST_GeomFromText(wkt) g from '{a.work}/{cc}_area.parquet') order by hash(division_id) limit {a.n}").fetchall():
+        k = ids.index(u.replace("-", "")); m += 1; err = max(abs(cent[k][0]-la*1e6), abs(cent[k][1]-lo*1e6)); worst = max(worst, err); bad += err > 1
+    assert bad == 0 and m, f"{bad} of {m} centroids differ by more than 1 microdegree"
+    anc = [k for k, x in enumerate(st) if x != "locality"]
+    print(f"centroids ok: {m} sampled localities within 1 microdegree (worst {worst:.2f}); {sum(cent[k] == (0, 0) for k in anc)} of {len(anc)} ancestor rows are 0,0")
     row = next(k for k, x in enumerate(st) if x == 'locality')
     def path(i):
         out = []
         while i >= 0: out.append(f"{names[i]} ({st[i]})"); i = par[i]
         return " > ".join(out)
-    print("sample:", path(row), "| neighbours:", [names[j] for j in adj[row]][:6])
+    print("sample:", path(row), "| centroid:", cent[row], "| neighbours:", [names[j] for j in adj[row]][:6])
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

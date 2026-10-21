@@ -9,7 +9,7 @@ written to be re-run from scratch. Nothing here touches mainnet or a real wallet
 | Chunk | Contents |
 |---|---|
 | shards (about 13 for GB, up to ~190 KB each) | res-9 cell runs to a locality id, split by res-2 H3 prefix |
-| names table (~0.46 MB GB) | every locality with a polygon, spatially ordered, plus its county/region/country ancestors: id, subtype, parent row, name |
+| names table (~0.58 MB GB, format `VGN2`) | every locality with a polygon, spatially ordered, plus its county/region/country ancestors: id, subtype, parent row, name, centroid lat/lon (integer millionths of a degree, delta-coded zigzag varints; ancestors have no polygon here so they are 0,0). The blob starts (after zlib) with the ASCII magic `VGN2`; `decode_names` rejects anything else. The root chunk is unchanged (`VGI2`) |
 | adjacency (~0.12 MB GB) | touching localities per names-table row (nested localities excluded) |
 | root (~0.5 KB) | `VGI2` magic, shard resolution, release, country, addresses of names + adjacency + each shard |
 | **pointer** | owner-signed, mutable; points at the current root. The pointer *address* is what an app would ship with |
@@ -65,12 +65,20 @@ adjacency steps need no devnet, so they can run before it is started. Outputs li
 (default `~/Development/scratch/gers-index`). `out/published.json` records the root, names, adjacency and pointer addresses;
 `index.key` is the pointer key (a throwaway devnet key; keep it so `build` can *update* the same pointer).
 
-## Last run (2026-10-21, devnet, release 2026-09-23.1, GB)
+## Last run (2026-10-21, devnet, release 2026-09-23.1, GB, names format VGN2)
 
-extract 34 s, cells 9 s, adjacency 22 s. 1.69M cells, 21,429 localities, 12 shards (0.90 MB), names 22,093 rows (466 KB),
-adjacency 61,355 edges (119 KB); 15 chunks, 1.49 MB. Pointer `15e453fd3ea57732da45a5f108b34773865be44b5d349f7f111451b19bc1772d`
-(valid only on the devnet instance that was running; a restarted devnet needs `build` again). Of places inside a locality
-polygon, 95.9% resolved exactly.
+Same extract/cells/adjacency data as the first run (1.69M cells, 21,429 localities, 12 shards 0.90 MB), rebuilt with centroids:
+names 22,093 rows (579 KB, was 466 KB), adjacency 61,355 edges (119 KB); 1.60 MB in total. `verify` (400 points): centroids of a
+400-locality sample match `ST_Centroid` of the polygon within 1 microdegree (worst 0.50); all 162 ancestor rows are 0,0.
+
+| | address |
+|---|---|
+| root (`VGI2`) | `926c6fc377dd9cddede73afcdd6e1622a30aef30561860c251dc3fe8950eff3f` |
+| names (`VGN2`) | `91dd63b16a00b2a0d540978f3f0b1e012c2fc7db9c7996e80af5fd8c77da0728` |
+| adjacency | `bbb50b6223990892fd84a9f228b4927912181f8af9ddbdbd1363d15a6173728d` |
+| pointer (now at the new root) | `15e453fd3ea57732da45a5f108b34773865be44b5d349f7f111451b19bc1772d` |
+
+The pre-VGN2 names chunk is superseded. Addresses are valid only on the devnet instance that was running.
 
 ## Rebuilding after a devnet restart
 
