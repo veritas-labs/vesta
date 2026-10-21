@@ -999,6 +999,7 @@
     <string name="area_disclosure_who">To search by place, Vesta fetches a small data file of this country's localities from the Autonomi network. The Autonomi nodes that serve the data, and anyone watching them, can see your device's IP address.</string>
     <string name="area_disclosure_what">The request names the country's data, not your locality, so nobody learns where you are from it.</string>
     <string name="area_disclosure_size">The download is about 0.6 MB and is kept on this device.</string>
+    <string name="area_disclosure_businesses">If you look at businesses, Vesta also fetches business data from the same network. The nodes serving it can tell roughly which areas you chose from the data you ask for. That data is public and stored permanently, but your choice is not stored there.</string>
     <string name="area_disclosure_private">Your area is stored on your devices only.</string>
     <string name="area_disclosure_continue">Continue</string>
     <string name="area_disclosure_not_now">Not now</string>
@@ -1044,7 +1045,46 @@
     <string name="area_saved_searching_alone">Searching in %1$s</string>
     <string name="area_saved_change">Change</string>
     <string name="area_saved_forget">Forget</string>
-    <string name="area_saved_empty_state">Nearby merchants will appear here once business data is available.</string>
+    <string name="area_places_see">See businesses</string>
+    <string name="area_places_unconfigured">Business data is not set up on this device.</string>
+    <string name="area_places_not_on_device">Business data is not available on this device yet.</string>
+    <string name="area_places_unreachable">Business data could not be reached. Try again later.</string>
+    <string name="area_places_title">Businesses</string>
+    <plurals name="area_places_summary_total">
+        <item quantity="one">%1$s business in your area</item>
+        <item quantity="other">%1$s businesses in your area</item>
+    </plurals>
+    <plurals name="area_places_summary_inside">
+        <item quantity="one">%1$s inside your places, about %2$s MB</item>
+        <item quantity="other">%1$s inside your places, about %2$s MB</item>
+    </plurals>
+    <plurals name="area_places_summary_nearby">
+        <item quantity="one">%1$s just outside them</item>
+        <item quantity="other">%1$s just outside them</item>
+    </plurals>
+    <string name="area_places_summary_with_nearby">Both together: about %1$s MB</string>
+    <string name="area_places_toggle_nearby">Include businesses just outside these places</string>
+    <string name="area_places_summary_none">No business data for your area.</string>
+    <string name="area_places_download">Download</string>
+    <string name="area_places_confirm_title">Download business data?</string>
+    <string name="area_places_confirm_body">This will download about %1$s MB. Download?</string>
+    <string name="area_places_not_now">Not now</string>
+    <string name="area_places_loading">Loading businesses</string>
+    <string name="area_places_progress">%1$d of %2$d parts, %3$s MB so far</string>
+    <string name="area_places_cancel">Cancel</string>
+    <string name="area_places_try_again">Try again</string>
+    <string name="area_places_unreachable_title">Couldn't load the business data</string>
+    <string name="area_places_partial">Some data could not be loaded.</string>
+    <plurals name="area_places_header">
+        <item quantity="one">%1$s business</item>
+        <item quantity="other">%1$s businesses</item>
+    </plurals>
+    <string name="area_places_search_label">Search businesses</string>
+    <string name="area_places_group_all">All</string>
+    <string name="area_places_group_other">Other</string>
+    <string name="area_places_row_detail">%1$s, %2$s away</string>
+    <string name="area_places_show_more">Show more</string>
+    <string name="area_places_no_match">No business matches</string>
     <string name="area_saved_forget_title">Forget your area?</string>
     <string name="area_saved_forget_body">Vesta will stop using it to find places near you. You can choose it again at any time.</string>
     <string name="area_rechoose_title">Your area needs choosing again</string>

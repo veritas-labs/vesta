@@ -23,7 +23,10 @@ import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.area_saved_change
-import vesta.shared.generated.resources.area_saved_empty_state
+import vesta.shared.generated.resources.area_places_not_on_device
+import vesta.shared.generated.resources.area_places_see
+import vesta.shared.generated.resources.area_places_unconfigured
+import vesta.shared.generated.resources.area_places_unreachable
 import vesta.shared.generated.resources.area_saved_forget
 import vesta.shared.generated.resources.area_saved_forget_body
 import vesta.shared.generated.resources.area_saved_forget_title
@@ -43,6 +46,7 @@ fun AreaSavedScreen(
     modifier: Modifier = Modifier,
     onChange: () -> Unit = {},
     onForget: () -> Unit = {},
+    onSeeBusinesses: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     var confirmingForget by remember { mutableStateOf(false) }
@@ -68,12 +72,26 @@ fun AreaSavedScreen(
                     }
                 }
             }
-            Text(
-                stringResource(Res.string.area_saved_empty_state),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag(MarketplaceAreaTestTags.SavedEmptyState),
-            )
+            if (summary.businesses == AreaBusinessesAvailability.Available) {
+                SecondaryButton(
+                    stringResource(Res.string.area_places_see),
+                    Modifier.testTag(MarketplaceAreaTestTags.SavedSeeBusinesses),
+                    onClick = onSeeBusinesses,
+                )
+            } else {
+                Text(
+                    stringResource(
+                        when (summary.businesses) {
+                            AreaBusinessesAvailability.Unconfigured -> Res.string.area_places_unconfigured
+                            AreaBusinessesAvailability.Unreachable -> Res.string.area_places_unreachable
+                            else -> Res.string.area_places_not_on_device
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(MarketplaceAreaTestTags.SavedEmptyState),
+                )
+            }
             PrimaryButton(
                 stringResource(Res.string.area_saved_change),
                 Modifier.testTag(MarketplaceAreaTestTags.SavedChange),
@@ -100,7 +118,7 @@ fun AreaSavedScreen(
     }
 }
 
-private val PreviewSummary = AreaSummary("Newport", "Newport, Isle of Wight, England", nearbyCount = 3)
+private val PreviewSummary = AreaSummary("Newport", "Newport, Isle of Wight, England", nearbyCount = 3, businesses = AreaBusinessesAvailability.Available)
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable

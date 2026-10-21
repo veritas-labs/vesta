@@ -12,6 +12,7 @@ import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.area_disclosure_businesses
 import vesta.shared.generated.resources.area_disclosure_continue
 import vesta.shared.generated.resources.area_disclosure_not_now
 import vesta.shared.generated.resources.area_disclosure_private
@@ -37,6 +38,7 @@ fun AreaDisclosureScreen(
             Text(stringResource(Res.string.area_disclosure_who), style = MaterialTheme.typography.bodyLarge)
             Text(stringResource(Res.string.area_disclosure_what), style = MaterialTheme.typography.bodyLarge)
             Text(stringResource(Res.string.area_disclosure_size), style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(Res.string.area_disclosure_businesses), style = MaterialTheme.typography.bodyLarge)
             Text(
                 stringResource(Res.string.area_disclosure_private),
                 style = MaterialTheme.typography.bodyLarge,

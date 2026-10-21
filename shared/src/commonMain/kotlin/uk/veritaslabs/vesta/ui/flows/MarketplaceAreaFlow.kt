@@ -14,6 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.screens.AreaBusinessesListScreen
+import uk.veritaslabs.vesta.ui.screens.AreaBusinessesLoadingScreen
+import uk.veritaslabs.vesta.ui.screens.AreaBusinessesSummaryScreen
+import uk.veritaslabs.vesta.ui.screens.AreaBusinessesUnreachableScreen
 import uk.veritaslabs.vesta.ui.screens.AreaCountryScreen
 import uk.veritaslabs.vesta.ui.screens.AreaDisclosureScreen
 import uk.veritaslabs.vesta.ui.screens.AreaHomeLocalityScreen
@@ -92,8 +96,35 @@ fun MarketplaceAreaFlow(viewModel: MarketplaceAreaViewModel, onBack: () -> Unit,
             )
         }
         AreaStep.Saved -> state.saved?.let { summary ->
-            AreaSavedScreen(summary, modifier, onChange = viewModel::edit, onForget = viewModel::forget, onBack = goBack)
+            AreaSavedScreen(
+                summary,
+                modifier,
+                onChange = viewModel::edit,
+                onForget = viewModel::forget,
+                onSeeBusinesses = viewModel::seeBusinesses,
+                onBack = goBack,
+            )
         }
+        AreaStep.BusinessesSummary -> AreaBusinessesSummaryScreen(
+            state.businesses,
+            modifier,
+            onToggleNearby = viewModel::setIncludeNearby,
+            onDownload = viewModel::downloadBusinesses,
+            onConfirm = viewModel::confirmBusinessesDownload,
+            onNotNow = viewModel::declineBusinessesDownload,
+            onBack = goBack,
+        )
+        AreaStep.BusinessesLoading -> AreaBusinessesLoadingScreen(state.businesses, modifier, onCancel = viewModel::cancelBusinessesFetch, onBack = goBack)
+        AreaStep.BusinessesList -> AreaBusinessesListScreen(
+            state.businesses,
+            modifier,
+            onQueryChange = viewModel::setBusinessQuery,
+            onGroup = viewModel::setBusinessGroup,
+            onShowMore = viewModel::showMoreBusinesses,
+            onRetry = viewModel::retryBusinesses,
+            onBack = goBack,
+        )
+        AreaStep.BusinessesUnreachable -> AreaBusinessesUnreachableScreen(modifier, onTryAgain = viewModel::retryBusinesses, onBack = goBack)
         AreaStep.NeedsRechoose -> AreaNeedsRechooseScreen(modifier, onChoose = viewModel::rechoose, onBack = goBack)
     }
 }

@@ -7,13 +7,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import uk.veritaslabs.vesta.location.AreaPlan
+import uk.veritaslabs.vesta.location.BusinessGroupCount
+import uk.veritaslabs.vesta.location.BusinessRow
 import uk.veritaslabs.vesta.location.HomeLocation
 import uk.veritaslabs.vesta.location.HomeLocationRepository
 import uk.veritaslabs.vesta.location.LocalityDirectory
 import uk.veritaslabs.vesta.location.LocalityPackSource
 import uk.veritaslabs.vesta.location.LocalityPackState
 import uk.veritaslabs.vesta.location.LocalityRoot
+import uk.veritaslabs.vesta.location.NearbyBusinesses
 import uk.veritaslabs.vesta.location.NearbyPlaces
+import uk.veritaslabs.vesta.location.PlaceRecord
+import uk.veritaslabs.vesta.location.PlacesPackSource
+import uk.veritaslabs.vesta.location.PlacesPackState
+import uk.veritaslabs.vesta.location.UnavailablePlacesPackSource
 import uk.veritaslabs.vesta.location.NearbyRelation
 import uk.veritaslabs.vesta.location.foldForSearch
 
@@ -48,7 +57,22 @@ sealed interface AreaStep {
 
     /** The stored home locality is not in the pack (a different release); the user must choose again. */
     data object NeedsRechoose : AreaStep
+
+    /** What the area holds and what fetching it costs, with the choice to include places just outside; see [MarketplaceAreaUiState.businesses]. */
+    data object BusinessesSummary : AreaStep
+
+    /** Fetching the business data, with progress and Cancel. */
+    data object BusinessesLoading : AreaStep
+
+    /** The businesses fetched, searchable; [AreaBusinessesState.partial] says some data is missing. */
+    data object BusinessesList : AreaStep
+
+    /** Nothing could be loaded; offers Try again. */
+    data object BusinessesUnreachable : AreaStep
 }
+
+/** Whether the Saved card can offer "See businesses": from [PlacesPackSource.preflight], so it never touches the network. */
+enum class AreaBusinessesAvailability { Available, Unconfigured, NotAvailableOnDevice, Unreachable }
 
 data class AreaCountry(val code: String, val name: String)
 
@@ -68,7 +92,62 @@ data class AreaNearbyRow(
  * What the Saved card shows. [homeName] and [chainText] are null while the pack is not loaded (it is not downloaded just
  * to display a card), so the screen then says "your area". [nearbyCount] is the ticked places other than the home.
  */
-data class AreaSummary(val homeName: String?, val chainText: String?, val nearbyCount: Int)
+data class AreaSummary(
+    val homeName: String?,
+    val chainText: String?,
+    val nearbyCount: Int,
+    val businesses: AreaBusinessesAvailability = AreaBusinessesAvailability.NotAvailableOnDevice,
+)
+
+/** The Businesses step (ADR-039 decisions 6 to 9). Counts and sizes come from the places directory alone. */
+data class AreaBusinessesState(
+    val inside: Int = 0,
+    val nearby: Int = 0,
+    val bytesInsideOnly: Long = 0,
+    val bytesWithNearby: Long = 0,
+    /** Whether places just outside the chosen localities are fetched too. */
+    val includeNearby: Boolean = false,
+    /** True while "This will download about X MB. Download?" is showing. */
+    val confirming: Boolean = false,
+    val chunksDone: Int = 0,
+    val chunksTotal: Int = 0,
+    val bytesFetched: Long = 0,
+    /** The visible page of the list. */
+    val items: List<BusinessRow> = emptyList(),
+    /** Businesses matching the query and group, before paging. */
+    val matching: Int = 0,
+    val hasMore: Boolean = false,
+    /** Chips, most places first, the unknown group last. */
+    val groups: List<BusinessGroupCount> = emptyList(),
+    /** Everything fetched, before the query and group. */
+    val loaded: Int = 0,
+    val query: String = "",
+    /** A group key, or null for All. */
+    val group: String? = null,
+    /** Some chunks could not be fetched: the list is what loaded. */
+    val partial: Boolean = false,
+) {
+    val chosenBytes: Long get() = if (includeNearby) bytesWithNearby else bytesInsideOnly
+    val chosenCount: Int get() = if (includeNearby) inside + nearby else inside
+}
+
+/** Largest download that starts without asking. */
+const val BusinessesAutoDownloadBytes = 1L * 1024 * 1024
+
+/** "0.25" under a megabyte, one decimal place from there up, never below "0.01". */
+fun megabytesText(bytes: Long): String {
+    val mb = bytes / (1024.0 * 1024.0)
+    return if (mb < 1.0) {
+        val hundredths = maxOf(1, kotlin.math.round(mb * 100).toInt())
+        "${hundredths / 100}.${(hundredths % 100).toString().padStart(2, '0')}"
+    } else {
+        val tenths = kotlin.math.round(mb * 10).toInt()
+        "${tenths / 10}.${tenths % 10}"
+    }
+}
+
+/** 74050 -> "74,050". */
+fun groupedNumber(n: Int): String = n.toString().reversed().chunked(3).joinToString(",").reversed()
 
 data class MarketplaceAreaUiState(
     val step: AreaStep = AreaStep.Loading,
@@ -89,6 +168,7 @@ data class MarketplaceAreaUiState(
     /** Ticked places including the home locality. */
     val tickedCount: Int = 0,
     val saved: AreaSummary? = null,
+    val businesses: AreaBusinessesState = AreaBusinessesState(),
     /** True while confirm() is writing. */
     val isSaving: Boolean = false,
 )
@@ -113,6 +193,7 @@ class MarketplaceAreaViewModel(
     private val homeId: String,
     private val source: LocalityPackSource,
     private val repository: HomeLocationRepository,
+    private val placesSource: PlacesPackSource = UnavailablePlacesPackSource,
     private val regionCode: () -> String?,
 ) : ViewModel() {
 
@@ -130,6 +211,17 @@ class MarketplaceAreaViewModel(
     /** The user tapped Edit with the pack not cached: after the disclosure, resume editing instead of the country step. */
     private var resumeEdit = false
 
+    /** The user tapped See businesses before the data was cached: after the disclosure, open the Businesses step. */
+    private var resumeBusinesses = false
+    private var businessesAvailability = AreaBusinessesAvailability.NotAvailableOnDevice
+
+    // Businesses step working state; dropped by forget() and when leaving the step.
+    private var placesReady: PlacesPackState.Ready? = null
+    private var plan: AreaPlan? = null
+    private var fetched: Map<Int, List<PlaceRecord>> = emptyMap()
+    private var fetchJob: Job? = null
+    private var businessesShown = NearbyBusinesses.PAGE_SIZE
+
     /** Reads the stored location and decides the first step. */
     fun start() {
         viewModelScope.launch { begin() }
@@ -139,6 +231,7 @@ class MarketplaceAreaViewModel(
         state.value = MarketplaceAreaUiState()
         val location = repository.read(homeId)
         stored = location
+        businessesAvailability = availability()
         if (location == null) return beginFresh()
         // Only an already-cached pack is read here, so a saved card never causes a request.
         if (source.isCachedLocally() && load() && directory?.row(location.homeLocality) == null) {
@@ -162,7 +255,10 @@ class MarketplaceAreaViewModel(
     fun agreeToDownload() {
         viewModelScope.launch {
             if (!load()) return@launch
-            if (resumeEdit) {
+            if (resumeBusinesses) {
+                resumeBusinesses = false
+                enterBusinesses()
+            } else if (resumeEdit) {
                 resumeEdit = false
                 enterEdit()
             } else {
@@ -174,6 +270,7 @@ class MarketplaceAreaViewModel(
     /** "Not now": nothing is loaded or requested, and the step becomes [AreaStep.Declined]. */
     fun declineDownload() {
         resumeEdit = false
+        resumeBusinesses = false
         state.update { it.copy(step = AreaStep.Declined) }
     }
 
@@ -211,8 +308,10 @@ class MarketplaceAreaViewModel(
             homeName = row?.name,
             chainText = row?.let { dir.chainText(it.id) },
             nearbyCount = (location.area - location.homeLocality).size,
+            businesses = businessesAvailability,
         )
-        state.update { it.copy(step = AreaStep.Saved, saved = summary) }
+        clearBusinesses()
+        state.update { it.copy(step = AreaStep.Saved, saved = summary, businesses = AreaBusinessesState()) }
     }
 
     private fun enterCountry() {
@@ -297,6 +396,7 @@ class MarketplaceAreaViewModel(
             state.update { it.copy(isSaving = true) }
             repository.setHome(homeId, country, home, release)
             repository.setArea(homeId, area)
+            businessesAvailability = availability()
             val location = HomeLocation(country, home, release, area = area)
             stored = location
             showSaved(location)
@@ -306,6 +406,14 @@ class MarketplaceAreaViewModel(
 
     /** One step back, keeping what was typed and ticked. False at a step with nothing before it: the screen leaves. */
     fun back(): Boolean = when (state.value.step) {
+        AreaStep.BusinessesLoading -> {
+            cancelBusinessesFetch()
+            true
+        }
+        AreaStep.BusinessesSummary, AreaStep.BusinessesList, AreaStep.BusinessesUnreachable -> {
+            stored?.let { showSaved(it) }
+            true
+        }
         AreaStep.Nearby -> {
             state.update { it.copy(step = AreaStep.HomeLocality) }
             true
@@ -325,6 +433,8 @@ class MarketplaceAreaViewModel(
             ticked = emptySet()
             shown = NearbyPlaces.DEFAULT_SHOWN
             resumeEdit = false
+            resumeBusinesses = false
+            clearBusinesses()
             state.value = MarketplaceAreaUiState()
             beginFresh()
         }
@@ -369,6 +479,183 @@ class MarketplaceAreaViewModel(
                 noMatch = false,
                 home = place(dir, row.id, row.name),
                 nearbyQuery = "",
+            )
+        }
+    }
+
+    private suspend fun availability(): AreaBusinessesAvailability = when (placesSource.preflight()) {
+        null, is PlacesPackState.Ready -> AreaBusinessesAvailability.Available
+        PlacesPackState.Unconfigured -> AreaBusinessesAvailability.Unconfigured
+        PlacesPackState.NotAvailableOnDevice -> AreaBusinessesAvailability.NotAvailableOnDevice
+        is PlacesPackState.Unreachable -> AreaBusinessesAvailability.Unreachable
+    }
+
+    private fun clearBusinesses() {
+        fetchJob?.cancel()
+        fetchJob = null
+        placesReady = null
+        plan = null
+        fetched = emptyMap()
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+    }
+
+    /**
+     * "See businesses" on the Saved card. Loading the locality data and the places directory touches the network, so when
+     * either is not cached the disclosure comes first; [agreeToDownload] then resumes here. Nothing is requested before that.
+     */
+    fun seeBusinesses() {
+        viewModelScope.launch {
+            if (placesSource.preflight() != null) return@launch
+            if (!source.isCachedLocally() || !placesSource.isCachedLocally()) {
+                resumeBusinesses = true
+                state.update { it.copy(step = AreaStep.Disclosure) }
+                return@launch
+            }
+            if (!load()) return@launch
+            enterBusinesses()
+        }
+    }
+
+    /** Reads the places directory, works out the counts and either fetches at once (small) or shows the summary. */
+    private suspend fun enterBusinesses() {
+        val dir = directory ?: return
+        val location = stored ?: return
+        val area = AreaPlan.of(location, dir) ?: run {
+            state.update { it.copy(step = AreaStep.NeedsRechoose) }
+            return
+        }
+        state.update { it.copy(step = AreaStep.Loading) }
+        val ready = when (val result = placesSource.load()) {
+            is PlacesPackState.Ready -> result
+            else -> {
+                state.update { it.copy(step = AreaStep.BusinessesUnreachable) }
+                return
+            }
+        }
+        plan = area
+        placesReady = ready
+        fetched = emptyMap()
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+        val counts = NearbyBusinesses.summarise(area, ready.directory, dir)
+        val businesses = AreaBusinessesState(
+            inside = counts.inside,
+            nearby = counts.nearby,
+            bytesInsideOnly = counts.bytesInsideOnly,
+            bytesWithNearby = counts.bytesWithNearby,
+            includeNearby = counts.bytesWithNearby <= BusinessesAutoDownloadBytes,
+        )
+        state.update { it.copy(step = AreaStep.BusinessesSummary, businesses = businesses) }
+        // Small enough with nearby places included: fetch at once. Otherwise the user chooses first.
+        if (businesses.chosenCount > 0 && counts.bytesWithNearby <= BusinessesAutoDownloadBytes) startBusinessesFetch()
+    }
+
+    /** The toggle "Include businesses just outside these places". */
+    fun setIncludeNearby(include: Boolean) {
+        state.update { it.copy(businesses = it.businesses.copy(includeNearby = include)) }
+    }
+
+    /** Download on the summary: asks first when the chosen download is over 1 MiB. */
+    fun downloadBusinesses() {
+        val chosen = state.value.businesses
+        if (chosen.chosenCount == 0) return
+        if (chosen.chosenBytes > BusinessesAutoDownloadBytes) {
+            state.update { it.copy(businesses = chosen.copy(confirming = true)) }
+        } else {
+            startBusinessesFetch()
+        }
+    }
+
+    /** "Not now" at the size confirmation: nothing is fetched. */
+    fun declineBusinessesDownload() {
+        state.update { it.copy(businesses = it.businesses.copy(confirming = false)) }
+    }
+
+    fun confirmBusinessesDownload() {
+        if (!state.value.businesses.confirming) return
+        startBusinessesFetch()
+    }
+
+    /** Try again after a failure or on the partial-data banner. */
+    fun retryBusinesses() {
+        if (placesReady == null || plan == null) {
+            viewModelScope.launch { enterBusinesses() }
+        } else {
+            startBusinessesFetch()
+        }
+    }
+
+    private fun startBusinessesFetch() {
+        val ready = placesReady ?: return
+        val area = plan ?: return
+        val include = state.value.businesses.includeNearby
+        val rows = area.rows.filter { it in 0 until ready.directory.size }
+        fetchJob?.cancel()
+        state.update {
+            it.copy(
+                step = AreaStep.BusinessesLoading,
+                businesses = it.businesses.copy(confirming = false, chunksDone = 0, chunksTotal = 0, bytesFetched = 0),
+            )
+        }
+        fetchJob = viewModelScope.launch {
+            val result = placesSource.fetchUnits(ready, rows, include) { done, total, bytes ->
+                state.update { it.copy(businesses = it.businesses.copy(chunksDone = done, chunksTotal = total, bytesFetched = bytes)) }
+            }
+            fetched = result.places
+            val any = result.places.values.any { it.isNotEmpty() }
+            if (!any && result.failedChunks > 0) {
+                state.update { it.copy(step = AreaStep.BusinessesUnreachable) }
+            } else {
+                state.update {
+                    it.copy(
+                        step = AreaStep.BusinessesList,
+                        businesses = it.businesses.copy(partial = result.failedChunks > 0, query = "", group = null),
+                    )
+                }
+                renderBusinesses()
+            }
+        }
+    }
+
+    /** Cancel while fetching: what was cached stays cached; back to the summary. */
+    fun cancelBusinessesFetch() {
+        fetchJob?.cancel()
+        fetchJob = null
+        state.update { it.copy(step = AreaStep.BusinessesSummary) }
+    }
+
+    fun setBusinessQuery(query: String) {
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+        state.update { it.copy(businesses = it.businesses.copy(query = query)) }
+        renderBusinesses()
+    }
+
+    /** [group] is a key from [AreaBusinessesState.groups], or null for All. */
+    fun setBusinessGroup(group: String?) {
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+        state.update { it.copy(businesses = it.businesses.copy(group = group)) }
+        renderBusinesses()
+    }
+
+    fun showMoreBusinesses() {
+        businessesShown += NearbyBusinesses.PAGE_SIZE
+        renderBusinesses()
+    }
+
+    private fun renderBusinesses() {
+        val ready = placesReady ?: return
+        val area = plan ?: return
+        val current = state.value.businesses
+        val page = NearbyBusinesses.list(fetched, area, current.query, current.group, ready.categories, limit = businessesShown)
+        val groups = NearbyBusinesses.groupsWithCounts(fetched, ready.categories, area)
+        state.update {
+            it.copy(
+                businesses = it.businesses.copy(
+                    items = page.items,
+                    matching = page.total,
+                    hasMore = page.hasMore,
+                    groups = groups,
+                    loaded = groups.sumOf { g -> g.count },
+                ),
             )
         }
     }

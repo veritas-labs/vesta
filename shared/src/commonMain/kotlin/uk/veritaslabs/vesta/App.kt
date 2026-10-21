@@ -553,7 +553,7 @@ internal fun HomeContent(
     }
     // The area picker (ADR-039): one for each Home, so switching Homes starts a fresh one.
     val areaViewModel = viewModel(key = "marketplace-area-$homeId") {
-        MarketplaceAreaViewModel(homeId, localityPackSource, locationRepository, ::deviceRegionCode)
+        MarketplaceAreaViewModel(homeId, localityPackSource, locationRepository, placesPackSource, ::deviceRegionCode)
     }
     val categoriesViewModel = pantrySource?.categoriesSource?.let { source ->
         viewModel(key = "pantry-categories-$homeId") { PantryCategoriesViewModel(source) }
