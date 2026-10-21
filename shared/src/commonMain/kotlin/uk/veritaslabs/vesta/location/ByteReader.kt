@@ -3,6 +3,8 @@ package uk.veritaslabs.vesta.location
 /** Sequential reader over the pack wire formats: LEB128 varints, zigzag deltas, NUL-terminated UTF-8. */
 internal class ByteReader(private val bytes: ByteArray, private var pos: Int = 0) {
 
+    val remaining: Int get() = bytes.size - pos
+
     fun u8(): Int {
         require(pos < bytes.size) { "Unexpected end of data" }
         return bytes[pos++].toInt() and 0xFF
