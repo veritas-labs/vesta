@@ -1,4 +1,4 @@
-# ADR-039: Grounding a Home to a place (country and division, optional H3 cell)
+# ADR-039: Grounding a Home to a place (country and locality, captured by the Marketplace)
 
 **Status:** Proposed (2026-10-19). Not accepted and not implemented. The H3 **library choice is deliberately left open**
 (see "Open decisions"). Supersedes the "where does the location come from" question left open in ADR-024 (weather widget).
@@ -7,7 +7,7 @@
 
 New features need a Home tied to a real-world place. The question that started this was "what is the GERS division of this
 Home?", so Vesta can join the Overture/Colo world (inspections, division x0x groups, places). Overture's public data gives
-divisions as polygons; the only input Vesta has is a place the user names, and the user may not be at home when they set the Home up. Two requirements shape everything:
+divisions as polygons; the only input Vesta has is a place the user names, and the user may not be at home when they are asked. Two requirements shape everything:
 
 - **Transparent.** The user must be able to see what is stored, what leaves the device, and who sees it.
 - **Private.** Vesta has no server and a local-first stance. A location should be no more precise than the feature needs.
@@ -206,12 +206,19 @@ touching neighbours (a tolerance of about 100 m). The polygon join took about 6 
 
 ## Decision
 
-### 1. A Home's location is a country and a chosen division, with an optional coarse cell
+### 0. When the location is captured: only by the Marketplace
 
-Setting up a Home must not assume the user is at home, so it cannot start from a GPS fix. What is stored is:
+**Creating a Home does not ask for a location**, and no Home flow ever requires one. The home locality is captured the first
+time the user opens the Marketplace (merchant search), and from the Marketplace's settings afterwards. Features that could use
+a place (weather, ADR-024) read it if it exists and otherwise ask in their own flow. Until it is captured nothing is stored and
+no request is made.
+
+### 1. A Home's location is a country and a chosen locality, with an optional coarse cell
+
+The user may not be at home when asked, so the entry cannot start from a GPS fix. What is stored is:
 
 - `country` (ISO 3166-1 alpha-2);
-- `divisionId`, the GERS id of the division the user picked, and the Overture release the id came from (ids can change
+- `divisionId`, the GERS id of the **locality** the user picked, and the Overture release the id came from (ids can change
   between releases);
 - optionally a **cell** (default **resolution 8**, about 0.5 km edge) with a `source` tag: `device` (a fix taken at home),
   `postcode`, or `division` (the division's centroid, coarser, resolution 7). A cell says only that the point is somewhere
@@ -243,27 +250,41 @@ postcode-to-point table is shipped (UK first; open decision 2). A postcode centr
 and a postcode can straddle divisions, so postcode entry always shows the candidates and asks. A map pin is last (it needs
 tiles and so the network). The postcode never leaves the device.
 
-### 3. The flow
+### 3. The flow (Marketplace entry)
 
-1. **Entry.** Home setup and Home settings, "Location". Optional; nothing prompts for it after setup and nothing runs in the
-   background.
-2. **Country, then name search** (decision 2). If the names table is bundled, no request is made; if it is fetched from
+1. **Entry.** The first time the Marketplace is opened with no location, and Marketplace settings, "Where to search".
+   Nothing in Home creation prompts for it and nothing runs in the background.
+2. **Country, then name search** (decision 2). The country is preselected from the device locale, not a blank list. If the names table is bundled, no request is made; if it is fetched from
    Autonomi or a mirror, a disclosure screen first states who can see the request (the node or host serving it, and the
    device's IP address) and that the request names a country pack, not the user's division.
 3. **Shortcuts** (device location, postcode) are secondary buttons on the same screen, each with its own disclosure
    (the OS permission prompt; for a postcode, that it stays on the device).
-4. **Show and confirm.** The division is drawn on its parent chain, with its neighbours listed; if a cell was derived, it is
-   drawn as a hexagon labelled with its rough size. Nothing is saved until the user confirms.
-5. **Saved.** `country`, `divisionId`, the release, and optionally the cell with its `source`. A point is never saved.
-6. **Forget.** One button clears the location from the Home and every device.
-7. **Audit.** Any request made for the location (names table, index shard) is recorded in the sync activity surface
-   (ADR-033): host, date, and what was asked for.
+4. **Choose the home locality.** The result shows the locality with its full parent chain. Nothing is saved yet.
+5. **Choose where else to search.** A second list, "Also search nearby places", offers the home locality's neighbours:
+   - The home locality is ticked and locked. Neighbours start unticked.
+   - Sorted by distance (or by merchant count when the places directory has it), not alphabetically.
+   - Each row shows its merchant count, so a user in a village of 300 can see which neighbours are worth ticking, and a user
+     in a city can see that none are. (Needs the places directory, not built.)
+   - Only the nearest ten are shown, with a search box and "show more"; some localities have over 100 neighbours.
+   - A footer shows the approximate download, about 260 KB per extra locality, and warns when the total is large. A longer
+     list also tells the network more about the user's area, and the footer says so.
+   - Prompt wording: "Also search nearby places", not "Select all localities".
+   - Nesting rule: **not designed** (see the parents bullet in the locality-only spike section). Until decided, show a
+     contained locality as part of its parent's group rather than as a separate neighbour.
+6. **Confirm and save.** `country`, `divisionId`, the release, and optionally the cell with its `source` are stored on the
+   Home. The extra localities are stored as a **Marketplace search-area preference** (a set of `divisionId`s), separate from
+   the home locality so that where a Home is does not depend on how far its members shop. A point is never saved.
+7. **Edit and forget.** Both can be changed at any time. One button clears the location and the search area from the Home and
+   every paired device.
+8. **Audit.** Any request made for the location (names table, index shard, places chunks) is recorded in the sync activity
+   surface (ADR-033): host, date, and what was asked for.
 
-After step 5 no further request is made unless the user edits the location or opens the business list.
+After step 6 no further request is made unless the user edits the location or searches merchants.
 
 ### 4. Where it lives
 
-On the Home, synced to the user's paired devices like the Home's name and shape (ADR-013's registry). Whether it is also
+The home locality is on the Home, and the search-area preference is stored with the Marketplace's settings. Both are synced
+to the user's paired devices like the Home's name and shape (ADR-013's registry). Whether it is also
 shown to other Home members (a Home is a shared household, and a 0.5 km cell is coarse) is an open decision, because the
 member-facing copy depends on which document carries the Home's shared fields.
 
@@ -330,14 +351,16 @@ must not count a contained locality as a neighbour.
 ## Acceptance criteria
 
 1. With no location set, no network request is ever made for it, and the Home works as before.
-2. Setting up a Home away from home works: I choose my country (defaulted from the device locale) and search for my town by
-   name, with no position taken from the device.
+2. Creating a Home never asks for a location. The first time I open the Marketplace I choose my country (defaulted from the
+   device locale) and search for my town by name, with no position taken from the device, so I can do this away from home.
 3. Search results show each division's parent chain, so two places with the same name can be told apart.
 4. Before any request for the names table or an index shard, I am told who can see it and that my IP address is visible; I can
    decline and nothing is sent.
-5. I see the chosen division and its neighbouring divisions before anything is saved.
-6. What is saved is the country, the division id, the Overture release, and optionally a cell with its source; no
-   position is stored anywhere.
+5. I see the chosen locality and its neighbouring localities before anything is saved. My home locality is ticked and cannot
+   be unticked; neighbours start unticked, nearest first, with a merchant count, at most ten shown until I ask for more, and
+   an approximate download size.
+6. What is saved is the country, the locality id, the Overture release, optionally a cell with its source, and my chosen
+   search-area localities; no position is stored anywhere.
 7. A postcode I type is never sent over the network.
 8. A latitude outside -90..90 or longitude outside -180..180 is rejected before conversion.
 9. Forgetting the location removes it from the Home and from my paired devices.
@@ -346,7 +369,7 @@ must not count a contained locality as a neighbour.
 
 ## Consequences
 
-- Setup no longer needs a position, so it works away from home. The first slice needs the per-country names table and
+- Creating a Home is unchanged: no location is asked for. The Marketplace entry needs no position, so it works away from home. The first slice needs the per-country names table and
   adjacency list built and shipped (UK, locality only: about 0.6 MB together, measured), plus an H3 implementation if cells are stored.
 - Homes get a human-readable place (the chosen division and its parents) with no reverse geocoding.
 - A name search against a bundled table sends nothing; a fetched table or shard is an outbound request needing a line in the
