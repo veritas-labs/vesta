@@ -260,4 +260,46 @@ class AutonomiLocalityPackSourceTest {
         // Assert
         assertIs<LocalityPackState.Unreachable>(state)
     }
+
+    @Test
+    fun preflightIsUnconfiguredWithNeitherPointerNorRootAndMakesNoCalls() = runTest {
+        // Arrange
+        val client = FakeClient(goodChunks())
+        val source = source(client, config = LocalityPackConfig(pointer = null, root = null))
+
+        // Act
+        val state = source.preflight()
+
+        // Assert
+        assertEquals(LocalityPackState.Unconfigured, state)
+        assertEquals(0, client.calls)
+    }
+
+    @Test
+    fun preflightIsNotAvailableWhenTheClientCannotFetchChunksAndNothingIsCached() = runTest {
+        // Arrange
+        val client = FakeClient(goodChunks(), supportsChunks = false)
+        val source = source(client)
+
+        // Act
+        val state = source.preflight()
+
+        // Assert
+        assertEquals(LocalityPackState.NotAvailableOnDevice, state)
+        assertEquals(0, client.calls)
+    }
+
+    @Test
+    fun preflightCanProceedWhenConfiguredAndTheClientSupportsChunks() = runTest {
+        // Arrange
+        val client = FakeClient(goodChunks())
+        val source = source(client)
+
+        // Act
+        val state = source.preflight()
+
+        // Assert
+        assertEquals(null, state)
+        assertEquals(0, client.calls)
+    }
 }

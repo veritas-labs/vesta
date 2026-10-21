@@ -18,6 +18,12 @@ interface LocalityPackSource {
     /** True when [load] can finish without touching the network. */
     suspend fun isCachedLocally(): Boolean
 
+    /**
+     * A check that never touches the network: [LocalityPackState.Unconfigured] or [LocalityPackState.NotAvailableOnDevice]
+     * when no load could succeed, null when the flow can proceed.
+     */
+    suspend fun preflight(): LocalityPackState?
+
     /** Never throws; a failure is a state. */
     suspend fun load(): LocalityPackState
 }

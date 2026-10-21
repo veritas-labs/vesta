@@ -36,7 +36,8 @@ object TinyPack {
 
     fun directory(): LocalityDirectory = LocalityDirectory(pack())
 
-    fun pack(): LocalityPack = LocalityPack.parse(namesChunk(), adjacencyChunk(), identity)
+    fun pack(specs: List<Spec> = TinyPack.specs, edges: List<Pair<Int, Int>> = TinyPack.edges): LocalityPack =
+        LocalityPack.parse(namesChunk(specs = specs), adjacencyChunk(specs, edges), identity)
 
     fun varint(value: Int, out: MutableList<Byte>) {
         var v = value
@@ -49,7 +50,7 @@ object TinyPack {
 
     fun zigzag(value: Int, out: MutableList<Byte>) = varint(if (value >= 0) value * 2 else -value * 2 - 1, out)
 
-    fun namesChunk(magic: String = "VGN2"): ByteArray {
+    fun namesChunk(magic: String = "VGN2", specs: List<Spec> = TinyPack.specs): ByteArray {
         val out = ArrayList<Byte>()
         out += magic.encodeToByteArray().toList()
         varint(subtypes.size, out)
@@ -73,7 +74,7 @@ object TinyPack {
         return out.toByteArray()
     }
 
-    fun adjacencyChunk(): ByteArray {
+    fun adjacencyChunk(specs: List<Spec> = TinyPack.specs, edges: List<Pair<Int, Int>> = TinyPack.edges): ByteArray {
         val out = ArrayList<Byte>()
         specs.indices.forEach { row ->
             val list = edges.mapNotNull { (a, b) -> if (a == row) b else if (b == row) a else null }.sorted()

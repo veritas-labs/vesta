@@ -51,6 +51,12 @@ class AutonomiLocalityPackSource(
         return cache.get(root.namesAddress) != null && cache.get(root.adjacencyAddress) != null
     }
 
+    override suspend fun preflight(): LocalityPackState? = when {
+        config.pointer == null && config.root == null -> LocalityPackState.Unconfigured
+        !client.supportsChunks && !isCachedLocally() -> LocalityPackState.NotAvailableOnDevice
+        else -> null
+    }
+
     override suspend fun load(): LocalityPackState {
         if (config.pointer == null && config.root == null) return LocalityPackState.Unconfigured
         if (!client.supportsChunks && !isCachedLocally()) return LocalityPackState.NotAvailableOnDevice
