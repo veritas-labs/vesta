@@ -14,7 +14,7 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 class MarketplaceScreenTest {
 
     @Test
-    fun localMerchantsIsTheOnlyOptionAndOpensTheMerchants() = runComposeUiTest {
+    fun localMerchantsIsTheFirstOptionAndOpensTheMerchants() = runComposeUiTest {
         // Arrange
         var opened = 0
         setContent { VestaTheme { MarketplaceScreen(onLocalMerchantsClick = { opened++ }) } }
@@ -25,6 +25,23 @@ class MarketplaceScreenTest {
 
         // Assert
         assertEquals(1, opened)
+    }
+
+    @Test
+    fun nearbyMerchantsIsTheSecondRowAndOpensTheAreaPicker() = runComposeUiTest {
+        // Arrange
+        var local = 0
+        var nearby = 0
+        setContent { VestaTheme { MarketplaceScreen(onLocalMerchantsClick = { local++ }, onNearbyMerchantsClick = { nearby++ }) } }
+        onNodeWithText("Nearby merchants").assertIsDisplayed()
+        onNodeWithText("Local Merchants").assertIsDisplayed()
+
+        // Act
+        onNodeWithTag(MarketplaceTestTags.NearbyMerchants).performClick()
+
+        // Assert
+        assertEquals(1, nearby)
+        assertEquals(0, local)
     }
 
     @Test

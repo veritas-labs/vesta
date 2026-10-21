@@ -33,20 +33,23 @@ import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
 import vesta.shared.generated.resources.ic_chevron_right
+import vesta.shared.generated.resources.ic_map_pin
 import vesta.shared.generated.resources.ic_merchants
 import vesta.shared.generated.resources.common_back
 import vesta.shared.generated.resources.marketplace_local_merchants
+import vesta.shared.generated.resources.marketplace_nearby_merchants
 import vesta.shared.generated.resources.marketplace_title
 
 /** Stable hooks for UI tests to target, independent of displayed copy. */
 internal object MarketplaceTestTags {
     const val BackButton = "marketplace_back_button"
     const val LocalMerchants = "marketplace_local_merchants"
+    const val NearbyMerchants = "marketplace_nearby_merchants"
 }
 
 /**
- * The Marketplace (ADR-026): where a Home finds the places it buys from. For now it has one option, Local Merchants
- * ([onLocalMerchantsClick]); the back arrow calls [onBack].
+ * The Marketplace (ADR-026): where a Home finds the places it buys from. It has two options, Local Merchants
+ * ([onLocalMerchantsClick]) and Nearby merchants ([onNearbyMerchantsClick], ADR-039); the back arrow calls [onBack].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +57,7 @@ fun MarketplaceScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
     onLocalMerchantsClick: () -> Unit = {},
+    onNearbyMerchantsClick: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -90,6 +94,28 @@ fun MarketplaceScreen(
             )
             Text(
                 stringResource(Res.string.marketplace_local_merchants),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onNearbyMerchantsClick)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .testTag(MarketplaceTestTags.NearbyMerchants),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painterResource(Res.drawable.ic_map_pin),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(end = 16.dp),
+            )
+            Text(
+                stringResource(Res.string.marketplace_nearby_merchants),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f),

@@ -37,6 +37,7 @@ internal object MarketplaceAreaTestTags {
     fun nearby(id: String) = "area_nearby_$id"
 
     const val SavedSummary = "area_saved_summary"
+    const val SavedEmptyState = "area_saved_empty_state"
     const val SavedChange = "area_saved_change"
     const val SavedForget = "area_saved_forget"
 

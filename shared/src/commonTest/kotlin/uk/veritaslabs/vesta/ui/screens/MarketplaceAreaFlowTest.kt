@@ -221,6 +221,8 @@ class MarketplaceAreaFlowTest {
 
         // Assert
         onNodeWithText("Searching in Newport and 1 nearby place").assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.SavedEmptyState).assertIsDisplayed()
+        onNodeWithText("Nearby merchants will appear here once business data is available.").assertIsDisplayed()
         assertEquals(newport, harness.repository.location?.homeLocality)
     }
 

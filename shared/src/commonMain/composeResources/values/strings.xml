@@ -543,6 +543,7 @@
     </string-array>
     <string name="marketplace_title">Marketplace</string>
     <string name="marketplace_local_merchants">Local Merchants</string>
+    <string name="marketplace_nearby_merchants">Nearby merchants</string>
     <string name="merchants_title">Merchants</string>
     <string name="merchants_add">Add merchant</string>
     <string name="merchants_search_label">Search merchants</string>
@@ -1043,6 +1044,7 @@
     <string name="area_saved_searching_alone">Searching in %1$s</string>
     <string name="area_saved_change">Change</string>
     <string name="area_saved_forget">Forget</string>
+    <string name="area_saved_empty_state">Nearby merchants will appear here once business data is available.</string>
     <string name="area_saved_forget_title">Forget your area?</string>
     <string name="area_saved_forget_body">Vesta will stop using it to find places near you. You can choose it again at any time.</string>
     <string name="area_rechoose_title">Your area needs choosing again</string>

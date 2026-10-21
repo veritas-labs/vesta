@@ -73,6 +73,11 @@ import uk.veritaslabs.kits.x0x.createX0xClient
 import uk.veritaslabs.vesta.location.HomeLocationRepository
 import uk.veritaslabs.vesta.location.RegistryHomeLocationRepository
 import uk.veritaslabs.vesta.location.UnavailableHomeLocationRepository
+import uk.veritaslabs.vesta.location.UnavailableLocalityPackSource
+import uk.veritaslabs.vesta.location.LocalityPackSource
+import uk.veritaslabs.vesta.location.deviceRegionCode
+import uk.veritaslabs.vesta.ui.flows.MarketplaceAreaFlow
+import uk.veritaslabs.vesta.ui.screens.MarketplaceAreaViewModel
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.TasksDeepLink
 import uk.veritaslabs.kits.spaces.LeaveResult
@@ -213,8 +218,10 @@ fun App(
     profiles: ProfileRepository? = null,
     settings: AppSettingsRepository? = null,
     x0xConnectivity: @Composable () -> X0xConnectivity = { rememberX0xConnectivity() },
+    localityPackSource: LocalityPackSource = UnavailableLocalityPackSource,
+    homeLocationRepository: HomeLocationRepository = UnavailableHomeLocationRepository,
     homeContent: @Composable (homeId: String, homeName: String, onEditHome: () -> Unit) -> Unit = { id, name, onEditHome ->
-        HomeContent(id, name, onEditHome = onEditHome)
+        HomeContent(id, name, onEditHome = onEditHome, locationRepository = homeLocationRepository, localityPackSource = localityPackSource)
     },
 ) {
     val homeId by selectedHome.homeId.collectAsStateWithLifecycle()
@@ -458,7 +465,7 @@ fun App(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun HomeContent(
+internal fun HomeContent(
     homeId: String,
     homeName: String,
     pantrySource: PantrySource? = null,
@@ -482,6 +489,8 @@ private fun HomeContent(
     syncActivity: SyncActivityRepository = UnavailableSyncActivityRepository,
     ownDeviceCanBeHub: Boolean = false,
     onOpened: () -> Unit = {},
+    locationRepository: HomeLocationRepository = UnavailableHomeLocationRepository,
+    localityPackSource: LocalityPackSource = UnavailableLocalityPackSource,
 ) {
     val scope = rememberCoroutineScope()
     var leaveBlocked by remember { mutableStateOf(false) }
@@ -538,6 +547,10 @@ private fun HomeContent(
     val merchantsViewModel = merchantsSource?.let { source ->
         viewModel(key = "merchants-$homeId") { MerchantsViewModel(source) }
     }
+    // The area picker (ADR-039): one for each Home, so switching Homes starts a fresh one.
+    val areaViewModel = viewModel(key = "marketplace-area-$homeId") {
+        MarketplaceAreaViewModel(homeId, localityPackSource, locationRepository, ::deviceRegionCode)
+    }
     val categoriesViewModel = pantrySource?.categoriesSource?.let { source ->
         viewModel(key = "pantry-categories-$homeId") { PantryCategoriesViewModel(source) }
     }
@@ -564,7 +577,7 @@ private fun HomeContent(
                 destination = if (cookbookRecipeKey != null) HomeDestination.MealPlanner else HomeDestination.Dashboard
                 cookbookRecipeKey = null
             }
-            HomeDestination.Merchants -> destination = HomeDestination.Marketplace
+            HomeDestination.Merchants, HomeDestination.MarketplaceArea -> destination = HomeDestination.Marketplace
             HomeDestination.CalendarSettings -> destination = HomeDestination.Calendar
             HomeDestination.ShoppingListFilter, HomeDestination.ShoppingAddedToPantry, HomeDestination.ShoppingItemEdit ->
                 destination = HomeDestination.ShoppingList
@@ -734,7 +747,9 @@ private fun HomeContent(
         HomeDestination.Marketplace -> MarketplaceScreen(
             onBack = { destination = HomeDestination.Dashboard },
             onLocalMerchantsClick = { destination = HomeDestination.Merchants },
+            onNearbyMerchantsClick = { destination = HomeDestination.MarketplaceArea },
         )
+        HomeDestination.MarketplaceArea -> MarketplaceAreaFlow(areaViewModel, onBack = { destination = HomeDestination.Marketplace })
         HomeDestination.Merchants -> {
             if (merchantsViewModel != null) {
                 MerchantsFlow(merchantsViewModel, onBack = { destination = HomeDestination.Marketplace })
@@ -928,7 +943,7 @@ class DeviceSyncHost(
 
 private enum class HomeDestination {
     Dashboard, Members, MemberDetail, InviteLinks, HubManager, SyncActivity, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
-    ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, MealPlanner, Marketplace, Merchants, Calendar, CalendarSettings, Tasks,
+    ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, MealPlanner, Marketplace, Merchants, MarketplaceArea, Calendar, CalendarSettings, Tasks,
 }
 
 internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(
@@ -970,6 +985,7 @@ private fun DatabaseTooNewMessage(error: DatabaseDowngradeException) {
  * [recipeImporter], if given, lets the add-recipe form fill itself from a web link; screens get it through [LocalRecipeImporter].
  * [ownDeviceCanBeHub] lets a user make this device an always-on hub of a Home (docs/adr/ADR-020, several-hubs amendment): true where
  * the x0x daemon keeps running when the app is closed, as on the desktop, not where it is embedded and stops with the app.
+ * [localityPackSource] is where the Marketplace area picker gets the place names (ADR-039); the default says it is not available on this device.
  */
 @Composable
 fun VestaApp(
@@ -991,6 +1007,7 @@ fun VestaApp(
     fileExporter: FileExporter? = null,
     fileImporter: FileImporter? = null,
     ownDeviceCanBeHub: Boolean = false,
+    localityPackSource: LocalityPackSource = UnavailableLocalityPackSource,
 ) {
     val opened = remember { openKitsDatabase(DatabaseDriverFactory(VestaDatabaseLocation), VestaKitConfig.appName) }
     val database = when (opened) {
@@ -1013,8 +1030,7 @@ fun VestaApp(
     LifecycleEventEffect(Lifecycle.Event.ON_START) { deviceDataSync?.syncNow() }
     val profiles = remember { ProfileRepository(database, deviceName = ::getDeviceName, changes = deviceDataSync?.profileChanges) }
     val homeRepository = remember { HomeRepository(SpaceRepository(database, deviceDataSync?.spaceChanges, profiles, deviceDataSync?.rosterChanges)) }
-    // The one place a Home's location is read and written (ADR-039); the stand-in where there is no sync service. WP5/WP6 hand it to the screens.
-    @Suppress("UNUSED_VARIABLE")
+    // The one place a Home's location is read and written (ADR-039); the stand-in where there is no sync service.
     val homeLocationRepository: HomeLocationRepository = remember {
         deviceDataSync?.spaceAttributes?.let { RegistryHomeLocationRepository(it) } ?: UnavailableHomeLocationRepository
     }
@@ -1063,6 +1079,8 @@ fun VestaApp(
             homeJoining = deviceDataSync?.joining,
             profiles = profiles,
             settings = settings,
+            localityPackSource = localityPackSource,
+            homeLocationRepository = homeLocationRepository,
             homeContent = homeContent ?: { homeId, homeName, onEditHome ->
                 val pantrySource by produceState<PantrySource?>(null, homeId) { value = openPantry?.invoke(database, homeId) }
                 val shoppingListSource by produceState<ShoppingListSource?>(null, homeId) { value = openShoppingList?.invoke(database, homeId) }
@@ -1095,6 +1113,8 @@ fun VestaApp(
                     syncActivity = deviceDataSync?.syncActivity ?: UnavailableSyncActivityRepository,
                     ownDeviceCanBeHub = ownDeviceCanBeHub,
                     onOpened = { deviceDataSync?.syncNow() },
+                    locationRepository = homeLocationRepository,
+                    localityPackSource = localityPackSource,
                 )
             },
         )

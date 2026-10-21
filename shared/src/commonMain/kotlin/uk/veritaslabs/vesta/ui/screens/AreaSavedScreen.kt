@@ -23,6 +23,7 @@ import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.area_saved_change
+import vesta.shared.generated.resources.area_saved_empty_state
 import vesta.shared.generated.resources.area_saved_forget
 import vesta.shared.generated.resources.area_saved_forget_body
 import vesta.shared.generated.resources.area_saved_forget_title
@@ -67,6 +68,12 @@ fun AreaSavedScreen(
                     }
                 }
             }
+            Text(
+                stringResource(Res.string.area_saved_empty_state),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag(MarketplaceAreaTestTags.SavedEmptyState),
+            )
             PrimaryButton(
                 stringResource(Res.string.area_saved_change),
                 Modifier.testTag(MarketplaceAreaTestTags.SavedChange),
