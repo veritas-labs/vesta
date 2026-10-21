@@ -1,7 +1,6 @@
 package uk.veritaslabs.vesta.location
 
-import uk.veritaslabs.kits.KitsInternalApi
-import uk.veritaslabs.kits.spaces.SpaceRegistry
+import uk.veritaslabs.kits.spaces.SpaceAttributes
 
 private const val Country = "locality.country"
 private const val Home = "locality.home"
@@ -14,12 +13,11 @@ private const val Included = "1"
 private const val Excluded = "0"
 
 /**
- * [HomeLocationRepository] stored as string attributes on the Home's entry in the [SpaceRegistry]. The area is one key per
+ * [HomeLocationRepository] stored as string attributes on the Home's entry in the user's Space registry, through [SpaceAttributes]. The area is one key per
  * locality, `area.<localityId>`, "1" when included and "0" when it was included and then removed: a removal is a value, not a
  * deleted key, so an edit on one device and a tick on another merge instead of one undoing the other.
  */
-@OptIn(KitsInternalApi::class)
-class RegistryHomeLocationRepository(private val registry: SpaceRegistry) : HomeLocationRepository {
+class RegistryHomeLocationRepository(private val registry: SpaceAttributes) : HomeLocationRepository {
 
     override suspend fun read(homeId: String): HomeLocation? {
         val attributes = registry.attributes(homeId)

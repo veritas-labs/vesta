@@ -70,6 +70,9 @@ import uk.veritaslabs.vesta.ui.flows.DevicePairingFlow
 import uk.veritaslabs.kits.x0x.X0xClient
 import uk.veritaslabs.kits.x0x.X0xNetworkPolicy
 import uk.veritaslabs.kits.x0x.createX0xClient
+import uk.veritaslabs.vesta.location.HomeLocationRepository
+import uk.veritaslabs.vesta.location.RegistryHomeLocationRepository
+import uk.veritaslabs.vesta.location.UnavailableHomeLocationRepository
 import uk.veritaslabs.vesta.home.HomeRepository
 import uk.veritaslabs.vesta.home.TasksDeepLink
 import uk.veritaslabs.kits.spaces.LeaveResult
@@ -1010,6 +1013,11 @@ fun VestaApp(
     LifecycleEventEffect(Lifecycle.Event.ON_START) { deviceDataSync?.syncNow() }
     val profiles = remember { ProfileRepository(database, deviceName = ::getDeviceName, changes = deviceDataSync?.profileChanges) }
     val homeRepository = remember { HomeRepository(SpaceRepository(database, deviceDataSync?.spaceChanges, profiles, deviceDataSync?.rosterChanges)) }
+    // The one place a Home's location is read and written (ADR-039); the stand-in where there is no sync service. WP5/WP6 hand it to the screens.
+    @Suppress("UNUSED_VARIABLE")
+    val homeLocationRepository: HomeLocationRepository = remember {
+        deviceDataSync?.spaceAttributes?.let { RegistryHomeLocationRepository(it) } ?: UnavailableHomeLocationRepository
+    }
     val memberRepository = remember { MemberRepository(database, profiles, deviceDataSync?.rosterChanges) }
     val assistants = remember { assistantsFor?.invoke(database) ?: AssistantRepository(database) }
     val settings = remember { AppSettingsRepository(database) }

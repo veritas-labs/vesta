@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.automerge.SyncState
 import uk.veritaslabs.kits.KitsInternalApi
+import uk.veritaslabs.kits.spaces.SpaceAttributes
 import uk.veritaslabs.kits.spaces.SpaceRegistry
 import uk.veritaslabs.kits.spaces.SpaceSeeding
 import uk.veritaslabs.kits.spaces.StoredSpace
@@ -15,6 +16,12 @@ import uk.veritaslabs.kits.store.testing.openInMemoryDatabase
 
 @OptIn(KitsInternalApi::class)
 class RegistryHomeLocationRepositoryTest {
+
+    /** What the kit's sync service hands the app: the registry's attributes and nothing else. */
+    private fun SpaceRegistry.asAttributes() = object : SpaceAttributes {
+        override suspend fun attributes(spaceId: String) = this@asAttributes.attributes(spaceId)
+        override suspend fun setAttributes(spaceId: String, changes: Map<String, String?>) = this@asAttributes.setAttributes(spaceId, changes)
+    }
 
     private val seeding = object : SpaceSeeding {
         override suspend fun seedCreated(spaceId: String) = Unit
@@ -27,7 +34,7 @@ class RegistryHomeLocationRepositoryTest {
     @Test
     fun aLocationRoundTrips() = runBlocking {
         // Arrange
-        val repository = RegistryHomeLocationRepository(registryWithHome())
+        val repository = RegistryHomeLocationRepository(registryWithHome().asAttributes())
 
         // Act
         repository.setHome("h1", "GB", "loc-1", "2026-10")
@@ -40,7 +47,7 @@ class RegistryHomeLocationRepositoryTest {
     @Test
     fun aHomeWithNoLocationAndAnAbsentSpaceReadAsNull() = runBlocking {
         // Arrange
-        val repository = RegistryHomeLocationRepository(registryWithHome())
+        val repository = RegistryHomeLocationRepository(registryWithHome().asAttributes())
 
         // Act
         val none = repository.read("h1")
@@ -55,7 +62,7 @@ class RegistryHomeLocationRepositoryTest {
     fun anEntryWithOnlyNameAndKindOrPartOfALocationReadsAsNull() = runBlocking {
         // Arrange
         val registry = registryWithHome()
-        val repository = RegistryHomeLocationRepository(registry)
+        val repository = RegistryHomeLocationRepository(registry.asAttributes())
         val older = repository.read("h1")
         registry.setAttributes("h1", mapOf("locality.country" to "GB"))
 
@@ -71,7 +78,7 @@ class RegistryHomeLocationRepositoryTest {
     fun settingTheHomeClearsTheCellAndTheArea() = runBlocking {
         // Arrange
         val registry = registryWithHome()
-        val repository = RegistryHomeLocationRepository(registry)
+        val repository = RegistryHomeLocationRepository(registry.asAttributes())
         repository.setHome("h1", "GB", "loc-1", "2026-10")
         registry.setAttributes("h1", mapOf("locality.cell" to "8a1", "locality.cellSource" to "typed"))
         repository.setArea("h1", setOf("loc-2", "loc-3"))
@@ -92,7 +99,7 @@ class RegistryHomeLocationRepositoryTest {
     fun theAreaIsTickedAndUntickedAsATombstone() = runBlocking {
         // Arrange
         val registry = registryWithHome()
-        val repository = RegistryHomeLocationRepository(registry)
+        val repository = RegistryHomeLocationRepository(registry.asAttributes())
         repository.setHome("h1", "GB", "loc-1", "2026-10")
         repository.setArea("h1", setOf("a", "b"))
 
@@ -109,7 +116,7 @@ class RegistryHomeLocationRepositoryTest {
     fun anUnchangedAreaWritesNothing() = runBlocking {
         // Arrange
         val registry = registryWithHome()
-        val repository = RegistryHomeLocationRepository(registry)
+        val repository = RegistryHomeLocationRepository(registry.asAttributes())
         repository.setHome("h1", "GB", "loc-1", "2026-10")
         repository.setArea("h1", setOf("a"))
         var announced = 0
@@ -128,7 +135,7 @@ class RegistryHomeLocationRepositoryTest {
     fun clearRemovesTheLocationAndLeavesTheRest() = runBlocking {
         // Arrange
         val registry = registryWithHome()
-        val repository = RegistryHomeLocationRepository(registry)
+        val repository = RegistryHomeLocationRepository(registry.asAttributes())
         repository.setHome("h1", "GB", "loc-1", "2026-10")
         repository.setArea("h1", setOf("a"))
         registry.setAttributes("h1", mapOf("other" to "kept"))
@@ -168,8 +175,8 @@ class RegistryHomeLocationRepositoryTest {
             }
         }
         sync()
-        val onPhone = RegistryHomeLocationRepository(phone)
-        val onTablet = RegistryHomeLocationRepository(tablet)
+        val onPhone = RegistryHomeLocationRepository(phone.asAttributes())
+        val onTablet = RegistryHomeLocationRepository(tablet.asAttributes())
 
         // Act
         onPhone.setHome("h1", "GB", "loc-1", "2026-10")

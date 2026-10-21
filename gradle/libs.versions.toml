@@ -27,7 +27,7 @@ junit-vintage = "6.1.3"
 mlkit-barcodeScanning = "17.3.0"
 kotlin = "2.4.20"
 # Version of every kit published from veritas-kits to Maven Local (kitsVersion in its gradle.properties).
-kits = "0.1.1"
+kits = "0.1.2"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
 # Tracks composeMultiplatform's major/minor: material3 reaches into foundation
