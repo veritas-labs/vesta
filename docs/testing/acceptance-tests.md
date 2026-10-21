@@ -214,3 +214,54 @@ captured from the code as it was before any rename, and the literals and the dat
 8. **Desktop shows it once, after 07:00, while running.** `MorningDigestRunnerTest` (nothing before 07:00; once after, and the day remembered; an empty day is not
    retried; yesterday's does not stop today's). Manual, in the desktop app (not yet run): *Given* a task due today with no time, *when* Vesta is running at
    or after 07:00, *then* one tray notice lists it; clicking it raises the window on that Home's Tasks; it does not repeat that day or after a restart.
+
+## Marketplace location and search area (ADR-039)
+
+Criteria from [ADR-039](../adr/ADR-039-home-location-h3.md), as built for the Marketplace's Nearby merchants. The flow is driven through the real
+screens over a fake `LocalityPackSource` in `MarketplaceAreaFlowTest` and through the view model in `MarketplaceAreaViewModelTest`; the network
+criteria run the real `AutonomiLocalityPackSource` over a recording client; the sync criterion runs two real registries. Backing tests are in
+`MarketplaceAreaAcceptanceTest` unless another class is named. Status of each is stated: **covered**, **partial** (what is missing is said), or
+**not built yet**. Not covered by any automated test: the flow on a device, and a real Autonomi network.
+
+1. **No request without a location. Covered.** *Given* a Home with no location and nothing downloaded, *when* I open Nearby merchants and choose Not now,
+   *then* no request of any kind reaches the network and the Home reads as it did before.
+   `MarketplaceAreaAcceptanceTest.withNoLocationSetAndNotNowNothingIsRequestedFromTheNetwork`;
+   `RegistryHomeLocationRepositoryTest.aHomeWithNoLocationAndAnAbsentSpaceReadAsNull`;
+   `MarketplaceAreaViewModelTest.notCachedShowsTheDisclosureAndLoadsNothingUntilTheUserAgrees`.
+2. **Creating a Home asks nothing; I choose my country and search by name. Partial.** *Given* I am creating a Home, *then* no location, area, nearby, address
+   or postcode wording appears; *given* I open the Marketplace for the first time, *then* my country is preselected from the device region and I search
+   by typing a name.
+   `MarketplaceNearbyMerchantsNavigationTest.creatingAHomeNeverMentionsLocation`;
+   `MarketplaceAreaFlowTest.continueShowsTheCountryListWithTheRegionPreselected`, `typingShowsResultsWithTheirChainsAndNothingBeforeThat`.
+   Missing: no test asserts that the flow never asks the device for a position; it has no such code path, which is checked by reading, not by a test.
+3. **Results show their parent chain. Covered.** *Given* two places called Newport, *when* I search "newport", *then* each result shows its chain
+   so they can be told apart. `MarketplaceAreaViewModelTest.searchResultsCarryTheirChainText`;
+   `MarketplaceAreaFlowTest.typingShowsResultsWithTheirChainsAndNothingBeforeThat`.
+4. **Told first, and I can decline. Partial.** *Given* the names table is not on the device, *when* I open Nearby merchants, *then* I am told before any
+   request, and *when* I choose Not now, *then* nothing is sent; *when* I agree, *then* the only requests are reads of fixed chunk addresses.
+   `MarketplaceAreaFlowTest.theDisclosureComesFirstAndNotNowLeavesWithoutLoading`; `MarketplaceAreaViewModelTest.decliningNeverLoads`,
+   `notCachedShowsTheDisclosureAndLoadsNothingUntilTheUserAgrees`; `MarketplaceAreaAcceptanceTest.withNoLocationSetAndNotNowNothingIsRequestedFromTheNetwork`,
+   `onlyChunkReadsByAddressAreMadeAfterAgreeingAndATypedQueryIsNeverSent`. Missing: no test reads the wording to check it says who can see the
+   request and that my IP address is visible; there is no index shard to disclose yet (only the names table is fetched).
+5. **Choice before saving. Partial.** *Given* I chose Newport, *then* I see it and its neighbours, Newport ticked and locked, neighbours unticked
+   nearest first, at most ten until I ask for more, and nothing is saved until I confirm.
+   `MarketplaceAreaViewModelTest.choosingAHomeShowsNearbyWithTheHomeCountedAndNeighboursUnticked`, `theHomeLocalityCannotBeToggled`,
+   `onlyTheNearestTenAreShownUntilShowMore`, `confirmSavesTheHomeThenTheAreaAndShowsSaved`;
+   `MarketplaceAreaFlowTest.choosingAHomeShowsTheNearbyListWithTheHomeLocked`, `showMoreAppearsWhenThereAreMoreRowsAndRevealsThem`.
+   Not built yet: the merchant count per neighbour and the approximate download size (the list deliberately shows neither until the PII review).
+6. **What is saved. Covered.** *Given* I confirm Newport with two neighbours, *then* the Home holds the country, the locality id, the release and
+   the ticked localities, no cell, and no attribute is a position.
+   `MarketplaceAreaAcceptanceTest.whatIsSavedIsTheCountryTheLocalityTheReleaseAndTheAreaAndNoPosition`;
+   `RegistryHomeLocationRepositoryTest.aLocationRoundTrips`.
+7. **A postcode is never sent. Not built yet (postcode shortcut).** There is no postcode input. What holds today is only that no typed query is sent: the
+   only requests are chunk reads by fixed address and typing makes none.
+   `MarketplaceAreaAcceptanceTest.onlyChunkReadsByAddressAreMadeAfterAgreeingAndATypedQueryIsNeverSent` (a postcode-shaped query is typed and nothing is sent).
+8. **Latitude and longitude range. Not built yet.** It belongs to the later device-location shortcut; nothing takes a coordinate, so there is nothing to test.
+9. **Forgetting removes the location from my devices. Covered.** *Given* a location set on my phone and seen on my tablet, *when* I forget it on the
+   phone and the devices sync, *then* the tablet reads no location and the Home keeps nothing it did not have before.
+   `MarketplaceAreaAcceptanceTest.forgettingTheLocationOnOneDeviceRemovesItFromMyPairedDevice` (two real registries);
+   `RegistryHomeLocationRepositoryTest.clearRemovesTheLocationAndLeavesTheRest` and `MarketplaceAreaViewModelTest.forgetClearsTheRepositoryAndStartsAgainWithStateReset`;
+   `MarketplaceAreaFlowTest.forgetAsksFirstThenReturnsToTheStart` (the confirmation). Not run on a device or a real mesh.
+10. **Requests appear in sync activity. Not built yet.** The pack download is not recorded as a sync event, so there is no list entry with its host
+    and what was asked for.
+11. **Same point, same cell, on desktop and Android. Not built yet.** No H3 library is chosen and no cell is computed; `cell` stays empty.
