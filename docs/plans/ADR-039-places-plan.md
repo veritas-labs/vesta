@@ -3,7 +3,7 @@
 Written 2026-10-21 as the follow-on to [the area-picker plan](ADR-039-marketplace-location-plan.md) (its WP8b). The picker is built and
 was walked by hand on desktop against the devnet (country, home locality, neighbours all worked on real data). Its last screen says
 "Nearby merchants will appear here once business data is available." This plan builds the data and the list behind that sentence.
-**Status: WP-P0 to WP-P5 done (2026-10-21); P6 onward not started.** WP-P5: Businesses step in the area flow (`AreaBusinesses*` screens, `AreaStep.Businesses*`, `placesSource` in `MarketplaceAreaViewModel`); the businesses paragraph in the disclosure is a DRAFT awaiting the user's sign-off. WP-P3: `PlacesPackSource`, `AutonomiPlacesPackSource`, `UnavailablePlacesPackSource`, `placesPackConfig()`, `createPlacesPackSource()`; `placesPackSource` is threaded through `VestaApp`, `App` and `HomeContent` (no UI yet). WP-P4: `AreaPlan`, `NearbyBusinesses.summarise`/`list`/`groupsWithCounts` in `...location/NearbyBusinesses.kt` (pure; `LocalityDirectory.rowOf`/`idOf` added); real GB check: biggest area (Queen's Park, 74,300 places) filters+sorts in about 75 ms. WP-P2: `PlacesRoot`, `PlacesDirectory`, `PlaceUnit`, `CategoryTable` in `...location`, checked against the real pack (22,093 rows, 1,649,461 inside, 1,124,119 nearby, 17,559 localities, 1,778 categories, 14 groups). WP-P1 refinements: places are re-extracted from release 2026-09-23.1; each locality has two groups, `inside` then `nearby` (flag on every directory range), so the client can show both counts and fetch inside first; zlib is per chunk; the root `VGP1` is a plain list (381 chunks, one root chunk); the pointer lives in `places.key`. Formats and the run are in `scripts/gers-index/README.md` (Places).
+**Status: WP-P0 to WP-P6 done (2026-10-21); P7 is the not-planned later list.** WP-P6: acceptance criteria in `docs/testing/acceptance-tests.md` (Marketplace businesses), `MarketplaceBusinessesAcceptanceTest`, ADR-039 "As built" places subsection and open decision 7 closed; the by-hand run below has not been done. WP-P5: Businesses step in the area flow (`AreaBusinesses*` screens, `AreaStep.Businesses*`, `placesSource` in `MarketplaceAreaViewModel`); the businesses paragraph in the disclosure is a DRAFT awaiting the user's sign-off. WP-P3: `PlacesPackSource`, `AutonomiPlacesPackSource`, `UnavailablePlacesPackSource`, `placesPackConfig()`, `createPlacesPackSource()`; `placesPackSource` is threaded through `VestaApp`, `App` and `HomeContent` (no UI yet). WP-P4: `AreaPlan`, `NearbyBusinesses.summarise`/`list`/`groupsWithCounts` in `...location/NearbyBusinesses.kt` (pure; `LocalityDirectory.rowOf`/`idOf` added); real GB check: biggest area (Queen's Park, 74,300 places) filters+sorts in about 75 ms. WP-P2: `PlacesRoot`, `PlacesDirectory`, `PlaceUnit`, `CategoryTable` in `...location`, checked against the real pack (22,093 rows, 1,649,461 inside, 1,124,119 nearby, 17,559 localities, 1,778 categories, 14 groups). WP-P1 refinements: places are re-extracted from release 2026-09-23.1; each locality has two groups, `inside` then `nearby` (flag on every directory range), so the client can show both counts and fetch inside first; zlib is per chunk; the root `VGP1` is a plain list (381 chunks, one root chunk); the pointer lives in `places.key`. Formats and the run are in `scripts/gers-index/README.md` (Places).
 
 **Scope of this plan: the devnet only.** The data is uploaded to the local devnet, never to mainnet. The PII legal review
 (ADR-039 decision 5) and the Overture `places` licence check therefore do **not** block it, but they **do** block any mainnet
@@ -122,6 +122,21 @@ Sync-activity entry for places fetches (needs the picker's WP8 first); merchant 
 directory already holds them, so this is small once P2 lands); other countries (needs the top-down builder); mainnet upload (legal
 review, licence check, real wallet, cost sign-off); Android/iOS (embedded client has no chunk-by-address path yet); BLAKE3
 verification of data chunks (the places pack makes the missing check matter more, since it is about 400 chunks).
+
+## By-hand run (desktop, devnet)
+
+1. Start the devnet if it is not running (`scripts/gers-index/README.md`, "Starting devnet"); a restarted devnet is empty, so re-run `build`
+   and `places` first (chunk addresses are unchanged, so the roots below stay valid).
+2. Start a second antd on REST port 18099 (the same command as in the area plan's WP7: `XDG_DATA_HOME=<scratch> ANTD_GRPC_PORT=0 antd
+   --network local --peers <the manifest's bootstrap list> --rest-port 18099`).
+3. Run the app:
+   `VESTA_ANTD_PORT=18099 VESTA_LOCALITY_ROOT=926c6fc377dd9cddede73afcdd6e1622a30aef30561860c251dc3fe8950eff3f VESTA_PLACES_ROOT=99c58d969179a6a5b8f4542bb525280b4cfa15463def8d51f2cebda5295286e0 ./gradlew :desktopApp:run`
+4. Click: a Home, Marketplace, Nearby merchants, Continue on the disclosure, choose GB and a locality (try a town near the real home), Save,
+   then See businesses. Check: the summary shows inside and just-outside counts and sizes before any download; a big area asks
+   "This will download about N MB"; Not now fetches nothing; the toggle changes the size; the list is nearest first with
+   "category, distance away" and no "in"; search and a category chip narrow it; Cancel mid-download returns to the summary; Forget
+   area drops the list.
+5. Quit, stop the second antd, start the app again with the same variables: See businesses still lists the area from the cache.
 
 ## Verification
 

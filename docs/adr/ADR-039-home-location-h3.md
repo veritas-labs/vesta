@@ -399,13 +399,14 @@ must not count a contained locality as a neighbour.
    root-and-shards layout rather than one file.
 5. **Visibility to members** (see 4 above).
 6. **Default resolution.** 8 is the working default. 9 is closer to the earlier "1 km rounding"; coarser reveals less.
-7. **Businesses.** Whether to offer a business list at all, and from where. Blocked on the legal review in section 5 and the
-   Overture licence check. If it goes ahead: chunk target (256-512 KiB working choice), who pays for the near-full
-   re-upload each release (place data changes constantly, so tiles do not dedupe the way divisions do), and a name or
-   category search index, which is not designed.
-   Also **where the other half of places go**: about 49% of GB places sit inside no locality polygon (see the locality-only
-   spike section). Options: assign to the nearest locality (point or polygon), use the point-only localities, or accept
-   that rural businesses are found only through larger areas.
+7. **Businesses. Closed 2026-10-21 for the devnet** (decisions in [the places plan](../plans/ADR-039-places-plan.md), measured in
+   "Places measurements"): a place belongs to its smallest containing locality; places outside every polygon go to the nearest
+   polygon locality within 5 km (85.7% of GB placed), and are labelled by distance only, never "in"; the unit of fetch is a locality's
+   places in at most 256 KiB chunks with per-chunk zlib; there are two groups per locality, inside and nearby, so the client can show
+   both counts and fetch inside first; categories are a table plus the 13 top-level groups; the fetch is preceded by a size
+   confirmation over 1 MiB; contact fields are never extracted; the disclosure names businesses. **Still open for mainnet:** the
+   legal review in section 5, the Overture `places` licence check, and who pays for a near-full upload each release. A name or
+   category search index beyond the in-memory filter is not designed.
 
 ## Acceptance criteria
 
@@ -474,3 +475,30 @@ only under Compose UI tests; Android and iOS show "not available on this device 
   places directory), and everything about the business list itself (gated on the legal review).
 - **Unrelated failure seen:** `EmptyStateIllustrationsTest.aDayWithNoEventsShowsTheQuietDayPicture` fails on `main` without these
   changes; the area tests are not the cause.
+
+### Places (ADR-039 places plan, WP-P0 to WP-P6; desktop and devnet only)
+
+The business list behind the Saved card's "See businesses". UI under Compose tests only; **not run in the real app**.
+
+- **Formats** (byte layouts in `scripts/gers-index/gers_index.py` docstrings): root `VGP1` (raw; locality release, country, directory and category
+  addresses, list of data chunk addresses; 381 chunks, so one root chunk), directory `VGP2` (zlib; per data chunk compressed size, per names-table
+  row its ranges as chunk, offset, length and count with a nearby flag), categories `VGC1` (zlib; groups, categories, group per category), data
+  `VGD1` (zlib per chunk, 256 KiB max; units of at most 2,000 places, columnar). The pointer is in `places.key`. Config is `VESTA_PLACES_ROOT`.
+- **Inside and nearby are separate groups** of each locality, flagged on every directory range. Why: nearest-with-cap piles urban gaps onto small
+  localities. Queen's Park has 74,300 places of which 74,050 are outside its polygon (median 3.9 km), about 2.1 MB; showing "250 inside, 74,050
+  just outside" with a toggle (default off over 1 MiB) is honest and cheap, and nearby rows are never described as "in".
+- **Cap 5 km, measured:** 2,773,580 of 3,235,716 GB places placed (inside 1,649,461 = 51.0%, nearby 1,124,119, total 85.7%); 462,136 left out
+  and counted. 17,559 localities have places; 381 chunks, 89.8 MB; directory 133 KB.
+- **Two-group fetch and size gate:** the directory alone gives counts and bytes, so the summary shows both before any data chunk is fetched; over
+  1 MiB the chosen size is confirmed first (declining fetches nothing); the source fetches only the chunks the chosen groups need, nearest
+  first, caches each after it decodes (`~/.vesta/places-cache`), and returns a partial result with a failed-chunk count (banner and Try again).
+- **Devnet only.** The builder refuses any non-devnet network. Last run (README "Last run"): root `99c58d969179a6a5b8f4542bb525280b4cfa15463def8d51f2cebda5295286e0`,
+  directory `675e97cabf045c7cc0c7e456c0481394d9cd21139c23545a0ac8eeff6488592c`, categories `11a6368138157ed4231039dfd5917baa24e3a7d49754c90b39274d0644b0388e`,
+  places pointer `b25531634e901256a8cc7f26076d12a87556fad956bcbd5044dcc01ee9f1cbaa`, built against locality root `926c6fc377dd9cddede73afcdd6e1622a30aef30561860c251dc3fe8950eff3f`.
+  A restarted devnet is empty and needs `places` re-run.
+- **Not done:** BLAKE3 verification of data chunks (about 400 chunks make the missing check matter more); an entry in Sync activity; **mainnet
+  upload**, gated on the legal review (section 5) and the Overture licence check; countries other than GB; Android and iOS (the embedded client
+  has no chunk-by-address path); merchant counts inside the picker's neighbour list; claiming a listing and the ADR-026 link (rows are Overture
+  businesses, not registered merchants); the **businesses paragraph of the disclosure is a draft awaiting the user's sign-off**; 177,874 placed
+  places have no category (shown under the group "Other"); forgetting an area does not clear the on-disk places cache.
+- Acceptance criteria: `docs/testing/acceptance-tests.md`, "Marketplace businesses (ADR-039 places)", backed by `MarketplaceBusinessesAcceptanceTest`.

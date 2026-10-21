@@ -265,3 +265,53 @@ criteria run the real `AutonomiLocalityPackSource` over a recording client; the 
 10. **Requests appear in sync activity. Not built yet.** The pack download is not recorded as a sync event, so there is no list entry with its host
     and what was asked for.
 11. **Same point, same cell, on desktop and Android. Not built yet.** No H3 library is chosen and no cell is computed; `cell` stays empty.
+
+## Marketplace businesses (ADR-039 places)
+
+Criteria from [the places plan](../plans/ADR-039-places-plan.md) and [ADR-039](../adr/ADR-039-home-location-h3.md), as built for "See businesses" after the area is saved.
+The screens are driven in Compose UI tests over fake sources (`AreaFakePlaces`, `AreaFakeSource`); the cache and network behaviour of the real places source is
+proved separately in `AutonomiPlacesPackSourceTest` over a recording client. Backing tests are in `MarketplaceBusinessesAcceptanceTest` unless another class is named.
+Status is **covered**, **partial** (what is missing is said) or **not built yet**. Not covered by any automated test: the screens on a real desktop window against
+the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainnet.
+
+1. **Size and counts are shown before any data chunk is fetched. Covered.** *Given* a saved area, *when* I open See businesses and the data is over 1 MiB, *then* I
+   see the count and size inside my places and the count just outside them separately, and the size of both together, and no data chunk has been fetched.
+   `sizeAndCountsAreShownBeforeAnyDataChunkIsFetched`; `MarketplaceAreaBusinessesViewModelTest.theSummaryReportsInsideAndNearbyCountsAndSizesWithoutFetching`.
+2. **Declining the download fetches nothing. Covered.** *Given* "This will download about 2.5 MB. Download?", *when* I choose Not now, *then* nothing is fetched
+   and I am back on the summary. `decliningTheDownloadFetchesNothing`; `MarketplaceAreaBusinessesViewModelTest.decliningTheSizeConfirmationFetchesNothing`.
+3. **A small area fetches without asking. Covered.** *Given* an area under 1 MiB, *when* I open See businesses, *then* the list appears straight away with no
+   confirmation. `aSmallAreaFetchesWithoutAsking`; `MarketplaceAreaBusinessesViewModelTest.underOneMiBDownloadsWithoutAsking`.
+4. **The just-outside toggle changes the size. Covered.** *Given* the summary with the toggle off (inside places only), *when* I turn it on, *then* the
+   size I am asked to confirm is the larger one, and only on confirming is it fetched, with the just-outside places included.
+   `theJustOutsideToggleChangesTheSizeThatIsConfirmedAndFetched`; `MarketplaceAreaBusinessesViewModelTest.theToggleUpdatesTheChosenSizeAndCount`,
+   `theToggleDefaultsOffWhenTheNearbyDownloadIsOverOneMiB`.
+5. **The list is sorted nearest first. Covered.** *Given* the list, *then* rows run from nearest to farthest from my home locality's centre (not from the
+   device), ties by name. `theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn` (order on screen);
+   `NearbyBusinessesTest.sortsByDistanceThenNameThenId`.
+6. **Nearby rows are never labelled "in". Covered.** *Given* a business just outside my places, *then* its row shows its category and distance ("Pub, 1.2 km
+   away") and never says it is in a locality. `theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn`. Wording only: the rule that decides which
+   places are "nearby" is the builder's (README, Places).
+7. **Search and group filter. Covered.** *Given* the list, *when* I type a name and choose a category group, *then* only matching rows remain, an empty result
+   says so, and All brings them back. `searchAndGroupFilterNarrowTheList`; `MarketplaceAreaBusinessesViewModelTest.searchNarrowsTheListAndNearbyRowsAreFlagged`,
+   `aGroupFilterKeepsOnlyThatGroupAndAllClearsIt`, `theListPagesByFifty`.
+8. **Cancel keeps what was cached and returns to the summary. Partial.** *Given* a fetch in progress, *when* I press Cancel, *then* the fetch stops, I am on
+   the summary, and chunks already stored stay on the device. `cancellingKeepsWhatWasCachedAndReturnsToTheSummary` proves the stop and the return; the cache
+   keeping its chunks is proved at the source (`AutonomiPlacesPackSourceTest.aFailingChunkGivesAPartialResultAndTheOtherChunkIsCached`), not through the screen.
+9. **A partial failure shows a banner with Try again. Covered.** *Given* one chunk fails, *then* the list shows what loaded, with "Some data could not be
+   loaded." and Try again, which fetches again. `aPartialFailureShowsTheBannerWithTryAgain`;
+   `MarketplaceAreaBusinessesFlowTest.totalFailureShowsUnreachableWithTryAgain` (nothing loaded).
+10. **Forgetting the area leaves the list and drops the results. Covered.** *Given* I have seen the list, *when* I forget the area, *then* the list is gone,
+    the results are dropped and the location is removed. `forgettingTheAreaLeavesTheListAndDropsTheResults`;
+    `MarketplaceAreaBusinessesViewModelTest.forgettingTheAreaLeavesTheStepAndDropsTheResults`. The downloaded chunks stay in the on-disk cache; forgetting
+    does not clear it.
+11. **A second open after one fetch makes no network calls. Partial.** *Given* I fetched an area once, *when* I open it again with the network gone, *then* the
+    list comes from the cache. Proved at the source: `AutonomiPlacesPackSourceTest.aSecondFetchMakesNoClientCalls`, `aSecondLoadMakesNoClientCalls`,
+    `loadsOfflineFromTheCache`. Missing: no test drives the screens over the real source twice; the fakes have no cache. Also by hand (plan, By-hand run).
+12. **No places request before the disclosure is accepted. Covered.** *Given* nothing is on the device, *when* I open See businesses, *then* the disclosure
+    (which mentions businesses) shows first and, on Not now, neither the names nor the places source is loaded or fetched.
+    `noPlacesRequestIsMadeBeforeTheDisclosureIsAccepted`; `MarketplaceAreaBusinessesFlowTest.theDisclosureMentionsBusinessesAndNothingIsFetchedBeforeContinue`;
+    `MarketplaceAreaBusinessesViewModelTest.nothingIsRequestedBeforeTheDisclosureIsAccepted`, `decliningTheDisclosureRequestsNothing`.
+    The disclosure's businesses paragraph is a draft awaiting the user's sign-off.
+13. **Places are verified against their address. Not built yet.** The BLAKE3 content-address check is not implemented (as for the locality pack); a hostile node
+    could serve wrong data that still decodes.
+14. **Fetches appear in Sync activity. Not built yet.** Same as criterion 10 of the section above.
