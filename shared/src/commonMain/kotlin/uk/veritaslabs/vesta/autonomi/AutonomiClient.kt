@@ -18,6 +18,18 @@ interface AutonomiClient {
 
     /** Current connection status, or null when unreachable/not yet connected. */
     suspend fun connectionStatus(): AutonomiStatus?
+
+    /** Whether [chunkGet] can work on this platform at all (false where there is no daemon and no embedded client). */
+    val supportsChunks: Boolean
+
+    /** The content of the chunk at [addressHex] (64 hex characters), or null when it is not found or unreachable. */
+    suspend fun chunkGet(addressHex: String): ByteArray?
+
+    /**
+     * Where the pointer at [addressHex] currently ends, as the hex address of its target, or null when it is not
+     * found, unreachable or the daemon has no pointer API (antd 0.15.0 has none).
+     */
+    suspend fun pointerResolve(addressHex: String): String?
 }
 
 expect fun createAutonomiClient(): AutonomiClient

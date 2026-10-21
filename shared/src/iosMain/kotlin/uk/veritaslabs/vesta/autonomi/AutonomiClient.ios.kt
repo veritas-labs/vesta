@@ -11,6 +11,9 @@ package uk.veritaslabs.vesta.autonomi
 private class UnsupportedAutonomiClient : AutonomiClient {
     override val endpoint: String = "not yet supported on iOS"
     override suspend fun connectionStatus(): AutonomiStatus? = null
+    override val supportsChunks: Boolean = false
+    override suspend fun chunkGet(addressHex: String): ByteArray? = null
+    override suspend fun pointerResolve(addressHex: String): String? = null
 }
 
 actual fun createAutonomiClient(): AutonomiClient = UnsupportedAutonomiClient()
