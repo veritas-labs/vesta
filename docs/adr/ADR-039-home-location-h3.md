@@ -217,6 +217,44 @@ touching neighbours (a tolerance of about 100 m). The polygon join took about 6 
   locality, need deciding (open decision 7).
 - Not re-run for locality only: the places units and chunk sizes (2,785 units, 508 chunks).
 
+### Places measurements (2026-10-21)
+
+WP-P0 of [the places plan](../plans/ADR-039-places-plan.md), desktop, DuckDB over the scratch parquet (3,235,716 GB places, 21,931
+locality polygons, names table of 22,093 rows); script `scripts/gers-index/measure_places.py`. Containment is exact (smallest
+polygon wins); "near" is the nearest polygon locality by distance in metres (EPSG:27700). Nothing was uploaded.
+
+| Question | Result |
+|---|---|
+| (a) inside a locality polygon | 1,649,461 (51.0%) |
+| (a) outside, within 1 / 2 / 5 / 10 / 25 km of a polygon | +282,374 / +604,046 / +1,124,119 / +1,508,728 / +1,573,891 (cumulative placed 59.7% / 69.6% / **85.7%** / 97.6% / 99.6%) |
+| (a) distance of the outside places | median 2.8 km, p90 7.9 km, p95 9.5 km |
+| **Recommended cap** | **5 km** (2,773,580 places placed, 462,136 left out of v1) |
+| (b) places per locality at 5 km (17,561 localities have any; 4,532 of 22,093 rows have none) | median 20, p90 281, p99 2,494, max 74,300 |
+| (b) same at 0 / 2 / 10 / 25 km: median, p90, p99, max | 19, 196, 1,265, 23,479 / 20, 271, 1,955, 23,480 / 20, 285, 2,609, 125,743 / 20, 291, 2,642, 125,743 |
+| (c) zlib on a 879-locality sample (43.0 B/place raw, ids 16 B) | per-unit 0.761 of raw, one stream 0.744: per-unit is **2.3% larger** |
+| (c)/(d) total at 5 km, per-chunk zlib | 410 chunks, 88.5 MB (84.4 MiB), mean 216 KB, max 256,413 B (limit 262,144) |
+| (d) per-unit zlib, same packing | 396 chunks, 91.3 MB (87.0 MiB) |
+| (d) directory (`VGP2`) / root chunk list | 155 KB raw, 117 KB zlib / 410 x 32 B = 13 KB |
+| chunks touched by one locality | 17,543 of 17,561 touch one chunk; max 10 |
+| home + its 10 nearest localities (300 random homes) | distinct chunks median 2, p90 3, max 7 |
+| (e) ids found in Overture 2026-09-23.1 | 3,027,618 of 3,235,716 (93.6%); **all** of those have `taxonomy.hierarchy` (depth 1: 109,566; 2: 530,095; 3: 1,435,494; 4: 812,457; 5: 125,542; 6: 14,464). `hierarchy[0]` always agrees with the primary category |
+| (e) top-level groups (13) | services_and_business 938,999; shopping 547,737; food_and_drink 317,371; lifestyle_services 241,282; travel_and_transportation 194,365; sports_and_recreation 150,927; health_care 126,997; education 125,089; community_and_government 109,845; cultural_and_historic 88,988; lodging 87,067; arts_and_entertainment 73,761; geographic_entities 25,190 |
+| (f) largest localities (places at 5 km, chunks spanned) | Queen's Park 74,300 (10 chunks, about 2.1 MB fetched; 74,050 are outside it, median 3.9 km); Bellenden 42,253 (6); Springfield Village 28,986 (4); Bristol 23,480 (4, all inside); Morley 18,189 |
+
+What this means:
+
+- **Fetching is chunk-granular, not unit-granular.** A median locality is about 20 places (under 1 KB) but costs a whole chunk
+  of about 216 KB, so per-unit compression buys nothing and costs 2.3%: use per-chunk zlib. A home plus ten neighbours is
+  typically 2 chunks (about 430 KB), at most 7.
+- **Nearest-with-cap piles urban gaps onto one small locality.** The big units are not big cities; they are small polygons beside
+  an area that has no polygon (central London has none), so 47 localities get more than 5,000 places and 39 of those are mostly
+  outside places. Distance-only labels (plan decision 2) are therefore essential, and a smaller cap only shrinks it (at 2 km the
+  largest unit is 23,480 and the p99 is 1,955, but 604,046 fewer places are reachable); a per-locality limit or a
+  nearest-centroid rule is a decision for WP-P1.
+- **The pinned release lacks 6.4% of the scratch ids** (208,098; the parquet was extracted earlier), so WP-P1 must re-extract
+  from 2026-09-23.1 and all headline counts above will shift by that order. The hierarchy gives 13 usable groups.
+- Cost of the measurement: containment 8 s, nearest-distance 3.5 min, within the 12 GB DuckDB limit.
+
 ## Decision
 
 ### 0. When the location is captured: only by the Marketplace

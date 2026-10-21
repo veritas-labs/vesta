@@ -29,8 +29,8 @@ registered merchants (ADR-026); claiming a listing or adding one to the househol
 ## Decisions taken in this plan (fold back into ADR-039 open decision 7 when done)
 
 1. **A place belongs to its smallest containing locality** (ADR-039 decision 6), so nested localities never double-count.
-2. **Unassigned places (49%) go to the nearest polygon locality, within a cap.** Recommended cap 5 km, to be set by the WP-P0
-   measurement; beyond the cap the place is left out of v1 and counted in the builder's report. Reason: the area picker only
+2. **Unassigned places (49%) go to the nearest polygon locality, within a cap.** **Cap 5 km, measured by WP-P0**
+   (85.7% of places placed, median 20 and p99 2,494 per locality; see ADR-039 "Places measurements"); beyond the cap the place is left out of v1 and counted in the builder's report. Reason: the area picker only
    offers localities, so a place with no locality can never be reached; nearest-with-cap keeps villages without a polygon useful
    without attaching remote farms to a town. The list labels these rows by distance only, never "in <locality>".
 3. **Unit of fetch = a locality's places, split into spatial sub-units of at most 256 KiB** (ADR-039 chunk-size choice). A locality
