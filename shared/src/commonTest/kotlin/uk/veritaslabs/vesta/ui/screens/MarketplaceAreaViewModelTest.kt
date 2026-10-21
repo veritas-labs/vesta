@@ -25,39 +25,6 @@ import uk.veritaslabs.vesta.location.TinyPack.id
 @OptIn(ExperimentalCoroutinesApi::class)
 class MarketplaceAreaViewModelTest {
 
-    private class FakeSource(
-        var cached: Boolean = false,
-        var preflightResult: LocalityPackState? = null,
-        var loadResult: LocalityPackState = ready(),
-    ) : LocalityPackSource {
-        var loadCalls = 0
-        override suspend fun isCachedLocally() = cached
-        override suspend fun preflight() = preflightResult
-        override suspend fun load(): LocalityPackState {
-            loadCalls++
-            return loadResult
-        }
-    }
-
-    private class FakeRepository(var location: HomeLocation? = null) : HomeLocationRepository {
-        val calls = mutableListOf<String>()
-        override suspend fun read(homeId: String) = location
-        override suspend fun setHome(homeId: String, country: String, localityId: String, release: String) {
-            calls += "setHome $country $localityId $release"
-            location = HomeLocation(country, localityId, release)
-        }
-
-        override suspend fun setArea(homeId: String, localityIds: Set<String>) {
-            calls += "setArea ${localityIds.sorted()}"
-            location = location?.copy(area = localityIds)
-        }
-
-        override suspend fun clear(homeId: String) {
-            calls += "clear"
-            location = null
-        }
-    }
-
     private val newport = id(3)
     private val shide = id(13)
     private val carisbrooke = id(7)
@@ -71,8 +38,8 @@ class MarketplaceAreaViewModelTest {
     }
 
     private fun TestScope.viewModel(
-        source: FakeSource = FakeSource(),
-        repository: FakeRepository = FakeRepository(),
+        source: AreaFakeSource = AreaFakeSource(),
+        repository: AreaFakeRepository = AreaFakeRepository(),
         region: String? = "GB",
     ): MarketplaceAreaViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
@@ -92,7 +59,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun notCachedShowsTheDisclosureAndLoadsNothingUntilTheUserAgrees() = runTest {
         // Arrange
-        val source = FakeSource(cached = false)
+        val source = AreaFakeSource(cached = false)
         val viewModel = viewModel(source)
 
         // Act
@@ -106,7 +73,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun agreeingLoadsOnceAndMovesToTheCountryStep() = runTest {
         // Arrange
-        val source = FakeSource(cached = false)
+        val source = AreaFakeSource(cached = false)
         val viewModel = viewModel(source)
         viewModel.start()
 
@@ -121,7 +88,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun anUnreachableDownloadIsUnavailableWithItsReason() = runTest {
         // Arrange
-        val source = FakeSource(loadResult = LocalityPackState.Unreachable("offline"))
+        val source = AreaFakeSource(loadResult = LocalityPackState.Unreachable("offline"))
         val viewModel = viewModel(source)
         viewModel.start()
 
@@ -135,7 +102,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun decliningNeverLoads() = runTest {
         // Arrange
-        val source = FakeSource(cached = false)
+        val source = AreaFakeSource(cached = false)
         val viewModel = viewModel(source)
         viewModel.start()
 
@@ -150,7 +117,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun anUnconfiguredPreflightIsUnavailableWithNoLoad() = runTest {
         // Arrange
-        val source = FakeSource(preflightResult = LocalityPackState.Unconfigured)
+        val source = AreaFakeSource(preflightResult = LocalityPackState.Unconfigured)
         val viewModel = viewModel(source)
 
         // Act
@@ -164,7 +131,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun aNotAvailablePreflightIsUnavailableWithNoLoad() = runTest {
         // Arrange
-        val source = FakeSource(preflightResult = LocalityPackState.NotAvailableOnDevice)
+        val source = AreaFakeSource(preflightResult = LocalityPackState.NotAvailableOnDevice)
         val viewModel = viewModel(source)
 
         // Act
@@ -178,7 +145,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun cachedGoesStraightToCountryWithoutTheDisclosure() = runTest {
         // Arrange
-        val source = FakeSource(cached = true)
+        val source = AreaFakeSource(cached = true)
         val viewModel = viewModel(source)
 
         // Act
@@ -192,7 +159,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun theRootsCountryIsOfferedAndPreselectedWhenTheRegionMatches() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true), region = "gb")
+        val viewModel = viewModel(AreaFakeSource(cached = true), region = "gb")
 
         // Act
         viewModel.start()
@@ -206,7 +173,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun aRegionTheRootDoesNotOfferPreselectsNothingAndContinueDoesNothing() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true), region = "US")
+        val viewModel = viewModel(AreaFakeSource(cached = true), region = "US")
         viewModel.start()
 
         // Act
@@ -220,7 +187,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun aNullRegionPreselectsNothingButTheOfferedCountryCanBeSelected() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true), region = null)
+        val viewModel = viewModel(AreaFakeSource(cached = true), region = null)
         viewModel.start()
 
         // Act
@@ -253,7 +220,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun searchResultsCarryTheirChainText() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.start()
         viewModel.selectCountry("GB")
         viewModel.continueFromCountry()
@@ -271,7 +238,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun aBlankQueryHasNoResultsAndIsNotANoMatch() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.start()
 
         // Act
@@ -285,7 +252,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun aQueryWithNoResultsIsANoMatch() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.start()
 
         // Act
@@ -299,7 +266,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun choosingAHomeShowsNearbyWithTheHomeCountedAndNeighboursUnticked() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
 
         // Act
         viewModel.toNearby()
@@ -317,7 +284,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun theHomeLocalityCannotBeToggled() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.toNearby()
 
         // Act
@@ -331,7 +298,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun togglingTicksAndUnticksANeighbourAndCounts() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.toNearby()
 
         // Act
@@ -348,7 +315,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun anIdThatIsNotOfferedCannotBeTicked() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.toNearby()
 
         // Act
@@ -361,7 +328,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun onlyTheNearestTenAreShownUntilShowMore() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true, loadResult = ready(big = true)))
+        val viewModel = viewModel(AreaFakeSource(cached = true, loadResult = areaReadyPack(big = true)))
 
         // Act
         viewModel.toNearby()
@@ -378,7 +345,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun nearbyFilterSearchesEveryCandidateEvenBeyondTheShownOnes() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true, loadResult = ready(big = true)))
+        val viewModel = viewModel(AreaFakeSource(cached = true, loadResult = areaReadyPack(big = true)))
         viewModel.toNearby()
         val first = viewModel.uiState.value
 
@@ -395,8 +362,8 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun confirmSavesTheHomeThenTheAreaAndShowsSaved() = runTest {
         // Arrange
-        val repository = FakeRepository()
-        val viewModel = viewModel(FakeSource(cached = true), repository)
+        val repository = AreaFakeRepository()
+        val viewModel = viewModel(AreaFakeSource(cached = true), repository)
         viewModel.toNearby()
         viewModel.toggle(cowes)
         viewModel.toggle(shide)
@@ -415,7 +382,7 @@ class MarketplaceAreaViewModelTest {
     fun startWithAStoredLocationAndACachedPackShowsSavedWithNames() = runTest {
         // Arrange
         val stored = HomeLocation("GB", newport, release, area = setOf(cowes, newport))
-        val viewModel = viewModel(FakeSource(cached = true), FakeRepository(stored))
+        val viewModel = viewModel(AreaFakeSource(cached = true), AreaFakeRepository(stored))
 
         // Act
         viewModel.start()
@@ -431,8 +398,8 @@ class MarketplaceAreaViewModelTest {
     fun startWithAStoredLocationAndNoCachedPackShowsSavedWithoutLoading() = runTest {
         // Arrange
         val stored = HomeLocation("GB", newport, release, area = setOf(cowes, shide))
-        val source = FakeSource(cached = false)
-        val viewModel = viewModel(source, FakeRepository(stored))
+        val source = AreaFakeSource(cached = false)
+        val viewModel = viewModel(source, AreaFakeRepository(stored))
 
         // Act
         viewModel.start()
@@ -446,7 +413,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun aStoredHomeAbsentFromThePackNeedsRechoosing() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true), FakeRepository(HomeLocation("GB", absent, "old")))
+        val viewModel = viewModel(AreaFakeSource(cached = true), AreaFakeRepository(HomeLocation("GB", absent, "old")))
 
         // Act
         viewModel.start()
@@ -458,7 +425,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun rechoosingStartsAgainAtTheCountryStep() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true), FakeRepository(HomeLocation("GB", absent, "old")))
+        val viewModel = viewModel(AreaFakeSource(cached = true), AreaFakeRepository(HomeLocation("GB", absent, "old")))
         viewModel.start()
 
         // Act
@@ -472,7 +439,7 @@ class MarketplaceAreaViewModelTest {
     fun editKeepsTheStoredChoicePreticked() = runTest {
         // Arrange
         val stored = HomeLocation("GB", newport, release, area = setOf(cowes))
-        val viewModel = viewModel(FakeSource(cached = true), FakeRepository(stored))
+        val viewModel = viewModel(AreaFakeSource(cached = true), AreaFakeRepository(stored))
         viewModel.start()
 
         // Act
@@ -492,7 +459,7 @@ class MarketplaceAreaViewModelTest {
     fun choosingADifferentHomeWhileEditingStartsWithNoTicks() = runTest {
         // Arrange
         val stored = HomeLocation("GB", newport, release, area = setOf(cowes))
-        val viewModel = viewModel(FakeSource(cached = true), FakeRepository(stored))
+        val viewModel = viewModel(AreaFakeSource(cached = true), AreaFakeRepository(stored))
         viewModel.start()
         viewModel.edit()
 
@@ -507,8 +474,8 @@ class MarketplaceAreaViewModelTest {
     fun editingWithoutACachedPackAsksFirstAndLoadsOnlyAfterAgreeing() = runTest {
         // Arrange
         val stored = HomeLocation("GB", newport, release, area = setOf(cowes))
-        val source = FakeSource(cached = false)
-        val viewModel = viewModel(source, FakeRepository(stored))
+        val source = AreaFakeSource(cached = false)
+        val viewModel = viewModel(source, AreaFakeRepository(stored))
         viewModel.start()
 
         // Act
@@ -527,8 +494,8 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun editingWithoutACachedPackThenDecliningLoadsNothing() = runTest {
         // Arrange
-        val source = FakeSource(cached = false)
-        val viewModel = viewModel(source, FakeRepository(HomeLocation("GB", newport, release)))
+        val source = AreaFakeSource(cached = false)
+        val viewModel = viewModel(source, AreaFakeRepository(HomeLocation("GB", newport, release)))
         viewModel.start()
         viewModel.edit()
 
@@ -543,7 +510,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun backFromNearbyKeepsWhatWasTypedAndTicked() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.start()
         viewModel.selectCountry("GB")
         viewModel.continueFromCountry()
@@ -568,7 +535,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun backFromTheHomeLocalityStepWithNothingStoredGoesToCountryAndFromThereLeaves() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true))
+        val viewModel = viewModel(AreaFakeSource(cached = true))
         viewModel.start()
         viewModel.selectCountry("GB")
         viewModel.continueFromCountry()
@@ -587,7 +554,7 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun backFromEditingReturnsToSaved() = runTest {
         // Arrange
-        val viewModel = viewModel(FakeSource(cached = true), FakeRepository(HomeLocation("GB", newport, release)))
+        val viewModel = viewModel(AreaFakeSource(cached = true), AreaFakeRepository(HomeLocation("GB", newport, release)))
         viewModel.start()
         viewModel.edit()
 
@@ -602,8 +569,8 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun forgetClearsTheRepositoryAndStartsAgainWithStateReset() = runTest {
         // Arrange
-        val repository = FakeRepository(HomeLocation("GB", newport, release, area = setOf(cowes)))
-        val viewModel = viewModel(FakeSource(cached = true), repository)
+        val repository = AreaFakeRepository(HomeLocation("GB", newport, release, area = setOf(cowes)))
+        val viewModel = viewModel(AreaFakeSource(cached = true), repository)
         viewModel.start()
         viewModel.edit()
         viewModel.setQuery("newport")
@@ -624,8 +591,8 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun forgetWithTheDataNotCachedReturnsToTheDisclosureWithoutLoading() = runTest {
         // Arrange
-        val source = FakeSource(cached = false)
-        val viewModel = viewModel(source, FakeRepository(HomeLocation("GB", newport, release)))
+        val source = AreaFakeSource(cached = false)
+        val viewModel = viewModel(source, AreaFakeRepository(HomeLocation("GB", newport, release)))
         viewModel.start()
 
         // Act
@@ -639,8 +606,8 @@ class MarketplaceAreaViewModelTest {
     @Test
     fun aFailedLoadOnEditIsUnavailable() = runTest {
         // Arrange
-        val source = FakeSource(cached = true, loadResult = LocalityPackState.Unreachable("gone"))
-        val viewModel = viewModel(source, FakeRepository(HomeLocation("GB", newport, release)))
+        val source = AreaFakeSource(cached = true, loadResult = LocalityPackState.Unreachable("gone"))
+        val viewModel = viewModel(source, AreaFakeRepository(HomeLocation("GB", newport, release)))
         viewModel.start()
 
         // Act
@@ -648,18 +615,5 @@ class MarketplaceAreaViewModelTest {
 
         // Assert
         assertEquals(AreaStep.Unavailable(AreaUnavailable.Unreachable("gone")), viewModel.step)
-    }
-
-    companion object {
-        /** The tiny pack, or with [big] one where Newport has fifteen nearby places, the farthest named "Far Away". */
-        fun ready(big: Boolean = false): LocalityPackState.Ready {
-            val root = LocalityRoot.parse(TinyPack.rootChunk())
-            if (!big) return LocalityPackState.Ready(root, TinyPack.pack())
-            val extra = (0 until 9).map { TinyPack.Spec("Extra $it", "locality", 2, 50.60 + it * 0.001, -1.2) } +
-                TinyPack.Spec("Far Away", "locality", 2, 50.0, -1.0)
-            val specs = TinyPack.specs + extra
-            val edges = TinyPack.edges + extra.indices.map { 3 to TinyPack.specs.size + it }
-            return LocalityPackState.Ready(root, TinyPack.pack(specs, edges))
-        }
     }
 }

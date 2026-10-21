@@ -990,4 +990,62 @@
     <string name="sync_activity_detail_synced">Last synced</string>
     <string name="sync_activity_detail_retrying">Retrying for %1$s</string>
     <string name="sync_activity_detail_show_activity">Show activity for this device</string>
+
+    <!-- Marketplace area picker (ADR-039) -->
+    <string name="area_title">Your area</string>
+    <string name="area_loading">Loading location data</string>
+    <string name="area_disclosure_title">Load location data?</string>
+    <string name="area_disclosure_who">To search by place, Vesta fetches a small data file of this country's localities from the Autonomi network. The Autonomi nodes that serve the data, and anyone watching them, can see your device's IP address.</string>
+    <string name="area_disclosure_what">The request names the country's data, not your locality, so nobody learns where you are from it.</string>
+    <string name="area_disclosure_size">The download is about 0.6 MB and is kept on this device.</string>
+    <string name="area_disclosure_private">Your area is stored on your devices only.</string>
+    <string name="area_disclosure_continue">Continue</string>
+    <string name="area_disclosure_not_now">Not now</string>
+    <string name="area_unavailable_unconfigured">Location data is not set up on this device</string>
+    <string name="area_unavailable_not_on_device">Not available on this device yet</string>
+    <string name="area_unavailable_unreachable">Couldn't load the location data</string>
+    <string name="area_unavailable_try_again">Try again</string>
+    <string name="area_country_title">Choose a country</string>
+    <string name="area_country_continue">Continue</string>
+    <string name="area_country_more_coming">More countries are coming</string>
+    <string name="area_home_title">Where is your home?</string>
+    <string name="area_home_search_label">Search for your town or village</string>
+    <string name="area_home_hint">Type the name of your town, village or neighbourhood.</string>
+    <string name="area_home_no_match">No match</string>
+    <string name="area_home_keep">Keep this place (%1$s)</string>
+    <string name="area_home_clear_search">Clear search</string>
+    <string name="area_nearby_title">Nearby places</string>
+    <string name="area_nearby_prompt">Also search nearby places</string>
+    <string name="area_nearby_search_label">Search nearby places</string>
+    <string name="area_nearby_home_locked">%1$s (your home)</string>
+    <string name="area_nearby_next_door">Next door</string>
+    <string name="area_nearby_inside">Inside %1$s</string>
+    <string name="area_nearby_contains">Contains %1$s</string>
+    <string name="area_nearby_distance_km">%1$s km</string>
+    <string name="area_nearby_distance_m">%1$d m</string>
+    <string name="area_nearby_relation_distance">%1$s, %2$s</string>
+    <string name="area_nearby_show_more">Show more</string>
+    <string name="area_nearby_no_match">No nearby place matches</string>
+    <plurals name="area_nearby_save">
+        <item quantity="one">Save (%1$d place)</item>
+        <item quantity="other">Save (%1$d places)</item>
+    </plurals>
+    <plurals name="area_nearby_ticked">
+        <item quantity="one">%1$d place ticked</item>
+        <item quantity="other">%1$d places ticked</item>
+    </plurals>
+    <string name="area_saved_title">Your area</string>
+    <string name="area_saved_set">Your area is set</string>
+    <plurals name="area_saved_searching">
+        <item quantity="one">Searching in %1$s and %2$d nearby place</item>
+        <item quantity="other">Searching in %1$s and %2$d nearby places</item>
+    </plurals>
+    <string name="area_saved_searching_alone">Searching in %1$s</string>
+    <string name="area_saved_change">Change</string>
+    <string name="area_saved_forget">Forget</string>
+    <string name="area_saved_forget_title">Forget your area?</string>
+    <string name="area_saved_forget_body">Vesta will stop using it to find places near you. You can choose it again at any time.</string>
+    <string name="area_rechoose_title">Your area needs choosing again</string>
+    <string name="area_rechoose_body">The location data has been updated and your place is no longer in it.</string>
+    <string name="area_rechoose_choose">Choose</string>
 </resources>
