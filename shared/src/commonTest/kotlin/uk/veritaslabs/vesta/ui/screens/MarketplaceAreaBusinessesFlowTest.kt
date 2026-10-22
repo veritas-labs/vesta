@@ -85,7 +85,7 @@ class MarketplaceAreaBusinessesFlowTest {
     }
 
     @Test
-    fun aSmallAreaGoesStraightToTheListWithDistancesAndNoInLabel() = runComposeUiTest {
+    fun aSmallAreaLandsOnTheGroupsScreenWithCounts() = runComposeUiTest {
         // Arrange
         show()
 
@@ -93,29 +93,68 @@ class MarketplaceAreaBusinessesFlowTest {
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
 
         // Assert
-        val nearbyPub = MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(8))
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesHeader).assertTextContains("businesses", substring = true)
-        onNodeWithTag(nearbyPub).assertIsDisplayed()
-        onNodeWithTag(nearbyPub).assertTextContains(", ", substring = true)
-        onNodeWithTag(nearbyPub).assertTextContains("Pub", substring = true)
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesBrowseSearch).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesAll).assertTextContains("9", substring = true)
+        onNodeWithTag(MarketplaceAreaTestTags.businessesGroup("food_and_drink")).assertTextContains("8", substring = true)
+        onNodeWithTag(MarketplaceAreaTestTags.businessesGroup("services")).assertIsDisplayed()
     }
 
     @Test
-    fun searchAndGroupChipsNarrowTheList() = runComposeUiTest {
+    fun aGroupOpensItsCategoriesAndACategoryOpensTheListWithLocalityHeadersAndNoInLabel() = runComposeUiTest {
         // Arrange
         show()
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
 
         // Act
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesSearchField).performTextInput("nearby")
+        tap(MarketplaceAreaTestTags.businessesGroup("food_and_drink"))
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesCategories).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesAllInGroup).assertTextContains("All Food and drink", substring = true)
+        tap(MarketplaceAreaTestTags.businessesCategory(2))
+
+        // Assert
+        val nearbyPub = MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(8))
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesListTitle).assertTextEquals("Pub")
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesHeader).assertTextContains("2 businesses", substring = true)
+        onNodeWithTag(nearbyPub).assertIsDisplayed()
+        onNodeWithTag(nearbyPub).assertTextContains("Pub, ", substring = true)
+        onNodeWithTag(MarketplaceAreaTestTags.businessesSection(7)).assertIsDisplayed()
+    }
+
+    @Test
+    fun theCategorySearchNarrowsTheCategoriesAndBackStepsUp() = runComposeUiTest {
+        // Arrange
+        show()
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.businessesGroup("food_and_drink"))
+
+        // Act
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesCategorySearch).performTextInput("zzz")
         waitForIdle()
 
         // Assert
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesCategoriesNoMatch).assertIsDisplayed()
+        tap(MarketplaceAreaTestTags.BackButton)
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
+    }
+
+    @Test
+    fun theTopLevelSearchRowOpensTheListAcrossAllBusinesses() = runComposeUiTest {
+        // Arrange
+        show()
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+
+        // Act
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesBrowseSearch).performTextInput("nearby")
+        waitForIdle()
+        tap(MarketplaceAreaTestTags.BusinessesSearchAll)
+
+        // Assert
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesListTitle).assertTextEquals("All businesses")
         onNodeWithTag(MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(8))).assertIsDisplayed()
-        tap(MarketplaceAreaTestTags.businessesGroup("services"))
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesSearchField).performTextInput("zzz")
+        waitForIdle()
         onNodeWithTag(MarketplaceAreaTestTags.BusinessesNoMatch).assertIsDisplayed()
-        tap(MarketplaceAreaTestTags.BusinessesGroupAll)
-        onNodeWithTag(MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(8))).assertIsDisplayed()
     }
 
     @Test
@@ -143,7 +182,7 @@ class MarketplaceAreaBusinessesFlowTest {
         tap(MarketplaceAreaTestTags.BusinessesDownload)
         tap(MarketplaceAreaTestTags.BusinessesConfirmDownload)
         assertEquals(1, places.fetchCalls)
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
     }
 
     @Test
@@ -171,6 +210,7 @@ class MarketplaceAreaBusinessesFlowTest {
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
 
         // Assert
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
         onNodeWithTag(MarketplaceAreaTestTags.BusinessesPartial).assertIsDisplayed()
         places.failedChunks = 0
         tap(MarketplaceAreaTestTags.BusinessesPartialRetry)
@@ -194,7 +234,7 @@ class MarketplaceAreaBusinessesFlowTest {
         places.failAll = false
         places.failedChunks = 0
         tap(MarketplaceAreaTestTags.BusinessesTryAgain)
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
     }
 
     @Test

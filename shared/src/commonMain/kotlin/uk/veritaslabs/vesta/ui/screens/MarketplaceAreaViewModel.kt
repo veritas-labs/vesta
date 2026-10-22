@@ -11,6 +11,9 @@ import kotlinx.coroutines.Job
 import uk.veritaslabs.vesta.location.AreaPlan
 import uk.veritaslabs.vesta.location.BusinessGroupCount
 import uk.veritaslabs.vesta.location.BusinessRow
+import uk.veritaslabs.vesta.location.BusinessSection
+import uk.veritaslabs.vesta.location.CategoryCount
+import uk.veritaslabs.vesta.location.foldForSearch
 import uk.veritaslabs.vesta.location.HomeLocation
 import uk.veritaslabs.vesta.location.HomeLocationRepository
 import uk.veritaslabs.vesta.location.LocalityDirectory
@@ -64,7 +67,13 @@ sealed interface AreaStep {
     /** Fetching the business data, with progress and Cancel. */
     data object BusinessesLoading : AreaStep
 
-    /** The businesses fetched, searchable; [AreaBusinessesState.partial] says some data is missing. */
+    /**
+     * Browsing the fetched businesses by trade: level one (groups) while [AreaBusinessesState.group] is null, level two
+     * (that group's categories) otherwise. [AreaBusinessesState.partial] says some data is missing.
+     */
+    data object BusinessesCategories : AreaStep
+
+    /** The businesses of one category, group or all, A to Z under locality headers; see [AreaBusinessesState.sections]. */
     data object BusinessesList : AreaStep
 
     /** Nothing could be loaded; offers Try again. */
@@ -112,18 +121,34 @@ data class AreaBusinessesState(
     val chunksDone: Int = 0,
     val chunksTotal: Int = 0,
     val bytesFetched: Long = 0,
-    /** The visible page of the list. */
+    /** The visible page of the list, flat. */
     val items: List<BusinessRow> = emptyList(),
-    /** Businesses matching the query and group, before paging. */
+    /** The same page under locality headers, home locality first; a split locality's header repeats on the next page. */
+    val sections: List<BusinessSection> = emptyList(),
+    /** Businesses matching the list's query, group and category, before paging. */
     val matching: Int = 0,
     val hasMore: Boolean = false,
-    /** Chips, most places first, the unknown group last. */
+    /** Level one: groups, most places first, the unknown group last. */
     val groups: List<BusinessGroupCount> = emptyList(),
-    /** Everything fetched, before the query and group. */
+    /** Level two: the open group's categories, most places first, narrowed by [categoryQuery]. */
+    val categories: List<CategoryCount> = emptyList(),
+    /** Everything fetched, before any query or group. */
     val loaded: Int = 0,
+    /** The list's own search. */
     val query: String = "",
-    /** A group key, or null for All. */
+    /** The search field on level one. */
+    val browseQuery: String = "",
+    /** The category search on level two. */
+    val categoryQuery: String = "",
+    /** The open group's key (level two, or the list narrowed to a group), or null for none / all. */
     val group: String? = null,
+    /** Display name of [group], for headers. */
+    val groupName: String = "",
+    /** Places in [group]. */
+    val groupCount: Int = 0,
+    /** The category the list is narrowed to (a category-table index), or null. */
+    val category: Int? = null,
+    val categoryName: String = "",
     /** Some chunks could not be fetched: the list is what loaded. */
     val partial: Boolean = false,
 ) {
@@ -221,6 +246,12 @@ class MarketplaceAreaViewModel(
     private var fetched: Map<Int, List<PlaceRecord>> = emptyMap()
     private var fetchJob: Job? = null
     private var businessesShown = NearbyBusinesses.PAGE_SIZE
+
+    /** The group whose categories screen the list was opened from (back returns there), or null when it came from level one. */
+    private var listParentGroup: String? = null
+
+    /** Every category of the open group, before [AreaBusinessesState.categoryQuery]. */
+    private var groupCategories: List<CategoryCount> = emptyList()
 
     /** Reads the stored location and decides the first step. */
     fun start() {
@@ -410,7 +441,15 @@ class MarketplaceAreaViewModel(
             cancelBusinessesFetch()
             true
         }
-        AreaStep.BusinessesSummary, AreaStep.BusinessesList, AreaStep.BusinessesUnreachable -> {
+        AreaStep.BusinessesList -> {
+            backBusinesses()
+            true
+        }
+        AreaStep.BusinessesCategories -> {
+            if (state.value.businesses.group != null) backBusinesses() else stored?.let { showSaved(it) }
+            true
+        }
+        AreaStep.BusinessesSummary, AreaStep.BusinessesUnreachable -> {
             stored?.let { showSaved(it) }
             true
         }
@@ -497,6 +536,8 @@ class MarketplaceAreaViewModel(
         plan = null
         fetched = emptyMap()
         businessesShown = NearbyBusinesses.PAGE_SIZE
+        listParentGroup = null
+        groupCategories = emptyList()
     }
 
     /**
@@ -607,10 +648,16 @@ class MarketplaceAreaViewModel(
             } else {
                 state.update {
                     it.copy(
-                        step = AreaStep.BusinessesList,
-                        businesses = it.businesses.copy(partial = result.failedChunks > 0, query = "", group = null),
+                        step = AreaStep.BusinessesCategories,
+                        businesses = it.businesses.copy(
+                            partial = result.failedChunks > 0, query = "", browseQuery = "", categoryQuery = "",
+                            group = null, groupName = "", groupCount = 0, category = null, categoryName = "",
+                        ),
                     )
                 }
+                listParentGroup = null
+                groupCategories = emptyList()
+                businessesShown = NearbyBusinesses.PAGE_SIZE
                 renderBusinesses()
             }
         }
@@ -623,16 +670,110 @@ class MarketplaceAreaViewModel(
         state.update { it.copy(step = AreaStep.BusinessesSummary) }
     }
 
+    /** The list's own search (the Businesses list screen). */
     fun setBusinessQuery(query: String) {
         businessesShown = NearbyBusinesses.PAGE_SIZE
         state.update { it.copy(businesses = it.businesses.copy(query = query)) }
         renderBusinesses()
     }
 
-    /** [group] is a key from [AreaBusinessesState.groups], or null for All. */
-    fun setBusinessGroup(group: String?) {
+    /** The search field on level one; nothing opens until [searchAll]. */
+    fun setBrowseQuery(query: String) {
+        state.update { it.copy(businesses = it.businesses.copy(browseQuery = query)) }
+    }
+
+    /** The category search on level two: narrows the category names. */
+    fun setCategoryQuery(query: String) {
+        state.update { it.copy(businesses = it.businesses.copy(categoryQuery = query)) }
+        renderBusinesses()
+    }
+
+    /** Level one, a group row: its categories, or for the unknown group (no categories) its list directly. */
+    fun openGroup(group: String) {
+        val current = state.value.businesses
+        val row = current.groups.firstOrNull { it.key == group } ?: return
+        val ready = placesReady ?: return
+        val area = plan ?: return
         businessesShown = NearbyBusinesses.PAGE_SIZE
-        state.update { it.copy(businesses = it.businesses.copy(group = group)) }
+        listParentGroup = null
+        val opened = current.copy(
+            group = group, groupName = row.name, groupCount = row.count,
+            category = null, categoryName = "", categoryQuery = "", query = "",
+        )
+        if (group == NearbyBusinesses.UNKNOWN_GROUP) {
+            groupCategories = emptyList()
+            state.update { it.copy(step = AreaStep.BusinessesList, businesses = opened) }
+        } else {
+            groupCategories = NearbyBusinesses.categoriesWithCounts(fetched, ready.categories, area, group)
+            state.update { it.copy(step = AreaStep.BusinessesCategories, businesses = opened) }
+        }
+        renderBusinesses()
+    }
+
+    /** Level two, "All <group>": the list for the open group. */
+    fun openGroupList() {
+        val current = state.value.businesses
+        val group = current.group ?: return
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+        listParentGroup = group
+        state.update { it.copy(step = AreaStep.BusinessesList, businesses = current.copy(category = null, categoryName = "", query = "")) }
+        renderBusinesses()
+    }
+
+    /** Level two, a category row: the list narrowed to that category. */
+    fun openCategory(index: Int) {
+        val current = state.value.businesses
+        val row = groupCategories.firstOrNull { it.index == index } ?: return
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+        listParentGroup = current.group
+        state.update { it.copy(step = AreaStep.BusinessesList, businesses = current.copy(category = index, categoryName = row.name, query = "")) }
+        renderBusinesses()
+    }
+
+    /** Level one, "All businesses": the whole list. */
+    fun openAll() = openAllMatching("")
+
+    /** The top-level search submitted: the list across all businesses, matching [query] on the name. */
+    fun searchAll(query: String) = openAllMatching(query.trim())
+
+    private fun openAllMatching(query: String) {
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+        listParentGroup = null
+        groupCategories = emptyList()
+        state.update {
+            it.copy(
+                step = AreaStep.BusinessesList,
+                businesses = it.businesses.copy(
+                    group = null, groupName = "", groupCount = 0, category = null, categoryName = "", query = query, browseQuery = "", categoryQuery = "",
+                ),
+            )
+        }
+        renderBusinesses()
+    }
+
+    /**
+     * One level up inside the browse: a list returns to where it came from (its group's categories, or level one),
+     * categories return to level one. Leaving level one for the Saved card is [back]'s job.
+     */
+    fun backBusinesses() {
+        val current = state.value.businesses
+        businessesShown = NearbyBusinesses.PAGE_SIZE
+        val parent = if (state.value.step == AreaStep.BusinessesList) listParentGroup else null
+        listParentGroup = null
+        if (parent != null) {
+            state.update { it.copy(step = AreaStep.BusinessesCategories, businesses = current.copy(group = parent, category = null, categoryName = "", query = "")) }
+        } else {
+            groupCategories = emptyList()
+            state.update {
+                it.copy(
+                    step = AreaStep.BusinessesCategories,
+                    businesses = current.copy(
+                        group = null, groupName = "", groupCount = 0, category = null, categoryName = "",
+                        query = "", browseQuery = "", categoryQuery = "",
+                    ),
+                )
+            }
+        }
         renderBusinesses()
     }
 
@@ -645,16 +786,22 @@ class MarketplaceAreaViewModel(
         val ready = placesReady ?: return
         val area = plan ?: return
         val current = state.value.businesses
-        val page = NearbyBusinesses.list(fetched, area, current.query, current.group, ready.categories, limit = businessesShown,
-            localityName = { row -> directory?.nameAt(row).orEmpty() })
+        val page = NearbyBusinesses.list(
+            fetched, area, current.query, current.group, ready.categories, limit = businessesShown,
+            categoryFilter = current.category, localityName = { row -> directory?.nameAt(row).orEmpty() },
+        )
         val groups = NearbyBusinesses.groupsWithCounts(fetched, ready.categories, area)
+        val folded = foldForSearch(current.categoryQuery).trim()
+        val categories = if (folded.isEmpty()) groupCategories else groupCategories.filter { foldForSearch(it.name).contains(folded) }
         state.update {
             it.copy(
                 businesses = it.businesses.copy(
                     items = page.items,
+                    sections = page.sections,
                     matching = page.total,
                     hasMore = page.hasMore,
                     groups = groups,
+                    categories = categories,
                     loaded = groups.sumOf { g -> g.count },
                 ),
             )

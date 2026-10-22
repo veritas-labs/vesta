@@ -131,9 +131,9 @@ class MarketplaceBusinessesAcceptanceTest {
         // Act — When I open See businesses
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
 
-        // Assert — Then the list appears with no confirmation, after one fetch
+        // Assert — Then the categories screen appears with no confirmation, after one fetch
         assertEquals(1, places.fetchCalls)
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
         onNodeWithTag(MarketplaceAreaTestTags.BusinessesConfirmDialog).assertDoesNotExist()
     }
 
@@ -161,8 +161,9 @@ class MarketplaceBusinessesAcceptanceTest {
         // Arrange — Given a small area with both inside and just-outside businesses
         val viewModel = show()
 
-        // Act — When the list appears
+        // Act — When the list appears (All businesses)
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.BusinessesAll)
 
         // Assert — Then rows run A to Z within each locality on screen, and no nearby row's text says it is "in" the area
         val items = viewModel.uiState.value.businesses.items
@@ -185,21 +186,22 @@ class MarketplaceBusinessesAcceptanceTest {
 
     @Test
     fun searchAndGroupFilterNarrowTheList() = runComposeUiTest {
-        // Arrange — Given the list is showing
+        // Arrange — Given the categories screen is showing
         show()
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
         val pub = MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(8))
 
-        // Act — When I search "nearby" and then choose the Services group
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesSearchField).performTextInput("nearby")
+        // Act — When I search "nearby" across all businesses, then go back and open the Services group's list
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesBrowseSearch).performTextInput("nearby")
         waitForIdle()
+        tap(MarketplaceAreaTestTags.BusinessesSearchAll)
         onNodeWithTag(pub).assertIsDisplayed()
+        tap(MarketplaceAreaTestTags.BackButton)
         tap(MarketplaceAreaTestTags.businessesGroup("services"))
+        tap(MarketplaceAreaTestTags.BusinessesAllInGroup)
 
-        // Assert — Then the pub is gone with a no-match note, and All brings it back
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesNoMatch).assertIsDisplayed()
-        tap(MarketplaceAreaTestTags.BusinessesGroupAll)
-        onNodeWithTag(pub).assertIsDisplayed()
+        // Assert — Then the pub is not in the Services list
+        onNodeWithTag(pub).assertDoesNotExist()
     }
 
     @Test
@@ -228,8 +230,8 @@ class MarketplaceBusinessesAcceptanceTest {
         // Act — When the list loads
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
 
-        // Assert — Then the list shows with the banner, and Try again fetches once more
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).assertIsDisplayed()
+        // Assert — Then the categories screen shows with the banner, and Try again fetches once more
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
         onNodeWithTag(MarketplaceAreaTestTags.BusinessesPartial).assertIsDisplayed()
         places.failedChunks = 0
         tap(MarketplaceAreaTestTags.BusinessesPartialRetry)
@@ -243,7 +245,7 @@ class MarketplaceBusinessesAcceptanceTest {
         val repository = smallArea()
         val viewModel = show(repository = repository)
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
         tap(MarketplaceAreaTestTags.BackButton)
         onNodeWithTag(MarketplaceAreaTestTags.SavedSummary).assertIsDisplayed()
 
@@ -252,7 +254,7 @@ class MarketplaceBusinessesAcceptanceTest {
         tap("confirm_delete_confirm")
 
         // Assert — Then no list shows, the results are dropped and the location is gone
-        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).assertDoesNotExist()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertDoesNotExist()
         assertEquals(AreaBusinessesState(), viewModel.uiState.value.businesses)
         assertNull(repository.location)
     }

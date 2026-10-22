@@ -63,13 +63,25 @@ internal object MarketplaceAreaTestTags {
     const val BusinessesList = "area_businesses_list"
     const val BusinessesHeader = "area_businesses_header"
     const val BusinessesSearchField = "area_businesses_search"
-    const val BusinessesGroupAll = "area_businesses_group_all"
+    const val BusinessesGroups = "area_businesses_groups"
+    const val BusinessesBrowseSearch = "area_businesses_browse_search"
+    const val BusinessesSearchAll = "area_businesses_search_all"
+    const val BusinessesAll = "area_businesses_all"
+    const val BusinessesCategories = "area_businesses_categories"
+    const val BusinessesCategorySearch = "area_businesses_category_search"
+    const val BusinessesCategoriesNoMatch = "area_businesses_categories_no_match"
+    const val BusinessesAllInGroup = "area_businesses_all_in_group"
+    const val BusinessesListTitle = "area_businesses_list_title"
     const val BusinessesPartial = "area_businesses_partial"
     const val BusinessesPartialRetry = "area_businesses_partial_retry"
     const val BusinessesShowMore = "area_businesses_show_more"
     const val BusinessesNoMatch = "area_businesses_no_match"
 
     fun businessesGroup(key: String) = "area_businesses_group_$key"
+
+    fun businessesCategory(index: Int) = "area_businesses_category_$index"
+
+    fun businessesSection(localityRow: Int) = "area_businesses_section_$localityRow"
 
     fun businessesRow(id: String) = "area_businesses_row_$id"
 }

@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.stringResource
+import uk.veritaslabs.vesta.ui.screens.AreaBusinessCategoriesScreen
+import uk.veritaslabs.vesta.ui.screens.AreaBusinessGroupsScreen
 import uk.veritaslabs.vesta.ui.screens.AreaBusinessesListScreen
 import uk.veritaslabs.vesta.ui.screens.AreaBusinessesLoadingScreen
 import uk.veritaslabs.vesta.ui.screens.AreaBusinessesSummaryScreen
@@ -115,11 +117,32 @@ fun MarketplaceAreaFlow(viewModel: MarketplaceAreaViewModel, onBack: () -> Unit,
             onBack = goBack,
         )
         AreaStep.BusinessesLoading -> AreaBusinessesLoadingScreen(state.businesses, modifier, onCancel = viewModel::cancelBusinessesFetch, onBack = goBack)
+        AreaStep.BusinessesCategories ->
+            if (state.businesses.group == null) {
+                AreaBusinessGroupsScreen(
+                    state.businesses,
+                    modifier,
+                    onQueryChange = viewModel::setBrowseQuery,
+                    onSearchAll = { viewModel.searchAll(state.businesses.browseQuery) },
+                    onAll = viewModel::openAll,
+                    onGroup = viewModel::openGroup,
+                    onRetry = viewModel::retryBusinesses,
+                    onBack = goBack,
+                )
+            } else {
+                AreaBusinessCategoriesScreen(
+                    state.businesses,
+                    modifier,
+                    onQueryChange = viewModel::setCategoryQuery,
+                    onAllInGroup = viewModel::openGroupList,
+                    onCategory = viewModel::openCategory,
+                    onBack = goBack,
+                )
+            }
         AreaStep.BusinessesList -> AreaBusinessesListScreen(
             state.businesses,
             modifier,
             onQueryChange = viewModel::setBusinessQuery,
-            onGroup = viewModel::setBusinessGroup,
             onShowMore = viewModel::showMoreBusinesses,
             onRetry = viewModel::retryBusinesses,
             onBack = goBack,

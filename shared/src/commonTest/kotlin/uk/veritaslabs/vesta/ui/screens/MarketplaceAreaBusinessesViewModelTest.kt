@@ -114,7 +114,7 @@ class MarketplaceAreaBusinessesViewModelTest {
         viewModel.seeBusinesses()
 
         // Assert
-        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
         assertEquals(true, places.lastIncludeNearby)
         assertEquals(listOf(3, 5), places.lastRows)
         assertEquals(7, viewModel.businesses.loaded)
@@ -191,7 +191,7 @@ class MarketplaceAreaBusinessesViewModelTest {
         assertEquals(1, during.businesses.chunksDone)
         assertEquals(2, during.businesses.chunksTotal)
         assertEquals(100L, during.businesses.bytesFetched)
-        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
     }
 
     @Test
@@ -219,7 +219,7 @@ class MarketplaceAreaBusinessesViewModelTest {
         viewModel.seeBusinesses()
 
         // Assert
-        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
         assertTrue(viewModel.businesses.partial)
         assertEquals(7, viewModel.businesses.loaded)
     }
@@ -242,7 +242,7 @@ class MarketplaceAreaBusinessesViewModelTest {
 
         // Assert
         assertEquals(AreaStep.BusinessesUnreachable, failed)
-        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
         assertFalse(viewModel.businesses.partial)
     }
 
@@ -264,6 +264,7 @@ class MarketplaceAreaBusinessesViewModelTest {
         // Arrange
         val viewModel = viewModel(repository = AreaFakeRepository(location(cowes, carisbrooke)))
         viewModel.seeBusinesses()
+        viewModel.openAll()
 
         // Act
         viewModel.setBusinessQuery("pub")
@@ -275,20 +276,242 @@ class MarketplaceAreaBusinessesViewModelTest {
     }
 
     @Test
-    fun aGroupFilterKeepsOnlyThatGroupAndAllClearsIt() = runTest {
+    fun theFetchLandsOnTheGroupsLargestFirstWithTheTotal() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+
+        // Act
+        viewModel.seeBusinesses()
+
+        // Assert
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
+        assertNull(viewModel.businesses.group)
+        assertEquals(listOf("food_and_drink" to 6, "services" to 1), viewModel.businesses.groups.map { it.key to it.count })
+        assertEquals(7, viewModel.businesses.loaded)
+    }
+
+    @Test
+    fun openingAGroupShowsItsCategoriesWithCounts() = runTest {
         // Arrange
         val viewModel = viewModel()
         viewModel.seeBusinesses()
 
         // Act
-        viewModel.setBusinessGroup("services")
-        val services = viewModel.businesses.items.map { it.id }
-        viewModel.setBusinessGroup(null)
+        viewModel.openGroup("food_and_drink")
 
         // Assert
-        assertEquals(listOf(TinyPlaces.uuid(2)), services)
-        assertEquals(7, viewModel.businesses.matching)
-        assertEquals(listOf("food_and_drink", "services"), viewModel.businesses.groups.map { it.key })
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
+        assertEquals("food_and_drink", viewModel.businesses.group)
+        assertEquals("Food and drink", viewModel.businesses.groupName)
+        assertEquals(6, viewModel.businesses.groupCount)
+        assertEquals(listOf("Cafe" to 5, "Pub" to 1), viewModel.businesses.categories.map { it.name to it.count })
+    }
+
+    @Test
+    fun openingACategoryListsOnlyThatCategory() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+        viewModel.openGroup("food_and_drink")
+
+        // Act
+        viewModel.openCategory(2)
+
+        // Assert
+        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertEquals("Pub", viewModel.businesses.categoryName)
+        assertEquals(listOf("Place 4"), viewModel.businesses.items.map { it.name })
+        assertEquals(1, viewModel.businesses.matching)
+    }
+
+    @Test
+    fun allInTheGroupListsTheWholeGroup() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+        viewModel.openGroup("food_and_drink")
+
+        // Act
+        viewModel.openGroupList()
+
+        // Assert
+        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertNull(viewModel.businesses.category)
+        assertEquals(6, viewModel.businesses.matching)
+    }
+
+    @Test
+    fun allBusinessesListsEverythingAndTheGroupsComeBackOnBack() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+
+        // Act
+        viewModel.openAll()
+        val listed = viewModel.businesses.matching
+        viewModel.back()
+
+        // Assert
+        assertEquals(7, listed)
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
+        assertNull(viewModel.businesses.group)
+    }
+
+    @Test
+    fun theCategorySearchNarrowsTheCategoryNamesOnly() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+        viewModel.openGroup("food_and_drink")
+
+        // Act
+        viewModel.setCategoryQuery("pu")
+        val narrowed = viewModel.businesses.categories.map { it.name }
+        viewModel.setCategoryQuery("")
+
+        // Assert
+        assertEquals(listOf("Pub"), narrowed)
+        assertEquals(2, viewModel.businesses.categories.size)
+        assertEquals(6, viewModel.businesses.groupCount)
+    }
+
+    @Test
+    fun theTopLevelSearchOpensTheListAcrossAllBusinesses() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+        viewModel.setBrowseQuery("caf")
+
+        // Act
+        viewModel.searchAll(viewModel.businesses.browseQuery)
+
+        // Assert
+        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertNull(viewModel.businesses.group)
+        assertEquals("caf", viewModel.businesses.query)
+        assertEquals(listOf("Café Nero"), viewModel.businesses.items.map { it.name })
+    }
+
+    @Test
+    fun backStepsUpOneLevelAtATime() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+        viewModel.openGroup("food_and_drink")
+        viewModel.openCategory(0)
+
+        // Act
+        val steps = buildList {
+            viewModel.back()
+            add(viewModel.step to viewModel.businesses.group)
+            viewModel.back()
+            add(viewModel.step to viewModel.businesses.group)
+            viewModel.back()
+            add(viewModel.step to viewModel.businesses.group)
+        }
+
+        // Assert
+        assertEquals(
+            listOf(
+                AreaStep.BusinessesCategories to "food_and_drink",
+                AreaStep.BusinessesCategories to null,
+                AreaStep.Saved to null,
+            ),
+            steps,
+        )
+    }
+
+    @Test
+    fun backFromAListOpenedFromTheGroupsReturnsToTheGroups() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+        viewModel.openGroup("food_and_drink")
+        viewModel.openGroupList()
+        viewModel.back()
+        viewModel.openAll()
+
+        // Act
+        viewModel.back()
+
+        // Assert
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
+        assertNull(viewModel.businesses.group)
+    }
+
+    @Test
+    fun theUnknownGroupHasNoCategoriesAndOpensItsListDirectly() = runTest {
+        // Arrange
+        val mystery = PlaceRecord(TinyPlaces.uuid(200), "Mystery Shop", 50.7, -1.29, 1.0, 99, false)
+        val cafe = PlaceRecord(TinyPlaces.uuid(201), "Cafe One", 50.7, -1.29, 1.0, 0, false)
+        val places = AreaFakePlaces().apply { generated = mapOf(3 to listOf(mystery, cafe)) }
+        val viewModel = viewModel(places)
+        viewModel.seeBusinesses()
+
+        // Act
+        val order = viewModel.businesses.groups.map { it.key }
+        viewModel.openGroup("unknown")
+        val listed = viewModel.businesses.items.map { it.name }
+        viewModel.back()
+
+        // Assert
+        assertEquals(listOf("food_and_drink", "unknown"), order)
+        assertEquals(listOf("Mystery Shop"), listed)
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
+        assertNull(viewModel.businesses.group)
+    }
+
+    @Test
+    fun categoryCountsFollowTheJustOutsideToggle() = runTest {
+        // Arrange
+        val places = bigPlaces()
+        val viewModel = viewModel(places, repository = bigRepository())
+        viewModel.seeBusinesses()
+        viewModel.downloadBusinesses()
+        val without = viewModel.businesses.groups.first { it.key == "food_and_drink" }.count
+        viewModel.back()
+        viewModel.seeBusinesses()
+
+        // Act
+        viewModel.setIncludeNearby(true)
+        viewModel.downloadBusinesses()
+        viewModel.confirmBusinessesDownload()
+
+        // Assert
+        assertEquals(2, without)
+        assertEquals(3, viewModel.businesses.groups.first { it.key == "food_and_drink" }.count)
+    }
+
+    @Test
+    fun sectionsRunHomeLocalityFirstAndAToZWithinEach() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+
+        // Act
+        viewModel.openAll()
+
+        // Assert
+        val sections = viewModel.businesses.sections
+        assertEquals(listOf(3, 5), sections.map { it.localityRow })
+        assertTrue(sections.all { it.localityName.isNotEmpty() })
+        sections.forEach { section -> assertEquals(section.items.map { it.name }.sortedBy { it.lowercase() }, section.items.map { it.name }) }
+        assertEquals(viewModel.businesses.items, sections.flatMap { it.items })
+    }
+
+    @Test
+    fun forgettingWhileInACategoryDropsTheBrowseState() = runTest {
+        // Arrange
+        val viewModel = viewModel()
+        viewModel.seeBusinesses()
+        viewModel.openGroup("food_and_drink")
+        viewModel.openCategory(0)
+
+        // Act
+        viewModel.forget()
+
+        // Assert
+        assertEquals(AreaBusinessesState(), viewModel.businesses)
     }
 
     @Test
@@ -298,6 +521,7 @@ class MarketplaceAreaBusinessesViewModelTest {
         val places = AreaFakePlaces().apply { generated = mapOf(3 to many) }
         val viewModel = viewModel(places, repository = bigRepository())
         viewModel.seeBusinesses()
+        viewModel.openAll()
 
         // Act
         val first = viewModel.businesses.items.size
@@ -329,7 +553,7 @@ class MarketplaceAreaBusinessesViewModelTest {
     }
 
     @Test
-    fun backFromTheListReturnsToTheSavedCard() = runTest {
+    fun backFromTheGroupsReturnsToTheSavedCardAndDropsTheResults() = runTest {
         // Arrange
         val viewModel = viewModel()
         viewModel.seeBusinesses()
@@ -383,7 +607,7 @@ class MarketplaceAreaBusinessesViewModelTest {
 
         // Assert
         assertEquals(cases.map { it.second }, results.map { it.first })
-        assertEquals(listOf(AreaStep.BusinessesList), results.map { it.second }.take(1))
+        assertEquals(listOf(AreaStep.BusinessesCategories), results.map { it.second }.take(1))
         assertTrue(results.drop(1).all { it.second == AreaStep.Saved && it.third == 0 })
     }
 
@@ -416,7 +640,7 @@ class MarketplaceAreaBusinessesViewModelTest {
         // Assert
         assertEquals(AreaStep.Disclosure, asked)
         assertEquals(0, requestsBefore)
-        assertEquals(AreaStep.BusinessesList, viewModel.step)
+        assertEquals(AreaStep.BusinessesCategories, viewModel.step)
     }
 
     @Test

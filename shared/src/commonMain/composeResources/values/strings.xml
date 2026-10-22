@@ -1080,7 +1080,12 @@
         <item quantity="other">%1$s businesses</item>
     </plurals>
     <string name="area_places_search_label">Search businesses</string>
-    <string name="area_places_group_all">All</string>
+    <string name="area_places_browse_search_label">Search businesses or trades</string>
+    <string name="area_places_search_all">Search all businesses for "%1$s"</string>
+    <string name="area_places_all">All businesses</string>
+    <string name="area_places_all_in_group">All %1$s</string>
+    <string name="area_places_category_search_label">Search trades</string>
+    <string name="area_places_no_category">No trade matches</string>
     <string name="area_places_group_other">Other</string>
     <string name="area_places_row_locality">%1$s, %2$s</string>
     <string name="area_places_show_more">Show more</string>
