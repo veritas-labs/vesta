@@ -50,8 +50,10 @@ data class BusinessRow(
     val distanceMetres: Double,
     /** Names-table row of the locality that listed it. */
     val localityRow: Int,
-    /** True when outside every polygon: the UI must not say "in <locality>". */
+    /** True when outside every polygon: the UI says "near <locality>", never "in". */
     val nearby: Boolean,
+    /** Name of that locality, empty when the caller gave no names. */
+    val localityName: String = "",
 )
 
 data class BusinessPage(val items: List<BusinessRow>, val total: Int, val hasMore: Boolean)
@@ -95,6 +97,7 @@ object NearbyBusinesses {
         categories: CategoryTable,
         limit: Int = PAGE_SIZE,
         offset: Int = 0,
+        localityName: (Int) -> String = { "" },
     ): BusinessPage {
         val q = foldForSearch(query).trim()
         val matches = unique(places, area).filter { (place, _) ->
@@ -109,7 +112,7 @@ object NearbyBusinesses {
         val items = matches.subList(from, to).map { (place, row, distance) ->
             BusinessRow(
                 place.id, place.name, categoryName(place, categories), groupName(place, categories),
-                distance, row, place.nearby,
+                distance, row, place.nearby, localityName(row),
             )
         }
         return BusinessPage(items, matches.size, to < matches.size)

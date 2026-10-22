@@ -96,7 +96,7 @@ class MarketplaceAreaBusinessesFlowTest {
         val nearbyPub = MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(8))
         onNodeWithTag(MarketplaceAreaTestTags.BusinessesHeader).assertTextContains("businesses", substring = true)
         onNodeWithTag(nearbyPub).assertIsDisplayed()
-        onNodeWithTag(nearbyPub).assertTextContains(" away", substring = true)
+        onNodeWithTag(nearbyPub).assertTextContains(", near ", substring = true)
         onNodeWithTag(nearbyPub).assertTextContains("Pub", substring = true)
     }
 

@@ -645,7 +645,8 @@ class MarketplaceAreaViewModel(
         val ready = placesReady ?: return
         val area = plan ?: return
         val current = state.value.businesses
-        val page = NearbyBusinesses.list(fetched, area, current.query, current.group, ready.categories, limit = businessesShown)
+        val page = NearbyBusinesses.list(fetched, area, current.query, current.group, ready.categories, limit = businessesShown,
+            localityName = { row -> directory?.nameAt(row).orEmpty() })
         val groups = NearbyBusinesses.groupsWithCounts(fetched, ready.categories, area)
         state.update {
             it.copy(

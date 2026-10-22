@@ -49,7 +49,8 @@ import vesta.shared.generated.resources.area_places_no_match
 import vesta.shared.generated.resources.area_places_not_now
 import vesta.shared.generated.resources.area_places_partial
 import vesta.shared.generated.resources.area_places_progress
-import vesta.shared.generated.resources.area_places_row_detail
+import vesta.shared.generated.resources.area_places_row_in
+import vesta.shared.generated.resources.area_places_row_near
 import vesta.shared.generated.resources.area_places_search_label
 import vesta.shared.generated.resources.area_places_show_more
 import vesta.shared.generated.resources.area_places_summary_inside
@@ -306,12 +307,13 @@ private fun BusinessItem(row: BusinessRow) {
             .testTag(MarketplaceAreaTestTags.businessesRow(row.id)),
     ) {
         Text(row.name, style = MaterialTheme.typography.titleMedium)
-        // Distance only: a place outside every polygon is never described as being "in" a locality.
-        Text(
-            stringResource(Res.string.area_places_row_detail, row.categoryName, distanceLabel(row.distanceMetres)),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // A place outside every polygon is "near" its locality, never "in" it.
+        val where = when {
+            row.localityName.isEmpty() -> row.categoryName
+            row.nearby -> stringResource(Res.string.area_places_row_near, row.categoryName, row.localityName)
+            else -> stringResource(Res.string.area_places_row_in, row.categoryName, row.localityName)
+        }
+        Text(where, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -326,8 +328,8 @@ private val PreviewList = PreviewSummary.copy(
     hasMore = true,
     groups = listOf(BusinessGroupCount("food_and_drink", "Food and drink", 120), BusinessGroupCount("unknown", "Unknown", 4)),
     items = listOf(
-        BusinessRow("1", "Café Nero", "Cafe", "Food and drink", 350.0, 3, false),
-        BusinessRow("2", "Nearby Pub", "Pub", "Food and drink", 1_200.0, 5, true),
+        BusinessRow("1", "Café Nero", "Cafe", "Food and drink", 350.0, 3, false, "Hexham"),
+        BusinessRow("2", "Nearby Pub", "Pub", "Food and drink", 1_200.0, 5, true, "Acomb"),
     ),
 )
 

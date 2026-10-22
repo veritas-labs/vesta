@@ -95,6 +95,9 @@ class LocalityDirectory(private val pack: LocalityPack) {
     /** The id at names-table [row]. */
     fun idOf(row: Int): String = pack.uuid(row)
 
+    /** The name of a names-table row. */
+    fun nameAt(row: Int): String = pack.name(row)
+
     private fun rowIndex(id: String): Int? = rowById[id.lowercase()]
 
     private fun rowAt(row: Int) = LocalityRow(pack.uuid(row), pack.name(row), pack.subtype(row))

@@ -1082,7 +1082,8 @@
     <string name="area_places_search_label">Search businesses</string>
     <string name="area_places_group_all">All</string>
     <string name="area_places_group_other">Other</string>
-    <string name="area_places_row_detail">%1$s, %2$s away</string>
+    <string name="area_places_row_in">%1$s, in %2$s</string>
+    <string name="area_places_row_near">%1$s, near %2$s</string>
     <string name="area_places_show_more">Show more</string>
     <string name="area_places_no_match">No business matches</string>
     <string name="area_saved_forget_title">Forget your area?</string>
