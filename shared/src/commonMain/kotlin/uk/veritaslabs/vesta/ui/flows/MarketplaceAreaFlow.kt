@@ -153,18 +153,12 @@ fun MarketplaceAreaFlow(viewModel: MarketplaceAreaViewModel, onBack: () -> Unit,
             onRetry = viewModel::retryBusinesses,
             onBack = goBack,
             favouriteIds = state.favouriteIds.takeIf { state.favouritesAvailable },
-            pendingRemoval = state.pendingRemoval,
             onToggleFavourite = viewModel::toggleFavourite,
-            onConfirmRemoval = viewModel::confirmRemoval,
-            onCancelRemoval = viewModel::cancelRemoval,
         )
         AreaStep.MyShops -> AreaMyShopsScreen(
             state.myShops,
             modifier,
-            pendingRemoval = state.pendingRemoval,
             onRemove = viewModel::removeShop,
-            onConfirmRemoval = viewModel::confirmRemoval,
-            onCancelRemoval = viewModel::cancelRemoval,
             onBack = goBack,
         )
         AreaStep.BusinessesUnreachable -> AreaBusinessesUnreachableScreen(modifier, onTryAgain = viewModel::retryBusinesses, onBack = goBack)

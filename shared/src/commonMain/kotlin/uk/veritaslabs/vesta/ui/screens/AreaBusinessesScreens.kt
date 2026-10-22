@@ -554,8 +554,7 @@ fun AreaBusinessCategoriesScreen(
  * The businesses of the chosen category, group or all ([state]): a header with that name and the count, a search field,
  * rows (name, then category and locality; never a distance and never "in <place>") A to Z under a header for each locality,
  * Show more and an empty-results line. [AreaBusinessesState.partial] adds a banner with Try again ([onRetry]).
- * Each row has a heart for My Shops while [favouriteIds] is not null (filled when the row's id is in it); [pendingRemoval]
- * shows the "used by N items" question.
+ * Each row has a heart for My Shops while [favouriteIds] is not null (filled when the row's id is in it);.
  */
 @Composable
 fun AreaBusinessesListScreen(
@@ -566,12 +565,8 @@ fun AreaBusinessesListScreen(
     onRetry: () -> Unit = {},
     onBack: () -> Unit = {},
     favouriteIds: Set<String>? = null,
-    pendingRemoval: PendingShopRemoval? = null,
     onToggleFavourite: (BusinessRow) -> Unit = {},
-    onConfirmRemoval: () -> Unit = {},
-    onCancelRemoval: () -> Unit = {},
 ) {
-    pendingRemoval?.let { RemoveShopDialog(it, onConfirmRemoval, onCancelRemoval) }
     AreaScaffold(stringResource(Res.string.area_places_title), onBack, modifier) {
         Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column {

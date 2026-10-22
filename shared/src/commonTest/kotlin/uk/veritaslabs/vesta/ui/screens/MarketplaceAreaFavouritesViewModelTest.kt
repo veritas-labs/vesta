@@ -3,7 +3,6 @@ package uk.veritaslabs.vesta.ui.screens
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,10 +43,9 @@ class MarketplaceAreaFavouritesViewModelTest {
 
     private fun TestScope.viewModel(
         merchants: FakeMerchantsSource? = FakeMerchantsSource(),
-        usage: MerchantUsage = MerchantUsage.None,
     ): MarketplaceAreaViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
-        val favourites = merchants?.let { FavouriteBusinesses(it, usage) }
+        val favourites = merchants?.let { FavouriteBusinesses(it) }
         return MarketplaceAreaViewModel(
             "home", AreaFakeSource(cached = true), AreaFakeRepository(HomeLocation("GB", newport, release, area = setOf(cowes))),
             AreaFakePlaces(), favourites,
@@ -77,7 +75,7 @@ class MarketplaceAreaFavouritesViewModelTest {
     }
 
     @Test
-    fun heartingAgainRemovesAnUnusedFavouriteWithoutAsking() = runTest {
+    fun heartingAgainRemovesTheFavourite() = runTest {
         // Arrange
         val viewModel = viewModel()
         val business = viewModel.ui.businesses.items.first()
@@ -88,42 +86,6 @@ class MarketplaceAreaFavouritesViewModelTest {
 
         // Assert
         assertTrue(viewModel.ui.favouriteIds.isEmpty())
-        assertNull(viewModel.ui.pendingRemoval)
-    }
-
-    @Test
-    fun removingAFavouriteInUseAsksFirstAndCancelKeepsIt() = runTest {
-        // Arrange
-        val viewModel = viewModel(usage = { 3 })
-        val business = viewModel.ui.businesses.items.first()
-        viewModel.toggleFavourite(business)
-
-        // Act
-        viewModel.toggleFavourite(business)
-        val asked = viewModel.ui.pendingRemoval
-        viewModel.cancelRemoval()
-
-        // Assert
-        assertEquals(3, asked?.usageCount)
-        assertEquals(business.name, asked?.name)
-        assertNull(viewModel.ui.pendingRemoval)
-        assertEquals(setOf(business.id), viewModel.ui.favouriteIds)
-    }
-
-    @Test
-    fun confirmingTheQuestionRemovesTheFavourite() = runTest {
-        // Arrange
-        val viewModel = viewModel(usage = { 2 })
-        val business = viewModel.ui.businesses.items.first()
-        viewModel.toggleFavourite(business)
-        viewModel.toggleFavourite(business)
-
-        // Act
-        viewModel.confirmRemoval()
-
-        // Assert
-        assertTrue(viewModel.ui.favouriteIds.isEmpty())
-        assertNull(viewModel.ui.pendingRemoval)
     }
 
     @Test

@@ -8,12 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,11 +24,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
-import vesta.shared.generated.resources.area_favourite_cancel
-import vesta.shared.generated.resources.area_favourite_confirm
-import vesta.shared.generated.resources.area_favourite_in_use
 import vesta.shared.generated.resources.area_favourite_remove
-import vesta.shared.generated.resources.area_favourite_remove_title
 import vesta.shared.generated.resources.area_my_shops
 import vesta.shared.generated.resources.area_my_shops_empty
 import vesta.shared.generated.resources.ic_heart
@@ -48,27 +42,6 @@ internal fun HeartButton(filled: Boolean, description: String, tag: String, onCl
     }
 }
 
-/** "Used by N items in Pantry or the shopping list" before a favourite in use is removed: Cancel or Remove. */
-@Composable
-internal fun RemoveShopDialog(pending: PendingShopRemoval, onConfirm: () -> Unit, onCancel: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onCancel,
-        title = { Text(stringResource(Res.string.area_favourite_remove_title)) },
-        text = { Text(stringResource(Res.string.area_favourite_in_use, pending.name, pending.usageCount)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm, modifier = Modifier.testTag(MarketplaceAreaTestTags.RemoveShopConfirm)) {
-                Text(stringResource(Res.string.area_favourite_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onCancel, modifier = Modifier.testTag(MarketplaceAreaTestTags.RemoveShopCancel)) {
-                Text(stringResource(Res.string.area_favourite_cancel))
-            }
-        },
-        modifier = Modifier.testTag(MarketplaceAreaTestTags.RemoveShopDialog),
-    )
-}
-
 /**
  * My Shops (ADR-039): every saved [shops] entry A to Z, each with a filled heart ([onRemove] by key) that removes it. Reads
  * the merchants document only, so it works offline. Hand-made merchants appear too; nothing here adds or edits.
@@ -77,13 +50,9 @@ internal fun RemoveShopDialog(pending: PendingShopRemoval, onConfirm: () -> Unit
 fun AreaMyShopsScreen(
     shops: List<Merchant>,
     modifier: Modifier = Modifier,
-    pendingRemoval: PendingShopRemoval? = null,
     onRemove: (String) -> Unit = {},
-    onConfirmRemoval: () -> Unit = {},
-    onCancelRemoval: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
-    pendingRemoval?.let { RemoveShopDialog(it, onConfirmRemoval, onCancelRemoval) }
     AreaScaffold(stringResource(Res.string.area_my_shops), onBack, modifier) {
         Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (shops.isEmpty()) {

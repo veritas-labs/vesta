@@ -8,8 +8,6 @@ import org.automerge.NewValue
 import org.automerge.ObjectId
 import org.automerge.ObjectType
 import org.automerge.Read
-import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
-import uk.veritaslabs.vesta.ui.screens.normalizeMerchantKeys
 
 private const val ItemsKey = "items"
 private const val IdKey = "id"
@@ -201,33 +199,27 @@ fun correctStock(doc: Document, key: String, targetValue: Int) {
  * Replaces the ordered merchant keys of [key]'s entry with [merchantKeys] (blank and repeated keys dropped, first
  * position wins), writing only that field so it never clobbers a concurrent edit of the item's other fields. No-op if
  * [key] has no entry or already holds exactly that list.
+ *
+ * DORMANT (ADR-026, amended 2026-10-22): no screen links Pantry entries to merchants any more. The `merchantKeys` field
+ * stays in the document, and this writer exists only so a rename carries the field to the entry's new key and so
+ * fixtures can build documents written by older devices.
  */
 fun setPantryItemMerchants(doc: Document, key: String, merchantKeys: List<String>) {
-    changePantryMerchants(doc, listOf(key)) { merchantKeys }
-}
-
-/**
- * Changes the merchant keys of every entry in [keys] by [change], all in one transaction; entries that don't exist or
- * would not change are left alone. Returns how many entries were changed.
- */
-fun changePantryMerchants(doc: Document, keys: Collection<String>, change: MerchantLinkChange): Int =
-    changePantryMerchants(doc, keys) { change.applyTo(it) }
-
-private fun changePantryMerchants(doc: Document, keys: Collection<String>, next: (List<String>) -> List<String>): Int {
     val tx = doc.startTransaction()
-    var changed = 0
-    keys.distinct().forEach { key ->
-        val itemId = tx.itemsMapId()?.let { (tx.get(it, key).getOrNull() as? AmValue.Map)?.id } ?: return@forEach
-        val current = tx.stringList(itemId, MerchantKeysKey)
-        val updated = normalizeMerchantKeys(next(current))
-        if (updated != current) {
-            val listId = tx.set(itemId, MerchantKeysKey, ObjectType.LIST)
-            updated.forEachIndexed { index, merchant -> tx.insert(listId, index.toLong(), merchant) }
-            changed++
-        }
+    val itemId = tx.itemsMapId()?.let { (tx.get(it, key).getOrNull() as? AmValue.Map)?.id }
+    if (itemId == null) {
+        tx.rollback()
+        return
     }
-    if (changed > 0) tx.commit() else tx.rollback()
-    return changed
+    val current = tx.stringList(itemId, MerchantKeysKey)
+    val updated = merchantKeys.filter { it.isNotBlank() }.distinct()
+    if (updated != current) {
+        val listId = tx.set(itemId, MerchantKeysKey, ObjectType.LIST)
+        updated.forEachIndexed { index, merchant -> tx.insert(listId, index.toLong(), merchant) }
+        tx.commit()
+    } else {
+        tx.rollback()
+    }
 }
 
 /** Removes [key]'s entry from the Pantry. No-op if [key] has no entry. */

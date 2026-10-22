@@ -30,7 +30,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -117,7 +116,6 @@ import uk.veritaslabs.vesta.ui.screens.MealPlannerScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
 import uk.veritaslabs.vesta.ui.flows.MealPlannerFlow
 import uk.veritaslabs.vesta.ui.screens.FavouriteBusinesses
-import uk.veritaslabs.vesta.ui.screens.MerchantUsage
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
 import uk.veritaslabs.kits.sync.SyncActivityRepository
 import uk.veritaslabs.vesta.syncactivity.SyncActivityViewModel
@@ -527,8 +525,6 @@ internal fun HomeContent(
     }
     var editingShoppingItem by remember { mutableStateOf<ShoppingItemDetails?>(null) }
     var addedToPantryCount by remember { mutableStateOf(0) }
-    val merchantList by remember(merchantsSource) { merchantsSource?.merchants ?: flowOf(emptyList()) }
-        .collectAsStateWithLifecycle(emptyList())
     val cookbookViewModel = cookbookSource?.let { source ->
         val pantryItems = pantrySource?.contents?.map { it.items } ?: flowOf(emptyList())
         viewModel(key = "cookbook-$homeId") { CookbookViewModel(source, pantryItems) }
@@ -548,16 +544,9 @@ internal fun HomeContent(
         null
     }
     // The area picker (ADR-039): one for each Home, so switching Homes starts a fresh one.
-    // My Shops (ADR-039): hearts follow the merchants document; usage is read live from Pantry and Shopping. The merchants
-    // source arrives after the Home opens, so the view model is keyed on whether it is there yet.
-    val pantryItemsNow by remember(pantrySource) { pantrySource?.contents?.map { it.items } ?: flowOf(emptyList()) }
-        .collectAsStateWithLifecycle(emptyList())
-    val shoppingItemsNow by remember(shoppingListSource) { shoppingListSource?.items ?: flowOf(emptyList()) }
-        .collectAsStateWithLifecycle(emptyList())
-    val merchantUsage = rememberUpdatedState(MerchantUsage.of(pantryItemsNow, shoppingItemsNow))
-    val favourites = remember(merchantsSource) {
-        merchantsSource?.let { FavouriteBusinesses(it, MerchantUsage { key -> merchantUsage.value.usageCount(key) }) }
-    }
+    // My Shops (ADR-039): hearts follow the merchants document. The merchants source arrives after the Home opens, so the
+    // view model is keyed on whether it is there yet.
+    val favourites = remember(merchantsSource) { merchantsSource?.let { FavouriteBusinesses(it) } }
     val areaViewModel = viewModel(key = "marketplace-area-$homeId-${favourites != null}") {
         MarketplaceAreaViewModel(homeId, localityPackSource, locationRepository, placesPackSource, favourites, ::deviceRegionCode)
     }
@@ -714,7 +703,6 @@ internal fun HomeContent(
                     onBack = onBack,
                     onAddItem = onAddItem,
                     onManageCategories = onManageCategories,
-                    merchants = merchantList,
                 )
             } else {
                 PantryScreen(
@@ -801,8 +789,6 @@ internal fun HomeContent(
                     onBack = onBack,
                     onAddItem = onAddItem,
                     onOpenFilter = { destination = HomeDestination.ShoppingListFilter },
-                    merchants = merchantList,
-                    pantryItems = pantryState?.value?.items.orEmpty(),
                     onAddedToPantry = { count ->
                         addedToPantryCount = count
                         destination = HomeDestination.ShoppingAddedToPantry
@@ -883,7 +869,6 @@ internal fun HomeContent(
         HomeDestination.PantryItemEdit -> PantryItemEditScreen(
             item = editingItem,
             categories = categoriesState?.value?.categories.orEmpty(),
-            merchants = merchantsSource?.let { merchantList },
             onEditCategories = { draft ->
                 editingItem = draft
                 categoriesBackTo = HomeDestination.PantryItemEdit
@@ -929,7 +914,7 @@ private fun PantryListItem.toDetails() = PantryItemDetails(
     packageSize = packageSize,
     barcode = barcode,
     stockCount = stockCount,
-    merchantKeys = merchantKeys,
+
 )
 
 /** What the UI needs of device sync: the stored [devices], the [service] that keeps them in step, and a pairing view model factory. */

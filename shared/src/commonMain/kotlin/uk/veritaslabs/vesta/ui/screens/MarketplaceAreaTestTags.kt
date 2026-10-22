@@ -84,9 +84,6 @@ internal object MarketplaceAreaTestTags {
     const val BusinessesAreaCard = "area_businesses_area_card"
     const val MyShopsList = "area_my_shops_list"
     const val MyShopsEmpty = "area_my_shops_empty"
-    const val RemoveShopDialog = "area_remove_shop_dialog"
-    const val RemoveShopConfirm = "area_remove_shop_confirm"
-    const val RemoveShopCancel = "area_remove_shop_cancel"
 
     fun favouriteHeart(placeId: String) = "area_favourite_heart_$placeId"
 

@@ -4,8 +4,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import org.automerge.Document
-import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
 
+/**
+ * The Pantry document's `merchantKeys` field is dormant (ADR-026, amended 2026-10-22): no screen edits it, but it stays in
+ * the document so devices on older builds, which still write it, round-trip without data loss.
+ */
 class PantryDocumentMerchantsTest {
 
     private fun pantryWith(vararg titles: String): Document {
@@ -63,67 +66,6 @@ class PantryDocumentMerchantsTest {
         setPantryItemMerchants(doc, "milk", listOf("tesco"))
 
         // Assert
-        assertEquals(before, doc.heads.toList())
-    }
-
-    @Test
-    fun aBatchAddAppendsToEachSelectedEntryAndSkipsOnesItAlreadyHas() {
-        // Arrange
-        val doc = pantryWith("Milk", "Eggs", "Bread")
-        setPantryItemMerchants(doc, "milk", listOf("tesco"))
-
-        // Act
-        val changed = changePantryMerchants(doc, listOf("milk", "eggs"), MerchantLinkChange.Add(listOf("tesco", "butcher")))
-
-        // Assert
-        assertEquals(2, changed)
-        assertEquals(listOf("tesco", "butcher"), doc.readPantryItem("milk")?.merchantKeys)
-        assertEquals(listOf("tesco", "butcher"), doc.readPantryItem("eggs")?.merchantKeys)
-        assertEquals(emptyList(), doc.readPantryItem("bread")?.merchantKeys)
-    }
-
-    @Test
-    fun aBatchRemoveTakesTheMerchantsOffTheSelectedEntriesOnly() {
-        // Arrange
-        val doc = pantryWith("Milk", "Eggs")
-        setPantryItemMerchants(doc, "milk", listOf("tesco", "butcher"))
-        setPantryItemMerchants(doc, "eggs", listOf("tesco", "butcher"))
-
-        // Act
-        changePantryMerchants(doc, listOf("milk"), MerchantLinkChange.Remove(setOf("tesco")))
-
-        // Assert
-        assertEquals(listOf("butcher"), doc.readPantryItem("milk")?.merchantKeys)
-        assertEquals(listOf("tesco", "butcher"), doc.readPantryItem("eggs")?.merchantKeys)
-    }
-
-    @Test
-    fun aBatchReplaceGivesEverySelectedEntryExactlyTheNewOrder() {
-        // Arrange
-        val doc = pantryWith("Milk", "Eggs")
-        setPantryItemMerchants(doc, "milk", listOf("tesco"))
-        setPantryItemMerchants(doc, "eggs", listOf("butcher", "stall"))
-
-        // Act
-        changePantryMerchants(doc, listOf("milk", "eggs"), MerchantLinkChange.Replace(listOf("stall", "tesco")))
-
-        // Assert
-        assertEquals(listOf("stall", "tesco"), doc.readPantryItem("milk")?.merchantKeys)
-        assertEquals(listOf("stall", "tesco"), doc.readPantryItem("eggs")?.merchantKeys)
-    }
-
-    @Test
-    fun aBatchThatChangesNothingWritesNothing() {
-        // Arrange
-        val doc = pantryWith("Milk")
-        setPantryItemMerchants(doc, "milk", listOf("tesco"))
-        val before = doc.heads.toList()
-
-        // Act
-        val changed = changePantryMerchants(doc, listOf("milk", "missing"), MerchantLinkChange.Add(listOf("tesco")))
-
-        // Assert
-        assertEquals(0, changed)
         assertEquals(before, doc.heads.toList())
     }
 

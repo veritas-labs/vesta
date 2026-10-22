@@ -27,8 +27,6 @@ data class ShoppingListItem(
     val got: Int = 0,
     /** The shop had none of it. */
     val outOfStock: Boolean = false,
-    /** Keys of the merchants it is bought from, highest priority first, taken from its Pantry entry (see [withMerchantKeys]). */
-    val merchantKeys: List<String> = emptyList(),
 ) {
     /** Everything wanted has been picked up. */
     val isCrossedOff: Boolean get() = !outOfStock && got >= quantity
@@ -83,13 +81,12 @@ interface ShoppingListSource {
 
 /**
  * [ShoppingListScreen]'s state; [isLoading] is true until the source has emitted for the first time. [selectedTags]
- * are the lower-cased tags and [selectedMerchants] the merchant keys the list is filtered to (none: everything shows);
+ * are the lower-cased tags the list is filtered to (none: everything shows);
  * [hideChecked] hides the items that are checked off. See [applyShoppingFilters].
  */
 data class ShoppingListUiState(
     val items: List<ShoppingListItem> = emptyList(),
     val selectedTags: Set<String> = emptySet(),
-    val selectedMerchants: Set<String> = emptySet(),
     val hideChecked: Boolean = false,
     val isLoading: Boolean = true,
 )
@@ -107,68 +104,27 @@ fun filterByTags(items: List<ShoppingListItem>, selected: Set<String>): List<Sho
     return if (active.isEmpty()) items else items.filter { item -> item.tags.any { it.lowercase() in active } }
 }
 
-/**
- * [items] with [ShoppingListItem.merchantKeys] filled in from the Pantry entry each one is stocked as: the entry at
- * the item's barcode or lower-cased title (as the Pantry addresses them — ADR-008), else the first entry with the same
- * title ignoring case.
- */
-fun withMerchantKeys(items: List<ShoppingListItem>, pantryItems: List<PantryListItem>): List<ShoppingListItem> {
-    val byKey = pantryItems.associate { it.key to it.merchantKeys }
-    val byTitle = pantryItems.groupBy { it.title.trim().lowercase() }.mapValues { (_, entries) -> entries.first().merchantKeys }
-    return items.map { item ->
-        val title = item.title.trim().lowercase()
-        val keys = item.barcode?.takeIf { it.isNotBlank() }?.let { byKey[it] } ?: byKey[title] ?: byTitle[title] ?: return@map item
-        item.copy(merchantKeys = keys)
-    }
-}
-
-/** The merchants, sorted by name, that at least one of [items] is bought from. */
-fun shoppingMerchants(items: List<ShoppingListItem>, merchants: List<Merchant>): List<Merchant> {
-    val used = items.flatMapTo(mutableSetOf()) { it.merchantKeys }
-    return merchants.filter { it.key in used }.sortedBy { it.name.lowercase() }
-}
-
-/**
- * The [items] bought from any of the [selected] merchant keys. Selected merchants no item is bought from are
- * ignored, and with none left every item shows.
- */
-fun filterByMerchants(items: List<ShoppingListItem>, selected: Set<String>): List<ShoppingListItem> {
-    val active = selected intersect items.flatMapTo(mutableSetOf()) { it.merchantKeys }
-    return if (active.isEmpty()) items else items.filter { item -> item.merchantKeys.any { it in active } }
-}
-
-/** [items] narrowed by the tags, the merchants and the hide-checked switch together (an item must pass all three). */
-fun applyShoppingFilters(
-    items: List<ShoppingListItem>,
-    selectedTags: Set<String>,
-    selectedMerchants: Set<String>,
-    hideChecked: Boolean,
-): List<ShoppingListItem> =
-    filterByMerchants(filterByTags(items, selectedTags), selectedMerchants).filter { !hideChecked || !it.isCheckedOff }
+/** [items] narrowed by the tags and the hide-checked switch together (an item must pass both). */
+fun applyShoppingFilters(items: List<ShoppingListItem>, selectedTags: Set<String>, hideChecked: Boolean): List<ShoppingListItem> =
+    filterByTags(items, selectedTags).filter { !hideChecked || !it.isCheckedOff }
 
 /** Backs [ShoppingListScreen]: exposes the list from [source] as [uiState], with the filters the user has chosen. */
 class ShoppingListViewModel(private val source: ShoppingListSource) : ViewModel() {
 
     private val selectedTags = MutableStateFlow<Set<String>>(emptySet())
 
-    private val selectedMerchants = MutableStateFlow<Set<String>>(emptySet())
     private val hideChecked = MutableStateFlow(false)
 
     val uiState: StateFlow<ShoppingListUiState> = combine(
-        source.items, selectedTags, selectedMerchants, hideChecked,
-    ) { items, tags, merchants, hide ->
-        ShoppingListUiState(items = items, selectedTags = tags, selectedMerchants = merchants, hideChecked = hide, isLoading = false)
+        source.items, selectedTags, hideChecked,
+    ) { items, tags, hide ->
+        ShoppingListUiState(items = items, selectedTags = tags, hideChecked = hide, isLoading = false)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), ShoppingListUiState())
 
     /** Adds [tag] to the filter, or takes it out if it is there. */
     fun toggleTag(tag: String) {
         val key = tag.lowercase()
         selectedTags.update { if (key in it) it - key else it + key }
-    }
-
-    /** Adds the merchant at [key] to the filter, or takes it out if it is there. */
-    fun toggleMerchant(key: String) {
-        selectedMerchants.update { if (key in it) it - key else it + key }
     }
 
     /** Hides the items that are checked off, or shows them again. */

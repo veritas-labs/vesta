@@ -57,7 +57,6 @@ class AutomergeFixtureSourceTest {
 
         // Assert
         assertEquals(setOf("whole milk", "5000169000000", "bin bags", "runner bean seeds"), items.map { it.key }.toSet())
-        assertEquals(listOf("aldi", "tesco"), items.first { it.key == "5000169000000" }.merchantKeys)
         assertEquals(22, categories.size)
         assertContentEquals(original, database.stored(pantryDocumentId(homeId)))
     }

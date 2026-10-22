@@ -85,25 +85,4 @@ class FavouriteBusinessesTest {
         // Assert
         assertEquals(listOf("apple", "Banana", "école", "Édith", "Zed"), sorted)
     }
-
-    @Test
-    fun usageCountsPantryItemsAndShoppingEntriesLinkingTheKey() = runTest {
-        // Arrange
-        val pantry = listOf(
-            PantryListItem("milk", "Dairy", null, "Milk", "1l", 1, merchantKeys = listOf("m1")),
-            PantryListItem("eggs", "Dairy", null, "Eggs", "6", 1, merchantKeys = listOf("m1", "m2")),
-            PantryListItem("tea", "Drinks", null, "Tea", "80", 1, merchantKeys = listOf("m2")),
-        )
-        val shopping = listOf(ShoppingListItem("milk", "Dairy", null, "Milk", 1, "1l"))
-        val favourites = FavouriteBusinesses(FakeSource(), MerchantUsage.of(pantry, shopping))
-        favourites.favourite(business("p1"), "Newport")
-
-        // Act
-        val used = favourites.usageCount("p1")
-        val unknown = favourites.usageCount("nope")
-
-        // Assert
-        assertEquals(3, used)
-        assertEquals(0, unknown)
-    }
 }

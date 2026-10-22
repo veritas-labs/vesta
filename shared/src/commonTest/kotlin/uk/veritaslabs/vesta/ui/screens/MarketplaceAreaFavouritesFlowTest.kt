@@ -30,13 +30,12 @@ class MarketplaceAreaFavouritesFlowTest {
 
     private fun ComposeUiTest.show(
         merchants: FakeMerchantsSource? = FakeMerchantsSource(),
-        usage: MerchantUsage = MerchantUsage.None,
     ): MarketplaceAreaViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val viewModel = MarketplaceAreaViewModel(
             "home", AreaFakeSource(cached = true),
             AreaFakeRepository(HomeLocation("GB", id(3), "2026-09-23.1", area = setOf(id(5)))),
-            AreaFakePlaces(), merchants?.let { FavouriteBusinesses(it, usage) },
+            AreaFakePlaces(), merchants?.let { FavouriteBusinesses(it) },
         ) { "GB" }
         setContent { VestaTheme { MarketplaceAreaFlow(viewModel, onBack = {}) } }
         waitForIdle()
@@ -74,44 +73,6 @@ class MarketplaceAreaFavouritesFlowTest {
 
         // Assert
         onNodeWithTag(heart).assertContentDescriptionEquals("Add ${business.name} to My Shops")
-    }
-
-    @Test
-    fun unfavouritingAShopInUseAsksAndCancelKeepsIt() = runComposeUiTest {
-        // Arrange
-        val viewModel = show(usage = { 4 })
-        openList()
-        val business = viewModel.uiState.value.businesses.items.first()
-        tap(MarketplaceAreaTestTags.favouriteHeart(business.id))
-
-        // Act
-        tap(MarketplaceAreaTestTags.favouriteHeart(business.id))
-
-        // Assert
-        onNodeWithTag(MarketplaceAreaTestTags.RemoveShopDialog).assertIsDisplayed()
-
-        // Act
-        tap(MarketplaceAreaTestTags.RemoveShopCancel)
-
-        // Assert
-        onNodeWithTag(MarketplaceAreaTestTags.RemoveShopDialog).assertDoesNotExist()
-        assertEquals(setOf(business.id), viewModel.uiState.value.favouriteIds)
-    }
-
-    @Test
-    fun confirmingTheQuestionRemovesTheShop() = runComposeUiTest {
-        // Arrange
-        val viewModel = show(usage = { 4 })
-        openList()
-        val business = viewModel.uiState.value.businesses.items.first()
-        tap(MarketplaceAreaTestTags.favouriteHeart(business.id))
-        tap(MarketplaceAreaTestTags.favouriteHeart(business.id))
-
-        // Act
-        tap(MarketplaceAreaTestTags.RemoveShopConfirm)
-
-        // Assert
-        assertEquals(emptySet(), viewModel.uiState.value.favouriteIds)
     }
 
     @Test

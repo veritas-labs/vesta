@@ -11,7 +11,6 @@ import uk.veritaslabs.kits.docs.SpaceDocument
 import uk.veritaslabs.kits.docs.spaceDocumentId
 import uk.veritaslabs.kits.docs.openSpaceDocument
 import uk.veritaslabs.kits.store.KitsDatabase
-import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
 import uk.veritaslabs.vesta.ui.screens.PantryCategoriesSource
 import uk.veritaslabs.vesta.ui.screens.PantryCategoryGroup
 import uk.veritaslabs.vesta.ui.screens.PantryContents
@@ -124,17 +123,12 @@ class PantryDocumentSource private constructor(
                 barcode = item.barcode,
             )
             correctStock(doc, key, item.stockCount)
-            // Editing the name/barcode moves the entry to a new dedup key; drop the old one, taking its merchants along
-            // unless the edit set them.
+            // Editing the name/barcode moves the entry to a new dedup key; drop the old one, taking its (dormant, ADR-026)
+            // merchants along. An edit that stays on the same key never touches the field.
             val moved = item.key?.takeIf { it != key }
-            val merchants = item.merchantKeys ?: moved?.let { doc.readPantryItem(it)?.merchantKeys }
-            merchants?.let { setPantryItemMerchants(doc, key, it) }
+            moved?.let { doc.readPantryItem(it)?.merchantKeys }?.let { setPantryItemMerchants(doc, key, it) }
             moved?.let { deletePantryItem(doc, it) }
         }
-    }
-
-    override suspend fun changeMerchants(itemKeys: Set<String>, change: MerchantLinkChange) {
-        edit { changePantryMerchants(it, itemKeys, change) }
     }
 
     override suspend fun delete(key: String) {
@@ -167,7 +161,6 @@ private fun Document.toPantryContents() = PantryContents(
             packageSize = it.packageSize,
             stockCount = it.stockCount,
             barcode = it.barcode,
-            merchantKeys = it.merchantKeys,
         )
     },
 )

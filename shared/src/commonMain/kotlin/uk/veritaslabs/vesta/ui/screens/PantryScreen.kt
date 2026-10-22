@@ -2,8 +2,7 @@ package uk.veritaslabs.vesta.ui.screens
 
 import uk.veritaslabs.vesta.ui.components.FabClearance
 import androidx.compose.foundation.background
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -51,8 +50,6 @@ import uk.veritaslabs.vesta.ui.components.EmptyStateArt
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
 import vesta.shared.generated.resources.ic_arrow_left
-import vesta.shared.generated.resources.ic_close
-import vesta.shared.generated.resources.ic_merchants
 import vesta.shared.generated.resources.ic_dots_vertical
 import vesta.shared.generated.resources.ic_minus
 import vesta.shared.generated.resources.ic_plus
@@ -64,9 +61,6 @@ import vesta.shared.generated.resources.pantry_empty_subtitle
 import vesta.shared.generated.resources.pantry_empty_title
 import vesta.shared.generated.resources.pantry_more_options
 import vesta.shared.generated.resources.pantry_out_of_stock
-import vesta.shared.generated.resources.pantry_select_cancel
-import vesta.shared.generated.resources.pantry_select_count
-import vesta.shared.generated.resources.pantry_select_merchants
 import vesta.shared.generated.resources.pantry_stock_count
 import vesta.shared.generated.resources.pantry_stock_decrease
 import vesta.shared.generated.resources.pantry_stock_increase
@@ -80,12 +74,6 @@ internal object PantryTestTags {
     const val AddItemButton = "pantry_add_item_button"
     const val OverflowButton = "pantry_overflow_button"
     const val CategoriesMenuItem = "pantry_categories_menu_item"
-    const val SelectCancelButton = "pantry_select_cancel_button"
-    const val SelectMerchantsButton = "pantry_select_merchants_button"
-    const val SelectedCount = "pantry_selected_count"
-
-    /** Tag for the merchant names of the merchants line of the row with the given [key]. */
-    fun buyFrom(key: String) = "pantry_buy_from_$key"
 
     /** Tag for the row of the Pantry entry with the given [key] (its dedup key — see ADR-008). */
     fun pantryItem(key: String) = "pantry_item_$key"
@@ -110,8 +98,6 @@ data class PantryListItem(
     val packageSize: String,
     val stockCount: Int,
     val barcode: String? = null,
-    /** Keys of the merchants it is bought from, highest priority first (ADR-026); keys of deleted merchants may remain. */
-    val merchantKeys: List<String> = emptyList(),
 )
 
 /**
@@ -127,11 +113,6 @@ data class PantryListItem(
  * Each row has minus/plus buttons either side of its stock count, reported through [onStockChange]
  * with the new count (never below zero).
  *
- * A long press on a row starts selecting: taps then pick or drop rows, the top bar shows how many are selected and a
- * merchants button, which opens [MerchantLinkDialog] over the Home's [merchants] and reports the chosen change for the
- * selected keys through [onChangeMerchants] (the batch update of ADR-026); the close button stops selecting. A row
- * with merchants lists their names, in priority order, under its title.
- *
  * UI only — the caller owns [items] and reacts to [onItemSelected], [onStockChange], [onBack]
  * (top-bar back arrow), [onManageCategories] (the "Categories" entry in the top-bar overflow menu) and [onAddItem] (floating action button); see the
  * [PantryViewModel] overload for the version wired to live Pantry state.
@@ -145,7 +126,6 @@ fun PantryScreen(
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
     onManageCategories: () -> Unit = {},
-    merchants: List<Merchant> = emptyList(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (state.isLoading) {
@@ -161,8 +141,6 @@ fun PantryScreen(
             onBack = onBack,
             onAddItem = onAddItem,
             onManageCategories = onManageCategories,
-            merchants = merchants,
-            onChangeMerchants = viewModel::changeMerchants,
         )
     }
 }
@@ -178,15 +156,7 @@ fun PantryScreen(
     onBack: () -> Unit = {},
     onAddItem: () -> Unit = {},
     onManageCategories: () -> Unit = {},
-    merchants: List<Merchant> = emptyList(),
-    onChangeMerchants: (Set<String>, MerchantLinkChange) -> Unit = { _, _ -> },
-    initiallySelected: Set<String> = emptySet(),
 ) {
-    // The keys of the rows picked for a batch update; empty means not selecting. Keys of rows that have gone are ignored.
-    var picked by remember { mutableStateOf(initiallySelected) }
-    val selected = picked.intersect(items.map { it.key }.toSet())
-    val selecting = selected.isNotEmpty()
-    var choosingMerchants by remember { mutableStateOf(false) }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
@@ -197,45 +167,16 @@ fun PantryScreen(
 
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             TopAppBar(
-                title = {
-                    if (selecting) {
-                        Text(
-                            stringResource(Res.string.pantry_select_count, selected.size),
-                            modifier = Modifier.testTag(PantryTestTags.SelectedCount),
-                        )
-                    } else {
-                        Text(stringResource(Res.string.pantry_title))
-                    }
-                },
+                title = { Text(stringResource(Res.string.pantry_title)) },
                 navigationIcon = {
-                    if (selecting) {
-                        IconButton(onClick = { picked = emptySet() }, modifier = Modifier.testTag(PantryTestTags.SelectCancelButton)) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_close),
-                                contentDescription = stringResource(Res.string.pantry_select_cancel),
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = onBack, modifier = Modifier.testTag(PantryTestTags.BackButton)) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_arrow_left),
-                                contentDescription = stringResource(Res.string.common_back),
-                            )
-                        }
+                    IconButton(onClick = onBack, modifier = Modifier.testTag(PantryTestTags.BackButton)) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_left),
+                            contentDescription = stringResource(Res.string.common_back),
+                        )
                     }
                 },
                 actions = {
-                    if (selecting) {
-                        IconButton(
-                            onClick = { choosingMerchants = true },
-                            modifier = Modifier.testTag(PantryTestTags.SelectMerchantsButton),
-                        ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_merchants),
-                                contentDescription = stringResource(Res.string.pantry_select_merchants),
-                            )
-                        }
-                    } else {
                     var menuExpanded by remember { mutableStateOf(false) }
                     Box {
                         IconButton(
@@ -257,7 +198,6 @@ fun PantryScreen(
                                 modifier = Modifier.testTag(PantryTestTags.CategoriesMenuItem),
                             )
                         }
-                    }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -322,17 +262,8 @@ fun PantryScreen(
                                     Column {
                                         PantryItemRow(
                                             item = pantryItem,
-                                            onClick = {
-                                                if (selecting) {
-                                                    picked = if (pantryItem.key in selected) selected - pantryItem.key else selected + pantryItem.key
-                                                } else {
-                                                    onItemSelected(pantryItem)
-                                                }
-                                            },
-                                            onLongClick = { picked = selected + pantryItem.key },
+                                            onClick = { onItemSelected(pantryItem) },
                                             onStockChange = { onStockChange(pantryItem, it) },
-                                            selected = pantryItem.key in selected,
-                                            buyFrom = linkedMerchants(pantryItem.merchantKeys, merchants).map { it.name },
                                             modifier = Modifier.testTag(PantryTestTags.pantryItem(pantryItem.key)),
                                         )
                                         Spacer(Modifier.height(4.dp))
@@ -346,7 +277,7 @@ fun PantryScreen(
             }
         }
 
-        if (!selecting) FloatingActionButton(
+        FloatingActionButton(
             onClick = onAddItem,
             shape = MaterialTheme.shapes.small,
             containerColor = MaterialTheme.colorScheme.primary,
@@ -363,40 +294,23 @@ fun PantryScreen(
             )
         }
     }
-
-    if (choosingMerchants && selecting) {
-        MerchantLinkDialog(
-            itemCount = selected.size,
-            merchants = merchants,
-            onApply = { change ->
-                onChangeMerchants(selected, change)
-                choosingMerchants = false
-                picked = emptySet()
-            },
-            onDismiss = { choosingMerchants = false },
-        )
-    }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PantryItemRow(
     item: PantryListItem,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
-    onLongClick: () -> Unit = {},
     onStockChange: (Int) -> Unit = {},
-    selected: Boolean = false,
-    buyFrom: List<String> = emptyList(),
 ) {
     val shape = MaterialTheme.shapes.medium
-    val fill = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    val fill = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
             .background(fill, shape)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -414,9 +328,6 @@ private fun PantryItemRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
-            if (buyFrom.isNotEmpty()) {
-                BuyFromLine(buyFrom, textModifier = Modifier.testTag(PantryTestTags.buyFrom(item.key)))
             }
         }
         Spacer(Modifier.width(12.dp))
@@ -467,7 +378,6 @@ private val PantryPreviewItems = listOf(
         title = "Heinz Ketchup",
         packageSize = "500ml",
         stockCount = 4,
-        merchantKeys = listOf("tesco", "butcher"),
     ),
     PantryListItem(
         key = "brown sauce",
@@ -542,7 +452,7 @@ private val PantryPreviewEmptyCategories = listOf("Snacks")
 @Composable
 private fun PantryScreenPhoneLightPreview() {
     VestaTheme(darkTheme = false) {
-        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories, merchants = MerchantLinkPreviewMerchants)
+        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories)
     }
 }
 
@@ -550,7 +460,7 @@ private fun PantryScreenPhoneLightPreview() {
 @Composable
 private fun PantryScreenPhoneDarkPreview() {
     VestaTheme(darkTheme = true) {
-        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories, merchants = MerchantLinkPreviewMerchants)
+        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories)
     }
 }
 
@@ -558,7 +468,7 @@ private fun PantryScreenPhoneDarkPreview() {
 @Composable
 private fun PantryScreenTabletLightPreview() {
     VestaTheme(darkTheme = false) {
-        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories, merchants = MerchantLinkPreviewMerchants)
+        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories)
     }
 }
 
@@ -566,7 +476,7 @@ private fun PantryScreenTabletLightPreview() {
 @Composable
 private fun PantryScreenTabletDarkPreview() {
     VestaTheme(darkTheme = true) {
-        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories, merchants = MerchantLinkPreviewMerchants)
+        PantryScreen(items = PantryPreviewItems, emptyCategories = PantryPreviewEmptyCategories)
     }
 }
 
@@ -592,36 +502,4 @@ private fun PantryScreenEmptyTabletLightPreview() {
 @Composable
 private fun PantryScreenEmptyTabletDarkPreview() {
     VestaTheme(darkTheme = true) { PantryScreen(items = emptyList()) }
-}
-
-@Preview(name = "Light", group = "Phone", device = Devices.PHONE)
-@Composable
-private fun PantryScreenSelectingPhoneLightPreview() {
-    VestaTheme(darkTheme = false) {
-        PantryScreen(items = PantryPreviewItems, merchants = MerchantLinkPreviewMerchants, initiallySelected = setOf("cheddar", "brie"))
-    }
-}
-
-@Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
-@Composable
-private fun PantryScreenSelectingPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) {
-        PantryScreen(items = PantryPreviewItems, merchants = MerchantLinkPreviewMerchants, initiallySelected = setOf("cheddar", "brie"))
-    }
-}
-
-@Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
-@Composable
-private fun PantryScreenSelectingTabletLightPreview() {
-    VestaTheme(darkTheme = false) {
-        PantryScreen(items = PantryPreviewItems, merchants = MerchantLinkPreviewMerchants, initiallySelected = setOf("cheddar", "brie"))
-    }
-}
-
-@Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
-@Composable
-private fun PantryScreenSelectingTabletDarkPreview() {
-    VestaTheme(darkTheme = true) {
-        PantryScreen(items = PantryPreviewItems, merchants = MerchantLinkPreviewMerchants, initiallySelected = setOf("cheddar", "brie"))
-    }
 }

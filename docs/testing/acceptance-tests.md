@@ -357,22 +357,27 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
 1. **The Marketplace opens the area flow directly. Covered.** *Given* I am on a Home's dashboard, *when* I tap Marketplace, *then* the area flow opens (here its
    disclosure) with no options screen between; *when* I leave the flow, *then* I am back on the dashboard. `MarketplaceNearbyMerchantsNavigationTest.theMarketplaceTileOpensTheAreaFlowAndBackReturnsToTheHome`.
 2. **No hand-made merchants. Covered by removal.** The Local Merchants list, detail and add/edit screens and their acceptance test (`MerchantsAcceptanceTest`) are
-   deleted; merchants still exist as records in the merchants document, which Pantry and Shopping link to (`PantryMerchantsAcceptanceTest`, `MerchantsDocumentTest`).
+   deleted; merchants still exist as records in the merchants document (`MerchantsDocumentTest`). Pantry and Shopping no longer link to them (WP-M7).
 
 ## My Shops (ADR-039 redesign plan, WP-M3)
 
 1. **A heart on every business adds it to My Shops. Covered.** *Given* a business list and a Home with a merchants document, *when* I tap a business's heart,
-   *then* it fills (description "Remove X from My Shops") and the business is saved as a shop; *and when* I tap it again with nothing using it, *then* it empties and the
-   shop is removed. `MarketplaceAreaFavouritesFlowTest.tappingTheHeartFillsItAndRetappingEmptiesIt`, `MarketplaceAreaFavouritesViewModelTest.heartingABusinessAddsItToMyShopsAndFillsItsHeart`, `heartingAgainRemovesAnUnusedFavouriteWithoutAsking`.
-2. **Removing a shop in use asks first. Covered.** *Given* a favourite that Pantry items or the shopping list use, *when* I unheart it, *then* I am told "used by N items in
-   Pantry or the shopping list" with Cancel and Remove; Cancel keeps it, Remove deletes it. `MarketplaceAreaFavouritesFlowTest.unfavouritingAShopInUseAsksAndCancelKeepsIt`, `confirmingTheQuestionRemovesTheShop`, `MarketplaceAreaFavouritesViewModelTest.removingAFavouriteInUseAsksFirstAndCancelKeepsIt`, `confirmingTheQuestionRemovesTheFavourite`.
+   *then* it fills (description "Remove X from My Shops") and the business is saved as a shop; *and when* I tap it again, *then* it empties and the
+   shop is removed at once. `MarketplaceAreaFavouritesFlowTest.tappingTheHeartFillsItAndRetappingEmptiesIt`, `MarketplaceAreaFavouritesViewModelTest.heartingABusinessAddsItToMyShopsAndFillsItsHeart`, `heartingAgainRemovesTheFavourite`.
+2. **Removing a shop is immediate. Covered.** *Given* a favourite, *when* I unheart it, *then* it goes at once with no question (Pantry and the shopping list no longer
+   link to shops, so nothing can be "in use"; the "used by N items" confirm was removed in WP-M7). `MarketplaceAreaFavouritesViewModelTest.heartingAgainRemovesTheFavourite`, `MarketplaceAreaFavouritesFlowTest.tappingTheHeartFillsItAndRetappingEmptiesIt`.
 3. **My Shops lists every saved shop. Covered.** *Given* shops saved (hand-made ones from before included), *when* I tap the My Shops row at the top of the Categories screen,
    *then* they are listed with a filled heart each that removes it; no add or edit; back returns to the Categories. It reads the merchants document only, so it works offline.
    `MarketplaceAreaFavouritesFlowTest.myShopsRowOpensTheListWithHandMadeShopsAndHeartsRemove`, `backFromMyShopsReturnsToTheCategories`, `MarketplaceAreaFavouritesViewModelTest.myShopsOpensFromTheCategoriesListsHandMadeOnesAndBackReturns`, `removingAHandMadeShopFromMyShopsWorks`.
 4. **No merchants document, no hearts. Covered.** *Given* a Home with no merchants document yet, *when* I browse businesses, *then* there are no hearts and no My Shops row.
    `MarketplaceAreaFavouritesFlowTest.withoutAMerchantsDocumentThereAreNoHeartsAndNoMyShopsRow`, `MarketplaceAreaFavouritesViewModelTest.withoutAMerchantsDocumentFavouritesAreUnavailableAndMyShopsDoesNotOpen`.
-5. **Pantry and Shopping say "My Shops". Covered by wording.** The preferred-merchants section, picker and dialogs now read "My Shops" / "shops"; with none, the line says to tap the heart on a business under Marketplace.
-6. **Not covered:** the usage count fed from live Pantry and shopping items in `App.kt` (wiring only, by-hand run), and the screens in the real app.
+5. **Pantry and Shopping do not link to shops. Covered by removal (WP-M7, 2026-10-22).** The Pantry item form's shops section, the merchant picker and batch update, the shops lines
+   on Pantry and shopping rows and the shopping list's "Filter by shop" chips are gone, with `PantryMerchantsAcceptanceTest` and the merchant criteria of
+   `ShoppingListFiltersAcceptanceTest` (its tag and hide-checked criteria remain).
+6. **A saved Pantry edit leaves the dormant shops field alone. Covered.** *Given* a Pantry entry that an older device gave `merchantKeys`, *when* I edit and save it (stock, or a rename that moves its key),
+   *then* the field is unchanged (carried to the new key on a rename), so older and newer devices round-trip. `PantryDocumentSourceMerchantsTest.savingAnEditLeavesTheEntrysMerchantsUntouched`, `renamingAnItemMovesItsMerchantsToTheNewKey`,
+   `PantryDocumentMerchantsTest.editingMerchantsAndStockOnTwoDevicesAtOnceKeepsBoth`.
+7. **Not covered:** the screens in the real app.
 
 ## Marketplace redesign visuals (ADR-039 redesign plan, WP-M5/M6)
 
@@ -386,4 +391,4 @@ Backing tests are in `MarketplaceAreaRedesignTest` unless another class is named
 4. **Directions opens a map pin. Covered.** *When* I tap Directions on a business with coordinates, *then* the system opens
    `https://www.openstreetmap.org/?mlat=<lat>&mlon=<lon>#map=18/<lat>/<lon>` with the place's own coordinates only. `directionsOpensAnOpenStreetMapPinOnThePlace`.
 5. **No coordinates, no Directions. Covered.** `directionsIsAbsentWhenThePlaceHasNoCoordinates`.
-6. **Not covered:** the screens in the real app; the My Shops usage count wired from live Pantry and shopping items in `App.kt` (wiring only, by-hand run).
+6. **Not covered:** the screens in the real app.

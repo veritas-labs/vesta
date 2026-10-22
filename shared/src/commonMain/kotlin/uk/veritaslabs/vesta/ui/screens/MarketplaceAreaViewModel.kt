@@ -205,12 +205,7 @@ data class MarketplaceAreaUiState(
     val favouriteIds: Set<String> = emptySet(),
     /** My Shops, A to Z, hand-made ones included. */
     val myShops: List<Merchant> = emptyList(),
-    /** The "used by N items" question while it is showing. */
-    val pendingRemoval: PendingShopRemoval? = null,
 )
-
-/** A favourite that Pantry or Shopping link, waiting for the user to confirm its removal. */
-data class PendingShopRemoval(val key: String, val name: String, val usageCount: Int)
 
 private const val SearchLimit = 20
 private const val ShowMoreStep = 10
@@ -460,7 +455,7 @@ class MarketplaceAreaViewModel(
     /** One step back, keeping what was typed and ticked. False at a step with nothing before it: the screen leaves. */
     fun back(): Boolean = when (state.value.step) {
         AreaStep.MyShops -> {
-            state.update { it.copy(step = AreaStep.BusinessesCategories, pendingRemoval = null) }
+            state.update { it.copy(step = AreaStep.BusinessesCategories) }
             true
         }
         AreaStep.BusinessesLoading -> {
@@ -846,41 +841,16 @@ class MarketplaceAreaViewModel(
     private fun MarketplaceAreaUiState.reset() =
         MarketplaceAreaUiState(favouritesAvailable = favouritesAvailable, favouriteIds = favouriteIds, myShops = myShops)
 
-    /** The heart on [business]: adds it to My Shops, or removes it, asking first when Pantry or Shopping use it. */
+    /** The heart on [business]: adds it to My Shops, or removes it. */
     fun toggleFavourite(business: BusinessRow) {
+        val f = favourites ?: return
         val shop = state.value.myShops.firstOrNull { it.gersId == business.id }
-        if (shop == null) {
-            favourites?.let { f -> viewModelScope.launch { f.favourite(business, business.localityName) } }
-        } else {
-            requestRemoval(shop)
-        }
+        viewModelScope.launch { if (shop == null) f.favourite(business, business.localityName) else f.removeByKey(shop.key) }
     }
 
     /** The heart on a My Shops row. */
     fun removeShop(key: String) {
-        state.value.myShops.firstOrNull { it.key == key }?.let(::requestRemoval)
-    }
-
-    private fun requestRemoval(shop: Merchant) {
-        val f = favourites ?: return
-        val used = f.usageOfKey(shop.key)
-        if (used > 0) {
-            state.update { it.copy(pendingRemoval = PendingShopRemoval(shop.key, shop.name, used)) }
-        } else {
-            viewModelScope.launch { f.removeByKey(shop.key) }
-        }
-    }
-
-    /** "Remove" in the in-use question. */
-    fun confirmRemoval() {
-        val pending = state.value.pendingRemoval ?: return
-        state.update { it.copy(pendingRemoval = null) }
-        favourites?.let { f -> viewModelScope.launch { f.removeByKey(pending.key) } }
-    }
-
-    /** "Cancel" in the in-use question: nothing changes. */
-    fun cancelRemoval() {
-        state.update { it.copy(pendingRemoval = null) }
+        favourites?.let { f -> viewModelScope.launch { f.removeByKey(key) } }
     }
 
     /** Opens My Shops from the categories screen. */

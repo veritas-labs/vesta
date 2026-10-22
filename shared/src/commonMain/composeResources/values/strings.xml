@@ -181,23 +181,6 @@
     <string name="pantry_stock_decrease">Decrease stock</string>
     <string name="pantry_category_empty">No items yet</string>
 
-    <string name="pantry_buy_from_label">My Shops</string>
-    <string name="pantry_buy_from_none">No shops yet. Tap the heart on a business under Marketplace to add it to My Shops.</string>
-    <string name="pantry_buy_from_add">Add a shop</string>
-    <string name="pantry_buy_from_move_up">Move %1$s up</string>
-    <string name="pantry_buy_from_move_down">Move %1$s down</string>
-    <string name="pantry_buy_from_remove">Remove %1$s</string>
-    <string name="pantry_select_count">%1$d selected</string>
-    <string name="pantry_select_cancel">Stop selecting</string>
-    <string name="pantry_select_merchants">Set shops</string>
-    <string name="pantry_merchants_dialog_title">Shops for %1$d items</string>
-    <string name="pantry_merchants_mode_add">Add</string>
-    <string name="pantry_merchants_mode_remove">Remove</string>
-    <string name="pantry_merchants_mode_replace">Replace</string>
-    <string name="pantry_merchants_mode_add_hint">Added after any shops the items already have.</string>
-    <string name="pantry_merchants_mode_remove_hint">Taken off every selected item that has them.</string>
-    <string name="pantry_merchants_mode_replace_hint">Every selected item gets exactly this list, in this order. An empty list clears them.</string>
-    <string name="pantry_merchants_apply">Apply</string>
 
     <string name="pantry_categories_title">Categories</string>
     <string name="pantry_categories_empty_title">No categories</string>
@@ -249,7 +232,6 @@
     <string name="shopping_delete_all_message">Every item will be removed from the shopping list.</string>
     <string name="shopping_delete_all_confirm">Delete all</string>
     <string name="shopping_filter_label">Filter by tag</string>
-    <string name="shopping_filter_merchants_label">Filter by shop</string>
     <string name="shopping_filter_open">Filter options</string>
     <string name="shopping_filter_title">Filter shopping list</string>
     <string name="shopping_filter_tags_heading">Tags</string>
@@ -1043,10 +1025,6 @@
     <string name="area_my_shops_empty">No shops yet. Tap the heart on a business to add it here.</string>
     <string name="area_favourite_add">Add %1$s to My Shops</string>
     <string name="area_favourite_remove">Remove %1$s from My Shops</string>
-    <string name="area_favourite_remove_title">Remove from My Shops?</string>
-    <string name="area_favourite_in_use">%1$s is used by %2$d items in Pantry or the shopping list.</string>
-    <string name="area_favourite_cancel">Cancel</string>
-    <string name="area_favourite_confirm">Remove</string>
     <string name="area_missing_title">A business is missing?</string>
     <string name="area_missing_body">Vesta\'s listings come from Overture Maps, which is built on OpenStreetMap and other sources. To add a missing business, add it on OpenStreetMap. It will appear here in a later update. Nothing about your area is sent when you open the site.</string>
     <string name="area_missing_open">Open OpenStreetMap</string>

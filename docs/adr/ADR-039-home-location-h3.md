@@ -522,14 +522,13 @@ continuing rows (the logic returns a heading again for a section cut by a page, 
 - **Not done:** business detail pages and contact options, the confidence filter, a desktop master-detail layout, category icons. None of this UI
   has been run in the real app; it is covered by Compose UI tests over fakes only.
 
-### Marketplace redesign (2026-10-22; plan: [ADR-039-marketplace-redesign-plan.md](../plans/ADR-039-marketplace-redesign-plan.md), WP-M1 to WP-M6)
+### Marketplace redesign (2026-10-22; plan: [ADR-039-marketplace-redesign-plan.md](../plans/ADR-039-marketplace-redesign-plan.md), WP-M1 to WP-M7)
 
 - **The Marketplace opens the area flow directly.** No options screen; back returns to the Home. Hand-made Local Merchants are gone (ADR-026 amended).
 - **My Shops.** A heart on every business row saves it as a merchant record (by GERS id) in the Home's merchants document; a My Shops tile on the categories
-  screen lists them A to Z, each with its heart. Unhearting a shop that Pantry items or the shopping list use asks first. Pantry and Shopping pickers say "My Shops".
+  screen lists them A to Z, each with its heart. Unhearting removes it at once. Pantry and the shopping list do not link to My Shops (WP-M7, 2026-10-22: the Pantry item's shops section, the picker, the shops lines and the shopping list's shop filter were removed; the `merchantKeys` field stays dormant in the Pantry document for older devices, ADR-026).
 - **Missing business.** The end of the categories screen and of a list, and an empty search, say to add it on OpenStreetMap, with an "Open OpenStreetMap" button
   that opens the site front page only; nothing leaves the device.
 - **Visual refresh.** An area card (Active area, home locality + nearby, total, Change), rounded search fields, a tile grid (My Shops, All businesses, groups, Other
   last) and card rows with a Directions link to an OpenStreetMap pin built from the pack's own coordinates.
-- **Not built:** photos, opening hours, phone, ratings and badges (not in the pack); a My Shops row on level two (groups) of the categories; the usage count for the
-  unfavourite question is only tested with a fake (the wiring from live Pantry/shopping items in `App.kt` is untested); none of this UI has been run in the real app.
+- **Not built:** photos, opening hours, phone, ratings and badges (not in the pack); a My Shops row on level two (groups) of the categories; none of this UI has been run in the real app.

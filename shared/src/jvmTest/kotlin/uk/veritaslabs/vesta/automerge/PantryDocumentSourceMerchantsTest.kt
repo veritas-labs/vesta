@@ -5,88 +5,50 @@ import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.automerge.Document
-import uk.veritaslabs.vesta.ui.screens.MerchantLinkChange
 import uk.veritaslabs.vesta.ui.screens.PantryItemDetails
 
+/** Saving an item from the app never loses the dormant `merchantKeys` of its Pantry entry (ADR-026, amended 2026-10-22). */
 class PantryDocumentSourceMerchantsTest {
 
-    private fun milk(merchantKeys: List<String>? = null, key: String? = null, title: String = "Milk") =
-        PantryItemDetails(key = key, primaryCategory = "Dairy", title = title, merchantKeys = merchantKeys)
+    private fun milk(key: String? = null, title: String = "Milk", stockCount: Int = 0) =
+        PantryItemDetails(key = key, primaryCategory = "Dairy", title = title, stockCount = stockCount)
 
-    private suspend fun PantryDocumentSource.merchantsOf(key: String) =
-        contents.first().items.first { it.key == key }.merchantKeys
-
-    @Test
-    fun savingAnItemWithMerchantsPublishesThemInOrder() = runBlocking {
-        // Arrange
-        val source = PantryDocumentSource(Document.load(newPantryDocument()))
-
-        // Act
-        source.save(milk(listOf("tesco", "butcher")))
-
-        // Assert
-        assertEquals(listOf("tesco", "butcher"), source.merchantsOf("milk"))
+    /** The source over a document whose "milk" entry was given [merchants] by an older device. */
+    private fun sourceWithMerchants(merchants: List<String>): Pair<PantryDocumentSource, Document> {
+        val doc = Document.load(newPantryDocument())
+        upsertPantryItem(doc, "Dairy", null, "Milk", "", barcode = null)
+        setPantryItemMerchants(doc, "milk", merchants)
+        return PantryDocumentSource(doc) to doc
     }
 
     @Test
-    fun savingWithoutMerchantsLeavesTheExistingOnesAlone() = runBlocking {
+    fun savingAnEditLeavesTheEntrysMerchantsUntouched() = runBlocking {
         // Arrange
-        val source = PantryDocumentSource(Document.load(newPantryDocument()))
-        source.save(milk(listOf("tesco")))
+        val (source, doc) = sourceWithMerchants(listOf("tesco", "butcher"))
 
         // Act
-        source.save(milk(merchantKeys = null, key = "milk"))
+        source.save(milk(key = "milk", stockCount = 5))
 
         // Assert
-        assertEquals(listOf("tesco"), source.merchantsOf("milk"))
-    }
-
-    @Test
-    fun savingWithAnEmptyListClearsTheMerchants() = runBlocking {
-        // Arrange
-        val source = PantryDocumentSource(Document.load(newPantryDocument()))
-        source.save(milk(listOf("tesco")))
-
-        // Act
-        source.save(milk(merchantKeys = emptyList(), key = "milk"))
-
-        // Assert
-        assertEquals(emptyList(), source.merchantsOf("milk"))
+        assertEquals(listOf("tesco", "butcher"), doc.readPantryItem("milk")?.merchantKeys)
+        assertEquals(5, doc.readPantryItem("milk")?.stockCount)
     }
 
     @Test
     fun renamingAnItemMovesItsMerchantsToTheNewKey() = runBlocking {
         // Arrange
-        val source = PantryDocumentSource(Document.load(newPantryDocument()))
-        source.save(milk(listOf("tesco", "butcher")))
+        val (source, doc) = sourceWithMerchants(listOf("tesco", "butcher"))
 
         // Act
-        source.save(milk(merchantKeys = null, key = "milk", title = "Oat Milk"))
+        source.save(milk(key = "milk", title = "Oat Milk"))
 
         // Assert
         assertEquals(listOf("oat milk"), source.contents.first().items.map { it.key })
-        assertEquals(listOf("tesco", "butcher"), source.merchantsOf("oat milk"))
+        assertEquals(listOf("tesco", "butcher"), doc.readPantryItem("oat milk")?.merchantKeys)
     }
 
     @Test
-    fun changingMerchantsInABatchUpdatesEverySelectedItem() = runBlocking {
-        // Arrange
-        val source = PantryDocumentSource(Document.load(newPantryDocument()))
-        source.save(milk(listOf("tesco")))
-        source.save(milk(title = "Eggs"))
-        source.save(milk(title = "Bread"))
-
-        // Act
-        source.changeMerchants(setOf("milk", "eggs"), MerchantLinkChange.Add(listOf("butcher")))
-
-        // Assert
-        assertEquals(listOf("tesco", "butcher"), source.merchantsOf("milk"))
-        assertEquals(listOf("butcher"), source.merchantsOf("eggs"))
-        assertEquals(emptyList(), source.merchantsOf("bread"))
-    }
-
-    @Test
-    fun aBatchChangeTellsSyncAboutTheLocalEdit() = runBlocking {
+    fun anEditTellsSyncAboutTheLocalChange() = runBlocking {
         // Arrange
         var told = 0
         val source = PantryDocumentSource(Document.load(newPantryDocument()), onLocalChange = { told++ })
@@ -94,9 +56,9 @@ class PantryDocumentSourceMerchantsTest {
         val before = told
 
         // Act
-        source.changeMerchants(setOf("milk"), MerchantLinkChange.Replace(listOf("tesco")))
+        source.save(milk(key = "milk", stockCount = 2))
 
         // Assert
-        assertEquals(before + 1, told)
+        assertEquals(true, told > before)
     }
 }

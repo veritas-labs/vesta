@@ -270,74 +270,7 @@ class ShoppingListScreenTest {
     private val farmMilk = ShoppingListItem("whole milk", "Dairy", null, "Whole Milk", 1, "", tags = listOf("Farm shop"))
     private val butcherMince = ShoppingListItem("mince", "Meat", null, "Beef Mince", 1, "", tags = listOf("Butcher"))
 
-    private val tescoBeans = ShoppingListItem("beans", "Tins", null, "Baked Beans", 1, "", merchantKeys = listOf("tesco"))
-    private val butcherSausages = ShoppingListItem("sausages", "Meat", null, "Sausages", 1, "", merchantKeys = listOf("butcher"))
-    private val merchants = listOf(Merchant(key = "tesco", name = "Tesco"), Merchant(key = "butcher", name = "Butcher"), Merchant(key = "unused", name = "Unused"))
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun showsAMerchantChipForEachMerchantAnItemIsBoughtFrom() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { ShoppingListScreen(items = listOf(tescoBeans, butcherSausages), merchants = merchants) } }
-
-        // Act
-        // (no user interaction — checking the screen's initial state)
-
-        // Assert
-        onNodeWithTag(ShoppingListTestTags.merchantChip("tesco")).assertIsDisplayed()
-        onNodeWithTag(ShoppingListTestTags.merchantChip("butcher")).assertIsDisplayed()
-        onNodeWithTag(ShoppingListTestTags.merchantChip("unused")).assertDoesNotExist()
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun anItemShowsWhereItIsBoughtFrom() = runComposeUiTest {
-        // Arrange
-        val item = tescoBeans.copy(merchantKeys = listOf("tesco", "butcher"))
-        setContent { VestaTheme { ShoppingListScreen(items = listOf(item), merchants = merchants) } }
-
-        // Act
-        // (no user interaction — checking the row)
-
-        // Assert
-        onNodeWithTag(ShoppingListTestTags.buyFrom("beans"), useUnmergedTree = true).assertTextEquals("Tesco, Butcher")
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun tappingAMerchantChipReportsItsKey() = runComposeUiTest {
-        // Arrange
-        var toggled: String? = null
-        setContent {
-            VestaTheme {
-                ShoppingListScreen(items = listOf(tescoBeans, butcherSausages), merchants = merchants, onToggleMerchant = { toggled = it })
-            }
-        }
-
-        // Act
-        onNodeWithTag(ShoppingListTestTags.merchantChip("butcher")).performClick()
-
-        // Assert
-        assertEquals("butcher", toggled)
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun aSelectedMerchantHidesItemsBoughtElsewhere() = runComposeUiTest {
-        // Arrange
-        setContent {
-            VestaTheme {
-                ShoppingListScreen(items = listOf(tescoBeans, butcherSausages), merchants = merchants, selectedMerchants = setOf("butcher"))
-            }
-        }
-
-        // Act
-        // (no user interaction — checking the filtered state)
-
-        // Assert
-        onNodeWithText("Sausages").assertIsDisplayed()
-        onNodeWithText("Baked Beans").assertDoesNotExist()
-    }
+    private val tescoBeans = ShoppingListItem("beans", "Tins", null, "Baked Beans", 1, "")
 
     @OptIn(ExperimentalTestApi::class)
     @Test
@@ -425,19 +358,6 @@ class ShoppingListScreenTest {
         // Assert
         onNodeWithText("Beef Mince").assertIsDisplayed()
         onNodeWithText("Whole Milk").assertDoesNotExist()
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun showsNoMerchantChipsWhenNoItemHasAMerchant() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { ShoppingListScreen(items = listOf(milk), merchants = merchants) } }
-
-        // Act
-        // (no user interaction — checking the screen's initial state)
-
-        // Assert
-        onNodeWithTag(ShoppingListTestTags.merchantChip("tesco")).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)
