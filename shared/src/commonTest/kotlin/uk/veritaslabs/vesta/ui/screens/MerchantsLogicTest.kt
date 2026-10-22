@@ -66,15 +66,6 @@ class MerchantsLogicTest {
     }
 
     @Test
-    fun degreesAreShownWithoutTrailingZerosOrLosingTheSign() {
-        // Arrange / Act
-        val shown = listOf(53.4808, -2.2426, 51.0, -0.5, 0.000001).map(::formatDegrees)
-
-        // Assert
-        assertEquals(listOf("53.4808", "-2.2426", "51", "-0.5", "0.000001"), shown)
-    }
-
-    @Test
     fun hoursAreNormalisedByDroppingInvalidRangesSortingAndTrimmingTheNote() {
         // Arrange
         val hours = OpeningHours(
@@ -155,36 +146,5 @@ class MerchantsLogicTest {
         assertEquals(all, everything)
         assertEquals(false, MerchantsFilter().isActive)
         assertEquals(true, MerchantsFilter(query = "x").isActive)
-    }
-
-    @Test
-    fun aRangeDraftIsValidWhenBlankOrWhenItOpensBeforeItCloses() {
-        // Arrange / Act
-        val blank = RangeDraft()
-        val good = RangeDraft("09:00", "17:00")
-        val backwards = RangeDraft("17:00", "09:00")
-        val half = RangeDraft("09:00", "")
-
-        // Assert
-        assertEquals(true, blank.isValid)
-        assertEquals(OpenRange(540, 1020), good.range)
-        assertEquals(false, backwards.isValid)
-        assertEquals(false, half.isValid)
-    }
-
-    @Test
-    fun draftsBecomeHoursKeepingOnlyTheValidRanges() {
-        // Arrange
-        val drafts = mapOf(
-            Weekday.Monday to listOf(RangeDraft("14:00", "17:00"), RangeDraft(), RangeDraft("09:00", "12:00")),
-            Weekday.Tuesday to listOf(RangeDraft("nine", "five")),
-        )
-
-        // Act
-        val hours = drafts.toHours(" note ")
-
-        // Assert
-        assertEquals(mapOf(Weekday.Monday to listOf(OpenRange(540, 720), OpenRange(840, 1020))), hours.days)
-        assertEquals("note", hours.note)
     }
 }

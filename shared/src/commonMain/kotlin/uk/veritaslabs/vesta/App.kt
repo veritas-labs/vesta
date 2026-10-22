@@ -89,7 +89,6 @@ import uk.veritaslabs.vesta.homegroup.HubViewModel
 import uk.veritaslabs.vesta.homejoin.InviteLinksViewModel
 import uk.veritaslabs.vesta.homejoin.RedeemInviteViewModel
 import uk.veritaslabs.vesta.ui.flows.CookbookFlow
-import uk.veritaslabs.vesta.ui.flows.MerchantsFlow
 import uk.veritaslabs.vesta.calendar.CalendarSettings
 import uk.veritaslabs.vesta.calendar.CalendarSettingsController
 import uk.veritaslabs.vesta.calendar.LocalCalendarSettings
@@ -116,10 +115,7 @@ import uk.veritaslabs.vesta.ui.screens.MealPlanSource
 import uk.veritaslabs.vesta.ui.screens.MealPlannerScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
 import uk.veritaslabs.vesta.ui.flows.MealPlannerFlow
-import uk.veritaslabs.vesta.ui.screens.MarketplaceScreen
-import uk.veritaslabs.vesta.ui.screens.MerchantsScreen
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
-import uk.veritaslabs.vesta.ui.screens.MerchantsViewModel
 import uk.veritaslabs.kits.sync.SyncActivityRepository
 import uk.veritaslabs.vesta.syncactivity.SyncActivityViewModel
 import uk.veritaslabs.kits.sync.UnavailableSyncActivityRepository
@@ -548,9 +544,6 @@ internal fun HomeContent(
     } else {
         null
     }
-    val merchantsViewModel = merchantsSource?.let { source ->
-        viewModel(key = "merchants-$homeId") { MerchantsViewModel(source) }
-    }
     // The area picker (ADR-039): one for each Home, so switching Homes starts a fresh one.
     val areaViewModel = viewModel(key = "marketplace-area-$homeId") {
         MarketplaceAreaViewModel(homeId, localityPackSource, locationRepository, placesPackSource, ::deviceRegionCode)
@@ -572,7 +565,7 @@ internal fun HomeContent(
         when (destination) {
             HomeDestination.Dashboard -> selectedHome.clear()
             HomeDestination.Members, HomeDestination.HubManager, HomeDestination.Pantry, HomeDestination.MealPlanner,
-            HomeDestination.Marketplace, HomeDestination.Calendar, HomeDestination.Tasks, HomeDestination.ShoppingList,
+            HomeDestination.Calendar, HomeDestination.Tasks, HomeDestination.ShoppingList,
             -> destination = HomeDestination.Dashboard
             HomeDestination.MemberDetail, HomeDestination.InviteLinks -> destination = HomeDestination.Members
             HomeDestination.SyncActivity -> destination = syncActivityBackTo
@@ -581,7 +574,7 @@ internal fun HomeContent(
                 destination = if (cookbookRecipeKey != null) HomeDestination.MealPlanner else HomeDestination.Dashboard
                 cookbookRecipeKey = null
             }
-            HomeDestination.Merchants, HomeDestination.MarketplaceArea -> destination = HomeDestination.Marketplace
+            HomeDestination.MarketplaceArea -> destination = HomeDestination.Dashboard
             HomeDestination.CalendarSettings -> destination = HomeDestination.Calendar
             HomeDestination.ShoppingListFilter, HomeDestination.ShoppingAddedToPantry, HomeDestination.ShoppingItemEdit ->
                 destination = HomeDestination.ShoppingList
@@ -603,7 +596,7 @@ internal fun HomeContent(
             onCalendarClick = { destination = HomeDestination.Calendar },
             onTasksClick = { destination = HomeDestination.Tasks },
             tasksSummary = tasksState?.value?.let { tasksSummary(it, CalendarDate.today()) } ?: TasksSummary(),
-            onMarketplaceClick = { destination = HomeDestination.Marketplace },
+            onMarketplaceClick = { destination = HomeDestination.MarketplaceArea },
             onMembersClick = { destination = HomeDestination.Members },
             isAdmin = isAdmin,
             membersBadge = if (isAdmin) joinRequests.count { !it.approved } else 0,
@@ -748,19 +741,7 @@ internal fun HomeContent(
                 MealPlannerScreen(recipes = emptyList(), onBack = { destination = HomeDestination.Dashboard })
             }
         }
-        HomeDestination.Marketplace -> MarketplaceScreen(
-            onBack = { destination = HomeDestination.Dashboard },
-            onLocalMerchantsClick = { destination = HomeDestination.Merchants },
-            onNearbyMerchantsClick = { destination = HomeDestination.MarketplaceArea },
-        )
-        HomeDestination.MarketplaceArea -> MarketplaceAreaFlow(areaViewModel, onBack = { destination = HomeDestination.Marketplace })
-        HomeDestination.Merchants -> {
-            if (merchantsViewModel != null) {
-                MerchantsFlow(merchantsViewModel, onBack = { destination = HomeDestination.Marketplace })
-            } else {
-                MerchantsScreen(merchants = emptyList(), onBack = { destination = HomeDestination.Marketplace })
-            }
-        }
+        HomeDestination.MarketplaceArea -> MarketplaceAreaFlow(areaViewModel, onBack = { destination = HomeDestination.Dashboard })
         HomeDestination.Calendar -> if (calendarViewModel != null) {
             CalendarFlow(
                 calendarViewModel,
@@ -947,7 +928,7 @@ class DeviceSyncHost(
 
 private enum class HomeDestination {
     Dashboard, Members, MemberDetail, InviteLinks, HubManager, SyncActivity, HubTutorial, Hub, Pantry, PantryCategories, PantryItemEdit, PantryItemEditPackage,
-    ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, MealPlanner, Marketplace, Merchants, MarketplaceArea, Calendar, CalendarSettings, Tasks,
+    ShoppingList, ShoppingListFilter, ShoppingAddedToPantry, ShoppingItemEdit, ShoppingItemEditPackage, Cookbook, MealPlanner, MarketplaceArea, Calendar, CalendarSettings, Tasks,
 }
 
 internal fun ShoppingListItem.toDetails() = ShoppingItemDetails(

@@ -32,9 +32,8 @@ import uk.veritaslabs.vesta.ui.screens.HomeDashboardTestTags
 import uk.veritaslabs.vesta.ui.screens.HomeEditTestTags
 import uk.veritaslabs.vesta.ui.screens.HomePickerTestTags
 import uk.veritaslabs.vesta.ui.screens.MarketplaceAreaTestTags
-import uk.veritaslabs.vesta.ui.screens.MarketplaceTestTags
 
-/** The Marketplace's Nearby merchants row opens the area picker (ADR-039), and Create a Home never asks for a location. */
+/** The Marketplace tile opens the area flow directly (ADR-039, WP-M2), and Create a Home never asks for a location. */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class MarketplaceNearbyMerchantsNavigationTest {
 
@@ -49,7 +48,7 @@ class MarketplaceNearbyMerchantsNavigationTest {
     }
 
     @Test
-    fun nearbyMerchantsOpensTheAreaFlowAndBackReturnsToTheMarketplace() = runComposeUiTest {
+    fun theMarketplaceTileOpensTheAreaFlowAndBackReturnsToTheHome() = runComposeUiTest {
         // Arrange
         val selected = SelectedHome().also { it.select("home-1") }
         setContent {
@@ -62,17 +61,15 @@ class MarketplaceNearbyMerchantsNavigationTest {
             )
         }
         waitUntilExactlyOneExists(hasTestTag(HomeDashboardTestTags.MarketplaceTile))
-        onNodeWithTag(HomeDashboardTestTags.MarketplaceTile).performClick()
 
         // Act
-        onNodeWithTag(MarketplaceTestTags.NearbyMerchants).performClick()
+        onNodeWithTag(HomeDashboardTestTags.MarketplaceTile).performClick()
 
         // Assert
         waitUntilExactlyOneExists(hasTestTag(MarketplaceAreaTestTags.Disclosure))
         onNodeWithTag(MarketplaceAreaTestTags.Disclosure).assertIsDisplayed()
         onNodeWithTag(MarketplaceAreaTestTags.DisclosureNotNow).performClick()
-        onNodeWithTag(MarketplaceTestTags.NearbyMerchants).assertIsDisplayed()
-        onNodeWithTag(MarketplaceTestTags.LocalMerchants).assertIsDisplayed()
+        onNodeWithTag(HomeDashboardTestTags.MarketplaceTile).assertIsDisplayed()
     }
 
     @Test

@@ -1,6 +1,6 @@
 # Plan: Marketplace is "Neighbourhood businesses" with favourites (ADR-039, ADR-026)
 
-Written 2026-10-22. **Status: WP-M1 (favourites logic) and WP-M4 (add a missing business) done; WP-M2, M3, M5, M6 planned.**
+Written 2026-10-22. **Status: WP-M1 (favourites logic), WP-M2 (Marketplace entry, Local Merchants removed) and WP-M4 (add a missing business) done; WP-M3, M5, M6 planned.**
 
 ## Decisions (from the user)
 

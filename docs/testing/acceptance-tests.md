@@ -351,3 +351,10 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
     `MarketplaceAreaBusinessesFlowTest.theMissingBusinessNoteEndsTheCategoriesScreenAndTheList`, `theMissingBusinessNoteShowsWhenASearchFindsNothing`, `openOpenStreetMapOpensOnlyTheSiteFrontPage`.
 23. **Business detail pages, contact options, the confidence filter, desktop master-detail and category icons. Not built yet.** Separate decisions in the yellow-pages plan.
 24. **The directory screens in the real app. Not covered.** Compose tests over fakes only; the by-hand run (yellow-pages plan, "By-hand run") is owed.
+
+## Marketplace entry (ADR-039 redesign plan, WP-M2)
+
+1. **The Marketplace opens the area flow directly. Covered.** *Given* I am on a Home's dashboard, *when* I tap Marketplace, *then* the area flow opens (here its
+   disclosure) with no options screen between; *when* I leave the flow, *then* I am back on the dashboard. `MarketplaceNearbyMerchantsNavigationTest.theMarketplaceTileOpensTheAreaFlowAndBackReturnsToTheHome`.
+2. **No hand-made merchants. Covered by removal.** The Local Merchants list, detail and add/edit screens and their acceptance test (`MerchantsAcceptanceTest`) are
+   deleted; merchants still exist as records in the merchants document, which Pantry and Shopping link to (`PantryMerchantsAcceptanceTest`, `MerchantsDocumentTest`).

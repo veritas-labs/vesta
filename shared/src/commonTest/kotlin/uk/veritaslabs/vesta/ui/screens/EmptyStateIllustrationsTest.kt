@@ -87,18 +87,6 @@ class EmptyStateIllustrationsTest {
     }
 
     @Test
-    fun noMerchantsShowsItsPicture() = runComposeUiTest {
-        // Arrange
-        setContent { VestaTheme { MerchantsScreen(merchants = emptyList()) } }
-
-        // Act
-        // (no user interaction — checking the initial state)
-
-        // Assert
-        onNodeWithTag(illustration).assertIsDisplayed()
-    }
-
-    @Test
     fun noPairedDevicesShowsItsPicture() = runComposeUiTest {
         // Arrange
         setContent { VestaTheme { SettingsSyncedDevicesScreen(devices = emptyList()) } }
