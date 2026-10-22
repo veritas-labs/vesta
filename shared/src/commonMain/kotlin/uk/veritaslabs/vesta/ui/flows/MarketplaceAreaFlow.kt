@@ -131,6 +131,9 @@ fun MarketplaceAreaFlow(viewModel: MarketplaceAreaViewModel, onBack: () -> Unit,
                     onBack = goBack,
                     myShopsCount = state.myShops.size.takeIf { state.favouritesAvailable },
                     onMyShops = viewModel::openMyShops,
+                    areaName = state.saved?.homeName,
+                    nearbyCount = state.saved?.nearbyCount ?: 0,
+                    onChangeArea = viewModel::edit,
                 )
             } else {
                 AreaBusinessCategoriesScreen(

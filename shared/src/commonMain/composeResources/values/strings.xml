@@ -1027,6 +1027,17 @@
     <string name="area_places_row_locality">%1$s, %2$s</string>
     <string name="area_places_show_more">Show more</string>
     <string name="area_places_no_match">No business matches</string>
+    <string name="area_places_active_area">ACTIVE AREA</string>
+    <plurals name="area_places_area_with_nearby">
+        <item quantity="one">%1$s &amp; %2$d nearby place</item>
+        <item quantity="other">%1$s &amp; %2$d nearby places</item>
+    </plurals>
+    <string name="area_places_categories">Categories</string>
+    <plurals name="area_places_my_shops_count">
+        <item quantity="one">%1$d shop</item>
+        <item quantity="other">%1$d shops</item>
+    </plurals>
+    <string name="area_places_directions">Directions to %1$s</string>
     <string name="area_my_shops">My Shops</string>
     <string name="area_my_shops_row">My Shops</string>
     <string name="area_my_shops_empty">No shops yet. Tap the heart on a business to add it here.</string>

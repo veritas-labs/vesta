@@ -80,6 +80,8 @@ internal object MarketplaceAreaTestTags {
     const val MissingOpen = "area_missing_open"
 
     const val MyShopsRow = "area_my_shops_row"
+    const val BusinessesChangeArea = "area_businesses_change_area"
+    const val BusinessesAreaCard = "area_businesses_area_card"
     const val MyShopsList = "area_my_shops_list"
     const val MyShopsEmpty = "area_my_shops_empty"
     const val RemoveShopDialog = "area_remove_shop_dialog"
@@ -99,4 +101,5 @@ internal object MarketplaceAreaTestTags {
     fun businessesSection(localityRow: Int) = "area_businesses_section_$localityRow"
 
     fun businessesRow(id: String) = "area_businesses_row_$id"
+    fun directions(id: String) = "area_directions_$id"
 }

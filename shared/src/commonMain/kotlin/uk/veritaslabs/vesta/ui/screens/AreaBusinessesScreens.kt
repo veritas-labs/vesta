@@ -1,6 +1,20 @@
 package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.LocalUriHandler
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +57,25 @@ import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.area_places_active_area
+import vesta.shared.generated.resources.area_places_area_with_nearby
+import vesta.shared.generated.resources.area_places_categories
+import vesta.shared.generated.resources.area_places_my_shops_count
+import vesta.shared.generated.resources.area_places_directions
+import vesta.shared.generated.resources.area_saved_change
+import vesta.shared.generated.resources.ic_search
+import vesta.shared.generated.resources.ic_meal_dinner
+import vesta.shared.generated.resources.ic_shopping_cart
+import vesta.shared.generated.resources.ic_building_store
+import vesta.shared.generated.resources.ic_home_heart
+import vesta.shared.generated.resources.ic_map_pin
+import vesta.shared.generated.resources.ic_heart
+import vesta.shared.generated.resources.ic_clipboard_text
+import vesta.shared.generated.resources.ic_buildings
+import vesta.shared.generated.resources.ic_home
+import vesta.shared.generated.resources.ic_photo
+import vesta.shared.generated.resources.ic_calendar
+import vesta.shared.generated.resources.ic_tag
 import vesta.shared.generated.resources.area_favourite_add
 import vesta.shared.generated.resources.area_favourite_remove
 import vesta.shared.generated.resources.area_my_shops_row
@@ -242,28 +275,143 @@ private fun PartialBanner(onRetry: () -> Unit) {
     }
 }
 
-/** One tappable browse row: a [label] and its [count]. */
+/** A card container for one list row (ADR-039 WP-M5): rounded, surfaceVariant. */
+@Composable
+internal fun BusinessCardRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Surface(
+        modifier.fillMaxWidth().padding(vertical = 4.dp),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, content = content)
+    }
+}
+
+/** One tappable browse row: a [label] and its [count], in a card. */
 @Composable
 private fun BrowseRow(label: String, count: Int, tag: String, onClick: () -> Unit, bold: Boolean = false) {
-    Row(
-        Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(vertical = 14.dp).testTag(tag),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag(tag),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Text(
-            label,
-            Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (bold) FontWeight.SemiBold else null,
-        )
-        Text(groupedNumber(count), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                label,
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (bold) FontWeight.SemiBold else null,
+            )
+            Text(groupedNumber(count), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
-    HorizontalDivider()
+}
+
+/** A rounded search field with a leading search icon. */
+@Composable
+private fun RoundedSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    tag: String,
+    modifier: Modifier = Modifier,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder) },
+        leadingIcon = { Icon(painterResource(Res.drawable.ic_search), contentDescription = null) },
+        singleLine = true,
+        shape = MaterialTheme.shapes.extraLarge,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        modifier = modifier.fillMaxWidth().testTag(tag),
+    )
+}
+
+/** The icon for a top-level business group, from the existing set; a tag for any group without a closer match. */
+private fun groupIcon(key: String): DrawableResource = when (key) {
+    "food_and_drink" -> Res.drawable.ic_meal_dinner
+    "shopping" -> Res.drawable.ic_shopping_cart
+    "services_and_business" -> Res.drawable.ic_building_store
+    "lifestyle_services" -> Res.drawable.ic_home_heart
+    "travel_and_transportation", "geographic_entities" -> Res.drawable.ic_map_pin
+    "health_care" -> Res.drawable.ic_heart
+    "education" -> Res.drawable.ic_clipboard_text
+    "community_and_government" -> Res.drawable.ic_buildings
+    "lodging" -> Res.drawable.ic_home
+    "arts_and_entertainment" -> Res.drawable.ic_photo
+    "cultural_and_historic" -> Res.drawable.ic_calendar
+    else -> Res.drawable.ic_tag
+}
+
+/** A category tile: [icon] in a tinted square, the [label] and a [detail] line. */
+@Composable
+private fun CategoryTile(icon: DrawableResource, label: String, detail: String, tag: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().testTag(tag),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                Modifier.size(40.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.small),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+            Column {
+                Text(label, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** The area summary at the top of the browse: "ACTIVE AREA", the [areaName] with its nearby places, the [total] and Change. */
+@Composable
+private fun AreaSummaryCard(areaName: String, nearbyCount: Int, total: Int, onChange: () -> Unit) {
+    Surface(
+        Modifier.fillMaxWidth().testTag(MarketplaceAreaTestTags.BusinessesAreaCard),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Row(Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    stringResource(Res.string.area_places_active_area),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    if (nearbyCount > 0) pluralStringResource(Res.plurals.area_places_area_with_nearby, nearbyCount, areaName, nearbyCount) else areaName,
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Text(
+                    pluralStringResource(Res.plurals.area_places_header, total, groupedNumber(total)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = onChange, modifier = Modifier.testTag(MarketplaceAreaTestTags.BusinessesChangeArea)) {
+                Text(stringResource(Res.string.area_saved_change))
+            }
+        }
+    }
 }
 
 /**
- * Level one of the browse ([state]): a search field ([onQueryChange]; the keyboard's search action or the "Search all
- * businesses for" row calls [onSearchAll]), the "All businesses" row ([onAll]) and the groups with counts ([onGroup]), the
+ * Level one of the browse ([state]): the area card ([areaName], [nearbyCount], and Change through [onChangeArea]), a search
+ * field ([onQueryChange]; the keyboard's search action or the "Search all businesses for" row calls [onSearchAll]) and a grid
+ * of tiles: My Shops ([myShopsCount], [onMyShops]), "All businesses" ([onAll]) and the groups with counts ([onGroup]), the
  * unknown group last as "Other". [AreaBusinessesState.partial] adds a banner with Try again ([onRetry]).
  */
 @Composable
@@ -278,43 +426,75 @@ fun AreaBusinessGroupsScreen(
     onBack: () -> Unit = {},
     myShopsCount: Int? = null,
     onMyShops: () -> Unit = {},
+    areaName: String? = null,
+    nearbyCount: Int = 0,
+    onChangeArea: () -> Unit = {},
 ) {
     AreaScaffold(stringResource(Res.string.area_places_title), onBack, modifier) {
-        Column(
-            Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp).testTag(MarketplaceAreaTestTags.BusinessesGroups),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        LazyVerticalGrid(
+            GridCells.Adaptive(160.dp),
+            Modifier.fillMaxSize().testTag(MarketplaceAreaTestTags.BusinessesGroups),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (state.partial) PartialBanner(onRetry)
-            OutlinedTextField(
-                value = state.browseQuery,
-                onValueChange = onQueryChange,
-                label = { Text(stringResource(Res.string.area_places_browse_search_label)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { if (state.browseQuery.isNotBlank()) onSearchAll() }),
-                modifier = Modifier.fillMaxWidth().testTag(MarketplaceAreaTestTags.BusinessesBrowseSearch),
-            )
-            LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
-                myShopsCount?.let { count ->
-                    item(key = "my-shops") {
-                        BrowseRow(stringResource(Res.string.area_my_shops_row), count, MarketplaceAreaTestTags.MyShopsRow, onMyShops, bold = true)
-                    }
-                }
-                if (state.browseQuery.isNotBlank()) {
-                    item(key = "search-all") {
-                        TextButton(onClick = onSearchAll, modifier = Modifier.testTag(MarketplaceAreaTestTags.BusinessesSearchAll)) {
-                            Text(stringResource(Res.string.area_places_search_all, state.browseQuery.trim()))
-                        }
-                    }
-                }
-                item(key = "all") {
-                    BrowseRow(stringResource(Res.string.area_places_all), state.loaded, MarketplaceAreaTestTags.BusinessesAll, onAll, bold = true)
-                }
-                items(state.groups, key = { it.key }) { group ->
-                    BrowseRow(groupLabel(group), group.count, MarketplaceAreaTestTags.businessesGroup(group.key), { onGroup(group.key) })
-                }
-                item(key = "missing") { MissingBusinessNote(Modifier.padding(vertical = 16.dp)) }
+            if (state.partial) item(key = "partial", span = { GridItemSpan(maxLineSpan) }) { PartialBanner(onRetry) }
+            areaName?.let { name ->
+                item(key = "area", span = { GridItemSpan(maxLineSpan) }) { AreaSummaryCard(name, nearbyCount, state.loaded, onChangeArea) }
             }
+            item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
+                RoundedSearchField(
+                    value = state.browseQuery,
+                    onValueChange = onQueryChange,
+                    placeholder = stringResource(Res.string.area_places_browse_search_label),
+                    tag = MarketplaceAreaTestTags.BusinessesBrowseSearch,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { if (state.browseQuery.isNotBlank()) onSearchAll() }),
+                )
+            }
+            if (state.browseQuery.isNotBlank()) {
+                item(key = "search-all", span = { GridItemSpan(maxLineSpan) }) {
+                    TextButton(onClick = onSearchAll, modifier = Modifier.testTag(MarketplaceAreaTestTags.BusinessesSearchAll)) {
+                        Text(stringResource(Res.string.area_places_search_all, state.browseQuery.trim()))
+                    }
+                }
+            }
+            item(key = "heading", span = { GridItemSpan(maxLineSpan) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(Res.string.area_places_categories), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                    Text(groupedNumber(state.groups.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            myShopsCount?.let { count ->
+                item(key = "my-shops") {
+                    CategoryTile(
+                        Res.drawable.ic_heart,
+                        stringResource(Res.string.area_my_shops_row),
+                        pluralStringResource(Res.plurals.area_places_my_shops_count, count, count),
+                        MarketplaceAreaTestTags.MyShopsRow,
+                        onMyShops,
+                    )
+                }
+            }
+            item(key = "all") {
+                CategoryTile(
+                    Res.drawable.ic_building_store,
+                    stringResource(Res.string.area_places_all),
+                    pluralStringResource(Res.plurals.area_places_header, state.loaded, groupedNumber(state.loaded)),
+                    MarketplaceAreaTestTags.BusinessesAll,
+                    onAll,
+                )
+            }
+            items(state.groups, key = { it.key }) { group ->
+                CategoryTile(
+                    groupIcon(group.key),
+                    groupLabel(group),
+                    pluralStringResource(Res.plurals.area_places_header, group.count, groupedNumber(group.count)),
+                    MarketplaceAreaTestTags.businessesGroup(group.key),
+                    { onGroup(group.key) },
+                )
+            }
+            item(key = "missing", span = { GridItemSpan(maxLineSpan) }) { MissingBusinessNote(Modifier.padding(vertical = 4.dp)) }
         }
     }
 }
@@ -337,12 +517,11 @@ fun AreaBusinessCategoriesScreen(
             Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp).testTag(MarketplaceAreaTestTags.BusinessesCategories),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedTextField(
+            RoundedSearchField(
                 value = state.categoryQuery,
                 onValueChange = onQueryChange,
-                label = { Text(stringResource(Res.string.area_places_category_search_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag(MarketplaceAreaTestTags.BusinessesCategorySearch),
+                placeholder = stringResource(Res.string.area_places_category_search_label),
+                tag = MarketplaceAreaTestTags.BusinessesCategorySearch,
             )
             LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
                 item(key = "all") {
@@ -415,12 +594,11 @@ fun AreaBusinessesListScreen(
                 )
             }
             if (state.partial) PartialBanner(onRetry)
-            OutlinedTextField(
+            RoundedSearchField(
                 value = state.query,
                 onValueChange = onQueryChange,
-                label = { Text(stringResource(Res.string.area_places_search_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag(MarketplaceAreaTestTags.BusinessesSearchField),
+                placeholder = stringResource(Res.string.area_places_search_label),
+                tag = MarketplaceAreaTestTags.BusinessesSearchField,
             )
             LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag(MarketplaceAreaTestTags.BusinessesList)) {
                 state.sections.forEach { section ->
@@ -469,10 +647,8 @@ private fun groupLabel(group: BusinessGroupCount): String =
 /** One business; [favourite] is null when hearts are hidden, else whether it is in My Shops ([onToggleFavourite] flips it). */
 @Composable
 private fun BusinessItem(row: BusinessRow, favourite: Boolean?, onToggleFavourite: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    val handler = LocalUriHandler.current
+    BusinessCardRow {
         Column(
             Modifier.weight(1f).padding(vertical = 4.dp).semantics(mergeDescendants = true) {}
                 .testTag(MarketplaceAreaTestTags.businessesRow(row.id)),
@@ -482,6 +658,20 @@ private fun BusinessItem(row: BusinessRow, favourite: Boolean?, onToggleFavourit
             val where = if (row.localityName.isEmpty()) row.categoryName
             else stringResource(Res.string.area_places_row_locality, row.categoryName, row.localityName)
             Text(where, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        val latitude = row.latitude
+        val longitude = row.longitude
+        if (latitude != null && longitude != null) {
+            IconButton(
+                onClick = { handler.openUri(directionsUrl(latitude, longitude)) },
+                modifier = Modifier.testTag(MarketplaceAreaTestTags.directions(row.id)),
+            ) {
+                Icon(
+                    painterResource(Res.drawable.ic_map_pin),
+                    contentDescription = stringResource(Res.string.area_places_directions, row.name),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         favourite?.let { filled ->
             HeartButton(
@@ -493,6 +683,10 @@ private fun BusinessItem(row: BusinessRow, favourite: Boolean?, onToggleFavourit
         }
     }
 }
+
+/** An OpenStreetMap link pinned on the place; built from the pack's own coordinates, so nothing about the member is in it. */
+internal fun directionsUrl(latitude: Double, longitude: Double): String =
+    "https://www.openstreetmap.org/?mlat=$latitude&mlon=$longitude#map=18/$latitude/$longitude"
 
 private val PreviewSummary = AreaBusinessesState(
     inside = 250, nearby = 74_050, bytesInsideOnly = 262_144, bytesWithNearby = 2_621_440, includeNearby = false,
@@ -589,25 +783,25 @@ private fun AreaBusinessesLoadingTabletDarkPreview() {
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun AreaBusinessGroupsPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { AreaBusinessGroupsScreen(PreviewGroups, myShopsCount = 2) }
+    VestaTheme(darkTheme = false) { AreaBusinessGroupsScreen(PreviewGroups, myShopsCount = 2, areaName = "Orlestone", nearbyCount = 4) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun AreaBusinessGroupsPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { AreaBusinessGroupsScreen(PreviewGroups, myShopsCount = 2) }
+    VestaTheme(darkTheme = true) { AreaBusinessGroupsScreen(PreviewGroups, myShopsCount = 2, areaName = "Orlestone", nearbyCount = 4) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun AreaBusinessGroupsTabletLightPreview() {
-    VestaTheme(darkTheme = false) { AreaBusinessGroupsScreen(PreviewGroups.copy(partial = false, browseQuery = "caf")) }
+    VestaTheme(darkTheme = false) { AreaBusinessGroupsScreen(PreviewGroups.copy(partial = false, browseQuery = "caf"), myShopsCount = 0, areaName = "Orlestone", nearbyCount = 0) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun AreaBusinessGroupsTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { AreaBusinessGroupsScreen(PreviewGroups.copy(partial = false, browseQuery = "caf")) }
+    VestaTheme(darkTheme = true) { AreaBusinessGroupsScreen(PreviewGroups.copy(partial = false, browseQuery = "caf"), myShopsCount = 0, areaName = "Orlestone", nearbyCount = 0) }
 }
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)

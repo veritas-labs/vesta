@@ -95,10 +95,7 @@ fun AreaMyShopsScreen(
             }
             LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag(MarketplaceAreaTestTags.MyShopsList)) {
                 items(shops, key = { it.key }) { shop ->
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag(MarketplaceAreaTestTags.myShopsItem(shop.key)),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                    BusinessCardRow(Modifier.testTag(MarketplaceAreaTestTags.myShopsItem(shop.key))) {
                         Column(Modifier.weight(1f).padding(vertical = 4.dp).semantics(mergeDescendants = true) {}) {
                             Text(shop.name, style = MaterialTheme.typography.titleMedium)
                             val where = (shop.customServices + shop.address).filter { it.isNotBlank() }.joinToString(", ")
