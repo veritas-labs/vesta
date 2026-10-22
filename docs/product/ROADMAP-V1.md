@@ -45,7 +45,7 @@ Tools must:
 | Meal Planner | Week view with breakfast, lunch and dinner slots | 028 |
 | Calendar | Shared events plus a private per-Home calendar for your own devices | 025, 029 |
 | Tasks and Chores | Shared tasks, recurrence, completion history; local reminders | 031, 032 |
-| Marketplace | Merchants | 026 |
+| Marketplace | Browse local businesses (Overture places); My Shops favourites that Pantry and Shopping link to | 026, 039 |
 
 Also built: welcome tour (ADR-030) and a sync activity view (ADR-033).
 

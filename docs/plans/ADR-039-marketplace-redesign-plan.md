@@ -1,6 +1,6 @@
 # Plan: Marketplace is "Neighbourhood businesses" with favourites (ADR-039, ADR-026)
 
-Written 2026-10-22. **Status: WP-M1 (favourites logic), WP-M2 (Marketplace entry, Local Merchants removed) and WP-M4 (add a missing business) and WP-M3 (hearts, My Shops, picker wording) and WP-M5 (visual refresh: area card, tiles, card rows, Directions) done; M6 planned.**
+Written 2026-10-22. **Status: all work packages (WP-M1 to WP-M6) done; UI never run in the real app.**
 
 ## Decisions (from the user)
 
@@ -55,3 +55,13 @@ Order: M1, then M2 and M4 in parallel, then M3, M5, M6.
 ## Open
 
 - Directions links (WP-M5) are optional.
+
+## By-hand run (desktop app, owed)
+
+1. Open a Home and tap Marketplace: the area flow opens with no options screen in between; back returns to the Home.
+2. Pick an area and download businesses: the area card shows the area and total; Change reopens the area choice.
+3. Check the tiles: My Shops (once one exists), All businesses, groups, Other last.
+4. Heart a business, open My Shops, unheart it. Heart one, link it to a Pantry item, then unheart it: the "used by" question appears.
+5. Tap Directions on a row: the browser opens OpenStreetMap on the place.
+6. Search for something absent: the missing-business note shows; Open OpenStreetMap opens the site.
+7. In Pantry and Shopping, the section and pickers say "My Shops" and list the hearted shops.

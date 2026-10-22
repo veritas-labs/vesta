@@ -373,3 +373,17 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
    `MarketplaceAreaFavouritesFlowTest.withoutAMerchantsDocumentThereAreNoHeartsAndNoMyShopsRow`, `MarketplaceAreaFavouritesViewModelTest.withoutAMerchantsDocumentFavouritesAreUnavailableAndMyShopsDoesNotOpen`.
 5. **Pantry and Shopping say "My Shops". Covered by wording.** The preferred-merchants section, picker and dialogs now read "My Shops" / "shops"; with none, the line says to tap the heart on a business under Marketplace.
 6. **Not covered:** the usage count fed from live Pantry and shopping items in `App.kt` (wiring only, by-hand run), and the screens in the real app.
+
+## Marketplace redesign visuals (ADR-039 redesign plan, WP-M5/M6)
+
+Backing tests are in `MarketplaceAreaRedesignTest` unless another class is named.
+
+1. **The area card shows the area and a total. Covered.** *Given* a saved area with businesses downloaded, *when* the categories screen opens, *then* a card at the top
+   shows "Active area", the home locality (with "+ N nearby" when ticked) and the business total, with a Change button. `theAreaCardShowsTheTotalAndChange`.
+2. **Change reopens the area choice. Covered.** *When* I tap Change, *then* the home-locality step opens (the same as the Saved card's Change). `changeOpensTheAreaChoiceStep`.
+3. **The tiles are in a fixed order. Covered.** *Given* My Shops, groups and unknown-category businesses, *then* the tiles read My Shops, All businesses, the groups
+   by size, and Other last (compared by layout position). `theTilesAreMyShopsThenAllThenGroupsAndOtherLast`.
+4. **Directions opens a map pin. Covered.** *When* I tap Directions on a business with coordinates, *then* the system opens
+   `https://www.openstreetmap.org/?mlat=<lat>&mlon=<lon>#map=18/<lat>/<lon>` with the place's own coordinates only. `directionsOpensAnOpenStreetMapPinOnThePlace`.
+5. **No coordinates, no Directions. Covered.** `directionsIsAbsentWhenThePlaceHasNoCoordinates`.
+6. **Not covered:** the screens in the real app; the My Shops usage count wired from live Pantry and shopping items in `App.kt` (wiring only, by-hand run).

@@ -1,6 +1,6 @@
 # ADR-026: Merchants — a list of sellers per Home
 
-**Status:** Implemented (2026-10-10); UI never run in the real app, only under Compose UI tests
+**Status:** Implemented (2026-10-10); UI never run in the real app, only under Compose UI tests. **Amended 2026-10-22:** hand entry was removed. The Local Merchants list, detail and add/edit screens are gone; merchants are now favourites the member picks from the Marketplace business listing with a heart, called **My Shops** (ADR-039 redesign plan). The merchants document, its Pantry/shopping links and its sync are unchanged. Acceptance criteria 1 to 5 below (the screens) no longer apply.
 
 ## Context
 
