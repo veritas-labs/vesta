@@ -1091,6 +1091,9 @@
     <string name="area_places_row_locality">%1$s, %2$s</string>
     <string name="area_places_show_more">Show more</string>
     <string name="area_places_no_match">No business matches</string>
+    <string name="area_missing_title">A business is missing?</string>
+    <string name="area_missing_body">Vesta\'s listings come from Overture Maps, which is built on OpenStreetMap and other sources. To add a missing business, add it on OpenStreetMap. It will appear here in a later update. Nothing about your area is sent when you open the site.</string>
+    <string name="area_missing_open">Open OpenStreetMap</string>
     <string name="area_saved_forget_title">Forget your area?</string>
     <string name="area_saved_forget_body">Vesta will stop using it to find places near you. You can choose it again at any time.</string>
     <string name="area_rechoose_title">Your area needs choosing again</string>

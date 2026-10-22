@@ -303,6 +303,7 @@ fun AreaBusinessGroupsScreen(
                 items(state.groups, key = { it.key }) { group ->
                     BrowseRow(groupLabel(group), group.count, MarketplaceAreaTestTags.businessesGroup(group.key), { onGroup(group.key) })
                 }
+                item(key = "missing") { MissingBusinessNote(Modifier.padding(vertical = 16.dp)) }
             }
         }
     }
@@ -424,6 +425,7 @@ fun AreaBusinessesListScreen(
                         }
                     }
                 }
+                item(key = "missing") { MissingBusinessNote(Modifier.padding(vertical = 16.dp)) }
             }
         }
     }

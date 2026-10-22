@@ -1,9 +1,15 @@
 package uk.veritaslabs.vesta.ui.screens
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -251,5 +257,55 @@ class MarketplaceAreaBusinessesFlowTest {
         onNodeWithTag(MarketplaceAreaTestTags.Disclosure).assertIsDisplayed()
         onNodeWithText("If you look at businesses", substring = true).assertIsDisplayed()
         assertEquals(0, source.loadCalls + places.loadCalls)
+    }
+
+    @Test
+    fun theMissingBusinessNoteEndsTheCategoriesScreenAndTheList() = runComposeUiTest {
+        // Arrange
+        show()
+
+        // Act
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+
+        // Assert
+        onNode(hasScrollAction()).performScrollToNode(hasTestTag(MarketplaceAreaTestTags.MissingNote))
+        onNodeWithTag(MarketplaceAreaTestTags.MissingOpen).assertIsDisplayed()
+        tap(MarketplaceAreaTestTags.BusinessesAll)
+        onNode(hasScrollAction()).performScrollToNode(hasTestTag(MarketplaceAreaTestTags.MissingNote))
+        onNodeWithTag(MarketplaceAreaTestTags.MissingNote).assertIsDisplayed()
+    }
+
+    @Test
+    fun theMissingBusinessNoteShowsWhenASearchFindsNothing() = runComposeUiTest {
+        // Arrange
+        show()
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.BusinessesAll)
+
+        // Act
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesSearchField).performTextInput("zzz")
+        waitForIdle()
+
+        // Assert
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesNoMatch).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.MissingNote).assertIsDisplayed()
+    }
+
+    @Test
+    fun openOpenStreetMapOpensOnlyTheSiteFrontPage() = runComposeUiTest {
+        // Arrange
+        val opened = mutableListOf<String>()
+        val handler = object : UriHandler {
+            override fun openUri(uri: String) {
+                opened += uri
+            }
+        }
+        setContent { VestaTheme { CompositionLocalProvider(LocalUriHandler provides handler) { MissingBusinessNote() } } }
+
+        // Act
+        onNodeWithTag(MarketplaceAreaTestTags.MissingOpen).performClick()
+
+        // Assert
+        assertEquals(listOf("https://www.openstreetmap.org"), opened)
     }
 }

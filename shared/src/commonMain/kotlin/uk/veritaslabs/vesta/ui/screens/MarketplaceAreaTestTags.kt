@@ -76,6 +76,8 @@ internal object MarketplaceAreaTestTags {
     const val BusinessesPartialRetry = "area_businesses_partial_retry"
     const val BusinessesShowMore = "area_businesses_show_more"
     const val BusinessesNoMatch = "area_businesses_no_match"
+    const val MissingNote = "area_missing_note"
+    const val MissingOpen = "area_missing_open"
 
     fun businessesGroup(key: String) = "area_businesses_group_$key"
 
