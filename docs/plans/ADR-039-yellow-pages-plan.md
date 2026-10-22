@@ -2,7 +2,7 @@
 
 Written 2026-10-22 after the first by-hand look at the business list ([places plan](ADR-039-places-plan.md), WP-P5). The list works but
 reads as a flat feed: 13 broad group chips, rows ordered by a distance that is no longer shown, nothing to browse by trade. The goal
-is a "Yellow Pages": the member looks up a trade, then reads an A to Z list of businesses grouped by locality. **Status: planned, nothing built.**
+is a "Yellow Pages": the member looks up a trade, then reads an A to Z list of businesses grouped by locality. **Status: WP-Y1 done (logic); WP-Y2, WP-Y3 not started.**
 
 ## What changed already (committed or in the working tree)
 

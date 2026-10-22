@@ -18,8 +18,14 @@ class NearbyBusinessesTest {
     private fun rec(n: Int, name: String = "Place $n", dLat: Double = 0.0, category: Int = 0, nearby: Boolean = false) =
         PlaceRecord(TinyPlaces.uuid(n), name, 50.70 + dLat, -1.29, 1.0, category, nearby)
 
-    private fun list(places: Map<Int, List<PlaceRecord>>, query: String = "", group: String? = null, limit: Int = 50, offset: Int = 0) =
-        NearbyBusinesses.list(places, plan, query, group, categories, limit, offset)
+    private fun list(
+        places: Map<Int, List<PlaceRecord>>,
+        query: String = "",
+        group: String? = null,
+        limit: Int = 50,
+        offset: Int = 0,
+        categoryFilter: Int? = null,
+    ) = NearbyBusinesses.list(places, plan, query, group, categories, limit, offset, categoryFilter = categoryFilter)
 
     /** Row 3: chunk 0 inside + nearby; row 5: chunk 1 inside; row 7: chunk 1 and chunk 0 nearby. */
     private fun placesDirectory(): PlacesDirectory {
@@ -119,7 +125,7 @@ class NearbyBusinessesTest {
     }
 
     @Test
-    fun sortsByDistanceThenNameThenId() {
+    fun sortsAToZByFoldedNameThenNameThenIdIgnoringDistance() {
         // Arrange
         val tied = listOf(rec(2, "Bravo"), rec(1, "bravo"), rec(3, "Alpha"), rec(5, "Bravo"))
         val far = rec(4, "Aardvark", dLat = 0.05)
@@ -129,8 +135,183 @@ class NearbyBusinessesTest {
         val page = list(mapOf(3 to tied + far + near))
 
         // Assert
-        assertEquals(listOf(3, 2, 5, 1, 6, 4).map { TinyPlaces.uuid(it) }, page.items.map { it.id })
-        assertTrue(page.items.zipWithNext().all { (a, b) -> a.distanceMetres <= b.distanceMetres })
+        assertEquals(listOf(4, 3, 2, 5, 1, 6).map { TinyPlaces.uuid(it) }, page.items.map { it.id })
+    }
+
+    @Test
+    fun accentedNamesSortWithTheirPlainLetters() {
+        // Arrange
+        val places = mapOf(3 to listOf(rec(1, "Cafe Zed"), rec(2, "Café Alpha"), rec(3, "Cabin"), rec(4, "Cafe Beta")))
+
+        // Act
+        val page = list(places)
+
+        // Assert
+        assertEquals(listOf("Cabin", "Café Alpha", "Cafe Beta", "Cafe Zed"), page.items.map { it.name })
+    }
+
+    @Test
+    fun sectionsFollowAreaOrderWithHomeFirstThenNearestAndSortAToZInside() {
+        // Arrange: area rows are 3 (home), 7 (Carisbrooke), 5 (Cowes)
+        val places = mapOf(
+            5 to listOf(rec(1, "Cowes Baker")),
+            7 to listOf(rec(2, "Zeta"), rec(3, "Alpha")),
+            3 to listOf(rec(4, "Newport Pub")),
+        )
+
+        // Act
+        val page = NearbyBusinesses.list(places, plan, "", null, categories, localityName = { "Row $it" })
+
+        // Assert
+        assertEquals(listOf(3, 7, 5), page.sections.map { it.localityRow })
+        assertEquals(listOf("Row 3", "Row 7", "Row 5"), page.sections.map { it.localityName })
+        assertEquals(listOf("Alpha", "Zeta"), page.sections[1].items.map { it.name })
+        assertEquals(page.items, page.sections.flatMap { it.items })
+    }
+
+    @Test
+    fun insideAndNearbyPlacesMixInOneSectionAToZ() {
+        // Arrange
+        val places = mapOf(3 to listOf(rec(1, "Charlie"), rec(2, "Alpha", nearby = true), rec(3, "Bravo"), rec(4, "Delta", nearby = true)))
+
+        // Act
+        val page = list(places)
+
+        // Assert
+        assertEquals(1, page.sections.size)
+        assertEquals(listOf("Alpha", "Bravo", "Charlie", "Delta"), page.sections.single().items.map { it.name })
+        assertEquals(listOf(true, false, false, true), page.sections.single().items.map { it.nearby })
+    }
+
+    @Test
+    fun aSectionCutByAPageBoundaryRepeatsItsHeaderOnTheNextPage() {
+        // Arrange: 3 in the home section, 3 in the next; pages of 4
+        val places = mapOf(
+            3 to listOf(rec(1, "A1"), rec(2, "A2"), rec(3, "A3")),
+            7 to listOf(rec(4, "B1"), rec(5, "B2"), rec(6, "B3")),
+        )
+
+        // Act
+        val first = NearbyBusinesses.list(places, plan, "", null, categories, limit = 4)
+        val second = NearbyBusinesses.list(places, plan, "", null, categories, limit = 4, offset = 4)
+
+        // Assert
+        assertEquals(listOf(3 to listOf("A1", "A2", "A3"), 7 to listOf("B1")), first.sections.map { it.localityRow to it.items.map { i -> i.name } })
+        assertEquals(listOf(7 to listOf("B2", "B3")), second.sections.map { it.localityRow to it.items.map { i -> i.name } })
+        assertTrue(first.hasMore)
+        assertFalse(second.hasMore)
+        assertEquals(6, second.total)
+        assertEquals(6, (first.items + second.items).map { it.id }.distinct().size)
+    }
+
+    @Test
+    fun categoriesAreCountedOverDedupedAreaPlacesOrderedByCountThenName() {
+        // Arrange: cafe (0) x1, hair salon (1) x2, pub (2) x2; place 1 listed twice; row 12 is outside the area
+        val places = mapOf(
+            3 to listOf(rec(1, category = 0), rec(2, category = 1), rec(3, category = 1), rec(4, category = 2)),
+            5 to listOf(rec(1, category = 0), rec(5, category = 2)),
+            12 to listOf(rec(6, category = 0)),
+        )
+
+        // Act
+        val result = NearbyBusinesses.categoriesWithCounts(places, categories, plan)
+
+        // Assert
+        assertEquals(listOf(CategoryCount(1, "Hair Salon", 2), CategoryCount(2, "Pub", 2), CategoryCount(0, "Cafe", 1)), result)
+    }
+
+    @Test
+    fun categoriesCanBeLimitedToOneGroup() {
+        // Arrange
+        val places = mapOf(3 to listOf(rec(1, category = 0), rec(2, category = 1), rec(3, category = 2), rec(4, category = 2)))
+
+        // Act
+        val food = NearbyBusinesses.categoriesWithCounts(places, categories, plan, "food_and_drink")
+        val services = NearbyBusinesses.categoriesWithCounts(places, categories, plan, "services")
+
+        // Assert
+        assertEquals(listOf("Pub" to 2, "Cafe" to 1), food.map { it.name to it.count })
+        assertEquals(listOf("Hair Salon" to 1), services.map { it.name to it.count })
+    }
+
+    @Test
+    fun theUnknownGroupAndUncategorisedPlacesHaveNoCategoryEntries() {
+        // Arrange
+        val places = mapOf(3 to listOf(rec(1, category = 99), rec(2, category = -1), rec(3, category = 0)))
+
+        // Act
+        val unknown = NearbyBusinesses.categoriesWithCounts(places, categories, plan, NearbyBusinesses.UNKNOWN_GROUP)
+        val all = NearbyBusinesses.categoriesWithCounts(places, categories, plan)
+
+        // Assert
+        assertTrue(unknown.isEmpty())
+        assertEquals(listOf("Cafe" to 1), all.map { it.name to it.count })
+    }
+
+    @Test
+    fun emptyAreaHasNoCategories() {
+        // Arrange / Act
+        val result = NearbyBusinesses.categoriesWithCounts(emptyMap(), categories, plan)
+
+        // Assert
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun categoryFilterKeepsOnePlaceKindAndKeepsSections() {
+        // Arrange
+        val places = mapOf(
+            3 to listOf(rec(1, "Ann", category = 0), rec(2, "Bea", category = 2)),
+            7 to listOf(rec(3, "Cat", category = 0)),
+        )
+
+        // Act
+        val page = list(places, categoryFilter = 0)
+
+        // Assert
+        assertEquals(listOf("Ann", "Cat"), page.items.map { it.name })
+        assertEquals(listOf(3, 7), page.sections.map { it.localityRow })
+        assertEquals(2, page.total)
+    }
+
+    @Test
+    fun groupCategoryAndSearchFiltersCombine() {
+        // Arrange: pub (2) and cafe (0) are both food and drink; hair salon (1) is services
+        val places = mapOf(3 to listOf(rec(1, "Alpha Cafe", category = 0), rec(2, "Alpha Pub", category = 2), rec(3, "Alpha Hair", category = 1)))
+
+        // Act
+        val matching = list(places, "alp", "food_and_drink", categoryFilter = 2)
+        val mismatched = list(places, "alp", "services", categoryFilter = 2)
+
+        // Assert
+        assertEquals(listOf("Alpha Pub"), matching.items.map { it.name })
+        assertEquals(0, mismatched.total)
+        assertTrue(mismatched.sections.isEmpty())
+    }
+
+    @Test
+    fun aPlaceWithoutACategoryIsListedAndNamedUnknown() {
+        // Arrange
+        val places = mapOf(3 to listOf(rec(1, "Mystery", category = 99)))
+
+        // Act
+        val page = list(places)
+
+        // Assert
+        assertEquals("Unknown", page.sections.single().items.single().categoryName)
+    }
+
+    @Test
+    fun dedupeKeepsTheInsideRowSectionOnly() {
+        // Arrange
+        val places = mapOf(3 to listOf(rec(1, "Shared", nearby = true)), 5 to listOf(rec(1, "Shared")))
+
+        // Act
+        val page = list(places)
+
+        // Assert
+        assertEquals(listOf(5), page.sections.map { it.localityRow })
+        assertEquals(1, page.total)
     }
 
     @Test
@@ -250,7 +431,7 @@ class NearbyBusinessesTest {
     @Test
     fun pagingBoundaries() {
         // Arrange
-        val places = mapOf(3 to (1..120).map { rec(it, dLat = it / 10000.0) })
+        val places = mapOf(3 to (1..120).map { rec(it, "Place ${it.toString().padStart(3, '0')}") })
 
         // Act
         val first = list(places)
@@ -278,7 +459,7 @@ class NearbyBusinessesTest {
         val page = list(emptyMap())
 
         // Assert
-        assertEquals(BusinessPage(emptyList(), 0, false), page)
+        assertEquals(BusinessPage(emptyList(), 0, false, emptyList()), page)
     }
 
     @Test

@@ -46,7 +46,7 @@ data class BusinessRow(
     val name: String,
     val categoryName: String,
     val groupName: String,
-    /** From the home locality's centroid. */
+    /** From the home locality's centroid. Not used for ordering or display any more (the list is A to Z); kept for callers. */
     val distanceMetres: Double,
     /** Names-table row of the locality that listed it. */
     val localityRow: Int,
@@ -56,7 +56,17 @@ data class BusinessRow(
     val localityName: String = "",
 )
 
-data class BusinessPage(val items: List<BusinessRow>, val total: Int, val hasMore: Boolean)
+/** The businesses of one locality row on a page, A to Z. [items] of all sections concatenated are the page's flat list. */
+data class BusinessSection(val localityRow: Int, val localityName: String, val items: List<BusinessRow>)
+
+/**
+ * One page of the list. [sections] are in area order (home first); a section cut by the page boundary appears again,
+ * with the rest of its businesses, on the next page. [items] is the same businesses flat, in the same order.
+ */
+data class BusinessPage(val items: List<BusinessRow>, val total: Int, val hasMore: Boolean, val sections: List<BusinessSection> = emptyList())
+
+/** A specific category (e.g. Hair Salon) with its number of places; [index] is the category-table index. */
+data class CategoryCount(val index: Int, val name: String, val count: Int)
 
 data class BusinessGroupCount(val key: String, val name: String, val count: Int)
 
@@ -87,7 +97,11 @@ object NearbyBusinesses {
     /**
      * [places] maps a names-table row to its decoded places. Only rows in [area] count. A place listed by several rows
      * appears once, under the inside row if any, else the row nearest the home. [query] matches the start of the name or
-     * of a word in it, ignoring case and accents; [groupFilter] is a group key from [groupsWithCounts] (null = all).
+     * of a word in it, ignoring case and accents; [groupFilter] is a group key from [groupsWithCounts] (null = all);
+     * [categoryFilter] is a category-table index from [categoriesWithCounts] (null = all).
+     *
+     * Order: sections by [AreaPlan.rows] (home first), A to Z within a section (folded name, name, id); distance is not
+     * used. [limit]/[offset] count businesses over the sections concatenated.
      */
     fun list(
         places: Map<Int, List<PlaceRecord>>,
@@ -97,15 +111,18 @@ object NearbyBusinesses {
         categories: CategoryTable,
         limit: Int = PAGE_SIZE,
         offset: Int = 0,
+        categoryFilter: Int? = null,
         localityName: (Int) -> String = { "" },
     ): BusinessPage {
         val q = foldForSearch(query).trim()
+        val order = area.rows.withIndex().associate { it.value to it.index }
         val matches = unique(places, area).filter { (place, _) ->
             (groupFilter == null || groupKey(place, categories) == groupFilter) &&
+                (categoryFilter == null || place.categoryIndex == categoryFilter) &&
                 (q.isEmpty() || matchesName(foldForSearch(place.name), q))
         }.map { (place, row) ->
             Sortable(place, row, LocalityDirectory.distanceMetres(area.homeCentroid, place.latitude, place.longitude), foldForSearch(place.name))
-        }.sortedWith(compareBy<Sortable>({ it.distance }, { it.folded }, { it.place.name }, { it.place.id }))
+        }.sortedWith(compareBy<Sortable>({ order.getValue(it.row) }, { it.folded }, { it.place.name }, { it.place.id }))
 
         val from = offset.coerceIn(0, matches.size)
         val to = (from.toLong() + limit.coerceAtLeast(0)).coerceAtMost(matches.size.toLong()).toInt()
@@ -115,8 +132,36 @@ object NearbyBusinesses {
                 distance, row, place.nearby, localityName(row),
             )
         }
-        return BusinessPage(items, matches.size, to < matches.size)
+        // Matches are already grouped by row, so consecutive items with one row form a section.
+        val sections = items.groupConsecutiveBy { it.localityRow }.map { run -> BusinessSection(run.first().localityRow, run.first().localityName, run) }
+        return BusinessPage(items, matches.size, to < matches.size, sections)
     }
+
+    private fun <T, K> List<T>.groupConsecutiveBy(key: (T) -> K): List<List<T>> {
+        val runs = ArrayList<MutableList<T>>()
+        forEach { item ->
+            if (runs.isNotEmpty() && key(runs.last().first()) == key(item)) runs.last() += item else runs += mutableListOf(item)
+        }
+        return runs
+    }
+
+    /**
+     * The specific categories of the area, most places first (ties by name). [groupKey] limits to one group key from
+     * [groupsWithCounts]. Counts use the same deduped, area-restricted places as [list]. The [UNKNOWN_GROUP] has no named
+     * category (the real data has a placeholder "Unknown" category in that group; it is left out too), so it yields an empty list; places with a missing or out-of-range category index never appear here
+     * (no "Other" entry), they are reachable through the unknown group and "all".
+     */
+    fun categoriesWithCounts(
+        places: Map<Int, List<PlaceRecord>>,
+        categories: CategoryTable,
+        area: AreaPlan,
+        groupKey: String? = null,
+    ): List<CategoryCount> =
+        unique(places, area).map { it.first }
+            .filter { it.categoryIndex in 0 until categories.categoryCount && groupKey(it, categories) != UNKNOWN_GROUP && (groupKey == null || groupKey(it, categories) == groupKey) }
+            .groupingBy { it.categoryIndex }.eachCount()
+            .map { (index, count) -> CategoryCount(index, categories.categoryName(index), count) }
+            .sortedWith(compareBy<CategoryCount>({ -it.count }, { it.name }, { it.index }))
 
     /** Group chips: most places first (ties by name), the unknown group last. With [area] only its rows count. */
     fun groupsWithCounts(places: Map<Int, List<PlaceRecord>>, categories: CategoryTable, area: AreaPlan? = null): List<BusinessGroupCount> {

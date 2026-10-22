@@ -90,9 +90,50 @@ class RealNearbyBusinessesTest {
         biggest?.let { plan ->
             val page = NearbyBusinesses.list(bigPlaces, plan, "", null, real.categories)
             assertEquals(50, page.items.size)
-            assertTrue(page.items.zipWithNext().all { (a, b) -> a.distanceMetres <= b.distanceMetres })
+            assertTrue(page.sections.first().localityRow == plan.homeRow)
+            assertEquals(page.items, page.sections.flatMap { it.items })
+            assertTrue(page.sections.first().items.zipWithNext().all { (a, b) -> foldForSearch(a.name) <= foldForSearch(b.name) })
             assertEquals(page.total, bigPlaces.values.flatten().map { it.id }.distinct().size)
         }
         assertTrue(timings.isEmpty() || timings.last() < 5_000)
+    }
+
+    @Test
+    fun printsTheDirectoryBrowseNumbersForRealAreas() {
+        // Arrange
+        val real = load() ?: return
+        val orlestone = real.localities.search("Orlestone", 10).filter { it.subtype == LocalityDirectory.LOCALITY }
+            .let { found -> found.firstOrNull { real.localities.chainText(it.id).contains("Kent") } ?: found.firstOrNull() }
+        val queens = listOf("Queen's Park", "Queen\u2019s Park").firstNotNullOfOrNull { q ->
+            real.localities.search(q, 5).firstOrNull { it.subtype == LocalityDirectory.LOCALITY }
+        }
+        val homes = listOfNotNull(orlestone, queens)
+
+        // Act
+        homes.forEach { home ->
+            val plan = plan(real, home.id, 4)
+            val places = real.fetch(plan)
+            val t0 = System.nanoTime()
+            val groups = NearbyBusinesses.groupsWithCounts(places, real.categories, plan)
+            val perGroup = groups.associate { g -> g.key to NearbyBusinesses.categoriesWithCounts(places, real.categories, plan, g.key) }
+            val top = NearbyBusinesses.categoriesWithCounts(places, real.categories, plan)
+            val page = NearbyBusinesses.list(places, plan, "", null, real.categories) { real.localities.nameAt(it) }
+            val ms = (System.nanoTime() - t0) / 1e6
+            println("BROWSE ${home.name} (${real.localities.chainText(home.id)}) rows=${plan.rows.size} " +
+                "businesses=${places.values.flatten().map { it.id }.distinct().size} groups=${groups.size} " +
+                "distinctCategories=${top.size} time=${ms.toLong()} ms")
+            println("  categories per group (largest): " + perGroup.entries.sortedByDescending { it.value.size }.take(4)
+                .joinToString { "${it.key}=${it.value.size}" })
+            println("  top 5 categories: " + top.take(5).joinToString { "${it.name}=${it.count}" })
+            page.sections.firstOrNull()?.let { section ->
+                println("  first section ${section.localityName} (${section.items.size} on page): " + section.items.take(5).joinToString { it.name })
+            }
+
+            // Assert
+            assertEquals(groups.sumOf { it.count }, places.values.flatten().map { it.id }.distinct().size)
+            assertEquals(top.sumOf { it.count }, groups.filter { it.key != NearbyBusinesses.UNKNOWN_GROUP }.sumOf { it.count })
+            assertTrue(perGroup[NearbyBusinesses.UNKNOWN_GROUP].orEmpty().isEmpty())
+        }
+        assertTrue(homes.isNotEmpty())
     }
 }

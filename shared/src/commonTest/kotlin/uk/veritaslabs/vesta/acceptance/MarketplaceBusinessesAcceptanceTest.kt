@@ -157,17 +157,19 @@ class MarketplaceBusinessesAcceptanceTest {
     }
 
     @Test
-    fun theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn() = runComposeUiTest {
+    fun theListIsSortedAToZWithinLocalitiesAndNearbyRowsAreNeverLabelledIn() = runComposeUiTest {
         // Arrange — Given a small area with both inside and just-outside businesses
         val viewModel = show()
 
         // Act — When the list appears
         tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
 
-        // Assert — Then rows run nearest first on screen, and no nearby row's text says it is "in" the area
+        // Assert — Then rows run A to Z within each locality on screen, and no nearby row's text says it is "in" the area
         val items = viewModel.uiState.value.businesses.items
         assertTrue(items.any { it.nearby } && items.any { !it.nearby })
-        assertEquals(items.map { it.distanceMetres }.sorted(), items.map { it.distanceMetres })
+        items.groupBy { it.localityRow }.values.forEach { group ->
+            assertEquals(group.map { it.name }.sortedBy { it.lowercase() }, group.map { it.name })
+        }
         val shown = items.filter { onAllNodesWithTagCount(MarketplaceAreaTestTags.businessesRow(it.id)) > 0 }
         val tops = shown.map { onNodeWithTag(MarketplaceAreaTestTags.businessesRow(it.id)).fetchSemanticsNode().positionInRoot.y }
         assertTrue(shown.size >= 2)
