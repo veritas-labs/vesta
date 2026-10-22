@@ -49,8 +49,7 @@ import vesta.shared.generated.resources.area_places_no_match
 import vesta.shared.generated.resources.area_places_not_now
 import vesta.shared.generated.resources.area_places_partial
 import vesta.shared.generated.resources.area_places_progress
-import vesta.shared.generated.resources.area_places_row_in
-import vesta.shared.generated.resources.area_places_row_near
+import vesta.shared.generated.resources.area_places_row_locality
 import vesta.shared.generated.resources.area_places_search_label
 import vesta.shared.generated.resources.area_places_show_more
 import vesta.shared.generated.resources.area_places_summary_inside
@@ -307,12 +306,9 @@ private fun BusinessItem(row: BusinessRow) {
             .testTag(MarketplaceAreaTestTags.businessesRow(row.id)),
     ) {
         Text(row.name, style = MaterialTheme.typography.titleMedium)
-        // A place outside every polygon is "near" its locality, never "in" it.
-        val where = when {
-            row.localityName.isEmpty() -> row.categoryName
-            row.nearby -> stringResource(Res.string.area_places_row_near, row.categoryName, row.localityName)
-            else -> stringResource(Res.string.area_places_row_in, row.categoryName, row.localityName)
-        }
+        // The locality the business is listed under: the one it is in, or for a place outside every polygon the nearest.
+        val where = if (row.localityName.isEmpty()) row.categoryName
+        else stringResource(Res.string.area_places_row_locality, row.categoryName, row.localityName)
         Text(where, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

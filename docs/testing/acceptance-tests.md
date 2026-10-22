@@ -288,8 +288,8 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
 5. **The list is sorted nearest first. Covered.** *Given* the list, *then* rows run from nearest to farthest from my home locality's centre (not from the
    device), ties by name. `theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn` (order on screen);
    `NearbyBusinessesTest.sortsByDistanceThenNameThenId`.
-6. **Nearby rows are never labelled "in". Covered.** *Given* a business just outside my places, *then* its row shows its category and the locality it is
-   near ("Pub, near Acomb") (no distance is shown, because Vesta does not know where I am), and never says it is in a locality. `theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn`. Wording only: the rule that decides which
+6. **Nearby rows are never labelled "in". Covered.** *Given* a business just outside my places, *then* its row shows its category and the name of the locality it is listed under
+   ("Pub, Acomb") (no distance is shown, because Vesta does not know where I am), and never says it is in a locality. `theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn`. Wording only: the rule that decides which
    places are "nearby" is the builder's (README, Places).
 7. **Search and group filter. Covered.** *Given* the list, *when* I type a name and choose a category group, *then* only matching rows remain, an empty result
    says so, and All brings them back. `searchAndGroupFilterNarrowTheList`; `MarketplaceAreaBusinessesViewModelTest.searchNarrowsTheListAndNearbyRowsAreFlagged`,

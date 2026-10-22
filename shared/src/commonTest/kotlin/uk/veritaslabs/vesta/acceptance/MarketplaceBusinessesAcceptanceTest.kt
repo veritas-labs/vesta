@@ -174,7 +174,7 @@ class MarketplaceBusinessesAcceptanceTest {
         assertEquals(tops.sorted(), tops)
         val nearbyRow = items.first { it.nearby }
         val text = textOf(MarketplaceAreaTestTags.businessesRow(nearbyRow.id))
-        assertTrue(text.contains(", near "), text)
+        assertTrue(nearbyRow.localityName.isNotEmpty() && text.contains(nearbyRow.localityName), text)
         assertTrue(!Regex("(^|\\s)in(\\s|$)", RegexOption.IGNORE_CASE).containsMatchIn(text), text)
     }
 

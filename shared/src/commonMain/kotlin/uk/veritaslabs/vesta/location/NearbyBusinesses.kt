@@ -50,7 +50,7 @@ data class BusinessRow(
     val distanceMetres: Double,
     /** Names-table row of the locality that listed it. */
     val localityRow: Int,
-    /** True when outside every polygon: the UI says "near <locality>", never "in". */
+    /** True when outside every polygon: the UI must not say it is "in" the locality; it is the nearest one. */
     val nearby: Boolean,
     /** Name of that locality, empty when the caller gave no names. */
     val localityName: String = "",
