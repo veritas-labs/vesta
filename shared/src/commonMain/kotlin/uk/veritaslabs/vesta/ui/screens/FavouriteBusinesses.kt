@@ -48,6 +48,12 @@ class FavouriteBusinesses(
     /** Pantry items and shopping entries linking the merchant with place id [gersId]; 0 if it is not a favourite. */
     suspend fun usageCount(gersId: String): Int = existing(gersId)?.let { usage.usageCount(it.key) } ?: 0
 
+    /** Removes the merchant with [key], hand-made ones included (they have no place id). */
+    suspend fun removeByKey(key: String) = source.remove(key)
+
+    /** Pantry items and shopping entries linking the merchant with [key]. */
+    fun usageOfKey(key: String): Int = usage.usageCount(key)
+
     private suspend fun existing(gersId: String): Merchant? =
         gersId.takeIf { it.isNotEmpty() }?.let { id -> source.merchants.first().firstOrNull { it.gersId == id } }
 

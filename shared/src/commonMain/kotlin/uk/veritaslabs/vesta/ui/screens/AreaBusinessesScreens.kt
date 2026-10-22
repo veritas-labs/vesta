@@ -43,6 +43,9 @@ import uk.veritaslabs.vesta.ui.components.PrimaryButton
 import uk.veritaslabs.vesta.ui.components.SecondaryButton
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 import vesta.shared.generated.resources.Res
+import vesta.shared.generated.resources.area_favourite_add
+import vesta.shared.generated.resources.area_favourite_remove
+import vesta.shared.generated.resources.area_my_shops_row
 import vesta.shared.generated.resources.area_places_cancel
 import vesta.shared.generated.resources.area_places_confirm_body
 import vesta.shared.generated.resources.area_places_confirm_title
@@ -273,6 +276,8 @@ fun AreaBusinessGroupsScreen(
     onGroup: (String) -> Unit = {},
     onRetry: () -> Unit = {},
     onBack: () -> Unit = {},
+    myShopsCount: Int? = null,
+    onMyShops: () -> Unit = {},
 ) {
     AreaScaffold(stringResource(Res.string.area_places_title), onBack, modifier) {
         Column(
@@ -290,6 +295,11 @@ fun AreaBusinessGroupsScreen(
                 modifier = Modifier.fillMaxWidth().testTag(MarketplaceAreaTestTags.BusinessesBrowseSearch),
             )
             LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
+                myShopsCount?.let { count ->
+                    item(key = "my-shops") {
+                        BrowseRow(stringResource(Res.string.area_my_shops_row), count, MarketplaceAreaTestTags.MyShopsRow, onMyShops, bold = true)
+                    }
+                }
                 if (state.browseQuery.isNotBlank()) {
                     item(key = "search-all") {
                         TextButton(onClick = onSearchAll, modifier = Modifier.testTag(MarketplaceAreaTestTags.BusinessesSearchAll)) {
@@ -365,6 +375,8 @@ fun AreaBusinessCategoriesScreen(
  * The businesses of the chosen category, group or all ([state]): a header with that name and the count, a search field,
  * rows (name, then category and locality; never a distance and never "in <place>") A to Z under a header for each locality,
  * Show more and an empty-results line. [AreaBusinessesState.partial] adds a banner with Try again ([onRetry]).
+ * Each row has a heart for My Shops while [favouriteIds] is not null (filled when the row's id is in it); [pendingRemoval]
+ * shows the "used by N items" question.
  */
 @Composable
 fun AreaBusinessesListScreen(
@@ -374,7 +386,13 @@ fun AreaBusinessesListScreen(
     onShowMore: () -> Unit = {},
     onRetry: () -> Unit = {},
     onBack: () -> Unit = {},
+    favouriteIds: Set<String>? = null,
+    pendingRemoval: PendingShopRemoval? = null,
+    onToggleFavourite: (BusinessRow) -> Unit = {},
+    onConfirmRemoval: () -> Unit = {},
+    onCancelRemoval: () -> Unit = {},
 ) {
+    pendingRemoval?.let { RemoveShopDialog(it, onConfirmRemoval, onCancelRemoval) }
     AreaScaffold(stringResource(Res.string.area_places_title), onBack, modifier) {
         Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column {
@@ -407,7 +425,9 @@ fun AreaBusinessesListScreen(
             LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag(MarketplaceAreaTestTags.BusinessesList)) {
                 state.sections.forEach { section ->
                     item(key = "section-${section.localityRow}-${section.items.first().id}") { SectionHeader(section) }
-                    items(section.items, key = { it.id }) { row -> BusinessItem(row) }
+                    items(section.items, key = { it.id }) { row ->
+                        BusinessItem(row, favouriteIds?.let { row.id in it }) { onToggleFavourite(row) }
+                    }
                 }
                 if (state.items.isEmpty()) {
                     item(key = "none") {
@@ -446,17 +466,31 @@ private fun SectionHeader(section: BusinessSection) {
 private fun groupLabel(group: BusinessGroupCount): String =
     if (group.key == NearbyBusinesses.UNKNOWN_GROUP) stringResource(Res.string.area_places_group_other) else group.name
 
+/** One business; [favourite] is null when hearts are hidden, else whether it is in My Shops ([onToggleFavourite] flips it). */
 @Composable
-private fun BusinessItem(row: BusinessRow) {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = 8.dp).semantics(mergeDescendants = true) {}
-            .testTag(MarketplaceAreaTestTags.businessesRow(row.id)),
+private fun BusinessItem(row: BusinessRow, favourite: Boolean?, onToggleFavourite: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(row.name, style = MaterialTheme.typography.titleMedium)
-        // The locality the business is listed under: the one it is in, or for a place outside every polygon the nearest.
-        val where = if (row.localityName.isEmpty()) row.categoryName
-        else stringResource(Res.string.area_places_row_locality, row.categoryName, row.localityName)
-        Text(where, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(
+            Modifier.weight(1f).padding(vertical = 4.dp).semantics(mergeDescendants = true) {}
+                .testTag(MarketplaceAreaTestTags.businessesRow(row.id)),
+        ) {
+            Text(row.name, style = MaterialTheme.typography.titleMedium)
+            // The locality the business is listed under: the one it is in, or for a place outside every polygon the nearest.
+            val where = if (row.localityName.isEmpty()) row.categoryName
+            else stringResource(Res.string.area_places_row_locality, row.categoryName, row.localityName)
+            Text(where, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        favourite?.let { filled ->
+            HeartButton(
+                filled,
+                if (filled) stringResource(Res.string.area_favourite_remove, row.name) else stringResource(Res.string.area_favourite_add, row.name),
+                MarketplaceAreaTestTags.favouriteHeart(row.id),
+                onToggleFavourite,
+            )
+        }
     }
 }
 
@@ -555,13 +589,13 @@ private fun AreaBusinessesLoadingTabletDarkPreview() {
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun AreaBusinessGroupsPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { AreaBusinessGroupsScreen(PreviewGroups) }
+    VestaTheme(darkTheme = false) { AreaBusinessGroupsScreen(PreviewGroups, myShopsCount = 2) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun AreaBusinessGroupsPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { AreaBusinessGroupsScreen(PreviewGroups) }
+    VestaTheme(darkTheme = true) { AreaBusinessGroupsScreen(PreviewGroups, myShopsCount = 2) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
@@ -603,25 +637,25 @@ private fun AreaBusinessCategoriesTabletDarkPreview() {
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun AreaBusinessListPhoneLightPreview() {
-    VestaTheme(darkTheme = false) { AreaBusinessesListScreen(PreviewList) }
+    VestaTheme(darkTheme = false) { AreaBusinessesListScreen(PreviewList, favouriteIds = setOf("1")) }
 }
 
 @Preview(name = "Dark", group = "Phone", device = Devices.PHONE)
 @Composable
 private fun AreaBusinessListPhoneDarkPreview() {
-    VestaTheme(darkTheme = true) { AreaBusinessesListScreen(PreviewList) }
+    VestaTheme(darkTheme = true) { AreaBusinessesListScreen(PreviewList, favouriteIds = setOf("1")) }
 }
 
 @Preview(name = "Light", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun AreaBusinessListTabletLightPreview() {
-    VestaTheme(darkTheme = false) { AreaBusinessesListScreen(PreviewList.copy(partial = false)) }
+    VestaTheme(darkTheme = false) { AreaBusinessesListScreen(PreviewList.copy(partial = false), favouriteIds = setOf("1")) }
 }
 
 @Preview(name = "Dark", group = "Tablet", device = Devices.TABLET)
 @Composable
 private fun AreaBusinessListTabletDarkPreview() {
-    VestaTheme(darkTheme = true) { AreaBusinessesListScreen(PreviewList.copy(partial = false)) }
+    VestaTheme(darkTheme = true) { AreaBusinessesListScreen(PreviewList.copy(partial = false), favouriteIds = setOf("1")) }
 }
 
 @Preview(name = "Light", group = "Phone", device = Devices.PHONE)

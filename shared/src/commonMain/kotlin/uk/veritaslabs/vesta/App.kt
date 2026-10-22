@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -115,6 +116,8 @@ import uk.veritaslabs.vesta.ui.screens.MealPlanSource
 import uk.veritaslabs.vesta.ui.screens.MealPlannerScreen
 import uk.veritaslabs.vesta.ui.screens.MealPlannerViewModel
 import uk.veritaslabs.vesta.ui.flows.MealPlannerFlow
+import uk.veritaslabs.vesta.ui.screens.FavouriteBusinesses
+import uk.veritaslabs.vesta.ui.screens.MerchantUsage
 import uk.veritaslabs.vesta.ui.screens.MerchantsSource
 import uk.veritaslabs.kits.sync.SyncActivityRepository
 import uk.veritaslabs.vesta.syncactivity.SyncActivityViewModel
@@ -545,8 +548,18 @@ internal fun HomeContent(
         null
     }
     // The area picker (ADR-039): one for each Home, so switching Homes starts a fresh one.
-    val areaViewModel = viewModel(key = "marketplace-area-$homeId") {
-        MarketplaceAreaViewModel(homeId, localityPackSource, locationRepository, placesPackSource, ::deviceRegionCode)
+    // My Shops (ADR-039): hearts follow the merchants document; usage is read live from Pantry and Shopping. The merchants
+    // source arrives after the Home opens, so the view model is keyed on whether it is there yet.
+    val pantryItemsNow by remember(pantrySource) { pantrySource?.contents?.map { it.items } ?: flowOf(emptyList()) }
+        .collectAsStateWithLifecycle(emptyList())
+    val shoppingItemsNow by remember(shoppingListSource) { shoppingListSource?.items ?: flowOf(emptyList()) }
+        .collectAsStateWithLifecycle(emptyList())
+    val merchantUsage = rememberUpdatedState(MerchantUsage.of(pantryItemsNow, shoppingItemsNow))
+    val favourites = remember(merchantsSource) {
+        merchantsSource?.let { FavouriteBusinesses(it, MerchantUsage { key -> merchantUsage.value.usageCount(key) }) }
+    }
+    val areaViewModel = viewModel(key = "marketplace-area-$homeId-${favourites != null}") {
+        MarketplaceAreaViewModel(homeId, localityPackSource, locationRepository, placesPackSource, favourites, ::deviceRegionCode)
     }
     val categoriesViewModel = pantrySource?.categoriesSource?.let { source ->
         viewModel(key = "pantry-categories-$homeId") { PantryCategoriesViewModel(source) }

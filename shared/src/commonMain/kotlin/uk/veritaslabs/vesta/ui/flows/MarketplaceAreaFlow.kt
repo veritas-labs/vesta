@@ -23,6 +23,7 @@ import uk.veritaslabs.vesta.ui.screens.AreaBusinessesUnreachableScreen
 import uk.veritaslabs.vesta.ui.screens.AreaCountryScreen
 import uk.veritaslabs.vesta.ui.screens.AreaDisclosureScreen
 import uk.veritaslabs.vesta.ui.screens.AreaHomeLocalityScreen
+import uk.veritaslabs.vesta.ui.screens.AreaMyShopsScreen
 import uk.veritaslabs.vesta.ui.screens.AreaNearbyScreen
 import uk.veritaslabs.vesta.ui.screens.AreaNeedsRechooseScreen
 import uk.veritaslabs.vesta.ui.screens.AreaSavedScreen
@@ -128,6 +129,8 @@ fun MarketplaceAreaFlow(viewModel: MarketplaceAreaViewModel, onBack: () -> Unit,
                     onGroup = viewModel::openGroup,
                     onRetry = viewModel::retryBusinesses,
                     onBack = goBack,
+                    myShopsCount = state.myShops.size.takeIf { state.favouritesAvailable },
+                    onMyShops = viewModel::openMyShops,
                 )
             } else {
                 AreaBusinessCategoriesScreen(
@@ -145,6 +148,20 @@ fun MarketplaceAreaFlow(viewModel: MarketplaceAreaViewModel, onBack: () -> Unit,
             onQueryChange = viewModel::setBusinessQuery,
             onShowMore = viewModel::showMoreBusinesses,
             onRetry = viewModel::retryBusinesses,
+            onBack = goBack,
+            favouriteIds = state.favouriteIds.takeIf { state.favouritesAvailable },
+            pendingRemoval = state.pendingRemoval,
+            onToggleFavourite = viewModel::toggleFavourite,
+            onConfirmRemoval = viewModel::confirmRemoval,
+            onCancelRemoval = viewModel::cancelRemoval,
+        )
+        AreaStep.MyShops -> AreaMyShopsScreen(
+            state.myShops,
+            modifier,
+            pendingRemoval = state.pendingRemoval,
+            onRemove = viewModel::removeShop,
+            onConfirmRemoval = viewModel::confirmRemoval,
+            onCancelRemoval = viewModel::cancelRemoval,
             onBack = goBack,
         )
         AreaStep.BusinessesUnreachable -> AreaBusinessesUnreachableScreen(modifier, onTryAgain = viewModel::retryBusinesses, onBack = goBack)

@@ -79,6 +79,19 @@ internal object MarketplaceAreaTestTags {
     const val MissingNote = "area_missing_note"
     const val MissingOpen = "area_missing_open"
 
+    const val MyShopsRow = "area_my_shops_row"
+    const val MyShopsList = "area_my_shops_list"
+    const val MyShopsEmpty = "area_my_shops_empty"
+    const val RemoveShopDialog = "area_remove_shop_dialog"
+    const val RemoveShopConfirm = "area_remove_shop_confirm"
+    const val RemoveShopCancel = "area_remove_shop_cancel"
+
+    fun favouriteHeart(placeId: String) = "area_favourite_heart_$placeId"
+
+    fun myShopsItem(key: String) = "area_my_shops_item_$key"
+
+    fun myShopsHeart(key: String) = "area_my_shops_heart_$key"
+
     fun businessesGroup(key: String) = "area_businesses_group_$key"
 
     fun businessesCategory(index: Int) = "area_businesses_category_$index"

@@ -78,6 +78,9 @@ sealed interface AreaStep {
 
     /** Nothing could be loaded; offers Try again. */
     data object BusinessesUnreachable : AreaStep
+
+    /** My Shops: the favourites, A to Z, read from the merchants document so it works offline; back returns to the categories. */
+    data object MyShops : AreaStep
 }
 
 /** Whether the Saved card can offer "See businesses": from [PlacesPackSource.preflight], so it never touches the network. */
@@ -196,7 +199,18 @@ data class MarketplaceAreaUiState(
     val businesses: AreaBusinessesState = AreaBusinessesState(),
     /** True while confirm() is writing. */
     val isSaving: Boolean = false,
+    /** False when the Home has no merchants document yet: hearts and the My Shops row are hidden. */
+    val favouritesAvailable: Boolean = false,
+    /** Place ids of the favourites (the filled hearts). */
+    val favouriteIds: Set<String> = emptySet(),
+    /** My Shops, A to Z, hand-made ones included. */
+    val myShops: List<Merchant> = emptyList(),
+    /** The "used by N items" question while it is showing. */
+    val pendingRemoval: PendingShopRemoval? = null,
 )
+
+/** A favourite that Pantry or Shopping link, waiting for the user to confirm its removal. */
+data class PendingShopRemoval(val key: String, val name: String, val usageCount: Int)
 
 private const val SearchLimit = 20
 private const val ShowMoreStep = 10
@@ -219,11 +233,19 @@ class MarketplaceAreaViewModel(
     private val source: LocalityPackSource,
     private val repository: HomeLocationRepository,
     private val placesSource: PlacesPackSource = UnavailablePlacesPackSource,
+    private val favourites: FavouriteBusinesses? = null,
     private val regionCode: () -> String?,
 ) : ViewModel() {
 
-    private val state = MutableStateFlow(MarketplaceAreaUiState())
+    private val state = MutableStateFlow(MarketplaceAreaUiState(favouritesAvailable = favourites != null))
     val uiState: StateFlow<MarketplaceAreaUiState> = state.asStateFlow()
+
+    init {
+        favourites?.let { f ->
+            viewModelScope.launch { f.favouriteIds.collect { ids -> state.update { it.copy(favouriteIds = ids) } } }
+            viewModelScope.launch { f.myShops.collect { shops -> state.update { it.copy(myShops = shops) } } }
+        }
+    }
 
     private var directory: LocalityDirectory? = null
     private var root: LocalityRoot? = null
@@ -259,7 +281,7 @@ class MarketplaceAreaViewModel(
     }
 
     private suspend fun begin() {
-        state.value = MarketplaceAreaUiState()
+        state.update { it.reset() }
         val location = repository.read(homeId)
         stored = location
         businessesAvailability = availability()
@@ -437,6 +459,10 @@ class MarketplaceAreaViewModel(
 
     /** One step back, keeping what was typed and ticked. False at a step with nothing before it: the screen leaves. */
     fun back(): Boolean = when (state.value.step) {
+        AreaStep.MyShops -> {
+            state.update { it.copy(step = AreaStep.BusinessesCategories, pendingRemoval = null) }
+            true
+        }
         AreaStep.BusinessesLoading -> {
             cancelBusinessesFetch()
             true
@@ -474,7 +500,7 @@ class MarketplaceAreaViewModel(
             resumeEdit = false
             resumeBusinesses = false
             clearBusinesses()
-            state.value = MarketplaceAreaUiState()
+            state.update { it.reset() }
             beginFresh()
         }
     }
@@ -812,8 +838,54 @@ class MarketplaceAreaViewModel(
     fun rechoose() {
         stored = null
         ticked = emptySet()
-        state.update { MarketplaceAreaUiState(step = it.step) }
+        state.update { it.reset().copy(step = it.step) }
         enterCountry()
+    }
+
+    /** A blank state that keeps My Shops, which follow the merchants document and not the flow. */
+    private fun MarketplaceAreaUiState.reset() =
+        MarketplaceAreaUiState(favouritesAvailable = favouritesAvailable, favouriteIds = favouriteIds, myShops = myShops)
+
+    /** The heart on [business]: adds it to My Shops, or removes it, asking first when Pantry or Shopping use it. */
+    fun toggleFavourite(business: BusinessRow) {
+        val shop = state.value.myShops.firstOrNull { it.gersId == business.id }
+        if (shop == null) {
+            favourites?.let { f -> viewModelScope.launch { f.favourite(business, business.localityName) } }
+        } else {
+            requestRemoval(shop)
+        }
+    }
+
+    /** The heart on a My Shops row. */
+    fun removeShop(key: String) {
+        state.value.myShops.firstOrNull { it.key == key }?.let(::requestRemoval)
+    }
+
+    private fun requestRemoval(shop: Merchant) {
+        val f = favourites ?: return
+        val used = f.usageOfKey(shop.key)
+        if (used > 0) {
+            state.update { it.copy(pendingRemoval = PendingShopRemoval(shop.key, shop.name, used)) }
+        } else {
+            viewModelScope.launch { f.removeByKey(shop.key) }
+        }
+    }
+
+    /** "Remove" in the in-use question. */
+    fun confirmRemoval() {
+        val pending = state.value.pendingRemoval ?: return
+        state.update { it.copy(pendingRemoval = null) }
+        favourites?.let { f -> viewModelScope.launch { f.removeByKey(pending.key) } }
+    }
+
+    /** "Cancel" in the in-use question: nothing changes. */
+    fun cancelRemoval() {
+        state.update { it.copy(pendingRemoval = null) }
+    }
+
+    /** Opens My Shops from the categories screen. */
+    fun openMyShops() {
+        if (state.value.favouritesAvailable) state.update { it.copy(step = AreaStep.MyShops) }
     }
 
     private fun place(dir: LocalityDirectory, id: String, name: String) = AreaPlace(id, name, dir.chainText(id))
