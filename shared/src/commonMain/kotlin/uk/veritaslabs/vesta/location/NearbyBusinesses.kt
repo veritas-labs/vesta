@@ -54,6 +54,9 @@ data class BusinessRow(
     val nearby: Boolean,
     /** Name of that locality, empty when the caller gave no names. */
     val localityName: String = "",
+    /** The place's own coordinates in degrees; null when the row was built without them. */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 /** The businesses of one locality row on a page, A to Z. [items] of all sections concatenated are the page's flat list. */
@@ -129,7 +132,7 @@ object NearbyBusinesses {
         val items = matches.subList(from, to).map { (place, row, distance) ->
             BusinessRow(
                 place.id, place.name, categoryName(place, categories), groupName(place, categories),
-                distance, row, place.nearby, localityName(row),
+                distance, row, place.nearby, localityName(row), place.latitude, place.longitude,
             )
         }
         // Matches are already grouped by row, so consecutive items with one row form a section.

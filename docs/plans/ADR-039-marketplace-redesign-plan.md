@@ -1,6 +1,6 @@
 # Plan: Marketplace is "Neighbourhood businesses" with favourites (ADR-039, ADR-026)
 
-Written 2026-10-22. **Status: planned, nothing built.**
+Written 2026-10-22. **Status: WP-M1 (favourites logic) done; WP-M2 to M6 planned.**
 
 ## Decisions (from the user)
 

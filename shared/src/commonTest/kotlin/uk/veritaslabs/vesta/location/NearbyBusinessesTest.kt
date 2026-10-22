@@ -42,6 +42,19 @@ class NearbyBusinessesTest {
     }
 
     @Test
+    fun listedRowsCarryThePlaceCoordinates() {
+        // Arrange
+        val places = mapOf(3 to listOf(rec(1)))
+
+        // Act
+        val row = list(places).items.single()
+
+        // Assert
+        assertEquals(50.70, row.latitude)
+        assertEquals(-1.29, row.longitude)
+    }
+
+    @Test
     fun planPutsHomeFirstThenNeighboursNearestFirst() {
         // Arrange
         val ids = listOf(TinyPack.id(5), TinyPack.id(7), TinyPack.id(13), "unknown-id", TinyPack.id(3))
