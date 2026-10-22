@@ -2,7 +2,7 @@
 
 Written 2026-10-22 after the first by-hand look at the business list ([places plan](ADR-039-places-plan.md), WP-P5). The list works but
 reads as a flat feed: 13 broad group chips, rows ordered by a distance that is no longer shown, nothing to browse by trade. The goal
-is a "Yellow Pages": the member looks up a trade, then reads an A to Z list of businesses grouped by locality. **Status: WP-Y1 (logic) and WP-Y2 (UI) done; WP-Y3 not started.**
+is a "Yellow Pages": the member looks up a trade, then reads an A to Z list of businesses grouped by locality. **Status: WP-Y1 (logic), WP-Y2 (UI) and WP-Y3 (acceptance tests and docs) done; the by-hand run below is still owed.**
 
 ## What changed already (committed or in the working tree)
 
@@ -67,3 +67,13 @@ status.
   than about 60 categories, the screen needs its own search field (decide on real data in WP-Y2).
 - **"Nearest locality" is not "in".** A business listed under Shadoxhurst may be 3 km outside it. The member can read that as being
   in the village; the plain name is the user's choice. Revisit if it misleads in the by-hand run.
+
+## By-hand run
+
+Not done yet. Use the recipe in [the places plan](ADR-039-places-plan.md#by-hand-run-desktop-devnet) (devnet, `VESTA_PLACES_ROOT`). Check:
+
+- The category list for a big area (Queen's Park): the groups screen with counts, "Other" last, a group with hundreds of categories and its search field.
+- Scrolling a long list: smooth, locality headings readable, nothing jumping.
+- Show more: the heading of a locality stays above its continuing rows, and the next locality's heading follows.
+- Back: list to categories to groups to the Saved card, one level each press; search text and counts after returning.
+- Wording of "Category, Locality" for a business just outside a locality (the nearest-locality caveat above).

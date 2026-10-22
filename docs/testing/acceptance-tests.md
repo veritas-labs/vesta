@@ -285,15 +285,18 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
    size I am asked to confirm is the larger one, and only on confirming is it fetched, with the just-outside places included.
    `theJustOutsideToggleChangesTheSizeThatIsConfirmedAndFetched`; `MarketplaceAreaBusinessesViewModelTest.theToggleUpdatesTheChosenSizeAndCount`,
    `theToggleDefaultsOffWhenTheNearbyDownloadIsOverOneMiB`.
-5. **The list is sorted nearest first. Covered.** *Given* the list, *then* rows run from nearest to farthest from my home locality's centre (not from the
-   device), ties by name. `theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn` (order on screen);
-   `NearbyBusinessesTest.sortsByDistanceThenNameThenId`.
-6. **Nearby rows are never labelled "in". Covered.** *Given* a business just outside my places, *then* its row shows its category and the name of the locality it is listed under
-   ("Pub, Acomb") (no distance is shown, because Vesta does not know where I am), and never says it is in a locality. `theListIsSortedNearestFirstAndNearbyRowsAreNeverLabelledIn`. Wording only: the rule that decides which
-   places are "nearby" is the builder's (README, Places).
-7. **Search and group filter. Covered.** *Given* the list, *when* I type a name and choose a category group, *then* only matching rows remain, an empty result
-   says so, and All brings them back. `searchAndGroupFilterNarrowTheList`; `MarketplaceAreaBusinessesViewModelTest.searchNarrowsTheListAndNearbyRowsAreFlagged`,
-   `aGroupFilterKeepsOnlyThatGroupAndAllClearsIt`, `theListPagesByFifty`.
+5. **The list is A to Z within locality sections, home locality first. Covered.** *Given* businesses in my home locality and in a ticked neighbour, *when* I open
+   All businesses, *then* the home locality's heading is above the neighbour's whatever the names, and within each section the rows run A to Z (accents folded),
+   never by distance. `theHomeLocalityComesFirstAndRowsReadCategoryCommaLocalityWithNoDistance` (headings), `theListIsSortedAToZWithinLocalitiesAndNearbyRowsAreNeverLabelledIn` (order on screen);
+   `NearbyBusinessesTest.sectionsFollowAreaOrderWithHomeFirstThenNearestAndSortAToZInside`; `MarketplaceAreaBusinessesViewModelTest.sectionsRunHomeLocalityFirstAndAToZWithinEach`.
+6. **Rows read "Category, Locality", show no distance, and never say "in". Covered.** *Given* a business (inside or just outside my places), *then* its row shows the name,
+   then its category and the name of the locality it is listed under ("Pub, Acomb"), no distance or "away" (Vesta does not know where I am), and never says it is in a locality.
+   `theHomeLocalityComesFirstAndRowsReadCategoryCommaLocalityWithNoDistance`, `theListIsSortedAToZWithinLocalitiesAndNearbyRowsAreNeverLabelledIn`;
+   `MarketplaceAreaBusinessesFlowTest.aGroupOpensItsCategoriesAndACategoryOpensTheListWithLocalityHeadersAndNoInLabel`. Wording only: the rule that decides which
+   places are "nearby" is the builder's (README, Places); a business outside every polygon shows the nearest locality.
+7. **Search across all businesses from the top. Covered.** *Given* the categories screen, *when* I type a name and open the search row, *then* the list shows matching
+   businesses from every group, and an empty result says so. `searchAndGroupFilterNarrowTheList` (first half); `MarketplaceAreaBusinessesFlowTest.theTopLevelSearchRowOpensTheListAcrossAllBusinesses`;
+   `MarketplaceAreaBusinessesViewModelTest.theTopLevelSearchOpensTheListAcrossAllBusinesses`, `searchNarrowsTheListAndNearbyRowsAreFlagged`.
 8. **Cancel keeps what was cached and returns to the summary. Partial.** *Given* a fetch in progress, *when* I press Cancel, *then* the fetch stops, I am on
    the summary, and chunks already stored stay on the device. `cancellingKeepsWhatWasCachedAndReturnsToTheSummary` proves the stop and the return; the cache
    keeping its chunks is proved at the source (`AutonomiPlacesPackSourceTest.aFailingChunkGivesAPartialResultAndTheOtherChunkIsCached`), not through the screen.
@@ -316,3 +319,31 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
     when the pack is loaded, then it is not used and not cached (`AutonomiLocalityPackSourceTest`, `Blake3Test`); the desktop
     factories use the real verifier.
 14. **Fetches appear in Sync activity. Not built yet.** Same as criterion 10 of the section above.
+15. **I land on the categories (groups) screen after the download, with counts. Covered.** *Given* a small area, or a big one after confirming, *when* the download finishes,
+    *then* I see a search field, "All businesses" with the total, then the groups with their counts (largest first) and "Other" last, and not a flat list.
+    `theGroupsScreenListsCountsWithAllBusinessesFirstAndOtherLast`, `aSmallAreaFetchesWithoutAsking`; `MarketplaceAreaBusinessesFlowTest.aSmallAreaLandsOnTheGroupsScreenWithCounts`;
+    `MarketplaceAreaBusinessesViewModelTest.theFetchLandsOnTheGroupsLargestFirstWithTheTotal`.
+16. **A group, then a category, narrows the list. Covered.** *Given* the groups screen, *when* I open a group and then one of its categories, *then* the list is only that
+    category, titled with its name and count. `searchAndGroupFilterNarrowTheList` (the Services list excludes the pub), `backStepsUpOneLevelAtATimeThenToTheSavedCard` (path);
+    `MarketplaceAreaBusinessesFlowTest.aGroupOpensItsCategoriesAndACategoryOpensTheListWithLocalityHeadersAndNoInLabel`;
+    `MarketplaceAreaBusinessesViewModelTest.openingAGroupShowsItsCategoriesWithCounts`, `openingACategoryListsOnlyThatCategory`.
+17. **The "All <group>" row lists the whole group. Covered.** *Given* a group's categories, *when* I choose "All <group>", *then* the list holds every business of the group.
+    `searchAndGroupFilterNarrowTheList` (opens it); `MarketplaceAreaBusinessesFlowTest.aGroupOpensItsCategoriesAndACategoryOpensTheListWithLocalityHeadersAndNoInLabel` (the row's label);
+    `MarketplaceAreaBusinessesViewModelTest.allInTheGroupListsTheWholeGroup`. Partial at the screen: no UI test counts the rows of the group list.
+18. **Search within a category. Covered.** *Given* a category's list, *when* I type a name, *then* only matching businesses of that category remain.
+    `searchWithinACategoryNarrowsThatCategory`; `MarketplaceAreaBusinessesViewModelTest.searchNarrowsTheListAndNearbyRowsAreFlagged`.
+19. **A group's category search narrows the trades. Covered.** *Given* a group's categories (a big group can have hundreds), *when* I search, *then* only categories whose
+    name matches stay, and an empty result says so. `theGroupCategorySearchNarrowsTheTrades`; `MarketplaceAreaBusinessesFlowTest.theCategorySearchNarrowsTheCategoriesAndBackStepsUp`;
+    `MarketplaceAreaBusinessesViewModelTest.theCategorySearchNarrowsTheCategoryNamesOnly`.
+20. **Back steps up one level at a time, then to the Saved card. Covered.** *Given* a category's list, *when* I press back, *then* I see the group's categories, then the
+    groups, then the Saved card (the results are dropped). `backStepsUpOneLevelAtATimeThenToTheSavedCard`;
+    `MarketplaceAreaBusinessesViewModelTest.backStepsUpOneLevelAtATime`, `backFromAListOpenedFromTheGroupsReturnsToTheGroups`, `backFromTheGroupsReturnsToTheSavedCardAndDropsTheResults`.
+21. **"Other" opens its list directly. Covered.** *Given* businesses with no known category, *when* I open Other, *then* its list shows at once with no categories screen, and
+    back returns to the groups. `otherOpensItsListDirectly` (list); `MarketplaceAreaBusinessesViewModelTest.theUnknownGroupHasNoCategoriesAndOpensItsListDirectly` (back).
+22. **Show more keeps the locality heading. Partial.** *Given* more than 50 businesses in my home locality and some in a neighbour, *when* I press Show more, *then* the
+    home locality keeps one heading above its continuing rows and the neighbour's heading follows. `showMoreKeepsTheLocalityHeaderOverTheContinuingRows` (on screen: one
+    section per locality after Show more, the last row and the next heading reachable); `MarketplaceAreaBusinessesViewModelTest.theListPagesByFifty` and
+    `NearbyBusinessesTest` (a section cut by a page boundary is returned again with the rest, in the logic). Missing: the screen grows one list, so a repeated heading
+    on a second page is not a UI behaviour; whether scrolling feels right is for the by-hand run.
+23. **Business detail pages, contact options, the confidence filter, desktop master-detail and category icons. Not built yet.** Separate decisions in the yellow-pages plan.
+24. **The directory screens in the real app. Not covered.** Compose tests over fakes only; the by-hand run (yellow-pages plan, "By-hand run") is owed.

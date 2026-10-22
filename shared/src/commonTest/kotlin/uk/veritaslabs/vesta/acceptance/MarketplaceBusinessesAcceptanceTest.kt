@@ -9,7 +9,9 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.AfterTest
@@ -25,6 +27,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import uk.veritaslabs.vesta.location.HomeLocation
 import uk.veritaslabs.vesta.location.PlaceRange
+import uk.veritaslabs.vesta.location.PlaceRecord
 import uk.veritaslabs.vesta.location.TinyPack.id
 import uk.veritaslabs.vesta.location.TinyPlaces
 import uk.veritaslabs.vesta.ui.flows.MarketplaceAreaFlow
@@ -275,5 +278,148 @@ class MarketplaceBusinessesAcceptanceTest {
         assertEquals(0, source.loadCalls)
         assertEquals(0, places.loadCalls)
         assertEquals(0, places.fetchCalls)
+    }
+
+    private fun shop(n: Int, name: String, category: Int = 0) =
+        PlaceRecord(TinyPlaces.uuid(300 + n), name, 50.70 + n / 10_000.0, -1.29, 1.0, category, false)
+
+    private fun ComposeUiTest.top(tag: String): Float = onNodeWithTag(tag).fetchSemanticsNode().positionInRoot.y
+
+    @Test
+    fun theGroupsScreenListsCountsWithAllBusinessesFirstAndOtherLast() = runComposeUiTest {
+        // Arrange — Given an area with a cafe, a hair salon and a business whose category is unknown
+        val places = AreaFakePlaces().apply {
+            generated = mapOf(3 to listOf(shop(1, "Mystery Shop", 99), shop(2, "Cafe One", 0), shop(3, "Hair Two", 1)))
+        }
+        show(places)
+
+        // Act — When the download finishes
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+
+        // Assert — Then I am on the groups screen with counts, All businesses first and Other last
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesAll).assertTextContains("3", substring = true)
+        onNodeWithTag(MarketplaceAreaTestTags.businessesGroup("unknown")).assertTextContains("Other", substring = true)
+        val order = listOf(
+            MarketplaceAreaTestTags.BusinessesAll,
+            MarketplaceAreaTestTags.businessesGroup("food_and_drink"),
+            MarketplaceAreaTestTags.businessesGroup("services"),
+            MarketplaceAreaTestTags.businessesGroup("unknown"),
+        ).map { top(it) }
+        assertEquals(order.sorted(), order)
+    }
+
+    @Test
+    fun otherOpensItsListDirectly() = runComposeUiTest {
+        // Arrange — Given a business whose category is unknown
+        val places = AreaFakePlaces().apply { generated = mapOf(3 to listOf(shop(1, "Mystery Shop", 99), shop(2, "Cafe One", 0))) }
+        show(places)
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+
+        // Act — When I open Other
+        tap(MarketplaceAreaTestTags.businessesGroup("unknown"))
+
+        // Assert — Then its list shows at once, with no categories screen
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesCategories).assertDoesNotExist()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesListTitle).assertTextEquals("Other")
+        onNodeWithTag(MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(301))).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(302))).assertDoesNotExist()
+    }
+
+    @Test
+    fun theHomeLocalityComesFirstAndRowsReadCategoryCommaLocalityWithNoDistance() = runComposeUiTest {
+        // Arrange — Given a business in the home locality and one in a neighbour, the neighbour's name sorting first
+        val home = shop(1, "Zed Cafe")
+        val neighbour = shop(2, "Alpha Cafe")
+        val places = AreaFakePlaces().apply { generated = mapOf(3 to listOf(home), 5 to listOf(neighbour)) }
+        show(places)
+
+        // Act — When I open All businesses
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.BusinessesAll)
+
+        // Assert — Then the home locality's section is above the neighbour's despite A to Z, and the rows read "Category, Locality"
+        assertTrue(top(MarketplaceAreaTestTags.businessesSection(3)) < top(MarketplaceAreaTestTags.businessesSection(5)))
+        val text = textOf(MarketplaceAreaTestTags.businessesRow(home.id))
+        assertTrue(text.contains("Zed Cafe") && text.contains("Cafe, "), text)
+        assertTrue(!Regex("\\d\\s*(km|m|mi)\\b|away", RegexOption.IGNORE_CASE).containsMatchIn(text), text)
+    }
+
+    @Test
+    fun searchWithinACategoryNarrowsThatCategory() = runComposeUiTest {
+        // Arrange — Given the Pub category list (two pubs)
+        show()
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.businessesGroup("food_and_drink"))
+        tap(MarketplaceAreaTestTags.businessesCategory(2))
+        val nearbyPub = MarketplaceAreaTestTags.businessesRow(TinyPlaces.uuid(8))
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesHeader).assertTextContains("2 businesses", substring = true)
+
+        // Act — When I search "nearby" inside it
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesSearchField).performTextInput("nearby")
+        waitForIdle()
+
+        // Assert — Then only the matching pub remains
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesHeader).assertTextContains("1 business", substring = true)
+        onNodeWithTag(nearbyPub).assertIsDisplayed()
+    }
+
+    @Test
+    fun theGroupCategorySearchNarrowsTheTrades() = runComposeUiTest {
+        // Arrange — Given the Food and drink categories
+        show()
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.businessesGroup("food_and_drink"))
+        onNodeWithTag(MarketplaceAreaTestTags.businessesCategory(0)).assertIsDisplayed()
+
+        // Act — When I search "pub"
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesCategorySearch).performTextInput("pub")
+        waitForIdle()
+
+        // Assert — Then only Pub is left
+        onNodeWithTag(MarketplaceAreaTestTags.businessesCategory(2)).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.businessesCategory(0)).assertDoesNotExist()
+    }
+
+    @Test
+    fun backStepsUpOneLevelAtATimeThenToTheSavedCard() = runComposeUiTest {
+        // Arrange — Given I am in a category's list
+        show()
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.businessesGroup("food_and_drink"))
+        tap(MarketplaceAreaTestTags.businessesCategory(2))
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesListTitle).assertIsDisplayed()
+
+        // Act / Assert — When I press back, then the categories, then the groups, then the Saved card
+        tap(MarketplaceAreaTestTags.BackButton)
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesCategories).assertIsDisplayed()
+        tap(MarketplaceAreaTestTags.BackButton)
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesGroups).assertIsDisplayed()
+        tap(MarketplaceAreaTestTags.BackButton)
+        onNodeWithTag(MarketplaceAreaTestTags.SavedSummary).assertIsDisplayed()
+    }
+
+    @Test
+    fun showMoreKeepsTheLocalityHeaderOverTheContinuingRows() = runComposeUiTest {
+        // Arrange — Given 60 businesses in the home locality and 3 in a neighbour (more than one page of 50)
+        val many = (1..60).map { shop(it, "Shop ${it.toString().padStart(2, '0')}") }
+        val others = (61..63).map { shop(it, "Other $it") }
+        val places = AreaFakePlaces().apply { generated = mapOf(3 to many, 5 to others) }
+        val viewModel = show(places)
+        tap(MarketplaceAreaTestTags.SavedSeeBusinesses)
+        tap(MarketplaceAreaTestTags.BusinessesAll)
+        onNodeWithTag(MarketplaceAreaTestTags.businessesSection(3)).assertIsDisplayed()
+
+        // Act — When I scroll to the end of the first page and press Show more
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).performScrollToNode(hasTestTag(MarketplaceAreaTestTags.BusinessesShowMore))
+        tap(MarketplaceAreaTestTags.BusinessesShowMore)
+
+        // Assert — Then the home locality still has exactly one header, its rows continue, and the neighbour's header follows
+        assertEquals(listOf(3, 5), viewModel.uiState.value.businesses.sections.map { it.localityRow })
+        val last = MarketplaceAreaTestTags.businessesRow(many.last().id)
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).performScrollToNode(hasTestTag(last))
+        onNodeWithTag(last).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.BusinessesList).performScrollToNode(hasTestTag(MarketplaceAreaTestTags.businessesSection(5)))
+        onNodeWithTag(MarketplaceAreaTestTags.businessesSection(5)).assertIsDisplayed()
     }
 }

@@ -503,3 +503,21 @@ The business list behind the Saved card's "See businesses". UI under Compose tes
   businesses, not registered merchants); the **businesses paragraph of the disclosure is a draft awaiting the user's sign-off**; 177,874 placed
   places have no category (shown under the group "Other"); forgetting an area does not clear the on-disk places cache.
 - Acceptance criteria: `docs/testing/acceptance-tests.md`, "Marketplace businesses (ADR-039 places)", backed by `MarketplaceBusinessesAcceptanceTest`.
+
+### Browsing businesses like a directory ([yellow-pages plan](../plans/ADR-039-yellow-pages-plan.md), WP-Y1 to WP-Y3)
+
+After the download the member lands on a **categories screen**, not a flat list: "All businesses", then the 13 groups (Food and drink, Services,
+...) with counts, then "Other" last (businesses with no category; it opens its list directly). A group opens its categories (Hair Salon, Flooring
+Contractor) with counts and an "All <group>" row; a category opens the list. Counts come from the downloaded data, so they are exact for the area
+chosen and follow the just-outside toggle. Every list is **A to Z** (accents folded) under **headings by locality**: the home locality first, then
+the ticked neighbours nearest first. Rows read "Category, Locality" and show no distance (Vesta does not know where the member is). Search works from
+the top across all businesses, inside a category, and (a separate field) across the category names of a group. Back goes up one level at a time and
+then to the Saved card. "Show more" adds 50 businesses; in the screen the list simply grows, so a locality keeps its single heading above its
+continuing rows (the logic returns a heading again for a section cut by a page, tested in `NearbyBusinessesTest`).
+
+- **The locality name is the nearest locality** for a business outside every polygon, shown plainly; a business under "Shadoxhurst" may be a few
+  kilometres outside it, and a member can read that as being in the village. Revisit if it misleads in a by-hand run.
+- **Real numbers (WP-Y1 against the devnet pack):** Orlestone, 220 businesses in 14 groups and 120 categories. Queen's Park, 74,300 businesses in
+  14 groups and 1,283 categories; the largest group has 430 categories, which is why the category screen has its own search field.
+- **Not done:** business detail pages and contact options, the confidence filter, a desktop master-detail layout, category icons. None of this UI
+  has been run in the real app; it is covered by Compose UI tests over fakes only.
