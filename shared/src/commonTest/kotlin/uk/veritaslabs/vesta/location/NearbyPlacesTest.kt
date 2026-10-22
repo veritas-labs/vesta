@@ -58,8 +58,43 @@ class NearbyPlacesTest {
         val rows = NearbyPlaces.rows(shide, directory).rows
 
         // Assert
-        assertEquals(listOf("Newport"), rows.map { it.name })
-        assertEquals(NearbyRelation.InsideOf, rows.single().relation)
+        assertEquals("Newport", rows.first().name)
+        assertEquals(NearbyRelation.InsideOf, rows.first().relation)
+        assertTrue(rows.drop(1).all { it.relation == NearbyRelation.Further })
+    }
+
+    @Test
+    fun aHomeWithFewCandidatesIsWidenedToTheNeighboursOfItsNeighbours() {
+        // Arrange: Cowes touches only Newport and Alpha Town
+        val cowes = id(5)
+
+        // Act
+        val rows = NearbyPlaces.rows(cowes, directory).rows
+
+        // Assert: Carisbrooke and Beta Town touch those, not Cowes, so they are offered as further away
+        val byName = rows.associate { it.name to it.relation }
+        assertEquals(NearbyRelation.Neighbour, byName["Newport"])
+        assertEquals(NearbyRelation.Neighbour, byName["Alpha Town"])
+        assertEquals(NearbyRelation.Further, byName["Carisbrooke"])
+        assertEquals(NearbyRelation.Further, byName["Beta Town"])
+        assertTrue(rows.zipWithNext().all { (a, b) -> a.distanceMetres <= b.distanceMetres })
+    }
+
+    @Test
+    fun aHomeWithEnoughCandidatesIsNotWidened() {
+        // Arrange: a hub touching ten places, each of which touches one more place
+        val specs = listOf(TinyPack.Spec("Hub", "locality", null, 50.0, -1.0)) +
+            (1..10).map { TinyPack.Spec("Spoke $it", "locality", null, 50.0 + it * 0.01, -1.0) } +
+            TinyPack.Spec("Outer", "locality", null, 51.0, -1.0)
+        val edges = (1..10).map { 0 to it } + (1 to 11)
+        val big = LocalityDirectory(TinyPack.pack(specs, edges))
+
+        // Act
+        val rows = NearbyPlaces.rows(id(0), big, shown = 50).rows
+
+        // Assert
+        assertEquals(10, rows.size)
+        assertTrue(rows.none { it.relation == NearbyRelation.Further })
     }
 
     @Test

@@ -34,6 +34,7 @@ import vesta.shared.generated.resources.area_nearby_distance_km
 import vesta.shared.generated.resources.area_nearby_distance_m
 import vesta.shared.generated.resources.area_nearby_home_locked
 import vesta.shared.generated.resources.area_nearby_inside
+import vesta.shared.generated.resources.area_nearby_further
 import vesta.shared.generated.resources.area_nearby_next_door
 import vesta.shared.generated.resources.area_nearby_no_match
 import vesta.shared.generated.resources.area_nearby_prompt
@@ -165,6 +166,7 @@ private fun relationLabel(relation: NearbyRelation, homeName: String): String = 
     NearbyRelation.Neighbour, NearbyRelation.NeighbourAndNested -> stringResource(Res.string.area_nearby_next_door)
     // The enum is from the home's side: Contains = the home contains this place, so the place is inside the home.
     NearbyRelation.Contains -> stringResource(Res.string.area_nearby_inside, homeName)
+    NearbyRelation.Further -> stringResource(Res.string.area_nearby_further)
     NearbyRelation.InsideOf -> stringResource(Res.string.area_nearby_contains, homeName)
 }
 
