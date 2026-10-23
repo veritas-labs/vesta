@@ -77,7 +77,6 @@ internal object MarketplaceAreaTestTags {
     const val BusinessesShowMore = "area_businesses_show_more"
     const val BusinessesNoMatch = "area_businesses_no_match"
     const val MissingNote = "area_missing_note"
-    const val MissingOpen = "area_missing_open"
 
     const val MyShopsRow = "area_my_shops_row"
     const val BusinessesChangeArea = "area_businesses_change_area"

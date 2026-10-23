@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -30,6 +31,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -352,25 +355,25 @@ private fun groupIcon(key: String): DrawableResource = when (key) {
     else -> Res.drawable.ic_tag
 }
 
-/** A category tile: [icon] in a tinted square, the [label] and a [detail] line. */
+/** A category tile: [icon] in a tinted square beside the [label] and a [detail] line. */
 @Composable
 private fun CategoryTile(icon: DrawableResource, label: String, detail: String, tag: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().testTag(tag),
+        modifier = modifier.fillMaxWidth().height(88.dp).testTag(tag),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(40.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.small),
+                Modifier.size(40.dp).background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.small),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
             }
-            Column {
-                Text(label, style = MaterialTheme.typography.titleMedium, maxLines = 2)
-                Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }
@@ -388,8 +391,9 @@ private fun AreaSummaryCard(areaName: String, nearbyCount: Int, total: Int, onCh
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     stringResource(Res.string.area_places_active_area),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     if (nearbyCount > 0) pluralStringResource(Res.plurals.area_places_area_with_nearby, nearbyCount, areaName, nearbyCount) else areaName,
@@ -401,8 +405,12 @@ private fun AreaSummaryCard(areaName: String, nearbyCount: Int, total: Int, onCh
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            TextButton(onClick = onChange, modifier = Modifier.testTag(MarketplaceAreaTestTags.BusinessesChangeArea)) {
-                Text(stringResource(Res.string.area_saved_change))
+            FilledTonalButton(
+                onClick = onChange,
+                modifier = Modifier.testTag(MarketplaceAreaTestTags.BusinessesChangeArea),
+                colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
+            ) {
+                Text(stringResource(Res.string.area_saved_change), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -432,7 +440,7 @@ fun AreaBusinessGroupsScreen(
 ) {
     AreaScaffold(stringResource(Res.string.area_places_title), onBack, modifier) {
         LazyVerticalGrid(
-            GridCells.Adaptive(160.dp),
+            GridCells.Adaptive(180.dp),
             Modifier.fillMaxSize().testTag(MarketplaceAreaTestTags.BusinessesGroups),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -459,6 +467,7 @@ fun AreaBusinessGroupsScreen(
                     }
                 }
             }
+            item(key = "divider", span = { GridItemSpan(maxLineSpan) }) { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item(key = "heading", span = { GridItemSpan(maxLineSpan) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(Res.string.area_places_categories), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)

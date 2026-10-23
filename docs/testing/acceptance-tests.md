@@ -347,8 +347,8 @@ the devnet (a by-hand recipe is in the plan), Android and iOS, and a real mainne
     on a second page is not a UI behaviour; whether scrolling feels right is for the by-hand run.
 22a. **A missing business points to OpenStreetMap. Covered.** *Given* the Categories screen, the end of a business list, or a search with no match, *when* I look at the bottom,
     *then* a note says listings come from Overture Maps (built on OpenStreetMap and others), that a missing business is added on OpenStreetMap and appears here in a later
-    update; *and when* I press "Open OpenStreetMap", *then* only `https://www.openstreetmap.org` is opened, with nothing about my area in the address and nothing sent by Vesta.
-    `MarketplaceAreaBusinessesFlowTest.theMissingBusinessNoteEndsTheCategoriesScreenAndTheList`, `theMissingBusinessNoteShowsWhenASearchFindsNothing`, `openOpenStreetMapOpensOnlyTheSiteFrontPage`.
+    update. The note has no button, and nothing is sent by Vesta.
+    `MarketplaceAreaBusinessesFlowTest.theMissingBusinessNoteEndsTheCategoriesScreenAndTheList`, `theMissingBusinessNoteShowsWhenASearchFindsNothing`.
 23. **Business detail pages, contact options, the confidence filter, desktop master-detail and category icons. Not built yet.** Separate decisions in the yellow-pages plan.
 24. **The directory screens in the real app. Not covered.** Compose tests over fakes only; the by-hand run (yellow-pages plan, "By-hand run") is owed.
 

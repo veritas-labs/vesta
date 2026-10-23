@@ -269,7 +269,7 @@ class MarketplaceAreaBusinessesFlowTest {
 
         // Assert
         onNode(hasScrollAction()).performScrollToNode(hasTestTag(MarketplaceAreaTestTags.MissingNote))
-        onNodeWithTag(MarketplaceAreaTestTags.MissingOpen).assertIsDisplayed()
+        onNodeWithTag(MarketplaceAreaTestTags.MissingNote).assertIsDisplayed()
         tap(MarketplaceAreaTestTags.BusinessesAll)
         onNode(hasScrollAction()).performScrollToNode(hasTestTag(MarketplaceAreaTestTags.MissingNote))
         onNodeWithTag(MarketplaceAreaTestTags.MissingNote).assertIsDisplayed()
@@ -289,23 +289,5 @@ class MarketplaceAreaBusinessesFlowTest {
         // Assert
         onNodeWithTag(MarketplaceAreaTestTags.BusinessesNoMatch).assertIsDisplayed()
         onNodeWithTag(MarketplaceAreaTestTags.MissingNote).assertIsDisplayed()
-    }
-
-    @Test
-    fun openOpenStreetMapOpensOnlyTheSiteFrontPage() = runComposeUiTest {
-        // Arrange
-        val opened = mutableListOf<String>()
-        val handler = object : UriHandler {
-            override fun openUri(uri: String) {
-                opened += uri
-            }
-        }
-        setContent { VestaTheme { CompositionLocalProvider(LocalUriHandler provides handler) { MissingBusinessNote() } } }
-
-        // Act
-        onNodeWithTag(MarketplaceAreaTestTags.MissingOpen).performClick()
-
-        // Assert
-        assertEquals(listOf("https://www.openstreetmap.org"), opened)
     }
 }
