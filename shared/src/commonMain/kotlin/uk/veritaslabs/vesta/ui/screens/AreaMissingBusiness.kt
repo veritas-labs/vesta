@@ -21,8 +21,8 @@ import vesta.shared.generated.resources.area_missing_body
 import vesta.shared.generated.resources.area_missing_title
 
 /**
- * "A business is missing": says where Vesta's listings come from and that a missing business is added on OpenStreetMap,
- * with a button that opens the site ([onOpen], by default through the platform's URI handler). Nothing is sent from the app.
+ * "A business is missing": says where Vesta's listings come from and that a missing business is added on OpenStreetMap.
+ * Text only; nothing is opened or sent from the app.
  */
 @Composable
 fun MissingBusinessNote(modifier: Modifier = Modifier) {
