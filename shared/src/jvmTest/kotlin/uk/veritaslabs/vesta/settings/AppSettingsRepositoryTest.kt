@@ -92,4 +92,20 @@ class AppSettingsRepositoryTest {
         // Assert
         assertEquals(true, seen)
     }
+
+    @Test
+    fun remembersTheLastHomeAndForgetsItWhenNoneIsOpen() = runTest {
+        // Arrange
+        val db = openInMemoryDatabase()
+        AppSettingsRepository(db).setLastHomeId("home-1")
+
+        // Act
+        val remembered = AppSettingsRepository(db).lastHomeId()
+        AppSettingsRepository(db).setLastHomeId(null)
+        val afterClearing = AppSettingsRepository(db).lastHomeId()
+
+        // Assert
+        assertEquals("home-1", remembered)
+        assertNull(afterClearing)
+    }
 }

@@ -277,9 +277,13 @@ fun App(
                 val existingInstall = homes.first().isNotEmpty() || profiles?.observe()?.filterNotNull()?.first()?.named == true
                 if (existingInstall) settings.setOnboardingSeen(true) else onboarding = OnboardingMode.FirstLaunch
             }
+            // Reopen in the Home the user was last in, rather than on the picker, if it still exists.
+            settings.lastHomeId()?.let { id -> if (homes.first().any { it.id == id }) selectedHome.select(id) }
             settingsLoaded = true
         }
     }
+    // Remember which Home is open (or that none is) so the next launch can return to it; only once the saved value has been restored.
+    LaunchedEffect(homeId, settingsLoaded) { if (settingsLoaded) settings?.setLastHomeId(homeId) }
     val darkTheme = themeMode.isDark(isSystemInDarkTheme())
     SystemBarsAppearance(darkTheme)
     // Off on a phone until the user opts in (on in an emulator); saved in [settings]. Platforms that run x0x in-process stop it on mobile data unless this is on.

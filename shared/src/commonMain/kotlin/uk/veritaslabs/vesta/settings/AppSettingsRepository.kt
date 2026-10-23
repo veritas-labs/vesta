@@ -53,6 +53,11 @@ class AppSettingsRepository(
 
     suspend fun setOnboardingSeen(seen: Boolean) = database.appSettingQueries.upsert(OnboardingSeenKey, seen.toString())
 
+    /** The id of the Home the user was last working in, or null if they were on the Home picker (or never chose one). */
+    suspend fun lastHomeId(): String? = read(LastHomeIdKey)?.takeIf { it.isNotEmpty() }
+
+    suspend fun setLastHomeId(homeId: String?) = database.appSettingQueries.upsert(LastHomeIdKey, homeId.orEmpty())
+
     private suspend fun read(key: String): String? = database.appSettingQueries.selectValue(key).awaitAsOneOrNull()
 
     private companion object {
@@ -64,5 +69,6 @@ class AppSettingsRepository(
         const val CalendarOtherMonthsKey = "calendarShowOtherMonthDays"
         const val CalendarStartCollapsedKey = "calendarStartCollapsed"
         const val OnboardingSeenKey = "onboardingSeen"
+        const val LastHomeIdKey = "lastHomeId"
     }
 }
