@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -125,6 +126,9 @@ internal object ShoppingListTestTags {
 
     /** Tag for the row of the item with the given [key] (its dedup key — see ADR-008). */
     fun item(key: String) = "shopping_item_$key"
+
+    /** Tag for the tags line of the item with the given [key]. */
+    fun itemTags(key: String) = "shopping_item_tags_$key"
 
     const val ItemSheet = "shopping_item_sheet"
     const val OutOfStockButton = "shopping_sheet_out_of_stock_button"
@@ -618,14 +622,16 @@ private fun ShoppingItemRow(
                     Icon(
                         painter = painterResource(Res.drawable.ic_tag),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
                         text = item.tags.joinToString(" · "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        // labelSmall + 2sp for legibility; onSurfaceVariant (not the pale tan primary) for contrast.
+                        style = MaterialTheme.typography.labelSmall.let { it.copy(fontSize = (it.fontSize.value + 2).sp) },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag(ShoppingListTestTags.itemTags(item.key)),
                     )
                 }
             }
