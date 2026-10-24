@@ -80,8 +80,9 @@ fun vestaTypography(): Typography {
 }
 
 /**
- * Style for the tag line on list items (e.g. shopping list tags): [Typography.labelSmall] is too small and light to
- * read comfortably there, so tags get their own 13sp style rather than changing labelSmall for every other screen.
+ * Style for the tag line on list items (e.g. shopping list tags): [Typography.labelSmall] is too small and, in thin
+ * Marcellus, too light to read comfortably there, so tags get their own style rather than changing labelSmall for every
+ * other screen. Raleway Medium (a real font file, not a synthesised weight) at 13sp.
  */
 val Typography.itemTag: TextStyle
-    get() = labelSmall.copy(fontSize = 13.sp)
+    @Composable get() = labelSmall.copy(fontFamily = ralewayFontFamily(), fontWeight = FontWeight.Medium, fontSize = 13.sp)
