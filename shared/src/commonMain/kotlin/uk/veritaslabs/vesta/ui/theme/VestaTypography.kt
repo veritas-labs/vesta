@@ -2,6 +2,7 @@ package uk.veritaslabs.vesta.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -77,3 +78,10 @@ fun vestaTypography(): Typography {
         labelSmall = default.labelSmall.copy(fontFamily = marcellus),
     )
 }
+
+/**
+ * Style for the tag line on list items (e.g. shopping list tags): [Typography.labelSmall] is too small and light to
+ * read comfortably there, so tags get their own 13sp style rather than changing labelSmall for every other screen.
+ */
+val Typography.itemTag: TextStyle
+    get() = labelSmall.copy(fontSize = 13.sp)

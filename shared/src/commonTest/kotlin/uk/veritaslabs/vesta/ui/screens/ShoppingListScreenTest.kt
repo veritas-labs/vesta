@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
@@ -531,7 +532,7 @@ class ShoppingListScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun itemTagsAreThirteenSpAndReadableOnTheSurfaceInLightAndDark() = runComposeUiTest {
+    fun itemTagsAreThirteenSpAndReadableOnTheRowBackgroundInLightAndDark() = runComposeUiTest {
         // Arrange
         val tagged = milk.copy(tags = listOf("Farm shop"))
         var darkTheme by mutableStateOf(false)
@@ -539,8 +540,10 @@ class ShoppingListScreenTest {
         var surfaceColor = Color.Unspecified
         setContent {
             VestaTheme(darkTheme = darkTheme) {
-                tagColor = MaterialTheme.colorScheme.onSurfaceVariant
-                surfaceColor = MaterialTheme.colorScheme.surface
+                tagColor = MaterialTheme.colorScheme.onSurface
+                // The row paints surfaceVariant at 40% alpha over the screen's surface (see ShoppingItemRow).
+                surfaceColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    .compositeOver(MaterialTheme.colorScheme.surface)
                 ShoppingListScreen(items = listOf(tagged))
             }
         }
@@ -557,7 +560,7 @@ class ShoppingListScreenTest {
             assertEquals(13.sp, tag.style.fontSize, "tag font size (dark=$dark)")
             assertEquals(tag.expectedColor, tag.style.color, "tag colour (dark=$dark)")
             val ratio = contrastRatio(tag.expectedColor, tag.surface)
-            assertTrue(ratio >= 4.5f, "tag contrast $ratio < 4.5 (dark=$dark)")
+            assertTrue(ratio >= 7f, "tag contrast $ratio < 7 (dark=$dark)")
         }
     }
 
