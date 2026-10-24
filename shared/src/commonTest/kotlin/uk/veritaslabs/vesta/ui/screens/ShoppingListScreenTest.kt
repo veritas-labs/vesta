@@ -2,10 +2,13 @@ package uk.veritaslabs.vesta.ui.screens
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -18,11 +21,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.test.v2.runComposeUiTest
-import kotlin.math.pow
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import uk.veritaslabs.vesta.ui.theme.VestaTheme
 
 class ShoppingListScreenTest {
@@ -524,52 +529,53 @@ class ShoppingListScreenTest {
         assertEquals(listOf("Team Snack", "Item 1", "Item 2", "Item 3", "Item 4"), result)
     }
 
-    private fun luminance(c: Color): Double {
-        fun lin(v: Float) = if (v <= 0.03928f) v / 12.92 else ((v + 0.055) / 1.055).toDouble().pow(2.4)
-        return 0.2126 * lin(c.red) + 0.7152 * lin(c.green) + 0.0722 * lin(c.blue)
-    }
-
-    private fun contrast(a: Color, b: Color): Double {
-        val (hi, lo) = luminance(a).let { x -> luminance(b).let { y -> maxOf(x, y) to minOf(x, y) } }
-        return (hi + 0.05) / (lo + 0.05)
-    }
-
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun itemTagsAreTwoSpLargerThanLabelSmallAndReadableOnTheSurfaceInLightAndDark() = runComposeUiTest {
+    fun itemTagsAreThirteenSpAndReadableOnTheSurfaceInLightAndDark() = runComposeUiTest {
         // Arrange
         val tagged = milk.copy(tags = listOf("Farm shop"))
-        var darkMode by androidx.compose.runtime.mutableStateOf(false)
-        var expectedSize = 0.sp
+        var darkTheme by mutableStateOf(false)
         var tagColor = Color.Unspecified
-        var surface = Color.Unspecified
+        var surfaceColor = Color.Unspecified
         setContent {
-            VestaTheme(darkTheme = darkMode) {
-                expectedSize = (MaterialTheme.typography.labelSmall.fontSize.value + 2).sp
+            VestaTheme(darkTheme = darkTheme) {
                 tagColor = MaterialTheme.colorScheme.onSurfaceVariant
-                surface = MaterialTheme.colorScheme.surface
+                surfaceColor = MaterialTheme.colorScheme.surface
                 ShoppingListScreen(items = listOf(tagged))
             }
         }
 
         // Act
-        val results = listOf(false, true).map { dark ->
-            darkMode = dark
+        val rendered = listOf(false, true).associateWith { dark ->
+            darkTheme = dark
             waitForIdle()
-            val layout = onNodeWithTag(ShoppingListTestTags.itemTags(tagged.key), useUnmergedTree = true).fetchSemanticsNode()
-                .config.getOrNull(SemanticsActions.GetTextLayoutResult)!!.action!!.let { f ->
-                    val out = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
-                    f(out)
-                    out.first()
-                }
-            Triple(layout.layoutInput.style, tagColor, surface)
+            RenderedTag(tagTextStyle(tagged.key), tagColor, surfaceColor)
         }
 
         // Assert
-        results.forEach { (style, color, bg) ->
-            assertEquals(expectedSize, style.fontSize)
-            assertEquals(color, style.color)
-            assert(contrast(color, bg) >= 4.5) { "tag contrast ${contrast(color, bg)} < 4.5" }
+        rendered.forEach { (dark, tag) ->
+            assertEquals(13.sp, tag.style.fontSize, "tag font size (dark=$dark)")
+            assertEquals(tag.expectedColor, tag.style.color, "tag colour (dark=$dark)")
+            val ratio = contrastRatio(tag.expectedColor, tag.surface)
+            assertTrue(ratio >= 4.5f, "tag contrast $ratio < 4.5 (dark=$dark)")
         }
+    }
+
+    private class RenderedTag(val style: TextStyle, val expectedColor: Color, val surface: Color)
+
+    @OptIn(ExperimentalTestApi::class)
+    private fun ComposeUiTest.tagTextStyle(itemKey: String): TextStyle {
+        val node = onNodeWithTag(ShoppingListTestTags.itemTags(itemKey), useUnmergedTree = true).fetchSemanticsNode()
+        val getLayout = node.config.getOrNull(SemanticsActions.GetTextLayoutResult)!!.action!!
+        val layouts = mutableListOf<TextLayoutResult>()
+        getLayout(layouts)
+        return layouts.first().layoutInput.style
+    }
+
+    /** WCAG contrast ratio between two opaque colours. */
+    private fun contrastRatio(a: Color, b: Color): Float {
+        val lighter = maxOf(a.luminance(), b.luminance())
+        val darker = minOf(a.luminance(), b.luminance())
+        return (lighter + 0.05f) / (darker + 0.05f)
     }
 }
